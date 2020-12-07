@@ -397,7 +397,7 @@ SessionId getAndDeleteNextMarkedRow()
  * @brief   Main process of the UDP Role Interface
  *
  *****************************************************************************/
-void NAL_main(
+void nal_main(
     // ----- link to FMC -----
     ap_uint<32> ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
     //state of the FPGA
@@ -889,15 +889,15 @@ void NAL_main(
             //the UOE handles this as streaming mode
             soUOE_DLen.write(udpTX_packet_length);
             packet_count_TX++;
-            UdpWord    aWord = siUdp_data.read();
+            UdpAppData    aWord = siUdp_data.read();
             udpTX_current_packet_length++;
             if(udpTX_packet_length > 0 && udpTX_current_packet_length >= udpTX_packet_length)
             {//we need to set tlast manually
-              aWord.tlast = 1;
+              aWord.setTLast(1);
             }
 
             soUOE_Data.write(aWord);
-            if (aWord.tlast == 1)
+            if (aWord.getTLast() == 1)
             {
               fsmStateTX_Udp = FSM_W8FORMETA;
             } else {
@@ -911,16 +911,16 @@ void NAL_main(
           if ( !siUdp_data.empty() && !soUOE_Data.full() )
           {
             // Forward data chunk
-            UdpWord    aWord = siUdp_data.read();
+            UdpAppData    aWord = siUdp_data.read();
             udpTX_current_packet_length++;
             if(udpTX_packet_length > 0 && udpTX_current_packet_length >= udpTX_packet_length)
             {//we need to set tlast manually
-              aWord.tlast = 1;
+              aWord.setTLast(1);
             }
 
             soUOE_Data.write(aWord);
             // Until LAST bit is set
-            if (aWord.tlast == 1)
+            if (aWord.getTLast() == 1)
             {
               fsmStateTX_Udp = FSM_W8FORMETA;
             }
@@ -929,14 +929,14 @@ void NAL_main(
 
         case FSM_DROP_PACKET:
           if ( !siUdp_data.empty() ) {
-            UdpWord    aWord = siUdp_data.read();
+            UdpAppData    aWord = siUdp_data.read();
             udpTX_current_packet_length++;
             if(udpTX_packet_length > 0 && udpTX_current_packet_length >= udpTX_packet_length)
             {//we need to set tlast manually
-              aWord.tlast = 1;
+              aWord.setTLast(1);
             }
             // Until LAST bit is set (with length or with tlast)
-            if (aWord.tlast == 1)
+            if (aWord.getTLast() == 1)
             {
               fsmStateTX_Udp = FSM_W8FORMETA;
             }
@@ -1058,10 +1058,10 @@ void NAL_main(
             soUdp_meta.write(in_meta_udp);
             packet_count_RX++;
             // Forward data chunk to ROLE
-            UdpWord    udpWord = siUOE_Data.read();
+            UdpAppData    udpWord = siUOE_Data.read();
             soUdp_data.write(udpWord);
 
-            if (!udpWord.tlast) {
+            if (!udpWord.getTLast() == 1) {
               fsmStateRX_Udp = FSM_ACC;
             } else { 
               //we are already done, stay here
@@ -1079,10 +1079,10 @@ void NAL_main(
           // Default stream handling
           if ( !siUOE_Data.empty() && !soUdp_data.full() ) {
             // Forward data chunk to ROLE
-            UdpWord    udpWord = siUOE_Data.read();
+            UdpAppData    udpWord = siUOE_Data.read();
             soUdp_data.write(udpWord);
             // Until LAST bit is set
-            if (udpWord.tlast)
+            if (udpWord.getTLast() == 1)
             {
               fsmStateRX_Udp = FSM_FIRST_ACC;
             }
@@ -1092,9 +1092,9 @@ void NAL_main(
         case FSM_DROP_PACKET:
           if( !siUOE_Data.empty() )
           {
-            UdpWord    udpWord = siUOE_Data.read();
+            UdpAppData    udpWord = siUOE_Data.read();
             // Until LAST bit is set
-            if (udpWord.tlast)
+            if (udpWord.getTLast() == 1)
             {
               fsmStateRX_Udp = FSM_FIRST_ACC;
             }

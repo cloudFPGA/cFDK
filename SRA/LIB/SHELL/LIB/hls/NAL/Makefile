@@ -35,7 +35,7 @@ ipName = nal
 top_suffix =_main
 # Dependencies
 SRC_DEPS := $(shell find ./src/ -type f)
-SRC_DEPS += ../network_utils.hpp ../network_utils.cpp ../NTS/nts_config.hpp ../NTS/nts_types.hpp
+SRC_DEPS += ../network_utils.hpp ../network_utils.cpp ../NTS/nts_config.hpp ../NTS/nts_types.hpp ../NTS/nts.hpp
 
 REF_DEPS = $(shell find ./ref/ -type f)
 

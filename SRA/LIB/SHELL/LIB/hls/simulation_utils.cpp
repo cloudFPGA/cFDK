@@ -25,8 +25,6 @@
 //  *
 //  *
 
-#ifndef _CF_SIMULATION_UTILS_
-#define _CF_SIMULATION_UTILS_
 
 #include <stdio.h>
 #include <iostream>
@@ -39,9 +37,10 @@
 
 #include "ap_int.h"
 
-#include "NTS/nts_utils.hpp"
-#include "NTS/SimNtsUtils.hpp"
-#include "../../../hls/network.hpp"
+#include "simulation_utils.hpp"
+
+using namespace hls;
+using namespace std;
 
 
 /*****************************************************************************
@@ -50,8 +49,18 @@
  * @param[in] callerName,   the name of the caller process (e.g. "Tle").
  * @param[in] chunk,        the data stream chunk to display.
  *****************************************************************************/
-void printAxiWord(const char *callerName, AxisRaw chunk);
-void printAxiWord(const char *callerName, NetworkWord chunk);
+void printAxiWord(const char *callerName, AxisRaw chunk)
+{
+    printInfo(callerName, "AxiWord = {D=0x%16.16lX, K=0x%2.2X, L=%d} \n",
+              chunk.getTData().to_ulong(), chunk.getTKeep().to_int(), chunk.getTLast().to_int());
+}
+
+void printAxiWord(const char *callerName, NetworkWord chunk)
+{
+    printInfo(callerName, "AxiWord = {D=0x%16.16lX, K=0x%2.2X, L=%d} \n",
+              chunk.tdata.to_ulong(), chunk.tkeep.to_int(), chunk.tlast.to_int());
+}
 
 
-#endif
+
+

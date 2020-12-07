@@ -31,6 +31,8 @@
 #include <hls_stream.h>
 
 #include "../src/nal.hpp"
+#include "../../simulation_utils.hpp"
+#include "../../NTS/nts_utils.hpp"
 
 using namespace std;
 
@@ -223,7 +225,7 @@ bool setInputDataStream(stream<UdpAppData> &sDataStream, const string dataStream
 
             getline(inpFileStream, strLine);
             if (strLine.empty()) continue;
-            sscanf(strLine.c_str(), "%llx %x %d", &udpWord.tdata, &udpWord.tkeep, &udpWord.tlast);
+            sscanf(strLine.c_str(), "%llx %x %d", udpWord.getTData().to_uint64(), udpWord.getTKeep().to_int(), udpWord.getTLast().to_int());
 
             // Write to sDataStream
             if (sDataStream.full()) {
@@ -234,7 +236,7 @@ bool setInputDataStream(stream<UdpAppData> &sDataStream, const string dataStream
                 // Print Data to console
                 printf("[%4.4d] TB is filling input stream [%s] - Data write = {D=0x%16.16llX, K=0x%2.2X, L=%d} \n",
                         simCnt, dataStreamName.c_str(),
-                        udpWord.tdata.to_uint64(), udpWord.tkeep.to_int(), udpWord.tlast.to_int());
+                        udpWord.getTData().to_uint64(), udpWord.getTKeep().to_int(), udpWord.getTLast().to_int());
             }
         }
     }
@@ -376,11 +378,11 @@ bool dumpDataToFile(UdpAppData *udpWord, ofstream &outFileStream) {
         printf("### ERROR : Output file stream is not open. \n");
         return(KO);
     }
-    outFileStream << hex << noshowbase << uppercase << setfill('0') << setw(16) << udpWord->tdata.to_uint64();
+    outFileStream << hex << noshowbase << uppercase << setfill('0') << setw(16) << udpWord->getTData().to_uint64();
     outFileStream << " ";
-    outFileStream << hex << noshowbase << nouppercase << setfill('0') << setw(2)  << udpWord->tkeep.to_int();
+    outFileStream << hex << noshowbase << nouppercase << setfill('0') << setw(2)  << udpWord->getTKeep().to_int();
     outFileStream << " ";
-    outFileStream << setw(1) << udpWord->tlast.to_int() << "\n";
+    outFileStream << setw(1) << udpWord->getTLast().to_int() << "\n";
     return(OK);
 }
 
@@ -457,7 +459,7 @@ bool getOutputDataStream(stream<UdpAppData> &sDataStream,
             // Print DUT/Data to console
             printf("[%4.4d] TB is draining output stream [%s] - Data read = {D=0x%16.16llX, K=0x%2.2X, L=%d} \n",
                     simCnt, dataStreamName.c_str(),
-                    udpWord.tdata.to_uint64(), udpWord.tkeep.to_int(), udpWord.tlast.to_int());
+                    udpWord.getTData().to_uint64(), udpWord.getTKeep().to_int(), udpWord.getTLast().to_int());
             if (!dumpDataToFile(&udpWord, outFileStream)) {
                 rc = KO;
                 break;

@@ -64,13 +64,17 @@ add_files     ${srcDir}/../../../../../hls/network.hpp
 add_files     ${srcDir}/../../network_utils.hpp
 add_files     ${srcDir}/../../network_utils.cpp
 add_files     ${srcDir}/../../simulation_utils.hpp
-#add_files     ${srcDir}/../../simulation_utils.cpp
+add_files     ${srcDir}/../../simulation_utils.cpp
 #add_files     ${srcDir}/../../memory_utils.hpp
+add_files     ${srcDir}/../../NTS/nts.hpp
 add_files     ${srcDir}/../../NTS/nts_config.hpp
 add_files     ${srcDir}/../../NTS/nts_types.hpp
+add_files     ${srcDir}/../../NTS/nts_utils.hpp
+add_files     ${srcDir}/../../NTS/nts_utils.cpp
 add_files     ${srcDir}/../../NTS/AxisRaw.hpp
 add_files     ${srcDir}/../../NTS/AxisApp.hpp
 add_files     ${srcDir}/../../NTS/SimNtsUtils.hpp
+add_files     ${srcDir}/../../NTS/SimNtsUtils.cpp
 
 
 add_files -tb ${testDir}/tb_${projectName}.cpp

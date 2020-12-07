@@ -42,14 +42,19 @@
 #include <queue>
 #include <string>
 #include "network_utils.hpp"
+#include "NTS/AxisRaw.hpp"
 
-
-void convertAxisToNtsWidth(stream<Axis<8> > &small, Axis<64> &out)
+/*
+//TODO!
+void convertAxisToNtsWidth(stream<Axis<8> > &small, AxisRaw &out)
 {
 
-  out.tdata = 0;
-  out.tlast = 0;
-  out.tkeep = 0;
+  out.setTData(0x0);
+  out.setTLast(0);
+  out.setTKeep(0);
+
+  tData newd = 0x0;
+  tKeep newk = 0x0;
 
   for(int i = 0; i < 8; i++)
   //for(int i = 7; i >=0 ; i--)
@@ -58,10 +63,13 @@ void convertAxisToNtsWidth(stream<Axis<8> > &small, Axis<64> &out)
     {
       Axis<8> tmp = small.read();
       //printf("read from fifo: %#02x\n", (unsigned int) tmp.tdata);
-      out.tdata |= ((ap_uint<64>) (tmp.tdata) )<< (i*8);
-      out.tkeep |= (ap_uint<8>) 0x01 << i;
+      //out.tdata |= ((ap_uint<64>) (tmp.tdata) )<< (i*8);
+      newd |= ((ap_uint<64>) (tmp.tdata) )<< (i*8);
+      //out.tkeep |= (ap_uint<8>) 0x01 << i;
+      newk = (ap_uint<8>) 0x01 << i;
       //NO latch, because last read from small is still last read
-      out.tlast = tmp.tlast;
+      //out.tlast = tmp.tlast;
+      out.setTLast(tmp.tlast);
 
     } else {
       printf("tried to read empty small stream!\n");
@@ -72,8 +80,12 @@ void convertAxisToNtsWidth(stream<Axis<8> > &small, Axis<64> &out)
     }
   }
 
+  out.setTData(newd);
+  out.setTKeep(newk);
+
 }
 
+//TODO!
 void convertAxisToMpiWidth(Axis<64> big, stream<Axis<8> > &out)
 {
 
@@ -117,6 +129,7 @@ void convertAxisToMpiWidth(Axis<64> big, stream<Axis<8> > &out)
   }
 
 }
+*/
 
 #define UINT8  ap_uint<8>
 #define UINT32 ap_uint<32>
@@ -150,9 +163,11 @@ void integerToBigEndian(UINT32 n, UINT8 *bytes)
  *
  * @return a 16-bit unsigned data.
  *****************************************************************************/
+/* MOVED to nts_utils.hpp
 ap_uint<16> byteSwap16(ap_uint<16> inputVector) {
     return (inputVector.range(7,0), inputVector(15, 8));
 }
+*/
 
 /*****************************************************************************
  * @brief Swap the four bytes of a double-word (.i.e, 32 bits).
@@ -161,10 +176,12 @@ ap_uint<16> byteSwap16(ap_uint<16> inputVector) {
  *
  * @return a 32-bit unsigned data.
  *****************************************************************************/
+/* MOVED to nts_utils.hpp
 ap_uint<32> byteSwap32(ap_uint<32> inputVector) {
     return (inputVector.range( 7, 0), inputVector(15,  8),
         inputVector.range(23,16), inputVector(31, 24));
 }
+*/
 
 /*****************************************************************************
  * @brief Returns the number of valid bytes in an AxiWord.
