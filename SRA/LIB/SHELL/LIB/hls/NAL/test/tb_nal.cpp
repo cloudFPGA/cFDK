@@ -35,8 +35,8 @@
 using namespace std;
 
 
-#define OK          true
-#define KO          false
+//#define OK          true
+//#define KO          false
 #define VALID       true
 #define UNVALID     false
 #define DEBUG_TRACE true
@@ -94,8 +94,8 @@ stream<UdpAppDLen>          sNRC_UOE_DLen  ("sNRC_UOE_DLen");
 //-- ROLE UDP
 stream<NetworkMetaStream>   siUdp_meta          ("siUdp_meta");
 stream<NetworkMetaStream>   soUdp_meta          ("soUdp_meta");
-stream<UdpWord>             sROLE_NRC_Data     ("sROLE_NRC_Data");
-stream<UdpWord>             sNRC_Role_Data     ("sNRC_Role_Data");
+stream<UdpAppData>             sROLE_NRC_Data     ("sROLE_NRC_Data");
+stream<UdpAppData>             sNRC_Role_Data     ("sNRC_Role_Data");
 //-- TCP / ROLE IF
 stream<TcpWord>             sROLE_Nrc_Tcp_data  ("sROLE_Nrc_Tcp_data");
 stream<NetworkMetaStream>   sROLE_Nrc_Tcp_meta  ("sROLE_Nrc_Tcp_meta");
@@ -110,17 +110,17 @@ ap_uint<1>                piFMC_Tcp_sessid_FIFO_prog_full = 0;
 stream<AppMeta>           sNRC_FMC_Tcp_sessId ("sNRC_FMC_Tcp_sessId");
 //--TOE connection
 stream<TcpAppNotif>         sTOE_Nrc_Notif  ("sTOE_Nrc_Notif");
-stream<AppRdReq>            sNRC_Toe_DReq   ("sNrc_TOE_DReq");
+stream<TcpAppRdReq>         sNRC_Toe_DReq   ("sNrc_TOE_DReq");
 stream<NetworkWord>         sTOE_Nrc_Data   ("sTOE_Nrc_Data");
 stream<AppMeta>             sTOE_Nrc_SessId ("sTOE_Nrc_SessId");
-stream<AppLsnReq>           sNRC_Toe_LsnReq ("sNRC_TOE_LsnReq");
-stream<AppLsnAck>           sTOE_Nrc_LsnAck ("sTOE_Nrc_LsnAck");
+stream<TcpAppLsnReq>        sNRC_Toe_LsnReq ("sNRC_TOE_LsnReq");
+stream<TcpAppLsnRep>        sTOE_Nrc_LsnAck ("sTOE_Nrc_LsnAck");
 stream<NetworkWord>         sNRC_Toe_Data   ("sNRC_TOE_Data");
 stream<AppMeta>             sNRC_Toe_SessId ("sNRC_TOE_SessId");
-stream<AppWrSts>            sTOE_Nrc_DSts   ("sTOE_Nrc_DSts");
-stream<AppOpnReq>           sNRC_Toe_OpnReq ("sNRC_Toe_OpnReq");
+//stream<AppWrSts>            sTOE_Nrc_DSts   ("sTOE_Nrc_DSts");
+stream<TcpAppOpnReq>        sNRC_Toe_OpnReq ("sNRC_Toe_OpnReq");
 stream<TcpAppOpnRep>        sTOE_Nrc_OpnRep ("sTOE_NRC_OpenRep");
-stream<AppClsReq>           sNRC_Toe_ClsReq ("sNRC_TOE_ClsReq");
+stream<TcpAppClsReq>        sNRC_Toe_ClsReq ("sNRC_TOE_ClsReq");
 
 
 ap_uint<1>              layer_4_enabled = 0b1;
@@ -185,7 +185,8 @@ void stepDut() {
         sNRC_UOE_Data, sNRC_UOE_Meta, sNRC_UOE_DLen,
         sTOE_Nrc_Notif, sNRC_Toe_DReq, sTOE_Nrc_Data, sTOE_Nrc_SessId,
         sNRC_Toe_LsnReq, sTOE_Nrc_LsnAck,
-        sNRC_Toe_Data, sNRC_Toe_SessId, sTOE_Nrc_DSts,
+        sNRC_Toe_Data, sNRC_Toe_SessId,
+		//sTOE_Nrc_DSts,
         sNRC_Toe_OpnReq, sTOE_Nrc_OpnRep,
         sNRC_Toe_ClsReq
         );
@@ -202,11 +203,11 @@ void stepDut() {
  * @param[in] inpFileName, the name of the input file to read from.
  * @return OK if successful, otherwise KO.
  ******************************************************************************/
-bool setInputDataStream(stream<UdpWord> &sDataStream, const string dataStreamName, const string inpFileName) {
+bool setInputDataStream(stream<UdpAppData> &sDataStream, const string dataStreamName, const string inpFileName) {
     string      strLine;
     ifstream    inpFileStream;
     string      datFile = "../../../../test/" + inpFileName;
-    UdpWord     udpWord;
+    UdpAppData     udpWord;
 
     //-- STEP-1 : OPEN FILE
     inpFileStream.open(datFile.c_str());
@@ -316,7 +317,7 @@ bool setInputMetaStream(stream<UdpMeta> &sMetaStream, const string dataStreamNam
  *                              to read.
  * @return VALID if a data was read, otherwise UNVALID.
  ******************************************************************************/
-bool readDataStream(stream <UdpWord> &sDataStream, UdpWord *udpWord) {
+bool readDataStream(stream <UdpAppData> &sDataStream, UdpAppData *udpWord) {
     // Get the DUT/Data results
     sDataStream.read(*udpWord);
     return(VALID);
@@ -370,7 +371,7 @@ bool readPLenStream(stream <UdpPLen> &sPLenStream, const string plenStreamName,
  * @param[in] outFileStream,the output file stream to write to.
  * @return OK if successful, otherwise KO.
  ******************************************************************************/
-bool dumpDataToFile(UdpWord *udpWord, ofstream &outFileStream) {
+bool dumpDataToFile(UdpAppData *udpWord, ofstream &outFileStream) {
     if (!outFileStream.is_open()) {
         printf("### ERROR : Output file stream is not open. \n");
         return(KO);
@@ -434,13 +435,13 @@ bool dumpPLenToFile(UdpPLen *udpPLen, ofstream &outFileStream) {
  * @param[in] outFileName,    the name of the output file to write to.
  * @return OK if successful, otherwise KO.
  ******************************************************************************/
-bool getOutputDataStream(stream<UdpWord> &sDataStream,
+bool getOutputDataStream(stream<UdpAppData> &sDataStream,
                          const string    dataStreamName, const string   outFileName)
 {
     string      strLine;
     ofstream    outFileStream;
     string      datFile = "../../../../test/" + outFileName;
-    UdpWord     udpWord;
+    UdpAppData  udpWord;
     bool        rc = OK;
 
     //-- STEP-1 : OPEN FILE
@@ -642,7 +643,7 @@ void pROLE(
             meta_stream_out.tlast = 1;
             meta_stream_out.tdata.dst_rank = meta_stream_in.tdata.src_rank;
             meta_stream_out.tdata.dst_port = meta_stream_in.tdata.src_port;
-            meta_stream_out.tdata.src_port = NRC_RX_MIN_PORT;
+            meta_stream_out.tdata.src_port = NAL_RX_MIN_PORT;
             meta_stream_out.tdata.len = 0;
             printf("ROLE received stream from Node %d:%d (recv. port %d)\n", (int) meta_stream_in.tdata.src_rank, (int) meta_stream_in.tdata.src_port, (int) meta_stream_in.tdata.dst_port);
             soTRIF_meta.write(meta_stream_out);
@@ -693,7 +694,7 @@ int opnStartupDelay =  0;
 int rxpStartupDelay =  100;
 int txpStartupDelay =  0;
 
-AppRdReq    appRdReq;
+TcpAppRdReq    appRdReq;
 AppMeta     sessionId = DEFAULT_SESSION_ID;
 AppMeta     sessionId_reply = DEFAULT_SESSION_ID;
 int         byteCnt = 0;
@@ -711,25 +712,25 @@ void pTOE(
         int                 &nrErr,
         //-- TOE / Tx Data Interfaces
         stream<TcpAppNotif>    &soTRIF_Notif,
-        stream<AppRdReq>    &siTRIF_DReq,
+        stream<TcpAppRdReq>    &siTRIF_DReq,
         stream<NetworkWord>     &soTRIF_Data,
         stream<AppMeta>     &soTRIF_SessId,
         //-- TOE / Listen Interfaces
-        stream<AppLsnReq>   &siTRIF_LsnReq,
-        stream<AppLsnAck>   &soTRIF_LsnAck,
+        stream<TcpAppLsnReq>   &siTRIF_LsnReq,
+        stream<TcpAppLsnRep>   &soTRIF_LsnAck,
         //-- TOE / Rx Data Interfaces
         stream<NetworkWord>     &siTRIF_Data,
         stream<AppMeta>     &siTRIF_SessId,
-        stream<AppWrSts>    &soTRIF_DSts,
+        //stream<AppWrSts>    &soTRIF_DSts,
         //-- TOE / Open Interfaces
-        stream<AppOpnReq>    &siTRIF_OpnReq,
+        stream<TcpAppOpnReq>    &siTRIF_OpnReq,
         stream<TcpAppOpnRep> &soTRIF_OpnRep)
 {
 
     //------------------------------------------------------
     //-- FSM #1 - LISTENING
     //------------------------------------------------------
-    static AppLsnReq appLsnPortReq;
+    static TcpAppLsnReq appLsnPortReq;
 
     switch (lsnState) {
     case LSN_WAIT_REQ: // CHECK IF A LISTENING REQUEST IS PENDING
@@ -758,7 +759,7 @@ void pTOE(
     //------------------------------------------------------
     //-- FSM #2 - OPEN CONNECTION
     //------------------------------------------------------
-    AppOpnReq   HostSockAddr(DEFAULT_HOST_IP4_ADDR,
+    TcpAppOpnReq   HostSockAddr(DEFAULT_HOST_IP4_ADDR,
                                DEFAULT_HOST_LSN_PORT);
 
     TcpAppOpnRep opnReply(sessionId_reply, ESTABLISHED);
@@ -1032,7 +1033,7 @@ int main() {
             //-- TOE / Tx Data Interfaces
             sNRC_Toe_Data,
             sNRC_Toe_SessId,
-            sTOE_Nrc_DSts,
+            //sTOE_Nrc_DSts,
             //-- TOE / Open Interfaces
             sNRC_Toe_OpnReq,
             sTOE_Nrc_OpnRep

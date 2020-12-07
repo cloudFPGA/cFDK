@@ -146,7 +146,8 @@ using namespace hls;
 #define MAX_CLUSTER_SIZE 128 //only one limit is enough, there is no rank > clusterSize...
 
 //TODO: multiple ctrlLinks?
-#include "../../NRC/src/nrc.hpp" //is dependent on MAX_CLUSTER_SIZE, so must be after it... 
+//#include "../../NRC/src/nrc.hpp" //is dependent on MAX_CLUSTER_SIZE, so must be after it... 
+#include "../../NAL/src/nal.hpp" //is dependent on MAX_CLUSTER_SIZE, so must be after it... 
 
 #define MIN_ROUTING_TABLE_LINE (1+1+4+1) //1: rank, 1: space, 4: IPv4-Address, 1: \n 
 
@@ -317,7 +318,7 @@ void fmc(
     //XMEM
     ap_uint<32> xmem[XMEM_SIZE], 
     //NRC 
-    ap_uint<32> nrcCtrl[NRC_CTRL_LINK_SIZE],
+    ap_uint<32> nrcCtrl[NAL_CTRL_LINK_SIZE],
     ap_uint<1> *disable_ctrl_link,
     stream<TcpWord>             &siNRC_Tcp_data,
     stream<AppMeta>           &siNRC_Tcp_SessId,

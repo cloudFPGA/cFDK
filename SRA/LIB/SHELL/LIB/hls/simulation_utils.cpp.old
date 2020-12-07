@@ -80,7 +80,7 @@ using namespace std;
 void printAxiWord(const char *callerName, AxiWord chunk)
 {
     printInfo(callerName, "AxiWord = {D=0x%16.16lX, K=0x%2.2X, L=%d} \n",
-              chunk.tdata.to_ulong(), chunk.tkeep.to_int(), chunk.tlast.to_int());
+              chunk.getTData().to_ulong(), chunk.getTKeep().to_int(), chunk.tlast.to_int());
 }
 void printAxiWord(const char *callerName, NetworkWord chunk)
 {

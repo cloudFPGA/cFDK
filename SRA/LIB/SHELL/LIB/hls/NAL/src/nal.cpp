@@ -39,7 +39,7 @@ ap_uint<8>   udp_lsn_watchDogTimer = 100;
 #ifndef __SYNTHESIS__
 ap_uint<16>  mmio_stabilize_counter = 1;
 #else
-ap_uint<16>  mmio_stabilize_counter = NRC_MMIO_STABILIZE_TIME;
+ap_uint<16>  mmio_stabilize_counter = NAL_MMIO_STABILIZE_TIME;
 #endif
 
 FsmStateUdp fsmStateRX_Udp = FSM_RESET;
@@ -81,14 +81,14 @@ UdpAppDLen udpTX_packet_length = 0;
 UdpAppDLen udpTX_current_packet_length = 0;
 
 
-ap_uint<64> tripleList[MAX_NRC_SESSIONS];
-ap_uint<17> sessionIdList[MAX_NRC_SESSIONS];
-ap_uint<1>  usedRows[MAX_NRC_SESSIONS];
-ap_uint<1>  rowsToDelete[MAX_NRC_SESSIONS];
+ap_uint<64> tripleList[MAX_NAL_SESSIONS];
+ap_uint<17> sessionIdList[MAX_NAL_SESSIONS];
+ap_uint<1>  usedRows[MAX_NAL_SESSIONS];
+ap_uint<1>  rowsToDelete[MAX_NAL_SESSIONS];
 bool tables_initalized = false;
 #define UNUSED_TABLE_ENTRY_VALUE 0x111000
 #define UNUSED_SESSION_ENTRY_VALUE 0xFFFE
-ap_uint<1>  privilegedRows[MAX_NRC_SESSIONS];
+ap_uint<1>  privilegedRows[MAX_NAL_SESSIONS];
 
 NodeId cached_udp_rx_id = 0;
 Ip4Addr cached_udp_rx_ipaddr = 0;
@@ -125,7 +125,7 @@ extern bool gTraceEvent;
 enum DropCmd {KEEP_CMD=false, DROP_CMD};
 
 
-AppOpnReq     HostSockAddr;  // Socket Address stored in LITTLE-ENDIAN ORDER
+TcpAppOpnReq     HostSockAddr;  // Socket Address stored in LITTLE-ENDIAN ORDER
 TcpAppOpnRep  newConn;
 ap_uint<32>  watchDogTimer_pcon = 0;
 ap_uint<8>   watchDogTimer_plisten = 0;
@@ -245,7 +245,7 @@ ap_uint<64> getTrippleFromSessionId(SessionId sessionID)
 //#pragma HLS inline off
   printf("searching for session: %d\n", (int) sessionID);
   uint32_t i = 0;
-  for(i = 0; i < MAX_NRC_SESSIONS; i++)
+  for(i = 0; i < MAX_NAL_SESSIONS; i++)
   {
 //#pragma HLS unroll factor=8
     if(sessionIdList[i] == sessionID && usedRows[i] == 1 && rowsToDelete[i] == 0)
@@ -266,7 +266,7 @@ SessionId getSessionIdFromTripple(ap_uint<64> tripple)
 //#pragma HLS inline off
   printf("Searching for tripple: %llu\n", (unsigned long long) tripple);
   uint32_t i = 0;
-  for(i = 0; i < MAX_NRC_SESSIONS; i++)
+  for(i = 0; i < MAX_NAL_SESSIONS; i++)
   {
 //#pragma HLS unroll factor=8
     if(tripleList[i] == tripple && usedRows[i] == 1 && rowsToDelete[i] == 0)
@@ -293,7 +293,7 @@ void addnewTrippleToTable(SessionId sessionID, ap_uint<64> new_entry)
   }
 
   uint32_t i = 0;
-  for(i = 0; i < MAX_NRC_SESSIONS; i++)
+  for(i = 0; i < MAX_NAL_SESSIONS; i++)
   {
 //#pragma HLS unroll factor=8
     if(usedRows[i] == 0)
@@ -323,7 +323,7 @@ void deleteSessionFromTables(SessionId sessionID)
 {
 //#pragma HLS inline off
   printf("try to delete session: %d\n", (int) sessionID);
-  for(uint32_t i = 0; i < MAX_NRC_SESSIONS; i++)
+  for(uint32_t i = 0; i < MAX_NAL_SESSIONS; i++)
   {
 //#pragma HLS unroll factor=8
     if(sessionIdList[i] == sessionID && usedRows[i] == 1)
@@ -340,7 +340,7 @@ void markSessionAsPrivileged(SessionId sessionID)
 {
 //#pragma HLS inline off
   printf("mark session as privileged: %d\n", (int) sessionID);
-  for(uint32_t i = 0; i < MAX_NRC_SESSIONS; i++)
+  for(uint32_t i = 0; i < MAX_NAL_SESSIONS; i++)
   {
 //#pragma HLS unroll factor=8
     if(sessionIdList[i] == sessionID && usedRows[i] == 1)
@@ -356,7 +356,7 @@ void markSessionAsPrivileged(SessionId sessionID)
 void markCurrentRowsAsToDelete_unprivileged()
 {
 //#pragma HLS inline
-  for(uint32_t i = 0; i< MAX_NRC_SESSIONS; i++)
+  for(uint32_t i = 0; i< MAX_NAL_SESSIONS; i++)
   {
 //#pragma HLS unroll factor=8
     if(privilegedRows[i] == 1)
@@ -372,7 +372,7 @@ void markCurrentRowsAsToDelete_unprivileged()
 SessionId getAndDeleteNextMarkedRow()
 {
 //#pragma HLS inline off
-  for(uint32_t i = 0; i< MAX_NRC_SESSIONS; i++)
+  for(uint32_t i = 0; i< MAX_NAL_SESSIONS; i++)
   {
 //#pragma HLS unroll factor=8
     if(rowsToDelete[i] == 1)
@@ -397,7 +397,7 @@ SessionId getAndDeleteNextMarkedRow()
  * @brief   Main process of the UDP Role Interface
  *
  *****************************************************************************/
-void nrc_main(
+void NAL_main(
     // ----- link to FMC -----
     ap_uint<32> ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
     //state of the FPGA
@@ -414,8 +414,8 @@ void nrc_main(
 
     //-- ROLE UDP connection
     ap_uint<32>                 *pi_udp_rx_ports,
-    stream<UdpWord>             &siUdp_data,
-    stream<UdpWord>             &soUdp_data,
+    stream<UdpAppData>             &siUdp_data,
+    stream<UdpAppData>             &soUdp_data,
     stream<NetworkMetaStream>   &siUdp_meta,
     stream<NetworkMetaStream>   &soUdp_meta,
 
@@ -453,21 +453,21 @@ void nrc_main(
 
     //-- TOE / Rx Data Interfaces
     stream<TcpAppNotif>    &siTOE_Notif,
-    stream<AppRdReq>    &soTOE_DReq,
+    stream<TcpAppRdReq>    &soTOE_DReq,
     stream<NetworkWord> &siTOE_Data,
     stream<AppMeta>     &siTOE_SessId,
     //-- TOE / Listen Interfaces
-    stream<AppLsnReq>   &soTOE_LsnReq,
-    stream<AppLsnAck>   &siTOE_LsnRep,
+    stream<TcpAppLsnReq>   &soTOE_LsnReq,
+    stream<TcpAppLsnRep>   &siTOE_LsnRep,
     //-- TOE / Tx Data Interfaces
     stream<NetworkWord> &soTOE_Data,
     stream<AppMeta>     &soTOE_SessId,
-    stream<AppWrSts>    &siTOE_DSts,
+    //stream<AppWrSts>    &siTOE_DSts,
     //-- TOE / Open Interfaces
-    stream<AppOpnReq>      &soTOE_OpnReq,
+    stream<TcpAppOpnReq>      &soTOE_OpnReq,
     stream<TcpAppOpnRep>   &siTOE_OpnRep,
     //-- TOE / Close Interfaces
-    stream<AppClsReq>   &soTOE_ClsReq
+    stream<TcpAppClsReq>   &soTOE_ClsReq
     )
 {
 
@@ -502,8 +502,8 @@ void nrc_main(
 #pragma HLS INTERFACE ap_vld register port=piMMIO_FmcLsnPort name=piMMIO_FmcLsnPort
 #pragma HLS INTERFACE ap_vld register port=piMMIO_CfrmIp4Addr name=piMMIO_CfrmIp4Addr
 
-#pragma HLS INTERFACE s_axilite depth=512 port=ctrlLink bundle=piFMC_NRC_ctrlLink_AXI
-  //#pragma HLS INTERFACE s_axilite port=return bundle=piFMC_NRC_ctrlLink_AXI
+#pragma HLS INTERFACE s_axilite depth=512 port=ctrlLink bundle=piFMC_NAL_ctrlLink_AXI
+  //#pragma HLS INTERFACE s_axilite port=return bundle=piFMC_NAL_ctrlLink_AXI
 #pragma HLS INTERFACE ap_ctrl_none port=return
 
 #pragma HLS INTERFACE axis register both port=siTcp_data
@@ -532,7 +532,7 @@ void nrc_main(
 
 #pragma HLS INTERFACE axis register both port=soTOE_Data
 #pragma HLS INTERFACE axis register both port=soTOE_SessId
-#pragma HLS INTERFACE axis register both port=siTOE_DSts
+//#pragma HLS INTERFACE axis register both port=siTOE_DSts
 
 #pragma HLS INTERFACE axis register both port=soTOE_OpnReq
 #pragma HLS DATA_PACK                variable=soTOE_OpnReq
@@ -631,22 +631,22 @@ void nrc_main(
   { //so we are not in a critical data path
 
     // > to avoid loop at 0
-    if(config[NRC_CONFIG_SAVED_FMC_PORTS] > processed_FMC_listen_port)
+    if(config[NAL_CONFIG_SAVED_FMC_PORTS] > processed_FMC_listen_port)
     {
-      processed_FMC_listen_port = (ap_uint<16>) config[NRC_CONFIG_SAVED_FMC_PORTS];
+      processed_FMC_listen_port = (ap_uint<16>) config[NAL_CONFIG_SAVED_FMC_PORTS];
     }
 
     if(*layer_7_enabled == 1 && *role_decoupled == 0)
     { // looks like only we were reset
       // since the user cannot close ports (up to now), the > should work...
-      if(config[NRC_CONFIG_SAVED_UDP_PORTS] > udp_rx_ports_processed)
+      if(config[NAL_CONFIG_SAVED_UDP_PORTS] > udp_rx_ports_processed)
       {
-        udp_rx_ports_processed = config[NRC_CONFIG_SAVED_UDP_PORTS];
+        udp_rx_ports_processed = config[NAL_CONFIG_SAVED_UDP_PORTS];
       }
 
-      if(config[NRC_CONFIG_SAVED_TCP_PORTS] > tcp_rx_ports_processed)
+      if(config[NAL_CONFIG_SAVED_TCP_PORTS] > tcp_rx_ports_processed)
       {
-        tcp_rx_ports_processed = config[NRC_CONFIG_SAVED_TCP_PORTS];
+        tcp_rx_ports_processed = config[NAL_CONFIG_SAVED_TCP_PORTS];
       }
     }
 
@@ -739,7 +739,7 @@ void nrc_main(
   if (!tables_initalized)
   {
     printf("init tables...\n");
-    for(int i = 0; i<MAX_NRC_SESSIONS; i++)
+    for(int i = 0; i<MAX_NAL_SESSIONS; i++)
     {
       //#pragma HLS unroll
       sessionIdList[i] = 0;
@@ -752,7 +752,7 @@ void nrc_main(
     
     tables_initalized = true;
     //printf("Table layout:\n");
-    //for(int i = 0; i<MAX_NRC_SESSIONS; i++)
+    //for(int i = 0; i<MAX_NAL_SESSIONS; i++)
     //{
     //  printf("%d | %d |  %llu\n",(int) i, (int) sessionIdList[i], (unsigned long long) tripleList[i]);
     //}
@@ -794,7 +794,7 @@ void nrc_main(
 #ifndef __SYNTHESIS__
         mmio_stabilize_counter = 1;
 #else
-        mmio_stabilize_counter = NRC_MMIO_STABILIZE_TIME;
+        mmio_stabilize_counter = NAL_MMIO_STABILIZE_TIME;
 #endif
         printf("Need FMC port request: %#02x\n",(unsigned int) *piMMIO_FmcLsnPort);
       } else {
@@ -972,7 +972,7 @@ void nrc_main(
         case FSM_IDLE:
           if(openPortWaitTime == 0) {
             if ( !soUOE_LsnReq.full() && need_udp_port_req) {
-              ap_uint<16> new_absolute_port = NRC_RX_MIN_PORT + new_relative_port_to_req_udp;
+              ap_uint<16> new_absolute_port = NAL_RX_MIN_PORT + new_relative_port_to_req_udp;
               soUOE_LsnReq.write(new_absolute_port);
               fsmStateRX_Udp = FSM_W8FORPORT;
 #ifndef __SYNTHESIS__
@@ -1010,8 +1010,8 @@ void nrc_main(
             }
             else {
               printWarn(myName, "UOE denied listening on port %d (0x%4.4X).\n",
-                  (int) (NRC_RX_MIN_PORT + new_relative_port_to_req_udp),
-                  (int) (NRC_RX_MIN_PORT + new_relative_port_to_req_udp));
+                  (int) (NAL_RX_MIN_PORT + new_relative_port_to_req_udp),
+                  (int) (NAL_RX_MIN_PORT + new_relative_port_to_req_udp));
               fsmStateRX_Udp = FSM_IDLE;
             }
           } else {
@@ -1051,7 +1051,7 @@ void nrc_main(
             //status
             last_rx_node_id = src_id;
             last_rx_port = udpRxMeta.dst.port;
-            NetworkMeta tmp_meta = NetworkMeta(config[NRC_CONFIG_OWN_RANK], udpRxMeta.dst.port, src_id, udpRxMeta.src.port, 0);
+            NetworkMeta tmp_meta = NetworkMeta(config[NAL_CONFIG_OWN_RANK], udpRxMeta.dst.port, src_id, udpRxMeta.src.port, 0);
             //FIXME: add length here as soon as available from the UOE
             in_meta_udp = NetworkMetaStream(tmp_meta);
             //write metadata
@@ -1128,7 +1128,7 @@ void nrc_main(
           {
             //we have to close opened ports, one after another
             newRelativePortToClose = getRightmostBitPos(udp_rx_ports_to_close);
-            newAbsolutePortToClose = NRC_RX_MIN_PORT + newRelativePortToClose;
+            newAbsolutePortToClose = NAL_RX_MIN_PORT + newRelativePortToClose;
             if(!soUOE_ClsReq.full()) {
               soUOE_ClsReq.write(newAbsolutePortToClose);
               clsFsmState_Udp = CLS_WAIT4RESP;
@@ -1210,10 +1210,10 @@ void nrc_main(
               {
                 new_absolute_port = *piMMIO_FmcLsnPort;
               } else {
-                new_absolute_port = NRC_RX_MIN_PORT + new_relative_port_to_req_tcp;
+                new_absolute_port = NAL_RX_MIN_PORT + new_relative_port_to_req_tcp;
               }
 
-              AppLsnReq    tcpListenPort = new_absolute_port;
+              TcpAppLsnReq    tcpListenPort = new_absolute_port;
               soTOE_LsnReq.write(tcpListenPort);
               if (DEBUG_LEVEL & TRACE_LSN) {
                 printInfo(myName, "Server is requested to listen on port #%d (0x%4.4X).\n",
@@ -1257,7 +1257,7 @@ void nrc_main(
                 {
                   new_absolute_port = *piMMIO_FmcLsnPort;
                 } else {
-                  new_absolute_port = NRC_RX_MIN_PORT + new_relative_port_to_req_tcp;
+                  new_absolute_port = NAL_RX_MIN_PORT + new_relative_port_to_req_tcp;
                 }
                 printWarn(myName, "TOE denied listening on port %d (0x%4.4X).\n",
                     (int) new_absolute_port, (int) new_absolute_port);
@@ -1271,7 +1271,7 @@ void nrc_main(
                 {
                   new_absolute_port = *piMMIO_FmcLsnPort;
                 } else {
-                  new_absolute_port = NRC_RX_MIN_PORT + new_relative_port_to_req_tcp;
+                  new_absolute_port = NAL_RX_MIN_PORT + new_relative_port_to_req_tcp;
                 }
                 printError(myName, "Timeout: Server failed to listen on port %d %d (0x%4.4X).\n",
                     (int)  new_absolute_port, (int) new_absolute_port);
@@ -1316,7 +1316,7 @@ void nrc_main(
           case RRH_WAIT_NOTIF:
             if (!siTOE_Notif.empty()) {
               siTOE_Notif.read(notif_pRrh);
-              if (notif_pRrh.tcpSegLen != 0) {
+              if (notif_pRrh.tcpDatLen != 0) {
                 // Always request the data segment to be received
                 rrhFsmState = RRH_SEND_DREQ;
                 //remember the session ID if not yet known
@@ -1337,7 +1337,7 @@ void nrc_main(
             break;
           case RRH_SEND_DREQ:
             if (!soTOE_DReq.full()) {
-              soTOE_DReq.write(AppRdReq(notif_pRrh.sessionID, notif_pRrh.tcpSegLen));
+              soTOE_DReq.write(TcpAppRdReq(notif_pRrh.sessionID, notif_pRrh.tcpDatLen));
               rrhFsmState = RRH_WAIT_NOTIF;
             }
             break;
@@ -1432,7 +1432,7 @@ void nrc_main(
               }
               last_rx_node_id = src_id;
               last_rx_port = dstPort;
-              NetworkMeta tmp_meta = NetworkMeta(config[NRC_CONFIG_OWN_RANK], dstPort, src_id, srcPort, 0);
+              NetworkMeta tmp_meta = NetworkMeta(config[NAL_CONFIG_OWN_RANK], dstPort, src_id, srcPort, 0);
               in_meta_tcp = NetworkMetaStream(tmp_meta);
               Tcp_RX_metaWritten = false;
               rdpFsmState  = RDP_STREAM_ROLE;
@@ -1726,9 +1726,9 @@ void nrc_main(
         }
 
         //-- ALWAYS -----------------------
-        if (!siTOE_DSts.empty()) {
-          siTOE_DSts.read();  // [TODO] Checking.
-        }
+       // if (!siTOE_DSts.empty()) {
+       //   siTOE_DSts.read();  // [TODO] Checking.
+       // }
       }
     }
 
@@ -1787,7 +1787,7 @@ void nrc_main(
 #ifndef __SYNTHESIS__
               watchDogTimer_pcon = 10;
 #else
-              watchDogTimer_pcon = NRC_CONNECTION_TIMEOUT;
+              watchDogTimer_pcon = NAL_CONNECTION_TIMEOUT;
 #endif
               opnFsmState = OPN_REP;
             }
@@ -1884,36 +1884,36 @@ void nrc_main(
     { //so we are not in a critical data path
 
       //update status entries
-      status[NRC_STATUS_MRT_VERSION] = mrt_version_processed;
-      status[NRC_STATUS_OPEN_UDP_PORTS] = udp_rx_ports_processed;
-      status[NRC_STATUS_OPEN_TCP_PORTS] = tcp_rx_ports_processed;
-      status[NRC_STATUS_FMC_PORT_PROCESSED] = (ap_uint<32>) processed_FMC_listen_port;
-      status[NRC_STATUS_OWN_RANK] = config[NRC_CONFIG_OWN_RANK];
+      status[NAL_STATUS_MRT_VERSION] = mrt_version_processed;
+      status[NAL_STATUS_OPEN_UDP_PORTS] = udp_rx_ports_processed;
+      status[NAL_STATUS_OPEN_TCP_PORTS] = tcp_rx_ports_processed;
+      status[NAL_STATUS_FMC_PORT_PROCESSED] = (ap_uint<32>) processed_FMC_listen_port;
+      status[NAL_STATUS_OWN_RANK] = config[NAL_CONFIG_OWN_RANK];
 
       //udp
-      //status[NRC_STATUS_SEND_STATE] = (ap_uint<32>) fsmStateRX_Udp;
-      //status[NRC_STATUS_RECEIVE_STATE] = (ap_uint<32>) fsmStateTXenq_Udp;
-      //status[NRC_STATUS_GLOBAL_STATE] = (ap_uint<32>) fsmStateTXdeq_Udp;
+      //status[NAL_STATUS_SEND_STATE] = (ap_uint<32>) fsmStateRX_Udp;
+      //status[NAL_STATUS_RECEIVE_STATE] = (ap_uint<32>) fsmStateTXenq_Udp;
+      //status[NAL_STATUS_GLOBAL_STATE] = (ap_uint<32>) fsmStateTXdeq_Udp;
 
       //tcp
-      status[NRC_STATUS_SEND_STATE] = (ap_uint<32>) wrpFsmState;
-      status[NRC_STATUS_RECEIVE_STATE] = (ap_uint<32>) rdpFsmState;
-      //status[NRC_STATUS_GLOBAL_STATE] = (ap_uint<32>) opnFsmState;
+      status[NAL_STATUS_SEND_STATE] = (ap_uint<32>) wrpFsmState;
+      status[NAL_STATUS_RECEIVE_STATE] = (ap_uint<32>) rdpFsmState;
+      //status[NAL_STATUS_GLOBAL_STATE] = (ap_uint<32>) opnFsmState;
       
-      status[NRC_STATUS_GLOBAL_STATE] = fmc_tcp_bytes_cnt;
+      status[NAL_STATUS_GLOBAL_STATE] = fmc_tcp_bytes_cnt;
 
-      //status[NRC_STATUS_RX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_RX_cnt;
-      status[NRC_STATUS_RX_NODEID_ERROR] = (((ap_uint<32>) port_corrections_TX_cnt) << 16) | ( 0xFFFF & ((ap_uint<16>) node_id_missmatch_RX_cnt));
-      status[NRC_STATUS_LAST_RX_NODE_ID] = (ap_uint<32>) (( (ap_uint<32>) last_rx_port) << 16) | ( (ap_uint<32>) last_rx_node_id);
-      //status[NRC_STATUS_TX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_TX_cnt;
-      status[NRC_STATUS_TX_NODEID_ERROR] = (((ap_uint<32>) tcp_new_connection_failure_cnt) << 16) | ( 0xFFFF & ((ap_uint<16>) node_id_missmatch_TX_cnt));
-      status[NRC_STATUS_LAST_TX_NODE_ID] = (ap_uint<32>) (((ap_uint<32>) last_tx_port) << 16) | ((ap_uint<32>) last_tx_node_id);
-      //status[NRC_STATUS_TX_PORT_CORRECTIONS] = (((ap_uint<32>) tcp_new_connection_failure_cnt) << 16) | ((ap_uint<16>) port_corrections_TX_cnt);
-      status[NRC_STATUS_PACKET_CNT_RX] = (ap_uint<32>) packet_count_RX;
-      status[NRC_STATUS_PACKET_CNT_TX] = (ap_uint<32>) packet_count_TX;
+      //status[NAL_STATUS_RX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_RX_cnt;
+      status[NAL_STATUS_RX_NODEID_ERROR] = (((ap_uint<32>) port_corrections_TX_cnt) << 16) | ( 0xFFFF & ((ap_uint<16>) node_id_missmatch_RX_cnt));
+      status[NAL_STATUS_LAST_RX_NODE_ID] = (ap_uint<32>) (( (ap_uint<32>) last_rx_port) << 16) | ( (ap_uint<32>) last_rx_node_id);
+      //status[NAL_STATUS_TX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_TX_cnt;
+      status[NAL_STATUS_TX_NODEID_ERROR] = (((ap_uint<32>) tcp_new_connection_failure_cnt) << 16) | ( 0xFFFF & ((ap_uint<16>) node_id_missmatch_TX_cnt));
+      status[NAL_STATUS_LAST_TX_NODE_ID] = (ap_uint<32>) (((ap_uint<32>) last_tx_port) << 16) | ((ap_uint<32>) last_tx_node_id);
+      //status[NAL_STATUS_TX_PORT_CORRECTIONS] = (((ap_uint<32>) tcp_new_connection_failure_cnt) << 16) | ((ap_uint<16>) port_corrections_TX_cnt);
+      status[NAL_STATUS_PACKET_CNT_RX] = (ap_uint<32>) packet_count_RX;
+      status[NAL_STATUS_PACKET_CNT_TX] = (ap_uint<32>) packet_count_TX;
 
-      status[NRC_UNAUTHORIZED_ACCESS] = (ap_uint<32>) unauthorized_access_cnt;
-      status[NRC_AUTHORIZED_ACCESS] = (ap_uint<32>) authorized_access_cnt;
+      status[NAL_UNAUTHORIZED_ACCESS] = (ap_uint<32>) unauthorized_access_cnt;
+      status[NAL_AUTHORIZED_ACCESS] = (ap_uint<32>) authorized_access_cnt;
 
       //TODO: necessary? Or does this AXI4Lite anyways "in the background"?
       //or do we need to copy it explicetly, but could do this also every ~2 seconds?
@@ -1935,7 +1935,7 @@ void nrc_main(
       {
         tableCopyVariable = 0;
         //acknowledge the processed version
-        ap_uint<32> new_mrt_version = config[NRC_CONFIG_MRT_VERSION];
+        ap_uint<32> new_mrt_version = config[NAL_CONFIG_MRT_VERSION];
         if(new_mrt_version > mrt_version_processed)
         {
           //invalidate cache

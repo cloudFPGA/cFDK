@@ -102,10 +102,8 @@
 
 #include "../../../../../hls/network.hpp"
 #include "../../network_utils.hpp"
-#include "../../memory_utils.hpp"
+//#include "../../memory_utils.hpp"
 #include "../../simulation_utils.hpp"
-#include "../../NTS/nts_config.hpp"
-#include "../../NTS/nts_types.hpp"
 
 
 using namespace hls;
@@ -161,17 +159,17 @@ using namespace hls;
 #define CLS_NEXT 1
 #define CLS_WAIT4RESP 2
 
-#define MAX_NRC_SESSIONS 32
+#define MAX_NAL_SESSIONS (TOE_MAX_SESSIONS)
 
 #define MAX_MRT_SIZE 1024
 #define NUMBER_CONFIG_WORDS 16
 #define NUMBER_STATUS_WORDS 16
-#define NRC_NUMBER_CONFIG_WORDS NUMBER_CONFIG_WORDS
-#define NRC_NUMBER_STATUS_WORDS NUMBER_STATUS_WORDS 
-//#define NRC_READ_TIMEOUT 160000000 //is a little more than one second with 156Mhz 
-#define NRC_CONNECTION_TIMEOUT 160000000 //is a little more than one second with 156Mhz 
+#define NAL_NUMBER_CONFIG_WORDS NUMBER_CONFIG_WORDS
+#define NAL_NUMBER_STATUS_WORDS NUMBER_STATUS_WORDS
+//#define NAL_READ_TIMEOUT 160000000 //is a little more than one second with 156Mhz
+#define NAL_CONNECTION_TIMEOUT 160000000 //is a little more than one second with 156Mhz
 
-#define NRC_MMIO_STABILIZE_TIME 150 //based on chipscope...
+#define NAL_MMIO_STABILIZE_TIME 150 //based on chipscope...
 
 
  /*
@@ -227,13 +225,12 @@ typedef ap_uint<16> UdpPort;        // UDP source or destination Port
 typedef ap_uint<16> UdpLen;         // UDP header and data Length
 typedef SocketPair   UdpAppMeta;
 //typedef Axis<64>     UdpAppData;
-typedef NetworkWord  UdpAppData;
+//typedef NetworkWord  UdpAppData;
 //typedef UdpMeta      UdpAppMeta;
 typedef UdpLen       UdpAppDLen;
 
 typedef UdpAppMeta  UdpMeta;
 typedef UdpAppDLen  UdpPLen;
-
 
 
 
@@ -254,8 +251,8 @@ void nal_main(
 
     //-- ROLE UDP connection
     ap_uint<32>                 *pi_udp_rx_ports,
-    stream<UdpWord>             &siUdp_data,
-    stream<UdpWord>             &soUdp_data,
+    stream<UdpAppData>             &siUdp_data,
+    stream<UdpAppData>             &soUdp_data,
     stream<NetworkMetaStream>   &siUdp_meta,
     stream<NetworkMetaStream>   &soUdp_meta,
     
@@ -293,21 +290,21 @@ void nal_main(
 
     //-- TOE / Rx Data Interfaces
     stream<TcpAppNotif>    &siTOE_Notif,
-    stream<AppRdReq>    &soTOE_DReq,
-    stream<NetworkWord> &siTOE_Data,
-    stream<AppMeta>     &siTOE_SessId,
+    stream<TcpAppRdReq>       &soTOE_DReq,
+    stream<NetworkWord>    &siTOE_Data,
+    stream<AppMeta>        &siTOE_SessId,
     //-- TOE / Listen Interfaces
-    stream<AppLsnReq>   &soTOE_LsnReq,
-    stream<AppLsnAck>   &siTOE_LsnRep,
+    stream<TcpAppLsnReq>      &soTOE_LsnReq,
+    stream<TcpAppLsnRep>      &siTOE_LsnRep,
     //-- TOE / Tx Data Interfaces
-    stream<NetworkWord> &soTOE_Data,
-    stream<AppMeta>     &soTOE_SessId,
-    stream<AppWrSts>    &siTOE_DSts,
+    stream<NetworkWord>    &soTOE_Data,
+    stream<AppMeta>        &soTOE_SessId,
+    //stream<AppWrSts>       &siTOE_DSts,
     //-- TOE / Open Interfaces
-    stream<AppOpnReq>      &soTOE_OpnReq,
+    stream<TcpAppOpnReq>      &soTOE_OpnReq,
     stream<TcpAppOpnRep>   &siTOE_OpnRep,
     //-- TOE / Close Interfaces
-    stream<AppClsReq>   &soTOE_ClsReq
+    stream<TcpAppClsReq>      &soTOE_ClsReq
 );
 
 #endif

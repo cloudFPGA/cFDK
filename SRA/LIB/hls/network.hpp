@@ -64,8 +64,8 @@ typedef ap_uint<8>      NodeId;  // Cluster Node Id
 
 #define MAX_CF_NODE_ID 128
 
-#define NRC_RX_MIN_PORT 2718
-#define NRC_RX_MAX_PORT 2749
+#define NAL_RX_MIN_PORT 2718
+#define NAL_RX_MAX_PORT 2749
 
 typedef ap_uint<32>    NetworkDataLength;
 
