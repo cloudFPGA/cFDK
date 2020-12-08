@@ -258,8 +258,8 @@ void nal_main(
 
     //-- ROLE UDP connection
     ap_uint<32>                 *pi_udp_rx_ports,
-    stream<UdpAppData>             &siUdp_data,
-    stream<UdpAppData>             &soUdp_data,
+    stream<NetworkWord>             &siUdp_data,
+    stream<NetworkWord>             &soUdp_data,
     stream<NetworkMetaStream>   &siUdp_meta,
     stream<NetworkMetaStream>   &soUdp_meta,
     
@@ -270,15 +270,13 @@ void nal_main(
     stream<NetworkWord>             &soTcp_data,
     stream<NetworkMetaStream>   &soTcp_meta,
 
-    // -- FMC TCP connection
-    stream<TcpWord>             &siFMC_Tcp_data,
-    //stream<Axis<16> >           &siFMC_Tcp_SessId,
-    stream<AppMeta>           &siFMC_Tcp_SessId,
-    ap_uint<1>                *piFMC_Tcp_data_FIFO_prog_full,
-    stream<TcpWord>             &soFMC_Tcp_data,
-    //stream<Axis<16> >           &soFMC_Tcp_SessId,
-    ap_uint<1>                *piFMC_Tcp_sessid_FIFO_prog_full,
-    stream<AppMeta>           &soFMC_Tcp_SessId,
+	 // -- FMC TCP connection
+	 stream<TcpAppData>          &siFMC_Tcp_data,
+	 stream<TcpAppMeta>          &siFMC_Tcp_SessId,
+	 ap_uint<1>                  *piFMC_Tcp_data_FIFO_prog_full,
+	 stream<TcpAppData>          &soFMC_Tcp_data,
+	 ap_uint<1>                  *piFMC_Tcp_sessid_FIFO_prog_full,
+	 stream<TcpAppMeta>          &soFMC_Tcp_SessId,
 
     //-- UOE / Control Port Interfaces
     stream<UdpPort>             &soUOE_LsnReq,
@@ -295,23 +293,23 @@ void nal_main(
     stream<UdpAppMeta>          &soUOE_Meta,
     stream<UdpAppDLen>          &soUOE_DLen,
 
-    //-- TOE / Rx Data Interfaces
-    stream<TcpAppNotif>    &siTOE_Notif,
-    stream<TcpAppRdReq>       &soTOE_DReq,
-    stream<NetworkWord>    &siTOE_Data,
-    stream<AppMeta>        &siTOE_SessId,
-    //-- TOE / Listen Interfaces
-    stream<TcpAppLsnReq>      &soTOE_LsnReq,
-    stream<TcpAppLsnRep>      &siTOE_LsnRep,
-    //-- TOE / Tx Data Interfaces
-    stream<NetworkWord>    &soTOE_Data,
-    stream<AppMeta>        &soTOE_SessId,
-    //stream<AppWrSts>       &siTOE_DSts,
-    //-- TOE / Open Interfaces
-    stream<TcpAppOpnReq>      &soTOE_OpnReq,
-    stream<TcpAppOpnRep>   &siTOE_OpnRep,
-    //-- TOE / Close Interfaces
-    stream<TcpAppClsReq>      &soTOE_ClsReq
+	//-- TOE / Rx Data Interfaces
+	stream<TcpAppNotif>    &siTOE_Notif,
+	stream<TcpAppRdReq>    &soTOE_DReq,
+	stream<TcpAppData>     &siTOE_Data,
+	stream<TcpAppMeta>     &siTOE_SessId,
+	//-- TOE / Listen Interfaces
+	stream<TcpAppLsnReq>   &soTOE_LsnReq,
+	stream<TcpAppLsnRep>   &siTOE_LsnRep,
+	//-- TOE / Tx Data Interfaces
+	stream<TcpAppData>     &soTOE_Data,
+	stream<TcpAppMeta>     &soTOE_SessId,
+	//stream<AppWrSts>    &siTOE_DSts,
+	//-- TOE / Open Interfaces
+	stream<TcpAppOpnReq>      &soTOE_OpnReq,
+	stream<TcpAppOpnRep>   &siTOE_OpnRep,
+	//-- TOE / Close Interfaces
+	stream<TcpAppClsReq>   &soTOE_ClsReq
 );
 
 #endif

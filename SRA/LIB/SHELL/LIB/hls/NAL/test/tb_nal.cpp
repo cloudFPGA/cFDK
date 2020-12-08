@@ -97,29 +97,29 @@ stream<UdpAppDLen>          sNRC_UOE_DLen  ("sNRC_UOE_DLen");
 //-- ROLE UDP
 stream<NetworkMetaStream>   siUdp_meta          ("siUdp_meta");
 stream<NetworkMetaStream>   soUdp_meta          ("soUdp_meta");
-stream<UdpAppData>             sROLE_NRC_Data     ("sROLE_NRC_Data");
-stream<UdpAppData>             sNRC_Role_Data     ("sNRC_Role_Data");
+stream<NetworkWord>             sROLE_NRC_Data     ("sROLE_NRC_Data");
+stream<NetworkWord>             sNRC_Role_Data     ("sNRC_Role_Data");
 //-- TCP / ROLE IF
-stream<TcpWord>             sROLE_Nrc_Tcp_data  ("sROLE_Nrc_Tcp_data");
+stream<NetworkWord>             sROLE_Nrc_Tcp_data  ("sROLE_Nrc_Tcp_data");
 stream<NetworkMetaStream>   sROLE_Nrc_Tcp_meta  ("sROLE_Nrc_Tcp_meta");
-stream<TcpWord>             sNRC_Role_Tcp_data  ("sNRC_Role_Tcp_data");
+stream<NetworkWord>             sNRC_Role_Tcp_data  ("sNRC_Role_Tcp_data");
 stream<NetworkMetaStream>   sNRC_Role_Tcp_meta  ("sNRC_Role_Tcp_meta");
 //--FMC TCP connection
-stream<TcpWord>             sFMC_Nrc_Tcp_data   ("sFMC_Nrc_Tcp_data");
-stream<AppMeta>           sFMC_Nrc_Tcp_sessId ("sFMC_Nrc_Tcp_sessId");
+stream<TcpAppData>             sFMC_Nrc_Tcp_data   ("sFMC_Nrc_Tcp_data");
+stream<TcpAppMeta>           sFMC_Nrc_Tcp_sessId ("sFMC_Nrc_Tcp_sessId");
 ap_uint<1>                piFMC_Tcp_data_FIFO_prog_full = 0;
-stream<TcpWord>             sNRC_FMC_Tcp_data   ("sNRC_FMC_Tcp_data");
+stream<TcpAppData>             sNRC_FMC_Tcp_data   ("sNRC_FMC_Tcp_data");
 ap_uint<1>                piFMC_Tcp_sessid_FIFO_prog_full = 0;
-stream<AppMeta>           sNRC_FMC_Tcp_sessId ("sNRC_FMC_Tcp_sessId");
+stream<TcpAppMeta>           sNRC_FMC_Tcp_sessId ("sNRC_FMC_Tcp_sessId");
 //--TOE connection
 stream<TcpAppNotif>         sTOE_Nrc_Notif  ("sTOE_Nrc_Notif");
 stream<TcpAppRdReq>         sNRC_Toe_DReq   ("sNrc_TOE_DReq");
-stream<NetworkWord>         sTOE_Nrc_Data   ("sTOE_Nrc_Data");
-stream<AppMeta>             sTOE_Nrc_SessId ("sTOE_Nrc_SessId");
+stream<TcpAppData>          sTOE_Nrc_Data   ("sTOE_Nrc_Data");
+stream<TcpAppMeta>          sTOE_Nrc_SessId ("sTOE_Nrc_SessId");
 stream<TcpAppLsnReq>        sNRC_Toe_LsnReq ("sNRC_TOE_LsnReq");
 stream<TcpAppLsnRep>        sTOE_Nrc_LsnAck ("sTOE_Nrc_LsnAck");
-stream<NetworkWord>         sNRC_Toe_Data   ("sNRC_TOE_Data");
-stream<AppMeta>             sNRC_Toe_SessId ("sNRC_TOE_SessId");
+stream<TcpAppData>          sNRC_Toe_Data   ("sNRC_TOE_Data");
+stream<TcpAppMeta>          sNRC_Toe_SessId ("sNRC_TOE_SessId");
 //stream<AppWrSts>            sTOE_Nrc_DSts   ("sTOE_Nrc_DSts");
 stream<TcpAppOpnReq>        sNRC_Toe_OpnReq ("sNRC_Toe_OpnReq");
 stream<TcpAppOpnRep>        sTOE_Nrc_OpnRep ("sTOE_NRC_OpenRep");
@@ -231,14 +231,14 @@ bool setInputDataStream(stream<UdpAppData> &sDataStream, const string dataStream
             uint64_t newd = 0x0;
             uint32_t newk = 0; //sscanf expects 32bit
             uint32_t newl = 0; //sscanf expects 32bit
-            printf(strLine.c_str()); printf("\n");
+            //printf(strLine.c_str()); printf("\n");
             //sscanf(strLine.c_str(), "%u" PRIx64 " %x %d", &newd, &newk, &newl);
             sscanf(strLine.c_str(), "%llx %x %d", &newd, &newk, &newl);
             UdpAppData     udpWord;
             udpWord.setTData(newd); //BE version
             udpWord.setTKeep(newk); //BE version
             udpWord.setTLast(newl); //BE version
-            printf("scanff reads %llx, %x %d\n", newd, newk, newl);
+            //printf("scanff reads %llx, %x %d\n", newd, newk, newl);
             //UdpAppData udpWord(newd, newk, newl);
 
             // Write to sDataStream
@@ -251,6 +251,60 @@ bool setInputDataStream(stream<UdpAppData> &sDataStream, const string dataStream
                 printf("[%4.4d] TB is filling input stream [%s] - Data write = {D=0x%16.16llX, K=0x%2.2X, L=%d} \n",
                         simCnt, dataStreamName.c_str(),
                         udpWord.getTData().to_uint64(), udpWord.getTKeep().to_int(), udpWord.getTLast().to_int());
+            }
+        }
+    }
+
+    //-- STEP-3: CLOSE FILE
+    inpFileStream.close();
+
+    return(OK);
+}
+//ROLE version
+bool setInputDataStream(stream<NetworkWord> &sDataStream, const string dataStreamName, const string inpFileName) {
+    string      strLine;
+    ifstream    inpFileStream;
+    string      datFile = "../../../../test/" + inpFileName;
+
+    //-- STEP-1 : OPEN FILE
+    inpFileStream.open(datFile.c_str());
+    if ( !inpFileStream ) {
+        cout << "### ERROR : Could not open the input data file " << datFile << endl;
+        return(KO);
+    }
+
+    //-- STEP-2 : SET DATA STREAM
+    while (inpFileStream) {
+
+        if (!inpFileStream.eof()) {
+
+            getline(inpFileStream, strLine);
+            if (strLine.empty())
+            {
+            	continue;
+            }
+            uint64_t newd = 0x0;
+            uint32_t newk = 0; //sscanf expects 32bit
+            uint32_t newl = 0; //sscanf expects 32bit
+            //printf(strLine.c_str()); printf("\n");
+            //sscanf(strLine.c_str(), "%u" PRIx64 " %x %d", &newd, &newk, &newl);
+            sscanf(strLine.c_str(), "%llx %x %d", &newd, &newk, &newl);
+            NetworkWord     udpWord;
+            udpWord.tdata = newd; //BE version
+            udpWord.tkeep = newk; //BE version
+            udpWord.tlast = newl; //BE version
+            //printf("scanff reads %llx, %x %d\n", newd, newk, newl);
+
+            // Write to sDataStream
+            if (sDataStream.full()) {
+                printf("### ERROR : Stream is full. Cannot write stream with data from file \"%s\".\n", inpFileName.c_str());
+                return(KO);
+            } else {
+                sDataStream.write(udpWord);
+                // Print Data to console
+                printf("[%4.4d] TB is filling input stream [%s] - Data write = {D=0x%16.16llX, K=0x%2.2X, L=%d} \n",
+                        simCnt, dataStreamName.c_str(),
+                        udpWord.tdata.to_uint64(), udpWord.tkeep.to_int(), udpWord.tlast.to_int());
             }
         }
     }
@@ -399,6 +453,19 @@ bool dumpDataToFile(UdpAppData *udpWord, ofstream &outFileStream) {
     outFileStream << setw(1) << udpWord->getTLast().to_int() << "\n";
     return(OK);
 }
+//ROLE Version
+bool dumpDataToFile(NetworkWord *udpWord, ofstream &outFileStream) {
+    if (!outFileStream.is_open()) {
+        printf("### ERROR : Output file stream is not open. \n");
+        return(KO);
+    }
+    outFileStream << hex << noshowbase << uppercase << setfill('0') << setw(16) << udpWord->tdata.to_uint64();
+    outFileStream << " ";
+    outFileStream << hex << noshowbase << nouppercase << setfill('0') << setw(2)  << udpWord->tkeep.to_int();
+    outFileStream << " ";
+    outFileStream << setw(1) << udpWord->tlast.to_int() << "\n";
+    return(OK);
+}
 
 /*****************************************************************************
  * @brief Dump a metadata information to a file.
@@ -479,6 +546,41 @@ bool getOutputDataStream(stream<UdpAppData> &sDataStream,
                 break;
             }
         }
+    }
+
+    //-- STEP-3: CLOSE FILE
+    outFileStream.close();
+
+    return(rc);
+}
+//ROLE version
+bool getOutputDataStream(stream<NetworkWord> &sDataStream,
+                         const string    dataStreamName, const string   outFileName)
+{
+    string      strLine;
+    ofstream    outFileStream;
+    string      datFile = "../../../../test/" + outFileName;
+    NetworkWord udpWord;
+    bool        rc = OK;
+
+    //-- STEP-1 : OPEN FILE
+    outFileStream.open(datFile.c_str());
+    if ( !outFileStream ) {
+        cout << "### ERROR : Could not open the output data file " << datFile << endl;
+        return(KO);
+    }
+
+    //-- STEP-2 : EMPTY STREAM AND DUMP DATA TO FILE
+    while (!sDataStream.empty()) {
+    	sDataStream.read(udpWord);
+            // Print DUT/Data to console
+            printf("[%4.4d] TB is draining output stream [%s] - Data read = {D=0x%16.16llX, K=0x%2.2X, L=%d} \n",
+                    simCnt, dataStreamName.c_str(),
+                    udpWord.tdata.to_uint64(), udpWord.tkeep.to_int(), udpWord.tlast.to_int());
+            if (!dumpDataToFile(&udpWord, outFileStream)) {
+                rc = KO;
+                break;
+            }
     }
 
     //-- STEP-3: CLOSE FILE
@@ -584,13 +686,13 @@ enum RxFsmStates { RX_WAIT_META=0, RX_STREAM } rxFsmState = RX_WAIT_META;
  ******************************************************************************/
 void pFMC(
         //-- TRIF / Rx Data Interface
-        stream<NetworkWord>     &siTRIF_Data,
+        stream<TcpAppData>     &siTRIF_Data,
         stream<AppMeta>     &siTRIF_SessId,
         //-- TRIF / Tx Data Interface
-        stream<NetworkWord>     &soTRIF_Data,
+        stream<TcpAppData>     &soTRIF_Data,
         stream<AppMeta>     &soTRIF_SessId)
 {
-    NetworkWord currWord;
+    TcpAppData currWord;
     AppMeta     tcpSessId;
 
     const char *myRxName  = concat3(THIS_NAME, "/", "FMC-Rx");
@@ -613,7 +715,7 @@ void pFMC(
                  printAxiWord(myRxName, currWord);
             //}
             soTRIF_Data.write(currWord);
-            if (currWord.tlast) {
+            if (currWord.getTLast() == 1) {
                 rxFsmState  = RX_WAIT_META;
             }
         }
@@ -729,14 +831,14 @@ void pTOE(
         //-- TOE / Tx Data Interfaces
         stream<TcpAppNotif>    &soTRIF_Notif,
         stream<TcpAppRdReq>    &siTRIF_DReq,
-        stream<NetworkWord>     &soTRIF_Data,
-        stream<AppMeta>     &soTRIF_SessId,
+        stream<TcpAppData>     &soTRIF_Data,
+        stream<TcpAppMeta>     &soTRIF_SessId,
         //-- TOE / Listen Interfaces
         stream<TcpAppLsnReq>   &siTRIF_LsnReq,
         stream<TcpAppLsnRep>   &soTRIF_LsnAck,
         //-- TOE / Rx Data Interfaces
-        stream<NetworkWord>     &siTRIF_Data,
-        stream<AppMeta>     &siTRIF_SessId,
+        stream<TcpAppData>     &siTRIF_Data,
+        stream<TcpAppMeta>     &siTRIF_SessId,
         //stream<AppWrSts>    &soTRIF_DSts,
         //-- TOE / Open Interfaces
         stream<TcpAppOpnReq>    &siTRIF_OpnReq,
@@ -847,7 +949,7 @@ void pTOE(
             if (byteCnt == 0) {
                 //if (!soTRIF_SessId.full() && !soTRIF_Data.full()) {
                 if (!soTRIF_Data.full()) {
-                    soTRIF_Data.write(NetworkWord(data, keep, last));
+                    soTRIF_Data.write(TcpAppData(data, keep, last));
                     if (DEBUG_LEVEL & TRACE_TOE)
                         printAxiWord(myRxpName, NetworkWord(data, keep, last));
                     byteCnt += 8;
@@ -860,7 +962,7 @@ void pTOE(
             }
             else if (byteCnt <= (tcpSegLen)) {
                 if (!soTRIF_Data.full()) {
-                    soTRIF_Data.write(NetworkWord(data, keep, last));
+                    soTRIF_Data.write(TcpAppData(data, keep, last));
                     if (DEBUG_LEVEL & TRACE_TOE)
                         printAxiWord(myRxpName, NetworkWord(data, keep, last));
                     byteCnt += 8;
@@ -898,7 +1000,7 @@ void pTOE(
         switch (txpState) {
         case TXP_WAIT_META:
             if (!siTRIF_SessId.empty() && !siTRIF_Data.empty()) {
-                NetworkWord appData;
+                TcpAppData appData;
                 AppMeta     sessId;
                 siTRIF_SessId.read(sessId);
                 siTRIF_Data.read(appData);
@@ -906,17 +1008,17 @@ void pTOE(
                     printInfo(myTxpName, "Receiving data for session #%d\n", sessId.to_int());
                     printAxiWord(myTxpName, appData);
                 }
-                if (!appData.tlast)
+                if (!appData.getTLast() == 1)
                     txpState = TXP_RECV_DATA;
             }
             break;
         case TXP_RECV_DATA:
             if (!siTRIF_Data.empty()) {
-                NetworkWord appData;
+                TcpAppData appData;
                 siTRIF_Data.read(appData);
                 if (DEBUG_LEVEL & TRACE_TOE)
                     printAxiWord(myTxpName, appData);
-                if (appData.tlast) {
+                if (appData.getTLast() == 1) {
                     txpState = TXP_WAIT_META;
                     tcp_packets_recv++;
                 }

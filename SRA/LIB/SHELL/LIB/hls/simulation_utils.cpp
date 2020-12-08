@@ -61,6 +61,10 @@ void printAxiWord(const char *callerName, NetworkWord chunk)
               chunk.tdata.to_ulong(), chunk.tkeep.to_int(), chunk.tlast.to_int());
 }
 
-
+void printAxiWord(const char *callerName, Axis<64> chunk)
+{
+    printInfo(callerName, "AxiWord = {D=0x%16.16lX, K=0x%2.2X, L=%d} \n",
+              chunk.getTData().to_ulong(), chunk.getTKeep().to_int(), chunk.getTLast().to_int());
+}
 
 

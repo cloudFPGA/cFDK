@@ -59,11 +59,13 @@ using namespace hls;
 //== TAIF / RECEIVED & TRANSMITTED SEGMENT INTERFACES
 //=========================================================
 
+#ifndef _AXIS_CLASS_DEFINED_
 //---------------------------------------------------------
 //-- TCP APP - DATA
 //--  The data section of a TCP segment over an AXI4S I/F.
 //---------------------------------------------------------
 typedef AxisApp     TcpAppData;
+#endif
 
 //---------------------------------------------------------
 //-- TCP APP - METADATA
@@ -205,11 +207,14 @@ typedef RepBool     TcpAppLsnRep;
 //== UAIF / RECEIVED & TRANSMITTED DATAGRAM INTERFACES
 //=========================================================
 
+#ifndef _AXIS_CLASS_DEFINED_
+#define _AXIS_CLASS_DEFINED_
 //---------------------------------------------------------
 //-- UDP APP - DATA
 //--  The data section of an UDP datagram over an AXI4S I/F.
 //---------------------------------------------------------
 typedef AxisApp     UdpAppData;
+#endif
 
 //---------------------------------------------------------
 //-- UDP APP - METADATA

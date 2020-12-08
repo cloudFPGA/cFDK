@@ -63,12 +63,12 @@ void convertAxisToNtsWidth(stream<Axis<8> > &small, AxisRaw &out)
       Axis<8> tmp = small.read();
       //printf("read from fifo: %#02x\n", (unsigned int) tmp.tdata);
       //out.tdata |= ((ap_uint<64>) (tmp.tdata) )<< (i*8);
-      newd |= ((ap_uint<64>) (tmp.tdata) )<< (i*8);
+      newd |= ((ap_uint<64>) (tmp.getTData()) )<< (i*8);
       //out.tkeep |= (ap_uint<8>) 0x01 << i;
       newk = (ap_uint<8>) 0x01 << i;
       //NO latch, because last read from small is still last read
       //out.tlast = tmp.tlast;
-      out.setTLast(tmp.tlast);
+      out.setTLast(tmp.getTLast());
 
     } else {
       printf("tried to read empty small stream!\n");
@@ -89,7 +89,7 @@ void convertAxisToMpiWidth(Axis<64> big, stream<Axis<8> > &out)
 {
 
   int positionOfTlast = 8; 
-  ap_uint<8> tkeep = big.tkeep;
+  ap_uint<8> tkeep = big.getTKeep();
   for(int i = 0; i<8; i++) //no reverse order!
   {
     tkeep = (tkeep >> 1);
@@ -109,17 +109,15 @@ void convertAxisToMpiWidth(Axis<64> big, stream<Axis<8> > &out)
     //if(i == 0)
     {
       //only possible position...
-      tmp.tlast = big.tlast;
+      tmp.setTLast(big.getTLast());
       printf("tlast set.\n");
     } else {
-      tmp.tlast = 0;
+      tmp.setTLast(0);
     }
-    tmp.tdata = (ap_uint<8>) (big.tdata >> i*8);
-    //tmp.tdata = (ap_uint<8>) (big.tdata >> (7-i)*8);
-    tmp.tkeep = (ap_uint<1>) (big.tkeep >> i);
-    //tmp.tkeep = (ap_uint<1>) (big.tkeep >> (7-i));
+    tmp.setTData((ap_uint<8>) (big.getTData() >> i*8));
+    tmp.setTKeep((ap_uint<1>) (big.getTKeep() >> i));
 
-    if(tmp.tkeep == 0)
+    if(tmp.getTKeep() == 0)
     {
       continue;
     }

@@ -39,6 +39,7 @@
 
 #include "ap_int.h"
 
+#include "network_utils.hpp"
 #include "NTS/nts_utils.hpp"
 #include "NTS/SimNtsUtils.hpp"
 #include "../../../hls/network.hpp"
@@ -52,6 +53,6 @@
  *****************************************************************************/
 void printAxiWord(const char *callerName, AxisRaw chunk);
 void printAxiWord(const char *callerName, NetworkWord chunk);
-
+void printAxiWord(const char *callerName, Axis<64> chunk);
 
 #endif

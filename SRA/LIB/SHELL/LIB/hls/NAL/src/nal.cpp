@@ -414,27 +414,25 @@ void nal_main(
 
     //-- ROLE UDP connection
     ap_uint<32>                 *pi_udp_rx_ports,
-    stream<UdpAppData>             &siUdp_data,
-    stream<UdpAppData>             &soUdp_data,
+    stream<NetworkWord>             &siUdp_data,
+    stream<NetworkWord>             &soUdp_data,
     stream<NetworkMetaStream>   &siUdp_meta,
     stream<NetworkMetaStream>   &soUdp_meta,
 
     // -- ROLE TCP connection
     ap_uint<32>                 *pi_tcp_rx_ports,
-    stream<TcpWord>             &siTcp_data,
+    stream<NetworkWord>          &siTcp_data,
     stream<NetworkMetaStream>   &siTcp_meta,
-    stream<TcpWord>             &soTcp_data,
+    stream<NetworkWord>          &soTcp_data,
     stream<NetworkMetaStream>   &soTcp_meta,
 
     // -- FMC TCP connection
-    stream<NetworkWord>             &siFMC_Tcp_data,
-    //stream<Axis<16> >           &siFMC_Tcp_SessId,
-    stream<AppMeta>           &siFMC_Tcp_SessId,
-    ap_uint<1>                *piFMC_Tcp_data_FIFO_prog_full,
-    stream<NetworkWord>             &soFMC_Tcp_data,
-    //stream<Axis<16> >           &soFMC_Tcp_SessId,
-    ap_uint<1>                *piFMC_Tcp_sessid_FIFO_prog_full,
-    stream<AppMeta>           &soFMC_Tcp_SessId,
+    stream<TcpAppData>          &siFMC_Tcp_data,
+    stream<TcpAppMeta>          &siFMC_Tcp_SessId,
+    ap_uint<1>                  *piFMC_Tcp_data_FIFO_prog_full,
+    stream<TcpAppData>          &soFMC_Tcp_data,
+    ap_uint<1>                  *piFMC_Tcp_sessid_FIFO_prog_full,
+    stream<TcpAppMeta>          &soFMC_Tcp_SessId,
 
     //-- UOE / Control Port Interfaces
     stream<UdpPort>             &soUOE_LsnReq,
@@ -454,14 +452,14 @@ void nal_main(
     //-- TOE / Rx Data Interfaces
     stream<TcpAppNotif>    &siTOE_Notif,
     stream<TcpAppRdReq>    &soTOE_DReq,
-    stream<NetworkWord> &siTOE_Data,
-    stream<AppMeta>     &siTOE_SessId,
+    stream<TcpAppData>     &siTOE_Data,
+    stream<TcpAppMeta>     &siTOE_SessId,
     //-- TOE / Listen Interfaces
     stream<TcpAppLsnReq>   &soTOE_LsnReq,
     stream<TcpAppLsnRep>   &siTOE_LsnRep,
     //-- TOE / Tx Data Interfaces
-    stream<NetworkWord> &soTOE_Data,
-    stream<AppMeta>     &soTOE_SessId,
+    stream<TcpAppData>     &soTOE_Data,
+    stream<TcpAppMeta>     &soTOE_SessId,
     //stream<AppWrSts>    &siTOE_DSts,
     //-- TOE / Open Interfaces
     stream<TcpAppOpnReq>      &soTOE_OpnReq,
@@ -1116,10 +1114,11 @@ void nal_main(
             soUdp_meta.write(in_meta_udp);
             packet_count_RX++;
             // Forward data chunk to ROLE
-            UdpAppData    udpWord = siUOE_Data.read();
+            //UdpAppData    udpWord = siUOE_Data.read();
+            NetworkWord udpWord = siUOE_Data.read();
             soUdp_data.write(udpWord);
 
-            if (!udpWord.getTLast() == 1) {
+            if (!udpWord.tlast == 1) {
               fsmStateRX_Udp = FSM_ACC;
             } else { 
               //we are already done, stay here
@@ -1137,10 +1136,11 @@ void nal_main(
           // Default stream handling
           if ( !siUOE_Data.empty() && !soUdp_data.full() ) {
             // Forward data chunk to ROLE
-            UdpAppData    udpWord = siUOE_Data.read();
+            //UdpAppData    udpWord = siUOE_Data.read();
+            NetworkWord    udpWord = siUOE_Data.read();
             soUdp_data.write(udpWord);
             // Until LAST bit is set
-            if (udpWord.getTLast() == 1)
+            if (udpWord.tlast == 1)
             {
               fsmStateRX_Udp = FSM_FIRST_ACC;
             }
@@ -1417,7 +1417,7 @@ void nal_main(
       myName  = concat3(THIS_NAME, "/", "RDp");
 
       //"local" variables
-      NetworkWord currWord;
+      TcpAppData currWord;
       AppMeta     sessId;
 
     //only if NTS is ready
@@ -1504,9 +1504,11 @@ void nal_main(
               //if (DEBUG_LEVEL & TRACE_RDP) { TODO: type management
               //  printAxiWord(myName, (AxiWord) currWord);
               //}
-              soTcp_data.write(currWord);
+              NetworkWord tcpWord = currWord;
+              //soTcp_data.write(currWord);
+              soTcp_data.write(tcpWord);
               //printf("writing to ROLE...\n\n");
-              if (currWord.tlast == 1)
+              if (currWord.getTLast() == 1)
               {
                 rdpFsmState  = RDP_WAIT_META;
               }
@@ -1530,12 +1532,12 @@ void nal_main(
               //}
               //blocking write, because it is a FIFO
               soFMC_Tcp_data.write(currWord);
-              if (currWord.tlast == 1)
+              if (currWord.getTLast() == 1)
               {
                 expect_FMC_response = true;
                 rdpFsmState  = RDP_WAIT_META;
               }
-              switch (currWord.tkeep) {
+              switch (currWord.getTKeep()) {
                 case 0b11111111:
                   fmc_tcp_bytes_cnt += 8;
                   break;
@@ -1578,7 +1580,7 @@ void nal_main(
             if( !siTOE_Data.empty())
             {
               siTOE_Data.read(currWord);
-              if (currWord.tlast == 1)
+              if (currWord.getTLast() == 1)
               {
                 rdpFsmState  = RDP_WAIT_META;
               }
@@ -1603,9 +1605,9 @@ void nal_main(
     myName  = concat3(THIS_NAME, "/", "WRp");
 
     //"local" variables
-    AppMeta       tcpSessId;
-    NetworkWord   currWordIn;
-    NetworkWord   currWordOut;
+    TcpAppMeta   tcpSessId;
+    NetworkWord  currWordIn;
+    //TcpAppData   currWordOut;
 
     //only if NTS is ready
     if(*piNTS_ready == 1 && *layer_4_enabled == 1)
@@ -1734,12 +1736,12 @@ void nal_main(
 
           case WRP_STREAM_FMC:
             if (!siFMC_Tcp_data.empty() && !soTOE_Data.full()) {
-              siFMC_Tcp_data.read(currWordIn);
+              TcpAppData tcpWord = siFMC_Tcp_data.read();
               //if (DEBUG_LEVEL & TRACE_WRP) {
               //     printAxiWord(myName, currWordIn);
               //}
-              soTOE_Data.write(currWordIn);
-              if(currWordIn.tlast == 1) {
+              soTOE_Data.write(tcpWord);
+              if(tcpWord.getTLast() == 1) {
                 wrpFsmState = WRP_WAIT_META;
               }
             }
@@ -1757,7 +1759,7 @@ void nal_main(
               {
                 currWordIn.tlast = 1;
               }
-              soTOE_Data.write(currWordIn);
+              soTOE_Data.write((TcpAppData) currWordIn);
               if(currWordIn.tlast == 1) {
                 wrpFsmState = WRP_WAIT_META;
               }
