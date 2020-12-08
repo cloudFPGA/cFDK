@@ -78,6 +78,25 @@
 
 using namespace hls;
 
+#ifndef _AXIS_CLASS_DEFINED_
+#define _AXIS_CLASS_DEFINED_
+//FIXME: merge with definition in AxisRaw.hpp
+/*
+ * A generic unsigned AXI4-Stream interface used all over the cloudFPGA place.
+ */
+ template<int D>
+   struct Axis {
+     ap_uint<D>       tdata;
+     ap_uint<(D+7)/8> tkeep;
+     ap_uint<1>       tlast;
+     Axis() {}
+     Axis(ap_uint<D> single_data) : tdata((ap_uint<D>)single_data), tkeep(~(((ap_uint<D>) single_data) & 0)), tlast(1) {}
+   };
+
+
+#endif
+
+
 /* ===== NAL specific ====== */
 
 /***********************************************
@@ -88,9 +107,8 @@ typedef TcpSessId   AppMeta;
 
 // --- utility functions -----
 
-//TODO
-//void convertAxisToNtsWidth(stream<Axis<8> > &small, Axis<64> &out);
-//void convertAxisToMpiWidth(Axis<64> big, stream<Axis<8> > &out);
+void convertAxisToNtsWidth(stream<Axis<8> > &small, Axis<64> &out);
+void convertAxisToMpiWidth(Axis<64> big, stream<Axis<8> > &out);
 
 ap_uint<32> bigEndianToInteger(ap_uint<8> *buffer, int lsb);
 void integerToBigEndian(ap_uint<32> n, ap_uint<8> *bytes);

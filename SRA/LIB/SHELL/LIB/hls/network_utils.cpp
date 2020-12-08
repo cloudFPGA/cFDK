@@ -44,8 +44,7 @@
 #include "network_utils.hpp"
 #include "NTS/AxisRaw.hpp"
 
-/*
-//TODO!
+
 void convertAxisToNtsWidth(stream<Axis<8> > &small, AxisRaw &out)
 {
 
@@ -85,7 +84,7 @@ void convertAxisToNtsWidth(stream<Axis<8> > &small, AxisRaw &out)
 
 }
 
-//TODO!
+
 void convertAxisToMpiWidth(Axis<64> big, stream<Axis<8> > &out)
 {
 
@@ -129,7 +128,7 @@ void convertAxisToMpiWidth(Axis<64> big, stream<Axis<8> > &out)
   }
 
 }
-*/
+
 
 #define UINT8  ap_uint<8>
 #define UINT32 ap_uint<32>
