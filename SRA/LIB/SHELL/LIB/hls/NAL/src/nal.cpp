@@ -204,7 +204,7 @@ NodeId getNodeIdFromIpAddress(ap_uint<32> ipAddr)
       return (NodeId) i;
     }
   }
-  //return ret;
+  return UNUSED_SESSION_ENTRY_VALUE;
 }
 
 
@@ -471,45 +471,125 @@ void nal_main(
     )
 {
 
+// ----- directives for AXI buses (AXI4 stream, AXI4 Lite) -----
+#ifdef USE_DEPRECATED_DIRECTIVES
+  #pragma HLS RESOURCE core=AXI4LiteS variable=ctrlLink metadata="-bus_bundle piFMC_NAL_ctrlLink_AXI"
+  
+  #pragma HLS RESOURCE core=AXI4Stream variable=siUdp_data    metadata="-bus_bundle siUdp_data"
+  #pragma HLS RESOURCE core=AXI4Stream variable=soUdp_data    metadata="-bus_bundle soUdp_data"
+
+  #pragma HLS RESOURCE core=AXI4Stream variable=siUdp_meta    metadata="-bus_bundle siUdp_meta"
+  #pragma HLS DATA_PACK				   variable=siUdp_meta
+  #pragma HLS RESOURCE core=AXI4Stream variable=soUdp_meta    metadata="-bus_bundle soUdp_meta"
+  #pragma HLS DATA_PACK				   variable=soUdp_meta
+
+  #pragma HLS RESOURCE core=AXI4Stream variable=soUOE_LsnReq  metadata="-bus_bundle soUOE_LsnReq"
+  #pragma HLS RESOURCE core=AXI4Stream variable=siUOE_LsnRep  metadata="-bus_bundle siUOE_LsnRep"
+  #pragma HLS RESOURCE core=AXI4Stream variable=soUOE_ClsReq  metadata="-bus_bundle soUOE_ClsReq"
+  #pragma HLS RESOURCE core=AXI4Stream variable=siUOE_ClsRep  metadata="-bus_bundle siUOE_ClsRep"
+
+  #pragma HLS RESOURCE core=AXI4Stream variable=siUOE_Data    metadata="-bus_bundle siUOE_Data"
+  #pragma HLS RESOURCE core=AXI4Stream variable=siUOE_Meta    metadata="-bus_bundle siUOE_Meta"
+  #pragma HLS DATA_PACK                variable=siUOE_Meta
+
+  #pragma HLS RESOURCE core=AXI4Stream variable=soUOE_Data    metadata="-bus_bundle soUOE_Data"
+  #pragma HLS RESOURCE core=AXI4Stream variable=soUOE_Meta    metadata="-bus_bundle soUOE_Meta"
+  #pragma HLS DATA_PACK                variable=soUOE_Meta
+  #pragma HLS RESOURCE core=AXI4Stream variable=soUOE_DLen    metadata="-bus_bundle soUOE_DLen"
+
+  #pragma HLS RESOURCE core=AXI4Stream variable=siTcp_data    metadata="-bus_bundle siTcp_data"
+  #pragma HLS RESOURCE core=AXI4Stream variable=soTcp_data    metadata="-bus_bundle soTcp_data"
+  #pragma HLS RESOURCE core=AXI4Stream variable=siTcp_meta    metadata="-bus_bundle siTcp_meta"
+  #pragma HLS DATA_PACK				   variable=siTcp_meta
+  #pragma HLS RESOURCE core=AXI4Stream variable=soTcp_meta    metadata="-bus_bundle soTcp_meta"
+  #pragma HLS DATA_PACK				   variable=soTcp_meta
+
+  #pragma HLS RESOURCE core=AXI4Stream variable=siTOE_Notif   metadata="-bus_bundle siTOE_Notif"
+  #pragma HLS DATA_PACK                variable=siTOE_Notif
+  #pragma HLS RESOURCE core=AXI4Stream variable=soTOE_DReq    metadata="-bus_bundle soTOE_DReq"
+  #pragma HLS DATA_PACK                variable=soTOE_DReq
+  #pragma HLS RESOURCE core=AXI4Stream variable=siTOE_Data    metadata="-bus_bundle siTOE_Data"
+  #pragma HLS RESOURCE core=AXI4Stream variable=siTOE_SessId  metadata="-bus_bundle siTOE_SessId"
+  
+  #pragma HLS RESOURCE core=AXI4Stream variable=soTOE_LsnReq  metadata="-bus_bundle soTOE_LsnReq"
+  #pragma HLS RESOURCE core=AXI4Stream variable=siTOE_LsnRep  metadata="-bus_bundle siTOE_LsnRep"
+
+  #pragma HLS RESOURCE core=AXI4Stream variable=soTOE_Data    metadata="-bus_bundle soTOE_Data"
+  #pragma HLS RESOURCE core=AXI4Stream variable=soTOE_SessId  metadata="-bus_bundle soTOE_SessId"
+  //#pragma HLS RESOURCE core=AXI4Stream variable=siTOE_DSts  metadata="-bus_bundle "
+
+  #pragma HLS RESOURCE core=AXI4Stream variable=soTOE_OpnReq  metadata="-bus_bundle soTOE_OpnReq"
+  #pragma HLS DATA_PACK                variable=soTOE_OpnReq
+  #pragma HLS RESOURCE core=AXI4Stream variable=siTOE_OpnRep  metadata="-bus_bundle siTOE_OpnRep"
+  #pragma HLS DATA_PACK                variable=siTOE_OpnRep
+  
+  #pragma HLS RESOURCE core=AXI4Stream variable=soTOE_ClsReq  metadata="-bus_bundle soTOE_ClsReq"
+
+#else
+  #pragma HLS INTERFACE s_axilite depth=512 port=ctrlLink bundle=piFMC_NAL_ctrlLink_AXI
+
+  #pragma HLS INTERFACE axis register both port=siUdp_data
+  #pragma HLS INTERFACE axis register both port=soUdp_data
+
+  #pragma HLS INTERFACE axis register both port=siUdp_meta
+  #pragma HLS INTERFACE axis register both port=soUdp_meta
+
+  #pragma HLS INTERFACE axis register both port=soUOE_LsnReq
+  #pragma HLS INTERFACE axis register both port=siUOE_LsnRep
+  #pragma HLS INTERFACE axis register both port=soUOE_ClsReq
+  #pragma HLS INTERFACE axis register both port=siUOE_ClsRep
+
+  #pragma HLS INTERFACE axis register both port=siUOE_Data
+  #pragma HLS INTERFACE axis register both port=siUOE_Meta
+  #pragma HLS DATA_PACK                variable=siUOE_Meta
+
+  #pragma HLS INTERFACE axis register both port=soUOE_Data
+  #pragma HLS INTERFACE axis register both port=soUOE_Meta
+  #pragma HLS DATA_PACK                variable=soUOE_Meta
+  #pragma HLS INTERFACE axis register both port=soUOE_DLen
+
+  #pragma HLS INTERFACE axis register both port=siTcp_data
+  #pragma HLS INTERFACE axis register both port=soTcp_data
+  #pragma HLS INTERFACE axis register both port=siTcp_meta
+  #pragma HLS INTERFACE axis register both port=soTcp_meta
+
+  #pragma HLS INTERFACE axis register both port=siTOE_Notif
+  #pragma HLS DATA_PACK                variable=siTOE_Notif
+  #pragma HLS INTERFACE axis register both port=soTOE_DReq
+  #pragma HLS DATA_PACK                variable=soTOE_DReq
+  #pragma HLS INTERFACE axis register both port=siTOE_Data
+  #pragma HLS INTERFACE axis register both port=siTOE_SessId
+  
+  #pragma HLS INTERFACE axis register both port=soTOE_LsnReq
+  #pragma HLS INTERFACE axis register both port=siTOE_LsnRep
+  
+  #pragma HLS INTERFACE axis register both port=soTOE_Data
+  #pragma HLS INTERFACE axis register both port=soTOE_SessId
+  //#pragma HLS INTERFACE axis register both port=siTOE_DSts
+  
+  #pragma HLS INTERFACE axis register both port=soTOE_OpnReq
+  #pragma HLS DATA_PACK                variable=soTOE_OpnReq
+  #pragma HLS INTERFACE axis register both port=siTOE_OpnRep
+  #pragma HLS DATA_PACK                variable=siTOE_OpnRep
+  
+  #pragma HLS INTERFACE axis register both port=soTOE_ClsReq
+
+#endif
+
+// ----- common directives -----
+
+#pragma HLS INTERFACE ap_ctrl_none port=return
+
 #pragma HLS INTERFACE ap_vld register port=layer_4_enabled name=piLayer4enabled
 #pragma HLS INTERFACE ap_vld register port=layer_7_enabled name=piLayer7enabled
 #pragma HLS INTERFACE ap_vld register port=role_decoupled  name=piRoleDecoup_active
 #pragma HLS INTERFACE ap_vld register port=piNTS_ready name=piNTS_ready
-
-#pragma HLS INTERFACE axis register both port=siUdp_data
-#pragma HLS INTERFACE axis register both port=soUdp_data
-
-#pragma HLS INTERFACE axis register both port=siUdp_meta
-#pragma HLS INTERFACE axis register both port=soUdp_meta
-
-
-#pragma HLS INTERFACE axis register both port=soUOE_LsnReq   name=soUOE_Udp_LsnReq
-#pragma HLS INTERFACE axis register both port=siUOE_LsnRep   name=siUOE_Udp_LsnRep
-#pragma HLS INTERFACE axis register both port=soUOE_ClsReq   name=soUOE_Udp_ClsReq
-#pragma HLS INTERFACE axis register both port=siUOE_ClsRep   name=siUOE_Udp_ClsRep
-
-#pragma HLS INTERFACE axis register both port=siUOE_Data     name=siUOE_Udp_Data
-#pragma HLS INTERFACE axis register both port=siUOE_Meta     name=siUOE_Udp_Meta
-#pragma HLS DATA_PACK                variable=siUOE_Meta
-
-#pragma HLS INTERFACE axis register both port=soUOE_Data     name=soUOE_Udp_Data
-#pragma HLS INTERFACE axis register both port=soUOE_Meta     name=soUOE_Udp_Meta
-#pragma HLS DATA_PACK                variable=soUOE_Meta
-#pragma HLS INTERFACE axis register both port=soUOE_DLen     name=soUOE_Udp_DLen
 
 #pragma HLS INTERFACE ap_vld register port=myIpAddress name=piMyIpAddress
 #pragma HLS INTERFACE ap_vld register port=pi_udp_rx_ports name=piROL_Udp_Rx_ports
 #pragma HLS INTERFACE ap_vld register port=piMMIO_FmcLsnPort name=piMMIO_FmcLsnPort
 #pragma HLS INTERFACE ap_vld register port=piMMIO_CfrmIp4Addr name=piMMIO_CfrmIp4Addr
 
-#pragma HLS INTERFACE s_axilite depth=512 port=ctrlLink bundle=piFMC_NAL_ctrlLink_AXI
-  //#pragma HLS INTERFACE s_axilite port=return bundle=piFMC_NAL_ctrlLink_AXI
-#pragma HLS INTERFACE ap_ctrl_none port=return
-
-#pragma HLS INTERFACE axis register both port=siTcp_data
-#pragma HLS INTERFACE axis register both port=soTcp_data
-#pragma HLS INTERFACE axis register both port=siTcp_meta
-#pragma HLS INTERFACE axis register both port=soTcp_meta
 #pragma HLS INTERFACE ap_vld register port=pi_tcp_rx_ports name=piROL_Tcp_Rx_ports
 
 #pragma HLS INTERFACE ap_fifo port=siFMC_Tcp_data
@@ -520,34 +600,12 @@ void nal_main(
 #pragma HLS INTERFACE ap_vld register port=piFMC_Tcp_sessid_FIFO_prog_full name=piFMC_Tcp_sessid_FIFO_prog_full
 
 
-#pragma HLS INTERFACE axis register both port=siTOE_Notif
-#pragma HLS DATA_PACK                variable=siTOE_Notif
-#pragma HLS INTERFACE axis register both port=soTOE_DReq
-#pragma HLS DATA_PACK                variable=soTOE_DReq
-#pragma HLS INTERFACE axis register both port=siTOE_Data
-#pragma HLS INTERFACE axis register both port=siTOE_SessId
-
-#pragma HLS INTERFACE axis register both port=soTOE_LsnReq
-#pragma HLS INTERFACE axis register both port=siTOE_LsnRep
-
-#pragma HLS INTERFACE axis register both port=soTOE_Data
-#pragma HLS INTERFACE axis register both port=soTOE_SessId
-//#pragma HLS INTERFACE axis register both port=siTOE_DSts
-
-#pragma HLS INTERFACE axis register both port=soTOE_OpnReq
-#pragma HLS DATA_PACK                variable=soTOE_OpnReq
-#pragma HLS INTERFACE axis register both port=siTOE_OpnRep
-#pragma HLS DATA_PACK                variable=siTOE_OpnRep
-
-#pragma HLS INTERFACE axis register both port=soTOE_ClsReq
-
-  // Pragmas for internal variables
-#pragma HLS DATAFLOW interval=1
-  //#pragma HLS PIPELINE II=1 //FIXME
+#pragma HLS DATAFLOW
+//#pragma HLS PIPELINE II=1 //FIXME
 
 
-  //=================================================================================================
-  // Reset global variables 
+//=================================================================================================
+// Reset global variables
 
 #pragma HLS reset variable=fsmStateRX_Udp
 #pragma HLS reset variable=fsmStateTX_Udp

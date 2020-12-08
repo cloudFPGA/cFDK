@@ -105,6 +105,13 @@
 //#include "../../memory_utils.hpp"
 #include "../../simulation_utils.hpp"
 
+/************************************************
+ * INTERFACE SYNTHESIS DIRECTIVES
+ *  For the time being, we continue designing
+ *  with the DEPRECATED directives because the
+ *  new PRAGMAs do not work for us.
+ ************************************************/
+//#define USE_DEPRECATED_DIRECTIVES
 
 using namespace hls;
 
