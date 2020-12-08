@@ -117,10 +117,13 @@ static const ap_uint<32> SEQ_mid = 2147483648; // used in Modulo Arithmetic Comp
 
   static const ap_uint<32> TIME_1us       = (((ap_uint<32>)(TIME_1s/1000000) > 1) ? (ap_uint<32>)(TIME_1s/1000000) : (ap_uint<32>)1);
   static const ap_uint<32> TIME_64us      = (((ap_uint<32>)(TIME_1s/  15625) > 1) ? (ap_uint<32>)(TIME_1s/  15625) : (ap_uint<32>)1);
-  static const ap_uint<32> ACKD_64us      = ( 64.0/0.0064/TOE_MAX_SESSIONS/100) + 1;
   static const ap_uint<32> TIME_128us     = (((ap_uint<32>)(TIME_1s/  31250) > 1) ? (ap_uint<32>)(TIME_1s/  31250) : (ap_uint<32>)1);
   static const ap_uint<32> TIME_256us     = (((ap_uint<32>)(TIME_1s/  62500) > 1) ? (ap_uint<32>)(TIME_1s/  62500) : (ap_uint<32>)1);
   static const ap_uint<32> TIME_512us     = (((ap_uint<32>)(TIME_1s/ 125000) > 1) ? (ap_uint<32>)(TIME_1s/ 125000) : (ap_uint<32>)1);
+
+  static const ap_uint<32> ACKD_16us      = ( 16.0/0.0064/TOE_MAX_SESSIONS/100) + 1;
+  static const ap_uint<32> ACKD_32us      = ( 32.0/0.0064/TOE_MAX_SESSIONS/100) + 1;
+  static const ap_uint<32> ACKD_64us      = ( 64.0/0.0064/TOE_MAX_SESSIONS/100) + 1;
 
   static const ap_uint<32> TIME_1ms       = (((ap_uint<32>)(TIME_1s/1000) > 1) ? (ap_uint<32>)(TIME_1s/1000) : (ap_uint<32>)1);
   static const ap_uint<32> TIME_5ms       = (((ap_uint<32>)(TIME_1s/ 200) > 1) ? (ap_uint<32>)(TIME_1s/ 200) : (ap_uint<32>)1);
@@ -139,6 +142,8 @@ static const ap_uint<32> SEQ_mid = 2147483648; // used in Modulo Arithmetic Comp
   static const ap_uint<32> TIME_120s      = (120*TIME_1s);
 #else
   static const ap_uint<32> TIME_1us       = (  1.0/0.0064/TOE_MAX_SESSIONS) + 1;
+  static const ap_uint<32> ACKD_16us      = ( 16.0/0.0064/TOE_MAX_SESSIONS) + 1;
+  static const ap_uint<32> ACKD_32us      = ( 32.0/0.0064/TOE_MAX_SESSIONS) + 1;
   static const ap_uint<32> ACKD_64us      = ( 64.0/0.0064/TOE_MAX_SESSIONS) + 1;
   static const ap_uint<32> TIME_128us     = (128.0/0.0064/TOE_MAX_SESSIONS) + 1;
   static const ap_uint<32> TIME_256us     = (256.0/0.0064/TOE_MAX_SESSIONS) + 1;

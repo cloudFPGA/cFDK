@@ -104,6 +104,7 @@
 /*******************************************************************************
  * GENERIC AXI4 STREAMING INTERFACES
  *******************************************************************************/
+/*** OBSOLETE_20201207 ******
 template<int D>
    class Axis {
      private:
@@ -114,6 +115,7 @@ template<int D>
        Axis(ap_uint<D> single_data) :
            tdata((ap_uint<D>)single_data), tkeep(~(((ap_uint<D>) single_data) & 0)), tlast(1) {}
    };
+*** OBSOLETE_20201207 ******/
 
 /***********************************************
  * AXIS RAW - DEFINITIONS
