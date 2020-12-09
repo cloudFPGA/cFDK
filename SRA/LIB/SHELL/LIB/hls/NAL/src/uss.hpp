@@ -45,7 +45,6 @@
 using namespace hls;
 
 void pUdpTX(
-		//ap_uint<1> *piNTS_ready,
 		stream<NetworkWord>         &siUdp_data,
 		stream<NetworkMetaStream>   &siUdp_meta,
 	    stream<UdpAppData>          &soUOE_Data,
@@ -57,7 +56,6 @@ void pUdpTX(
 		);
 
 void pUdpRx(
-		//ap_uint<1> *piNTS_ready,
 		stream<UdpPort>             &soUOE_LsnReq,
 		stream<StsBool>             &siUOE_LsnRep,
 		stream<NetworkWord>         &soUdp_data,
@@ -71,6 +69,15 @@ void pUdpRx(
 		bool						*detected_cache_invalidation,
 		stream<NalEventNotif> 		&internal_event_fifo
 		);
+
+void pUdpCls(
+	    stream<UdpPort>             &soUOE_ClsReq,
+	    stream<StsBool>             &siUOE_ClsRep,
+		ap_uint<32>					*udp_rx_ports_to_close,
+		bool						*start_udp_cls_fsm,
+		bool						*nts_ready_and_enabled
+		);
+
 
 #endif
 

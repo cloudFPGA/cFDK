@@ -289,6 +289,7 @@ struct NalEventNotif {
 Ip4Addr getIpFromRank(NodeId rank);
 NodeId getNodeIdFromIpAddress(ap_uint<32> ipAddr);
 NodeId getOwnRank();
+ap_uint<32> getRightmostBitPos(ap_uint<32> num);
 
 #include "uss.hpp"
 #include "tss.hpp"

@@ -33,7 +33,6 @@
 using namespace hls;
 
 void pUdpTX(
-		//ap_uint<1> *piNTS_ready,
 		stream<NetworkWord>         &siUdp_data,
 		stream<NetworkMetaStream>   &siUdp_meta,
 	    stream<UdpAppData>          &soUOE_Data,
@@ -205,7 +204,6 @@ void pUdpTX(
 }
 
 void pUdpRx(
-		//ap_uint<1> *piNTS_ready,
 		stream<UdpPort>             &soUOE_LsnReq,
 		stream<StsBool>             &siUOE_LsnRep,
 		stream<NetworkWord>         &soUdp_data,
@@ -422,6 +420,94 @@ void pUdpRx(
 	//  }
 
 }
+
+void pUdpCls(
+	    stream<UdpPort>             &soUOE_ClsReq,
+	    stream<StsBool>             &siUOE_ClsRep,
+		ap_uint<32>					*udp_rx_ports_to_close,
+		bool						*start_udp_cls_fsm,
+		bool						*nts_ready_and_enabled
+		)
+{
+	//-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+	    #pragma HLS INLINE off
+		//#pragma HLS pipeline II=1
+
+		char *myName  = concat3(THIS_NAME, "/", "Udp_Cls");
+
+		//-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+		static ClsFsmStates clsFsmState_Udp = CLS_IDLE;
+
+		#pragma HLS RESET variable=clsFsmState_Udp
+		//-- STATIC DATAFLOW VARIABLES --------------------------------------------
+		static ap_uint<16> newRelativePortToClose = 0;
+		static ap_uint<16> newAbsolutePortToClose = 0;
+
+
+		if(!*nts_ready_and_enabled)
+		{
+			clsFsmState_Udp = CLS_IDLE;
+		}
+
+		  //only if NTS is ready
+		  //and if we have valid tables
+		  //if(*piNTS_ready == 1 && *layer_4_enabled == 1 && tables_initalized)
+		 // {
+		  //  if( rdpFsmState != RDP_STREAM_FMC && rdpFsmState != RDP_STREAM_ROLE &&
+		//        wrpFsmState != WRP_STREAM_FMC && wrpFsmState != WRP_STREAM_ROLE )
+		//    { //so we are not in the critical TCP path
+		      switch (clsFsmState_Udp) {
+		        default:
+		        case CLS_IDLE:
+		          //we wait until we are activated;
+		          newRelativePortToClose = 0;
+		          newAbsolutePortToClose = 0;
+		          if(*start_udp_cls_fsm)
+		          {
+		        	  clsFsmState_Udp = CLS_NEXT;
+		        	  *start_udp_cls_fsm = false;
+		          }
+		          break;
+		        case CLS_NEXT:
+		          if( *udp_rx_ports_to_close != 0 )
+		          {
+		            //we have to close opened ports, one after another
+		            newRelativePortToClose = getRightmostBitPos(*udp_rx_ports_to_close);
+		            newAbsolutePortToClose = NAL_RX_MIN_PORT + newRelativePortToClose;
+		            if(!soUOE_ClsReq.full()) {
+		              soUOE_ClsReq.write(newAbsolutePortToClose);
+		              clsFsmState_Udp = CLS_WAIT4RESP;
+		            } //else: just tay here
+		          } else {
+		            clsFsmState_Udp = CLS_IDLE;
+		          }
+		          break;
+		        case CLS_WAIT4RESP:
+		          if(!siUOE_ClsRep.empty())
+		          {
+		            StsBool isOpened;
+		            siUOE_ClsRep.read(isOpened);
+		            if (not isOpened)
+		            {
+		              printInfo(myName, "Received close acknowledgment from [UOE].\n");
+		              //update ports to close
+		              ap_uint<32> one_cold_closed_port = ~(((ap_uint<32>) 1) << (newRelativePortToClose));
+		              *udp_rx_ports_to_close &= one_cold_closed_port;
+		              printf("new UDP port ports to close: %#04x\n",(unsigned int) *udp_rx_ports_to_close);
+		            }
+		            else {
+		              printWarn(myName, "UOE denied closing the port %d (0x%4.4X) which is still opened.\n",
+		                  (int) newAbsolutePortToClose, (int) newAbsolutePortToClose);
+		            }
+		            //in all cases
+		            clsFsmState_Udp = CLS_NEXT;
+		          }
+		          break;
+		      }
+		  //  }
+		//  }
+}
+
 
 /*! \} */
 

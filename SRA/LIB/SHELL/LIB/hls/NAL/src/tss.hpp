@@ -40,6 +40,9 @@
 #include "ap_int.h"
 #include <stdint.h>
 
+#include "nal.hpp"
+
+using namespace hls;
 
 #endif
 

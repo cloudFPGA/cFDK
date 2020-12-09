@@ -57,8 +57,8 @@ ap_uint<32> udp_rx_ports_to_close = 0;
 bool need_udp_port_req = false;
 ap_uint<16> new_relative_port_to_req_udp = 0;
 ClsFsmStates clsFsmState_Udp = CLS_IDLE;
-ap_uint<16> newRelativePortToClose = 0;
-ap_uint<16> newAbsolutePortToClose = 0;
+//ap_uint<16> newRelativePortToClose = 0;
+//ap_uint<16> newAbsolutePortToClose = 0;
 
 NetworkMetaStream out_meta_udp = NetworkMetaStream(); //DON'T FORGET to initilize!
 //NetworkMetaStream in_meta_udp = NetworkMetaStream(); //ATTENTION: don't forget initilizer...
@@ -606,9 +606,9 @@ void nal_main(
 #pragma HLS reset variable=udp_rx_ports_to_close
 #pragma HLS reset variable=need_udp_port_req
 #pragma HLS reset variable=new_relative_port_to_req_udp
-#pragma HLS reset variable=clsFsmState_Udp
-#pragma HLS reset variable=newRelativePortToClose
-#pragma HLS reset variable=newAbsolutePortToClose
+//#pragma HLS reset variable=clsFsmState_Udp
+//#pragma HLS reset variable=newRelativePortToClose
+//#pragma HLS reset variable=newAbsolutePortToClose
 #pragma HLS reset variable=node_id_missmatch_RX_cnt
 #pragma HLS reset variable=node_id_missmatch_TX_cnt
 #pragma HLS reset variable=port_corrections_TX_cnt
@@ -668,6 +668,7 @@ void nal_main(
   ap_uint<32> ipAddrBE = *myIpAddress;
   bool nts_ready_and_enabled = (*piNTS_ready == 1 && *layer_4_enabled == 1);
   bool detected_cache_invalidation = false;
+  bool start_udp_cls_fsm = false;
 
 
   //===========================================================
@@ -731,7 +732,8 @@ void nal_main(
         //mark all UDP ports as to be deleted
         udp_rx_ports_to_close = udp_rx_ports_processed;
         //start closing FSM UDP
-        clsFsmState_Udp = CLS_NEXT;
+        //clsFsmState_Udp = CLS_NEXT;
+        start_udp_cls_fsm = true;
       }
 
       if(tcp_rx_ports_processed > 0)
@@ -888,59 +890,7 @@ void nal_main(
   //=================================================================================================
   // UDP Port Close
 
-  //redefinition
-  char *myName  = concat3(THIS_NAME, "/", "Udp_Cls");
-
-  //only if NTS is ready
-  //and if we have valid tables
-  if(*piNTS_ready == 1 && *layer_4_enabled == 1 && tables_initalized)
-  {
-    if( rdpFsmState != RDP_STREAM_FMC && rdpFsmState != RDP_STREAM_ROLE &&
-        wrpFsmState != WRP_STREAM_FMC && wrpFsmState != WRP_STREAM_ROLE )
-    { //so we are not in the critical TCP path
-      switch (clsFsmState_Udp) {
-        default:
-        case CLS_IDLE:
-          //we wait until we are activated;
-          break;
-        case CLS_NEXT:
-          if( udp_rx_ports_to_close != 0 )
-          {
-            //we have to close opened ports, one after another
-            newRelativePortToClose = getRightmostBitPos(udp_rx_ports_to_close);
-            newAbsolutePortToClose = NAL_RX_MIN_PORT + newRelativePortToClose;
-            if(!soUOE_ClsReq.full()) {
-              soUOE_ClsReq.write(newAbsolutePortToClose);
-              clsFsmState_Udp = CLS_WAIT4RESP;
-            } //else: just tay here
-          } else {
-            clsFsmState_Udp = CLS_IDLE;
-          }
-          break;
-        case CLS_WAIT4RESP:
-          if(!siUOE_ClsRep.empty())
-          {
-            StsBool isOpened;
-            siUOE_ClsRep.read(isOpened);
-            if (not isOpened)
-            {
-              printInfo(myName, "Received close acknowledgment from [UOE].\n");
-              //update ports to close
-              ap_uint<32> one_cold_closed_port = ~(((ap_uint<32>) 1) << (newRelativePortToClose));
-              udp_rx_ports_to_close &= one_cold_closed_port;
-              printf("new UDP port ports to close: %#04x\n",(unsigned int) udp_rx_ports_to_close);
-            }
-            else {
-              printWarn(myName, "UOE denied closing the port %d (0x%4.4X) which is still opened.\n",
-                  (int) newAbsolutePortToClose, (int) newAbsolutePortToClose);
-            }
-            //in all cases
-            clsFsmState_Udp = CLS_NEXT;
-          }
-          break;
-      }
-    }
-  }
+  pUdpCls(soUOE_ClsReq, siUOE_ClsRep, &udp_rx_ports_to_close, &start_udp_cls_fsm, &nts_ready_and_enabled);
 
     //=================================================================================================
     // TCP pListen
@@ -959,7 +909,7 @@ void nal_main(
      *   to 32,767.
      ******************************************************************************/
 
-    myName  = concat3(THIS_NAME, "/", "LSn");
+    char* myName  = concat3(THIS_NAME, "/", "LSn");
 
     //only if NTS is ready
     if(*piNTS_ready == 1 && *layer_4_enabled == 1)
