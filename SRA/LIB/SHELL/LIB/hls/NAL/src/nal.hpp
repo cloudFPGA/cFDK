@@ -105,6 +105,9 @@
 //#include "../../memory_utils.hpp"
 #include "../../simulation_utils.hpp"
 
+#include "uss.hpp"
+#include "tss.hpp"
+
 /************************************************
  * INTERFACE SYNTHESIS DIRECTIVES
  *  For the time being, we continue designing
@@ -118,53 +121,62 @@ using namespace hls;
 #define DEFAULT_TX_PORT 2718
 #define DEFAULT_RX_PORT 2718
 
-#define FSM_RESET 0
-#define FSM_IDLE  1
-#define FSM_W8FORPORT 2
-#define FSM_FIRST_ACC 3
-#define FSM_ACC 4
-#define FSM_LAST_ACC 5
-#define FSM_W8FORMETA 6
-#define FSM_WRITE_META 7
-#define FSM_DROP_PACKET 8
-#define FsmStateUdp uint8_t
+//#define FSM_RESET 0
+//#define FSM_IDLE  1
+//#define FSM_W8FORPORT 2
+//#define FSM_FIRST_ACC 3
+//#define FSM_ACC 4
+//#define FSM_LAST_ACC 5
+//#define FSM_W8FORMETA 6
+//#define FSM_WRITE_META 7
+//#define FSM_DROP_PACKET 8
+//#define FsmStateUdp uint8_t
+enum FsmStateUdp {FSM_RESET = 0, FSM_IDLE, FSM_W8FORPORT, FSM_FIRST_ACC, FSM_ACC, \
+                  FSM_LAST_ACC, FSM_W8FORMETA, FSM_WRITE_META, FSM_DROP_PACKET};
 
+//#define OpnFsmStates uint8_t
+//#define OPN_IDLE 0
+//#define OPN_REQ 1
+//#define OPN_REP 2
+//#define OPN_DONE 3
+enum OpnFsmStates {OPN_IDLE = 0, OPN_REQ, OPN_REP, OPN_DONE};
 
-#define OpnFsmStates uint8_t
-#define OPN_IDLE 0
-#define OPN_REQ 1
-#define OPN_REP 2
-#define OPN_DONE 3
+//#define LsnFsmStates uint8_t
+//#define LSN_IDLE 0
+//#define LSN_SEND_REQ 1
+//#define LSN_WAIT_ACK 2
+//#define LSN_DONE 3
+enum LsnFsmStates {LSN_IDLE = 0, LSN_SEND_REQ, LSN_WAIT_ACK, LSN_DONE};
 
-#define LsnFsmStates uint8_t
-#define LSN_IDLE 0
-#define LSN_SEND_REQ 1
-#define LSN_WAIT_ACK 2
-#define LSN_DONE 3
+//#define RrhFsmStates uint8_t
+//#define RRH_WAIT_NOTIF 0
+//#define RRH_SEND_DREQ 1
+enum RrhFsmStates {RRH_WAIT_NOTIF = 0, RRH_SEND_DREQ};
 
-#define RrhFsmStates uint8_t
-#define RRH_WAIT_NOTIF 0
-#define RRH_SEND_DREQ 1
+//#define RdpFsmStates uint8_t
+//#define RDP_WAIT_META 0
+//#define RDP_STREAM_ROLE 1
+//#define RDP_STREAM_FMC 2
+//#define RDP_WRITE_META_ROLE 3
+//#define RDP_WRITE_META_FMC 4
+//#define RDP_DROP_PACKET 5
+enum RdpFsmStates {RDP_WAIT_META = 0, RDP_STREAM_ROLE, RDP_STREAM_FMC, \
+	               RDP_WRITE_META_ROLE, RDP_WRITE_META_FMC, RDP_DROP_PACKET};
 
-#define RdpFsmStates uint8_t
-#define RDP_WAIT_META 0
-#define RDP_STREAM_ROLE 1
-#define RDP_STREAM_FMC 2
-#define RDP_WRITE_META_ROLE 3
-#define RDP_WRITE_META_FMC 4
-#define RDP_DROP_PACKET 5
+//#define WrpFsmStates uint8_t
+//#define WRP_WAIT_META 0
+//#define WRP_STREAM_FMC 1
+//#define WRP_WAIT_CONNECTION 2
+//#define WRP_STREAM_ROLE 3
+//#define WRP_DROP_PACKET 4
+enum WrpFsmStates {WRP_WAIT_META = 0, WRP_STREAM_FMC, WRP_WAIT_CONNECTION, \
+	               WRP_STREAM_ROLE, WRP_DROP_PACKET};
 
-#define WrpFsmStates uint8_t
-#define WRP_WAIT_META 0
-#define WRP_STREAM_FMC 1
-#define WRP_WAIT_CONNECTION 2
-#define WRP_STREAM_ROLE 3
-#define WRP_DROP_PACKET 4
-
-#define ClsFsmStates uint8_t
-#define CLS_IDLE 0
-#define CLS_NEXT 1
-#define CLS_WAIT4RESP 2
+//#define ClsFsmStates uint8_t
+//#define CLS_IDLE 0
+//#define CLS_NEXT 1
+//#define CLS_WAIT4RESP 2
+enum ClsFsmStates {CLS_IDLE = 0, CLS_NEXT, CLS_WAIT4RESP};
 
 #define MAX_NAL_SESSIONS (TOE_MAX_SESSIONS)
 

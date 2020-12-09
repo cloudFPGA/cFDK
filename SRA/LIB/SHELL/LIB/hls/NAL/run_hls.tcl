@@ -33,21 +33,21 @@ set xilPartName    "xcku060-ffva1156-2-i"
 
 set ipName         ${projectName}
 set ipDisplayName  "Network Abstraction Layer"
-set ipDescription  "The Network Abstraction Layer for the Shell"
+set ipDescription  "The Network Abstraction Layer (NAL) for the Shell"
 set ipVendor       "IBM"
 set ipLibrary      "hls"
 set ipVersion      "1.0"
 set ipPkgFormat    "ip_catalog"
 
-# Set Project Environment Variables  
+# Set Project Environment Variables
 #-------------------------------------------------
 set currDir      [pwd]
 set srcDir       ${currDir}/src
 set testDir      ${currDir}/test
-set implDir      ${currDir}/${projectName}_prj/${solutionName}/impl/ip 
+set implDir      ${currDir}/${projectName}_prj/${solutionName}/impl/ip
 #set repoDir      ${currDir}/../../ip
 
-# Get targets out of env  
+# Get targets out of env
 #-------------------------------------------------
 set hlsSim $env(hlsSim)
 set hlsCoSim $env(hlsCoSim)
@@ -60,6 +60,10 @@ set_top       ${projectName}_main
 
 add_files     ${srcDir}/${projectName}.cpp
 add_files     ${srcDir}/${projectName}.hpp
+add_files     ${srcDir}/uss.cpp
+add_files     ${srcDir}/uss.hpp
+add_files     ${srcDir}/tss.cpp
+add_files     ${srcDir}/tss.hpp
 add_files     ${srcDir}/../../../../../hls/network.hpp
 add_files     ${srcDir}/../../network_utils.hpp
 add_files     ${srcDir}/../../network_utils.cpp
