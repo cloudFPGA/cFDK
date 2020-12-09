@@ -40,6 +40,37 @@
 #include "ap_int.h"
 #include <stdint.h>
 
+#include "nal.hpp"
+
+using namespace hls;
+
+void pUdpTX(
+		//ap_uint<1> *piNTS_ready,
+		stream<NetworkWord>         &siUdp_data,
+		stream<NetworkMetaStream>   &siUdp_meta,
+	    stream<UdpAppData>          &soUOE_Data,
+	    stream<UdpAppMeta>          &soUOE_Meta,
+	    stream<UdpAppDLen>          &soUOE_DLen,
+		ap_uint<32> 				*ipAddrBE,
+		bool						*nts_ready_and_enabled,
+		stream<NalEventNotif> 		&internal_event_fifo
+		);
+
+void pUdpRx(
+		//ap_uint<1> *piNTS_ready,
+		stream<UdpPort>             &soUOE_LsnReq,
+		stream<StsBool>             &siUOE_LsnRep,
+		stream<NetworkWord>         &soUdp_data,
+		stream<NetworkMetaStream>   &soUdp_meta,
+	    stream<UdpAppData>          &siUOE_Data,
+	    stream<UdpAppMeta>          &siUOE_Meta,
+		bool 						*need_udp_port_req,
+		ap_uint<16>					*new_relative_port_to_req_udp,
+		ap_uint<32>					*udp_rx_ports_processed,
+		bool						*nts_ready_and_enabled,
+		bool						*detected_cache_invalidation,
+		stream<NalEventNotif> 		&internal_event_fifo
+		);
 
 #endif
 

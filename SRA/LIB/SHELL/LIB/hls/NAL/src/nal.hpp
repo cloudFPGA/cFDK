@@ -105,8 +105,29 @@
 //#include "../../memory_utils.hpp"
 #include "../../simulation_utils.hpp"
 
-#include "uss.hpp"
-#include "tss.hpp"
+
+/************************************************
+ * HELPERS FOR THE DEBUGGING TRACES
+ *  .e.g: DEBUG_LEVEL = (MDL_TRACE | IPS_TRACE)
+ ************************************************/
+#ifndef __SYNTHESIS__
+extern bool gTraceEvent;
+#endif
+
+#define THIS_NAME "NRC"
+
+#define TRACE_OFF  0x0000
+#define TRACE_RDP 1 <<  1
+#define TRACE_WRP 1 <<  2
+#define TRACE_SAM 1 <<  3
+#define TRACE_LSN 1 <<  4
+#define TRACE_CON 1 <<  5
+#define TRACE_ALL  0xFFFF
+
+#define DEBUG_LEVEL (TRACE_ALL)
+
+enum DropCmd {KEEP_CMD=false, DROP_CMD};
+
 
 /************************************************
  * INTERFACE SYNTHESIS DIRECTIVES
@@ -251,6 +272,27 @@ typedef UdpLen       UdpAppDLen;
 typedef UdpAppMeta  UdpMeta;
 typedef UdpAppDLen  UdpPLen;
 
+enum NalCntIncType {NID_MISS_RX = 0, NID_MISS_TX, PCOR_RX, PCOR_TX, TCP_CON_FAIL, LAST_RX_PORT, \
+	                LAST_RX_NID, LAST_TX_PORT, LAST_TX_NID, PACKET_RX, PACKET_TX, UNAUTH_ACCESS, \
+                    AUTH_ACCESS, FMC_TCP_BYTES};
+
+struct NalEventNotif {
+	NalCntIncType type;
+	ap_uint<16>   update_value;
+	//in case of LAST_* types, the update_value is the new value
+	//on other cases, it is an increment value
+	NalEventNotif() {}
+	NalEventNotif(NalCntIncType nt, ap_uint<16> uv): type(nt), update_value(uv) {}
+};
+//typedef NalEventNotif NalEventNotifType;
+
+Ip4Addr getIpFromRank(NodeId rank);
+NodeId getNodeIdFromIpAddress(ap_uint<32> ipAddr);
+NodeId getOwnRank();
+
+#include "uss.hpp"
+#include "tss.hpp"
+
 
 
 void nal_main(
@@ -270,8 +312,8 @@ void nal_main(
 
     //-- ROLE UDP connection
     ap_uint<32>                 *pi_udp_rx_ports,
-    stream<NetworkWord>             &siUdp_data,
-    stream<NetworkWord>             &soUdp_data,
+    stream<NetworkWord>         &siUdp_data,
+    stream<NetworkWord>         &soUdp_data,
     stream<NetworkMetaStream>   &siUdp_meta,
     stream<NetworkMetaStream>   &soUdp_meta,
     
