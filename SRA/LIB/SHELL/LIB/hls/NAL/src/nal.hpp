@@ -290,6 +290,10 @@ Ip4Addr getIpFromRank(NodeId rank);
 NodeId getNodeIdFromIpAddress(ap_uint<32> ipAddr);
 NodeId getOwnRank();
 ap_uint<32> getRightmostBitPos(ap_uint<32> num);
+void addnewTrippleToTable(SessionId sessionID, ap_uint<64> new_entry);
+void addnewSessionToTable(SessionId sessionID, Ip4Addr ipRemoteAddres, TcpPort tcpRemotePort, TcpPort tcpLocalPort);
+void deleteSessionFromTables(SessionId sessionID);
+void markSessionAsPrivileged(SessionId sessionID);
 
 #include "uss.hpp"
 #include "tss.hpp"

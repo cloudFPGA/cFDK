@@ -121,7 +121,7 @@ ClsFsmStates clsFsmState_Tcp = CLS_IDLE;
 LsnFsmStates lsnFsmState = LSN_IDLE;
 
 RrhFsmStates rrhFsmState = RRH_WAIT_NOTIF;
-TcpAppNotif notif_pRrh;
+//TcpAppNotif notif_pRrh;
 
 RdpFsmStates rdpFsmState = RDP_WAIT_META;
 
@@ -272,7 +272,7 @@ SessionId getSessionIdFromTripple(ap_uint<64> tripple)
 
 void addnewTrippleToTable(SessionId sessionID, ap_uint<64> new_entry)
 {
-//#pragma HLS inline off
+#pragma HLS inline off
   printf("new tripple entry: %d |  %llu\n",(int) sessionID, (unsigned long long) new_entry);
   //first check for duplicates!
   ap_uint<64> test_tripple = getTrippleFromSessionId(sessionID);
@@ -303,7 +303,7 @@ void addnewTrippleToTable(SessionId sessionID, ap_uint<64> new_entry)
 
 void addnewSessionToTable(SessionId sessionID, Ip4Addr ipRemoteAddres, TcpPort tcpRemotePort, TcpPort tcpLocalPort)
 {
-//#pragma HLS inline
+#pragma HLS inline off
   ap_uint<64> new_entry = newTripple(ipRemoteAddres, tcpRemotePort, tcpLocalPort);
   addnewTrippleToTable(sessionID, new_entry);
 }
@@ -311,7 +311,7 @@ void addnewSessionToTable(SessionId sessionID, Ip4Addr ipRemoteAddres, TcpPort t
 
 void deleteSessionFromTables(SessionId sessionID)
 {
-//#pragma HLS inline off
+#pragma HLS inline off
   printf("try to delete session: %d\n", (int) sessionID);
   for(uint32_t i = 0; i < MAX_NAL_SESSIONS; i++)
   {
@@ -328,7 +328,7 @@ void deleteSessionFromTables(SessionId sessionID)
 
 void markSessionAsPrivileged(SessionId sessionID)
 {
-//#pragma HLS inline off
+#pragma HLS inline off
   printf("mark session as privileged: %d\n", (int) sessionID);
   for(uint32_t i = 0; i < MAX_NAL_SESSIONS; i++)
   {
@@ -630,7 +630,7 @@ void nal_main(
 #pragma HLS reset variable=opnFsmState
 #pragma HLS reset variable=clsFsmState_Tcp
 #pragma HLS reset variable=lsnFsmState
-#pragma HLS reset variable=rrhFsmState
+//#pragma HLS reset variable=rrhFsmState
 #pragma HLS reset variable=rdpFsmState
 #pragma HLS reset variable=wrpFsmState
 #pragma HLS reset variable=tcp_rx_ports_processed
@@ -894,186 +894,17 @@ void nal_main(
 
     //=================================================================================================
     // TCP pListen
-    /*****************************************************************************
-     * @brief Request the TOE to start listening (LSn) for incoming connections
-     *  on a specific port (.i.e open connection for reception mode).
-     *
-     * @param[out] soTOE_LsnReq,   listen port request to TOE.
-     * @param[in]  siTOE_LsnRep,   listen port acknowledge from TOE.
-     *
-     * @warning
-     *  The Port Table (PRt) supports two port ranges; one for static ports (0 to
-     *   32,767) which are used for listening ports, and one for dynamically
-     *   assigned or ephemeral ports (32,768 to 65,535) which are used for active
-     *   connections. Therefore, listening port numbers must be in the range 0
-     *   to 32,767.
-     ******************************************************************************/
+   pTcpLsn(piMMIO_FmcLsnPort, soTOE_LsnReq, siTOE_LsnRep, &tcp_rx_ports_processed, &need_tcp_port_req, \
+		   &new_relative_port_to_req_tcp, &processed_FMC_listen_port, &nts_ready_and_enabled);
 
-    char* myName  = concat3(THIS_NAME, "/", "LSn");
+   //=================================================================================================
+   // TCP Read Request Handler
 
-    //only if NTS is ready
-    if(*piNTS_ready == 1 && *layer_4_enabled == 1)
-    {
-      if( fsmStateTX_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC )
-      { //so we are not in a critical UDP path
-        switch (lsnFsmState) {
+   //TODO: remove unused global variables
+     //TODO: add disable signal? (NTS_ready, layer4 enabled)
+     //TODO: add cache invalidate mechanism
+   pTcpRrh(siTOE_Notif, soTOE_DReq, piFMC_Tcp_data_FIFO_prog_full, piFMC_Tcp_sessid_FIFO_prog_full, &cached_tcp_rx_session_id, &nts_ready_and_enabled);
 
-          case LSN_IDLE:
-            if (startupDelay > 0)
-            {
-              startupDelay--;
-            } else {
-              if(need_tcp_port_req == true)
-              {
-                lsnFsmState = LSN_SEND_REQ;
-              } else {
-                lsnFsmState = LSN_DONE;
-              }
-            }
-            break;
-
-          case LSN_SEND_REQ: //we arrive here only if need_tcp_port_req == true
-            if (!soTOE_LsnReq.full()) {
-              ap_uint<16> new_absolute_port = 0;
-              //always process FMC first
-              if(fmc_port_opened == false)
-              {
-                new_absolute_port = *piMMIO_FmcLsnPort;
-              } else {
-                new_absolute_port = NAL_RX_MIN_PORT + new_relative_port_to_req_tcp;
-              }
-
-              TcpAppLsnReq    tcpListenPort = new_absolute_port;
-              soTOE_LsnReq.write(tcpListenPort);
-              if (DEBUG_LEVEL & TRACE_LSN) {
-                printInfo(myName, "Server is requested to listen on port #%d (0x%4.4X).\n",
-                    (int) new_absolute_port, (int) new_absolute_port);
-#ifndef __SYNTHESIS__
-                watchDogTimer_plisten = 10;
-#else
-                watchDogTimer_plisten = 100;
-#endif
-                lsnFsmState = LSN_WAIT_ACK;
-              }
-            }
-            else {
-              printWarn(myName, "Cannot send a listen port request to [TOE] because stream is full!\n");
-            }
-            break;
-
-          case LSN_WAIT_ACK:
-            watchDogTimer_plisten--;
-            if (!siTOE_LsnRep.empty()) {
-              bool    listenDone;
-              siTOE_LsnRep.read(listenDone);
-              if (listenDone) {
-                printInfo(myName, "Received listen acknowledgment from [TOE].\n");
-                lsnFsmState = LSN_DONE;
-
-                need_tcp_port_req = false;
-                if(fmc_port_opened == false)
-                {
-                  fmc_port_opened = true;
-                  processed_FMC_listen_port = *piMMIO_FmcLsnPort;
-                } else {
-                  tcp_rx_ports_processed |= ((ap_uint<32>) 1) << (new_relative_port_to_req_tcp);
-                  printf("new tcp_rx_ports_processed: %#03x\n",(int) tcp_rx_ports_processed);
-                }
-              }
-              else {
-                ap_uint<16> new_absolute_port = 0;
-                //always process FMC first
-                if(fmc_port_opened == false)
-                {
-                  new_absolute_port = *piMMIO_FmcLsnPort;
-                } else {
-                  new_absolute_port = NAL_RX_MIN_PORT + new_relative_port_to_req_tcp;
-                }
-                printWarn(myName, "TOE denied listening on port %d (0x%4.4X).\n",
-                    (int) new_absolute_port, (int) new_absolute_port);
-                lsnFsmState = LSN_SEND_REQ;
-              }
-            } else {
-              if (watchDogTimer_plisten == 0) {
-                ap_uint<16> new_absolute_port = 0;
-                //always process FMC first
-                if(fmc_port_opened == false)
-                {
-                  new_absolute_port = *piMMIO_FmcLsnPort;
-                } else {
-                  new_absolute_port = NAL_RX_MIN_PORT + new_relative_port_to_req_tcp;
-                }
-                printError(myName, "Timeout: Server failed to listen on port %d %d (0x%4.4X).\n",
-                    (int)  new_absolute_port, (int) new_absolute_port);
-                lsnFsmState = LSN_SEND_REQ;
-              }
-            }
-            break;
-
-          case LSN_DONE:
-            if(need_tcp_port_req == true)
-            {
-              lsnFsmState = LSN_SEND_REQ;
-            }
-            break;
-        }
-      }
-    }
-
-    /*****************************************************************************
-     * @brief ReadRequestHandler (RRh).
-     *  Waits for a notification indicating the availability of new data for
-     *  the ROLE. If the TCP segment length is greater than 0, the notification
-     *  is accepted.
-     *
-     * @param[in]  siTOE_Notif, a new Rx data notification from TOE.
-     * @param[out] soTOE_DReq,  a Rx data request to TOE.
-     *
-     ******************************************************************************/
-    //update myName
-    myName  = concat3(THIS_NAME, "/", "RRh");
-
-    //only if NTS is ready
-    if(*piNTS_ready == 1 && *layer_4_enabled == 1)
-    {
-        //so we are not in a critical UDP path
-      if( fsmStateTX_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC &&
-          //and only if the FMC FIFO would have enough space
-          (*piFMC_Tcp_data_FIFO_prog_full == 0 && *piFMC_Tcp_sessid_FIFO_prog_full == 0 )
-        )
-      {
-        switch(rrhFsmState) {
-          case RRH_WAIT_NOTIF:
-            if (!siTOE_Notif.empty()) {
-              siTOE_Notif.read(notif_pRrh);
-              if (notif_pRrh.tcpDatLen != 0) {
-                // Always request the data segment to be received
-                rrhFsmState = RRH_SEND_DREQ;
-                //remember the session ID if not yet known
-                if(notif_pRrh.sessionID != cached_tcp_rx_session_id)
-                {
-                  addnewSessionToTable(notif_pRrh.sessionID, notif_pRrh.ip4SrcAddr, notif_pRrh.tcpSrcPort, notif_pRrh.tcpDstPort);
-                } else {
-                  printf("session/tripple id already in cache.\n");
-                }
-              } else if(notif_pRrh.tcpState == FIN_WAIT_1 || notif_pRrh.tcpState == FIN_WAIT_2
-                  || notif_pRrh.tcpState == CLOSING || notif_pRrh.tcpState == TIME_WAIT
-                  || notif_pRrh.tcpState == LAST_ACK || notif_pRrh.tcpState == CLOSED)
-              {
-                // we were notified about a closing connection
-                deleteSessionFromTables(notif_pRrh.sessionID);
-              }
-            }
-            break;
-          case RRH_SEND_DREQ:
-            if (!soTOE_DReq.full()) {
-              soTOE_DReq.write(TcpAppRdReq(notif_pRrh.sessionID, notif_pRrh.tcpDatLen));
-              rrhFsmState = RRH_WAIT_NOTIF;
-            }
-            break;
-        }
-      }
-    }
 
     /*****************************************************************************
      * @brief Read Path (RDp) - From TOE to ROLE.
@@ -1086,7 +917,7 @@ void nal_main(
        *
        *****************************************************************************/
       //update myName
-      myName  = concat3(THIS_NAME, "/", "RDp");
+      char* myName  = concat3(THIS_NAME, "/", "RDp");
 
       //"local" variables
       TcpAppData currWord;
