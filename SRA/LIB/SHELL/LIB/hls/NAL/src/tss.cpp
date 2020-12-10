@@ -61,7 +61,7 @@ void pTcpLsn(
 		    #pragma HLS INLINE off
 			//#pragma HLS pipeline II=1
 
-	  char* myName  = concat3(THIS_NAME, "/", "TCP_LSn");
+	  char* myName  = concat3(THIS_NAME, "/", "Tcp_LSn");
 
 			//-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
 			static LsnFsmStates lsnFsmState = LSN_IDLE;
@@ -582,7 +582,7 @@ void pTcpWRp(
 		#pragma HLS pipeline II=1
 
 
-	char* myName  = concat3(THIS_NAME, "/", "TCP_WRp");
+	char* myName  = concat3(THIS_NAME, "/", "Tcp_WRp");
 
 		//-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
 		static WrpFsmStates wrpFsmState = WRP_WAIT_META;
@@ -590,7 +590,7 @@ void pTcpWRp(
 		static SessionId cached_tcp_tx_session_id = UNUSED_SESSION_ENTRY_VALUE;
 		static ap_uint<64> cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
 
-		#pragma HLS RESET variable=rdpFsmState
+		#pragma HLS RESET variable=wrpFsmState
 		#pragma HLS RESET variable=cached_tcp_tx_session_id
 		#pragma HLS RESET variable=cached_tcp_tx_tripple
 		//-- STATIC DATAFLOW VARIABLES --------------------------------------------
