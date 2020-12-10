@@ -55,7 +55,7 @@ void pTcpLsn(
 		bool						*nts_ready_and_enabled
 		);
 
-void pTcpRrh(
+void pTcpRRh(
 		stream<TcpAppNotif>    		&siTOE_Notif,
 		stream<TcpAppRdReq>    		&soTOE_DReq,
 		ap_uint<1>                  *piFMC_Tcp_data_FIFO_prog_full,
@@ -63,6 +63,41 @@ void pTcpRrh(
 		SessionId					*cached_tcp_rx_session_id,
 		bool						*nts_ready_and_enabled
 		);
+
+void pTcpRDp(
+		stream<TcpAppData>     		&siTOE_Data,
+		stream<TcpAppMeta>     		&siTOE_SessId,
+		stream<TcpAppData>          &soFMC_Tcp_data,
+		stream<TcpAppMeta>          &soFMC_Tcp_SessId,
+	    stream<NetworkWord>         &soTcp_data,
+	    stream<NetworkMetaStream>   &soTcp_meta,
+	    ap_uint<32> 				*piMMIO_CfrmIp4Addr,
+		ap_uint<16> 				*processed_FMC_listen_port,
+	    ap_uint<1> 					*layer_7_enabled,
+	    ap_uint<1> 					*role_decoupled,
+		SessionId					*cached_tcp_rx_session_id,
+		bool						*expect_FMC_response,
+		bool						*nts_ready_and_enabled,
+		bool						*detected_cache_invalidation,
+		stream<NalEventNotif> 		&internal_event_fifo
+		);
+
+void pTcpWRp(
+		stream<TcpAppData>          &siFMC_Tcp_data,
+		stream<TcpAppMeta>          &siFMC_Tcp_SessId,
+	    stream<NetworkWord>         &siTcp_data,
+	    stream<NetworkMetaStream>   &siTcp_meta,
+		stream<TcpAppData>     		&soTOE_Data,
+		stream<TcpAppMeta>     		&soTOE_SessId,
+		bool						*expect_FMC_response,
+		ap_uint<64>  				*tripple_for_new_connection,
+		bool 						*tcp_need_new_connection_request,
+		bool 						*tcp_new_connection_failure,
+		bool						*nts_ready_and_enabled,
+		bool						*detected_cache_invalidation,
+		stream<NalEventNotif> 		&internal_event_fifo
+		);
+
 
 #endif
 

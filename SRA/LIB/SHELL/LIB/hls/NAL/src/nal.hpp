@@ -211,6 +211,8 @@ enum ClsFsmStates {CLS_IDLE = 0, CLS_NEXT, CLS_WAIT4RESP};
 
 #define NAL_MMIO_STABILIZE_TIME 150 //based on chipscope...
 
+#define UNUSED_TABLE_ENTRY_VALUE 0x111000
+#define UNUSED_SESSION_ENTRY_VALUE 0xFFFE
 
  /*
   * ctrlLINK Structure:
@@ -295,6 +297,14 @@ void addnewSessionToTable(SessionId sessionID, Ip4Addr ipRemoteAddres, TcpPort t
 void deleteSessionFromTables(SessionId sessionID);
 void markSessionAsPrivileged(SessionId sessionID);
 
+ap_uint<64> newTripple(Ip4Addr ipRemoteAddres, TcpPort tcpRemotePort, TcpPort tcpLocalPort);
+Ip4Addr getRemoteIpAddrFromTripple(ap_uint<64> tripple);
+TcpPort getRemotePortFromTripple(ap_uint<64> tripple);
+TcpPort getLocalPortFromTripple(ap_uint<64> tripple);
+ap_uint<64> getTrippleFromSessionId(SessionId sessionID);
+SessionId getSessionIdFromTripple(ap_uint<64> tripple);
+
+
 #include "uss.hpp"
 #include "tss.hpp"
 
@@ -324,9 +334,9 @@ void nal_main(
     
     // -- ROLE TCP connection
     ap_uint<32>                 *pi_tcp_rx_ports,
-    stream<NetworkWord>             &siTcp_data,
+    stream<NetworkWord>         &siTcp_data,
     stream<NetworkMetaStream>   &siTcp_meta,
-    stream<NetworkWord>             &soTcp_data,
+    stream<NetworkWord>         &soTcp_data,
     stream<NetworkMetaStream>   &soTcp_meta,
 
 	 // -- FMC TCP connection
