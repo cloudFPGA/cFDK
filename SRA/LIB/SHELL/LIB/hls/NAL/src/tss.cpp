@@ -47,14 +47,14 @@ using namespace hls;
     *   to 32,767.
     ******************************************************************************/
 void pTcpLsn(
-	    ap_uint<16> 				*piMMIO_FmcLsnPort,
+	    const ap_uint<16> 			*piMMIO_FmcLsnPort,
 		stream<TcpAppLsnReq>   		&soTOE_LsnReq,
 		stream<TcpAppLsnRep>   		&siTOE_LsnRep,
 		ap_uint<32> 				*tcp_rx_ports_processed,
-		bool 						*need_tcp_port_req,
+		bool 		 				*need_tcp_port_req,
 		ap_uint<16> 				*new_relative_port_to_req_tcp,
 		ap_uint<16> 				*processed_FMC_listen_port,
-		bool						*nts_ready_and_enabled
+		const bool					*nts_ready_and_enabled
 		)
 {
 	//-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -223,6 +223,7 @@ void pTcpRRh(
 
 		//-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
 		static RrhFsmStates rrhFsmState = RRH_WAIT_NOTIF;
+		//todo: DReq table
 
 		#pragma HLS RESET variable=rrhFsmState
 		//-- STATIC DATAFLOW VARIABLES --------------------------------------------
@@ -361,6 +362,9 @@ void pTcpRDp(
 			cached_tcp_rx_tripple = UNUSED_TABLE_ENTRY_VALUE;
 		}
 
+
+		//default actions
+		*expect_FMC_response = false;
 
 		    //only if NTS is ready
 		    //we NEED for layer_7_enabled or role_decoupled, because the
@@ -639,7 +643,7 @@ void pTcpWRp(
 		              // (this expects an HTTP mode of request-response)
 		              //TODO
 		              //deleteSessionFromTables(tcpSessId);
-		              *expect_FMC_response = false;
+		              //*expect_FMC_response = false;
 		              //*detected_cache_invalidation = true;
 
 		              if (DEBUG_LEVEL & TRACE_WRP) {

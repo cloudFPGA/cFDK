@@ -51,6 +51,8 @@ void pUdpTX(
 
 	//-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
 	static FsmStateUdp fsmStateTX_Udp = FSM_RESET;
+	//TODO: cache?
+
 	#pragma HLS RESET variable=fsmStateTX_Udp
 	//-- STATIC DATAFLOW VARIABLES --------------------------------------------
 	static UdpAppDLen udpTX_packet_length = 0;

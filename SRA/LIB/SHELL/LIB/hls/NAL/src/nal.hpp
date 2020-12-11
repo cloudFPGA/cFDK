@@ -289,7 +289,6 @@ struct NalEventNotif {
 	NalEventNotif(NalCntIncType nt, ap_uint<16> uv): type(nt), update_value(uv) {}
 };
 //typedef NalEventNotif NalEventNotifType;
-#define NAL_PARALEL_EVENT_PROCESSING_FACTOR 5
 
 
 Ip4Addr getIpFromRank(NodeId rank);

@@ -32,31 +32,23 @@
 
 #include "nal.hpp"
 
-ap_uint<8>   openPortWaitTime = 100;
+//ap_uint<8>   openPortWaitTime = 100;
 //ap_uint<8>   udp_lsn_watchDogTimer = 100;
-#ifndef __SYNTHESIS__
-ap_uint<16>  mmio_stabilize_counter = 1;
-#else
-ap_uint<16>  mmio_stabilize_counter = NAL_MMIO_STABILIZE_TIME;
-#endif
 
-FsmStateUdp fsmStateRX_Udp = FSM_RESET;
-FsmStateUdp fsmStateTX_Udp = FSM_RESET;
+//FsmStateUdp fsmStateRX_Udp = FSM_RESET;
+//FsmStateUdp fsmStateTX_Udp = FSM_RESET;
 
 ap_uint<32> localMRT[MAX_MRT_SIZE];
 ap_uint<32> config[NUMBER_CONFIG_WORDS];
 ap_uint<32> status[NUMBER_STATUS_WORDS];
 
 
-ap_uint<32> udp_rx_ports_processed = 0;
-ap_uint<32> udp_rx_ports_to_close = 0;
-bool need_udp_port_req = false;
-ap_uint<16> new_relative_port_to_req_udp = 0;
-ClsFsmStates clsFsmState_Udp = CLS_IDLE;
+
+//ClsFsmStates clsFsmState_Udp = CLS_IDLE;
 //ap_uint<16> newRelativePortToClose = 0;
 //ap_uint<16> newAbsolutePortToClose = 0;
 
-NetworkMetaStream out_meta_udp = NetworkMetaStream(); //DON'T FORGET to initilize!
+//NetworkMetaStream out_meta_udp = NetworkMetaStream(); //DON'T FORGET to initilize!
 //NetworkMetaStream in_meta_udp = NetworkMetaStream(); //ATTENTION: don't forget initilizer...
 //
 //ap_uint<32> node_id_missmatch_RX_cnt = 0;
@@ -88,19 +80,17 @@ ap_uint<1>  privilegedRows[MAX_NAL_SESSIONS];
 //NodeId cached_udp_rx_id = 0;
 //Ip4Addr cached_udp_rx_ipaddr = 0;
 
-SessionId cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE; //pTcpRrh and pTcpRDp need this
+
 //ap_uint<64> cached_tcp_rx_tripple = UNUSED_TABLE_ENTRY_VALUE;
 //SessionId cached_tcp_tx_session_id = UNUSED_SESSION_ENTRY_VALUE;
 //ap_uint<64> cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
-
-bool pr_was_done_flag = false;
 
 //FROM TCP
 
 //TcpAppOpnReq     HostSockAddr;  // Socket Address stored in LITTLE-ENDIAN ORDER
 //TcpAppOpnRep  newConn;
 //ap_uint<32>  watchDogTimer_pcon = 0;
-ap_uint<8>   watchDogTimer_plisten = 0;
+//ap_uint<8>   watchDogTimer_plisten = 0;
 
 // Set a startup delay long enough to account for the initialization
 // of TOE's listen port table which takes 32,768 cycles after reset.
@@ -110,41 +100,30 @@ ap_uint<8>   watchDogTimer_plisten = 0;
 //#else
 //ap_uint<16>         startupDelay = 30;
 //#endif
-OpnFsmStates opnFsmState = OPN_IDLE;
-ClsFsmStates clsFsmState_Tcp = CLS_IDLE;
+//OpnFsmStates opnFsmState = OPN_IDLE;
+//ClsFsmStates clsFsmState_Tcp = CLS_IDLE;
 
-LsnFsmStates lsnFsmState = LSN_IDLE;
+//LsnFsmStates lsnFsmState = LSN_IDLE;
 
-RrhFsmStates rrhFsmState = RRH_WAIT_NOTIF;
+//RrhFsmStates rrhFsmState = RRH_WAIT_NOTIF;
 //TcpAppNotif notif_pRrh;
 
-RdpFsmStates rdpFsmState = RDP_WAIT_META;
+//RdpFsmStates rdpFsmState = RDP_WAIT_META;
 
-WrpFsmStates wrpFsmState = WRP_WAIT_META;
-
-ap_uint<32> tcp_rx_ports_processed = 0;
-bool need_tcp_port_req = false;
-ap_uint<16> new_relative_port_to_req_tcp = 0;
-
-ap_uint<16> processed_FMC_listen_port = 0;
-bool fmc_port_opened = false;
+//WrpFsmStates wrpFsmState = WRP_WAIT_META;
 
 //NetworkMetaStream out_meta_tcp = NetworkMetaStream(); //DON'T FORGET to initilize!
 //NetworkMetaStream in_meta_tcp = NetworkMetaStream(); //ATTENTION: don't forget initilizer...
 //bool Tcp_RX_metaWritten = false;
-ap_uint<64>  tripple_for_new_connection = 0; //pTcpWrp and CON need this
-bool tcp_need_new_connection_request = false; //pTcpWrp and CON need this
-bool tcp_new_connection_failure = false; //pTcpWrp and CON need this
-ap_uint<16> tcp_new_connection_failure_cnt = 0;
 
 //SessionId session_toFMC = 0;
 //SessionId session_fromFMC = 0;
-bool expect_FMC_response = false; //pTcpRDP and pTcpWRp need this
+
 
 //NetworkDataLength tcpTX_packet_length = 0;
 //NetworkDataLength tcpTX_current_packet_length = 0;
 
-stream<NalEventNotif> internal_event_fifo ("internal_event_fifo");
+
 
 Ip4Addr getIpFromRank(NodeId rank)
 {
@@ -155,7 +134,7 @@ Ip4Addr getIpFromRank(NodeId rank)
 
 NodeId getOwnRank()
 {
-#pragma HLS INLINE
+#pragma HLS INLINE off
   return (NodeId) config[NAL_CONFIG_OWN_RANK];
 }
 
@@ -268,7 +247,7 @@ SessionId getSessionIdFromTripple(ap_uint<64> tripple)
 
 void addnewTrippleToTable(SessionId sessionID, ap_uint<64> new_entry)
 {
-//#pragma HLS inline off
+#pragma HLS INLINE off
   printf("new tripple entry: %d |  %llu\n",(int) sessionID, (unsigned long long) new_entry);
   //first check for duplicates!
   ap_uint<64> test_tripple = getTrippleFromSessionId(sessionID);
@@ -381,10 +360,16 @@ SessionId getAndDeleteNextMarkedRow()
 }
 
 void eventStatusHousekeeping(
-      ap_uint<1>        		*layer_7_enabled,
-      ap_uint<1>     			*role_decoupled,
-	  ap_uint<32> 				*mrt_version_processed,
-      stream<NalEventNotif>  	&internal_event_fifo
+      const ap_uint<1>       *layer_7_enabled,
+      const ap_uint<1>       *role_decoupled,
+	  const ap_uint<32>      *mrt_version_processed,
+	  const ap_uint<32> 	 *udp_rx_ports_processed,
+	  const ap_uint<32> 	 *tcp_rx_ports_processed,
+	  const ap_uint<16> 	 *processed_FMC_listen_port,
+      stream<NalEventNotif>  &internal_event_fifo_0,
+      stream<NalEventNotif>  &internal_event_fifo_1,
+      stream<NalEventNotif>  &internal_event_fifo_2,
+      stream<NalEventNotif>  &internal_event_fifo_3
     )
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -405,6 +390,8 @@ void eventStatusHousekeeping(
   static ap_uint<32> packet_count_RX = 0;
   static ap_uint<32> packet_count_TX = 0;
 
+  static ap_uint<16> tcp_new_connection_failure_cnt = 0;
+
 #pragma HLS reset variable=node_id_missmatch_RX_cnt
 #pragma HLS reset variable=node_id_missmatch_TX_cnt
 #pragma HLS reset variable=port_corrections_TX_cnt
@@ -417,8 +404,12 @@ void eventStatusHousekeeping(
 #pragma HLS reset variable=unauthorized_access_cnt
 #pragma HLS reset variable=authorized_access_cnt
 #pragma HLS reset variable=fmc_tcp_bytes_cnt
+#pragma HLS reset variable=tcp_new_connection_failure_cnt
 
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+
+  //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
+  NalEventNotif nevs[4];
 
    if(*layer_7_enabled == 0 || *role_decoupled == 1 )
     {
@@ -429,10 +420,27 @@ void eventStatusHousekeeping(
     last_rx_node_id = 0x0;
     last_tx_port = 0x0;
     last_tx_node_id = 0x0;
-  return;
+    //return;
     }
 
-  for(int i = 0; i<NAL_PARALEL_EVENT_PROCESSING_FACTOR; i++)
+   if(!internal_event_fifo_0.empty())
+    {
+      nevs[0] = internal_event_fifo_0.read();
+    }
+   if(!internal_event_fifo_1.empty())
+      {
+        nevs[1] = internal_event_fifo_1.read();
+      }
+   if(!internal_event_fifo_2.empty())
+      {
+        nevs[2] = internal_event_fifo_2.read();
+      }
+   if(!internal_event_fifo_3.empty())
+      {
+        nevs[3] = internal_event_fifo_3.read();
+      }
+
+  for(int i = 0; i<4; i++)
 {
 #pragma HLS unroll
   //remove dependencies (yes, risking race conditions,
@@ -449,68 +457,65 @@ void eventStatusHousekeeping(
 #pragma HLS dependence variable=unauthorized_access_cnt   inter false
 #pragma HLS dependence variable=authorized_access_cnt     inter false
 #pragma HLS dependence variable=fmc_tcp_bytes_cnt         inter false
+#pragma HLS dependence variable=tcp_new_connection_failure_cnt inter false
 
-  if(!internal_event_fifo.empty())
-  {
-    NalEventNotif ne = internal_event_fifo.read();
-    switch(ne.type)
+
+    switch(nevs[i].type)
     {
     case NID_MISS_RX:
-      node_id_missmatch_RX_cnt += ne.update_value;
+      node_id_missmatch_RX_cnt += nevs[i].update_value;
       break;
     case NID_MISS_TX:
-      node_id_missmatch_TX_cnt += ne.update_value;
+      node_id_missmatch_TX_cnt += nevs[i].update_value;
       break;
     case PCOR_TX:
-      port_corrections_TX_cnt += ne.update_value;
+      port_corrections_TX_cnt += nevs[i].update_value;
       break;
     case TCP_CON_FAIL:
-      tcp_new_connection_failure_cnt += ne.update_value;
+      tcp_new_connection_failure_cnt += nevs[i].update_value;
       break;
     case LAST_RX_PORT:
-      last_rx_port = ne.update_value;
+      last_rx_port = nevs[i].update_value;
       break;
     case LAST_RX_NID:
-      last_rx_node_id = ne.update_value;
+      last_rx_node_id = nevs[i].update_value;
       break;
     case LAST_TX_PORT:
-      last_tx_port = ne.update_value;
+      last_tx_port = nevs[i].update_value;
       break;
     case LAST_TX_NID:
-      last_tx_node_id = ne.update_value;
+      last_tx_node_id = nevs[i].update_value;
       break;
     case PACKET_RX:
-      packet_count_RX += ne.update_value;
+      packet_count_RX += nevs[i].update_value;
       break;
     case PACKET_TX:
-      packet_count_TX += ne.update_value;
+      packet_count_TX += nevs[i].update_value;
       break;
     case UNAUTH_ACCESS:
-      unauthorized_access_cnt += ne.update_value;
+      unauthorized_access_cnt += nevs[i].update_value;
       break;
     case AUTH_ACCESS:
-      authorized_access_cnt += ne.update_value;
+      authorized_access_cnt += nevs[i].update_value;
       break;
     case FMC_TCP_BYTES:
-      fmc_tcp_bytes_cnt += ne.update_value;
+      fmc_tcp_bytes_cnt += nevs[i].update_value;
       break;
     default:
       printf("[ERROR] Internal Event Processing received invalid event %d with update value %d\n", \
-          (int) ne.type, (int) ne.update_value);
+          (int) nevs[i].type, (int) nevs[i].update_value);
       break;
     }
-  } else {
-    break;
-  }
+
 }
 
 
     //update status entries
     status[NAL_STATUS_MRT_VERSION] = *mrt_version_processed;
-    status[NAL_STATUS_OPEN_UDP_PORTS] = udp_rx_ports_processed;
-    status[NAL_STATUS_OPEN_TCP_PORTS] = tcp_rx_ports_processed;
-    status[NAL_STATUS_FMC_PORT_PROCESSED] = (ap_uint<32>) processed_FMC_listen_port;
-    status[NAL_STATUS_OWN_RANK] = config[NAL_CONFIG_OWN_RANK];
+    status[NAL_STATUS_OPEN_UDP_PORTS] = *udp_rx_ports_processed;
+    status[NAL_STATUS_OPEN_TCP_PORTS] = *tcp_rx_ports_processed;
+    status[NAL_STATUS_FMC_PORT_PROCESSED] = (ap_uint<32>) *processed_FMC_listen_port;
+    status[NAL_STATUS_OWN_RANK] = getOwnRank();
 
     //udp
     //status[NAL_STATUS_SEND_STATE] = (ap_uint<32>) fsmStateRX_Udp;
@@ -518,8 +523,8 @@ void eventStatusHousekeeping(
     //status[NAL_STATUS_GLOBAL_STATE] = (ap_uint<32>) fsmStateTXdeq_Udp;
 
     //tcp
-    status[NAL_STATUS_SEND_STATE] = (ap_uint<32>) wrpFsmState;
-    status[NAL_STATUS_RECEIVE_STATE] = (ap_uint<32>) rdpFsmState;
+    //status[NAL_STATUS_SEND_STATE] = (ap_uint<32>) wrpFsmState;
+    //status[NAL_STATUS_RECEIVE_STATE] = (ap_uint<32>) rdpFsmState;
     //status[NAL_STATUS_GLOBAL_STATE] = (ap_uint<32>) opnFsmState;
 
     status[NAL_STATUS_GLOBAL_STATE] = fmc_tcp_bytes_cnt;
@@ -539,12 +544,12 @@ void eventStatusHousekeeping(
 }
 
 void axi4liteProcessing(
-		ap_uint<32> 	ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
-		ap_uint<32> 	*mrt_version_processed
-		)
+    ap_uint<32>   ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
+    ap_uint<32>   *mrt_version_processed
+    )
 {
 
-	static uint16_t tableCopyVariable = 0;
+  static uint16_t tableCopyVariable = 0;
 
 #pragma HLS reset variable=tableCopyVariable
 
@@ -556,6 +561,7 @@ void axi4liteProcessing(
     }
     if(tableCopyVariable < MAX_MRT_SIZE)
     {
+      //todo: move to function?
       localMRT[tableCopyVariable] = ctrlLink[tableCopyVariable + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS];
     }
 
@@ -805,13 +811,50 @@ void nal_main(
 #pragma HLS ARRAY_PARTITION variable=localMRT complete dim=1
 
 #pragma HLS ARRAY_PARTITION variable=status cyclic factor=4 dim=1
-#pragma HLS STREAM variable=internal_event_fifo depth=128
 
-	  //===========================================================
-	  //  core wide STATIC variables
 
-	static ap_uint<32> mrt_version_processed = 0;
-	static ap_uint<32> mrt_version_old = 0; //no reset needed
+    //===========================================================
+    //  core wide STATIC variables
+
+  static ap_uint<32> mrt_version_processed = 0;
+  static ap_uint<32> mrt_version_old = 0; //no reset needed
+  static ap_uint<32> mrt_version_used = 0; //no reset needed
+
+#ifndef __SYNTHESIS__
+static ap_uint<16>  mmio_stabilize_counter = 1;
+#else
+static ap_uint<16>  mmio_stabilize_counter = NAL_MMIO_STABILIZE_TIME;
+#endif
+static ap_uint<32> udp_rx_ports_processed = 0;
+static ap_uint<32> udp_rx_ports_to_close = 0;
+static bool need_udp_port_req = false;
+static ap_uint<16> new_relative_port_to_req_udp = 0;
+
+static SessionId cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE; //pTcpRrh and pTcpRDp need this
+static bool pr_was_done_flag = false;
+
+static ap_uint<32> tcp_rx_ports_processed = 0;
+static bool need_tcp_port_req = false;
+static ap_uint<16> new_relative_port_to_req_tcp = 0;
+
+static ap_uint<16> processed_FMC_listen_port = 0;
+static bool fmc_port_opened = false;
+
+static ap_uint<64>  tripple_for_new_connection = 0; //pTcpWrp and CON need this
+static bool tcp_need_new_connection_request = false; //pTcpWrp and CON need this
+static bool tcp_new_connection_failure = false; //pTcpWrp and CON need this
+
+static bool expect_FMC_response = false; //pTcpRDP and pTcpWRp need this
+
+static stream<NalEventNotif> internal_event_fifo_0 ("internal_event_fifo");
+static stream<NalEventNotif> internal_event_fifo_1 ("internal_event_fifo");
+static stream<NalEventNotif> internal_event_fifo_2 ("internal_event_fifo");
+static stream<NalEventNotif> internal_event_fifo_3 ("internal_event_fifo");
+
+#pragma HLS STREAM variable=internal_event_fifo_0 depth=16
+#pragma HLS STREAM variable=internal_event_fifo_1 depth=16
+#pragma HLS STREAM variable=internal_event_fifo_2 depth=16
+#pragma HLS STREAM variable=internal_event_fifo_3 depth=16
 
 //=================================================================================================
 // Reset global variables
@@ -869,7 +912,6 @@ void nal_main(
 #pragma HLS reset variable=tripple_for_new_connection
 #pragma HLS reset variable=tcp_need_new_connection_request
 #pragma HLS reset variable=tcp_new_connection_failure
-#pragma HLS reset variable=tcp_new_connection_failure_cnt
 
 #pragma HLS reset variable=expect_FMC_response
 
@@ -896,10 +938,10 @@ void nal_main(
 
   //===========================================================
   // restore saved states
-  if( fsmStateTX_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC &&
-      rdpFsmState != RDP_STREAM_FMC && rdpFsmState != RDP_STREAM_ROLE &&
-      wrpFsmState != WRP_STREAM_FMC && wrpFsmState != WRP_STREAM_ROLE )
-  { //so we are not in a critical data path
+ // if( fsmStateTX_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC &&
+ //     rdpFsmState != RDP_STREAM_FMC && rdpFsmState != RDP_STREAM_ROLE &&
+ //     wrpFsmState != WRP_STREAM_FMC && wrpFsmState != WRP_STREAM_ROLE )
+ // { //so we are not in a critical data path
 
     // > to avoid loop at 0
     if(config[NAL_CONFIG_SAVED_FMC_PORTS] > processed_FMC_listen_port)
@@ -921,16 +963,17 @@ void nal_main(
       }
     }
 
-  }
+ // }
 
   //===========================================================
   // check for resets
 
   if(mrt_version_old != mrt_version_processed)
   {
-	  mrt_version_old = mrt_version_processed;
-	  detected_cache_invalidation = true;
+    mrt_version_old = mrt_version_processed;
+    detected_cache_invalidation = true;
   }
+  mrt_version_used = mrt_version_old;
 
   //if layer 4 is reset, ports will be closed
   if(*layer_4_enabled == 0)
@@ -941,8 +984,8 @@ void nal_main(
     //also, all sessions should be lost 
     tables_initalized = false;
     //we don't need to close ports any more
-    clsFsmState_Tcp = CLS_IDLE;
-    clsFsmState_Udp = CLS_IDLE;
+    //clsFsmState_Tcp = CLS_IDLE;
+    //clsFsmState_Udp = CLS_IDLE;
     //and we shouldn't expect smth
     expect_FMC_response = false;
     //invalidate cache
@@ -1101,7 +1144,7 @@ void nal_main(
   //only if NTS is ready
   //TODO: remove unused global variables
   //TODO: add disable signal? (NTS_ready, layer4 enabled)
-  pUdpTX(siUdp_data, siUdp_meta, soUOE_Data, soUOE_Meta, soUOE_DLen, &ipAddrBE, &nts_ready_and_enabled, internal_event_fifo);
+  pUdpTX(siUdp_data, siUdp_meta, soUOE_Data, soUOE_Meta, soUOE_DLen, &ipAddrBE, &nts_ready_and_enabled, internal_event_fifo_0);
 
   //=================================================================================================
   // RX UDP
@@ -1109,7 +1152,7 @@ void nal_main(
   //TODO: add disable signal? (NTS_ready, layer4 enabled)
   //TODO: add cache invalidate mechanism
   pUdpRx(soUOE_LsnReq, siUOE_LsnRep, soUdp_data, soUdp_meta, siUOE_Data, siUOE_Meta, &need_udp_port_req, \
-      &new_relative_port_to_req_udp, &udp_rx_ports_processed, &nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo);
+      &new_relative_port_to_req_udp, &udp_rx_ports_processed, &nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo_1);
 
   //=================================================================================================
   // UDP Port Close
@@ -1133,13 +1176,13 @@ void nal_main(
     // TCP Read Path
     pTcpRDp(siTOE_Data, siTOE_SessId, soFMC_Tcp_data, soFMC_Tcp_SessId, soTcp_data, soTcp_meta, piMMIO_CfrmIp4Addr, \
         &processed_FMC_listen_port, layer_7_enabled, role_decoupled, &cached_tcp_rx_session_id, &expect_FMC_response, \
-      &nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo);
+      &nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo_2);
 
     //=================================================================================================
     // TCP Write Path
     pTcpWRp(siFMC_Tcp_data, siFMC_Tcp_SessId, siTcp_data, siTcp_meta, soTOE_Data, soTOE_SessId, &expect_FMC_response, \
         &tripple_for_new_connection, &tcp_need_new_connection_request, &tcp_new_connection_failure, &nts_ready_and_enabled, \
-      &detected_cache_invalidation, internal_event_fifo);
+      &detected_cache_invalidation, internal_event_fifo_3);
 
     //=================================================================================================
     // TCP start remote connection
@@ -1153,7 +1196,8 @@ void nal_main(
     //===========================================================
     //  update status, config, MRT
 
-    eventStatusHousekeeping(layer_7_enabled, role_decoupled, &mrt_version_old, internal_event_fifo);
+    eventStatusHousekeeping(layer_7_enabled, role_decoupled, &mrt_version_used, &udp_rx_ports_processed, &tcp_rx_ports_processed, \
+    		&processed_FMC_listen_port, internal_event_fifo_0, internal_event_fifo_1, internal_event_fifo_2, internal_event_fifo_3);
 
     axi4liteProcessing(ctrlLink, &mrt_version_processed);
 
