@@ -611,6 +611,7 @@ void pTcpWRp(
 			wrpFsmState = WRP_WAIT_META;
 			cached_tcp_tx_session_id = UNUSED_SESSION_ENTRY_VALUE;
 			cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
+			//return;
 		}
 
 		if(*detected_cache_invalidation)
@@ -636,8 +637,10 @@ void pTcpWRp(
 		              soTOE_SessId.write(tcpSessId);
 		              //delete the session id, we don't need it any longer
 		              // (this expects an HTTP mode of request-response)
-		              deleteSessionFromTables(tcpSessId);
+		              //TODO
+		              //deleteSessionFromTables(tcpSessId);
 		              *expect_FMC_response = false;
+		              //*detected_cache_invalidation = true;
 
 		              if (DEBUG_LEVEL & TRACE_WRP) {
 		                printInfo(myName, "Received new session ID #%d from [FMC].\n",
@@ -734,10 +737,10 @@ void pTcpWRp(
 		          case WRP_WAIT_CONNECTION:
 		            if( !*tcp_need_new_connection_request && !soTOE_SessId.full() && !*tcp_new_connection_failure )
 		            {
-		              SessionId sessId = getSessionIdFromTripple(tripple_for_new_connection);
+		              SessionId sessId = getSessionIdFromTripple(*tripple_for_new_connection);
 
-		              NrcPort dst_port = getRemotePortFromTripple(tripple_for_new_connection);
-		              NodeId dst_rank = getNodeIdFromIpAddress(getRemoteIpAddrFromTripple(tripple_for_new_connection));
+		              NrcPort dst_port = getRemotePortFromTripple(*tripple_for_new_connection);
+		              NodeId dst_rank = getNodeIdFromIpAddress(getRemoteIpAddrFromTripple(*tripple_for_new_connection));
 		              NalEventNotif new_ev_not = NalEventNotif(LAST_TX_NID, dst_rank);
 		              internal_event_fifo.write_nb(new_ev_not); //TODO: blocking?
 		              new_ev_not = NalEventNotif(LAST_TX_PORT, dst_port);
@@ -826,6 +829,227 @@ void pTcpWRp(
 
 
 }
+
+
+/*****************************************************************************
+ * @brief Client connection to remote HOST or FPGA socket (COn).
+ *
+ * @param[out] soTOE_OpnReq,  open connection request to TOE.
+ * @param[in]  siTOE_OpnRep,  open connection reply from TOE.
+   * @param[out] soTOE_ClsReq,  close connection request to TOE.
+   *
+   ******************************************************************************/
+void pTcpCOn(
+		stream<TcpAppOpnReq>      	&soTOE_OpnReq,
+		stream<TcpAppOpnRep>   		&siTOE_OpnRep,
+		//stream<TcpAppClsReq>   		&soTOE_ClsReq,
+		ap_uint<64>  				*tripple_for_new_connection,
+		bool 						*tcp_need_new_connection_request,
+		bool 						*tcp_new_connection_failure,
+		bool						*nts_ready_and_enabled
+		)
+{
+	//-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+	    #pragma HLS INLINE off
+		//#pragma HLS pipeline II=1
+
+
+    char *myName  = concat3(THIS_NAME, "/", "Tcp_COn");
+
+
+		//-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+		static OpnFsmStates opnFsmState = OPN_IDLE;
+		// Set a startup delay long enough to account for the initialization
+		// of TOE's listen port table which takes 32,768 cycles after reset.
+		//  [FIXME - StartupDelay must be replaced by a piSHELL_Reday signal]
+		#ifdef __SYNTHESIS_
+		static ap_uint<16>         startupDelay = 0x8000;
+		#else
+		static ap_uint<16>         startupDelay = 30;
+		#endif
+
+		#pragma HLS RESET variable=opnFsmState
+		#pragma HLS RESET variable=startupDelay
+		//-- STATIC DATAFLOW VARIABLES --------------------------------------------
+		static ap_uint<32>  watchDogTimer_pcon = 0;
+		static TcpAppOpnReq     HostSockAddr;  // Socket Address stored in LITTLE-ENDIAN ORDER
+
+		//-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
+		TcpAppOpnRep  	 newConn;
+
+
+		if(!*nts_ready_and_enabled)
+		{
+			opnFsmState = OPN_IDLE;
+			return; //TODO
+		}
+
+	    //only if NTS is ready
+	    //and if we have valid tables
+	   // if(*piNTS_ready == 1 && *layer_4_enabled == 1 && tables_initalized)
+	   // {
+	  //    if( fsmStateTX_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC )
+	  //    { //so we are not in a critical UDP path
+	        switch (opnFsmState) {
+
+	          case OPN_IDLE:
+	            if (startupDelay > 0) {
+	              startupDelay--;
+	              if (!siTOE_OpnRep.empty()) {
+	                // Drain any potential status data
+	                siTOE_OpnRep.read(newConn);
+	                //printInfo(myName, "Requesting to close sessionId=%d.\n", newConn.sessId.to_uint());
+	                //soTOE_ClsReq.write(newConn.sessId);
+	              }
+	            } else {
+	              //if(*tcp_need_new_connection_request)
+	             // {
+	                opnFsmState = OPN_REQ;
+	    		//	printf("\n\tCON starting request\n");
+	             // } else {
+	             //   opnFsmState = OPN_DONE;
+	             // }
+	            }
+	            break;
+
+	          case OPN_REQ:
+	            if (*tcp_need_new_connection_request && !soTOE_OpnReq.full()) {
+	              Ip4Addr remoteIp = getRemoteIpAddrFromTripple(*tripple_for_new_connection);
+	              TcpPort remotePort = getRemotePortFromTripple(*tripple_for_new_connection);
+
+	              SockAddr    hostSockAddr(remoteIp, remotePort);
+	              HostSockAddr.addr = hostSockAddr.addr;
+	              HostSockAddr.port = hostSockAddr.port;
+	              soTOE_OpnReq.write(HostSockAddr);
+	              if (DEBUG_LEVEL & TRACE_CON) {
+	                printInfo(myName, "Client is requesting to connect to remote socket:\n");
+	                printSockAddr(myName, HostSockAddr);
+	              }
+	#ifndef __SYNTHESIS__
+	              watchDogTimer_pcon = 10;
+	#else
+	              watchDogTimer_pcon = NAL_CONNECTION_TIMEOUT;
+	#endif
+	              opnFsmState = OPN_REP;
+	            }
+	            break;
+
+	          case OPN_REP:
+	            watchDogTimer_pcon--;
+	            if (!siTOE_OpnRep.empty()) {
+	              // Read the reply stream
+	              siTOE_OpnRep.read(newConn);
+	              if (newConn.tcpState == ESTABLISHED) {
+	                if (DEBUG_LEVEL & TRACE_CON) {
+	                  printInfo(myName, "Client successfully connected to remote socket:\n");
+	                  printSockAddr(myName, HostSockAddr);
+	                }
+	                addnewTrippleToTable(newConn.sessId, *tripple_for_new_connection);
+	                opnFsmState = OPN_DONE;
+	                *tcp_need_new_connection_request = false;
+	                *tcp_new_connection_failure = false;
+	              }
+	              else {
+	                printError(myName, "Client failed to connect to remote socket:\n");
+	                printSockAddr(myName, HostSockAddr);
+	                opnFsmState = OPN_DONE;
+	                *tcp_need_new_connection_request = false;
+	                *tcp_new_connection_failure = true;
+	              }
+	            }
+	            else {
+	              if (watchDogTimer_pcon == 0) {
+	                if (DEBUG_LEVEL & TRACE_CON) {
+	                  printError(myName, "Timeout: Failed to connect to the following remote socket:\n");
+	                  printSockAddr(myName, HostSockAddr);
+	                }
+	                *tcp_need_new_connection_request = false;
+	                *tcp_new_connection_failure = true;
+	                //the packet will be dropped, so we are done
+	                opnFsmState = OPN_DONE;
+	              }
+
+	            }
+	            break;
+	          case OPN_DONE:
+	            //No need to wait...
+	            opnFsmState = OPN_REQ;
+	            break;
+	        }
+	   //   }
+	  //  }
+
+}
+
+/*****************************************************************************
+ * @brief Closes unused sessions (Cls).
+ *
+ * @param[out] soTOE_ClsReq,  close connection request to TOE.
+ *
+ ******************************************************************************/
+void pTcpCls(
+		stream<TcpAppClsReq>   		&soTOE_ClsReq,
+		bool						*start_tcp_cls_fsm,
+		bool						*nts_ready_and_enabled
+		)
+{
+	//-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+	    #pragma HLS INLINE off
+		//#pragma HLS pipeline II=1
+
+
+	char *myName  = concat3(THIS_NAME, "/", "Tcp_Cls");
+
+
+		//-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+		static ClsFsmStates clsFsmState_Tcp = CLS_IDLE;
+
+		#pragma HLS RESET variable=clsFsmState_Tcp
+		//-- STATIC DATAFLOW VARIABLES --------------------------------------------
+
+
+		if(!*nts_ready_and_enabled)
+		{
+			clsFsmState_Tcp = CLS_IDLE;
+			return; //TODO
+		}
+
+		    //only if NTS is ready
+		    //and if we have valid tables
+		  //  if(*piNTS_ready == 1 && *layer_4_enabled == 1 && tables_initalized)
+		 //   {
+		//      if( fsmStateTX_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC  //so we are not in a critical UDP path
+		//          && (rdpFsmState != RDP_STREAM_FMC && rdpFsmState != RDP_STREAM_ROLE) //deactivate if we are receiving smth
+		 //         && (wrpFsmState != WRP_STREAM_FMC && wrpFsmState != WRP_STREAM_ROLE) //deactivate if we are sending
+		 //       )
+		//      { //so we are not in a critical UDP path
+		        switch (clsFsmState_Tcp) {
+		          default:
+		          case CLS_IDLE:
+		            //we wait until we are activated;
+		        	  if(*start_tcp_cls_fsm)
+		        	  		          {
+		        	  		        	  clsFsmState_Tcp = CLS_NEXT;
+		        	  		        	  *start_tcp_cls_fsm = false;
+		        	  		          }
+		            break;
+		          case CLS_NEXT:
+		        	  if(!soTOE_ClsReq.full())
+		        	  {
+		            SessionId nextToDelete = getAndDeleteNextMarkedRow();
+		            if(nextToDelete != (SessionId) UNUSED_SESSION_ENTRY_VALUE)
+		            {
+		              soTOE_ClsReq.write(nextToDelete);
+		            } else {
+		              clsFsmState_Tcp = CLS_IDLE;
+		            }
+		        	  }
+		            break;
+		        }
+		  //    }
+		//    }
+}
+
 
 
 /*! \} */

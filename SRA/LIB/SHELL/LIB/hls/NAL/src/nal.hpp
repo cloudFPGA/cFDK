@@ -201,7 +201,8 @@ enum ClsFsmStates {CLS_IDLE = 0, CLS_NEXT, CLS_WAIT4RESP};
 
 #define MAX_NAL_SESSIONS (TOE_MAX_SESSIONS)
 
-#define MAX_MRT_SIZE 1024
+//#define MAX_MRT_SIZE 1024
+#define MAX_MRT_SIZE 128
 #define NUMBER_CONFIG_WORDS 16
 #define NUMBER_STATUS_WORDS 16
 #define NAL_NUMBER_CONFIG_WORDS NUMBER_CONFIG_WORDS
@@ -303,7 +304,7 @@ TcpPort getRemotePortFromTripple(ap_uint<64> tripple);
 TcpPort getLocalPortFromTripple(ap_uint<64> tripple);
 ap_uint<64> getTrippleFromSessionId(SessionId sessionID);
 SessionId getSessionIdFromTripple(ap_uint<64> tripple);
-
+SessionId getAndDeleteNextMarkedRow();
 
 #include "uss.hpp"
 #include "tss.hpp"

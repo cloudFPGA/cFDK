@@ -98,6 +98,21 @@ void pTcpWRp(
 		stream<NalEventNotif> 		&internal_event_fifo
 		);
 
+void pTcpCOn(
+		stream<TcpAppOpnReq>      	&soTOE_OpnReq,
+		stream<TcpAppOpnRep>   		&siTOE_OpnRep,
+		//stream<TcpAppClsReq>   		&soTOE_ClsReq,
+		ap_uint<64>  				*tripple_for_new_connection,
+		bool 						*tcp_need_new_connection_request,
+		bool 						*tcp_new_connection_failure,
+		bool						*nts_ready_and_enabled
+		);
+
+void pTcpCls(
+		stream<TcpAppClsReq>   		&soTOE_ClsReq,
+		bool						*start_tcp_cls_fsm,
+		bool						*nts_ready_and_enabled
+		);
 
 #endif
 
