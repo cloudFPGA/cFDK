@@ -816,8 +816,8 @@ void nal_main(
 //=================================================================================================
 // Reset global variables
 
-#pragma HLS reset variable=fsmStateRX_Udp
-#pragma HLS reset variable=fsmStateTX_Udp
+//#pragma HLS reset variable=fsmStateRX_Udp
+//#pragma HLS reset variable=fsmStateTX_Udp
 //#pragma HLS reset variable=openPortWaitTime
 #pragma HLS reset variable=mmio_stabilize_counter
 //#pragma HLS reset variable=udp_lsn_watchDogTimer
@@ -846,13 +846,13 @@ void nal_main(
 //#pragma HLS reset variable=authorized_access_cnt
 //#pragma HLS reset variable=fmc_tcp_bytes_cnt
 
-#pragma HLS reset variable=startupDelay
-#pragma HLS reset variable=opnFsmState
-#pragma HLS reset variable=clsFsmState_Tcp
-#pragma HLS reset variable=lsnFsmState
+//#pragma HLS reset variable=startupDelay
+//#pragma HLS reset variable=opnFsmState
+//#pragma HLS reset variable=clsFsmState_Tcp
+//#pragma HLS reset variable=lsnFsmState
 //#pragma HLS reset variable=rrhFsmState
-#pragma HLS reset variable=rdpFsmState
-#pragma HLS reset variable=wrpFsmState
+//#pragma HLS reset variable=rdpFsmState
+//#pragma HLS reset variable=wrpFsmState
 #pragma HLS reset variable=tcp_rx_ports_processed
 #pragma HLS reset variable=need_tcp_port_req
 #pragma HLS reset variable=new_relative_port_to_req_tcp
