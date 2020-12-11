@@ -275,9 +275,10 @@ typedef UdpLen       UdpAppDLen;
 typedef UdpAppMeta  UdpMeta;
 typedef UdpAppDLen  UdpPLen;
 
-enum NalCntIncType {NID_MISS_RX = 0, NID_MISS_TX, PCOR_RX, PCOR_TX, TCP_CON_FAIL, LAST_RX_PORT, \
+enum NalCntIncType {NID_MISS_RX = 0, NID_MISS_TX, PCOR_TX, TCP_CON_FAIL, LAST_RX_PORT, \
 	                LAST_RX_NID, LAST_TX_PORT, LAST_TX_NID, PACKET_RX, PACKET_TX, UNAUTH_ACCESS, \
                     AUTH_ACCESS, FMC_TCP_BYTES};
+
 
 struct NalEventNotif {
 	NalCntIncType type;
@@ -288,6 +289,8 @@ struct NalEventNotif {
 	NalEventNotif(NalCntIncType nt, ap_uint<16> uv): type(nt), update_value(uv) {}
 };
 //typedef NalEventNotif NalEventNotifType;
+#define NAL_PARALEL_EVENT_PROCESSING_FACTOR 5
+
 
 Ip4Addr getIpFromRank(NodeId rank);
 NodeId getNodeIdFromIpAddress(ap_uint<32> ipAddr);

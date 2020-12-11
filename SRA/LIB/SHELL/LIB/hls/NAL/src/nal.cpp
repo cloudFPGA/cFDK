@@ -62,20 +62,20 @@ ClsFsmStates clsFsmState_Udp = CLS_IDLE;
 
 NetworkMetaStream out_meta_udp = NetworkMetaStream(); //DON'T FORGET to initilize!
 //NetworkMetaStream in_meta_udp = NetworkMetaStream(); //ATTENTION: don't forget initilizer...
-
-ap_uint<32> node_id_missmatch_RX_cnt = 0;
-NodeId last_rx_node_id = 0;
-NrcPort last_rx_port = 0;
-ap_uint<32> node_id_missmatch_TX_cnt = 0;
-NodeId last_tx_node_id = 0;
-NrcPort last_tx_port = 0;
-ap_uint<16> port_corrections_TX_cnt = 0;
-ap_uint<32> unauthorized_access_cnt = 0;
-ap_uint<32> authorized_access_cnt = 0;
-ap_uint<32> fmc_tcp_bytes_cnt = 0;
-
-ap_uint<32> packet_count_RX = 0;
-ap_uint<32> packet_count_TX = 0;
+//
+//ap_uint<32> node_id_missmatch_RX_cnt = 0;
+//NodeId last_rx_node_id = 0;
+//NrcPort last_rx_port = 0;
+//ap_uint<32> node_id_missmatch_TX_cnt = 0;
+//NodeId last_tx_node_id = 0;
+//NrcPort last_tx_port = 0;
+//ap_uint<16> port_corrections_TX_cnt = 0;
+//ap_uint<32> unauthorized_access_cnt = 0;
+//ap_uint<32> authorized_access_cnt = 0;
+//ap_uint<32> fmc_tcp_bytes_cnt = 0;
+//
+//ap_uint<32> packet_count_RX = 0;
+//ap_uint<32> packet_count_TX = 0;
 
 //UdpAppDLen udpTX_packet_length = 0;
 //UdpAppDLen udpTX_current_packet_length = 0;
@@ -153,14 +153,14 @@ stream<NalEventNotif> internal_event_fifo ("internal_event_fifo");
 Ip4Addr getIpFromRank(NodeId rank)
 {
 #pragma HLS INLINE off
-	return localMRT[rank];
-	//should return 0 on failure (since MRT is initialized with 0 -> ok)
+  return localMRT[rank];
+  //should return 0 on failure (since MRT is initialized with 0 -> ok)
 }
 
 NodeId getOwnRank()
 {
 #pragma HLS INLINE
-	return (NodeId) config[NAL_CONFIG_OWN_RANK];
+  return (NodeId) config[NAL_CONFIG_OWN_RANK];
 }
 
 //returns the ZERO-based bit position (so 0 for LSB)
@@ -384,6 +384,163 @@ SessionId getAndDeleteNextMarkedRow()
   return (SessionId) UNUSED_SESSION_ENTRY_VALUE;
 }
 
+void eventStatusHousekeeping(
+      ap_uint<1>        *layer_7_enabled,
+      ap_uint<1>        *role_decoupled,
+    stream<NalEventNotif>   &internal_event_fifo
+    )
+{
+  //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+#pragma HLS INLINE off
+#pragma HLS pipeline II=1
+  //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+  static ap_uint<32> node_id_missmatch_RX_cnt = 0;
+  static NodeId last_rx_node_id = 0;
+  static NrcPort last_rx_port = 0;
+  static ap_uint<32> node_id_missmatch_TX_cnt = 0;
+  static NodeId last_tx_node_id = 0;
+  static NrcPort last_tx_port = 0;
+  static ap_uint<16> port_corrections_TX_cnt = 0;
+  static ap_uint<32> unauthorized_access_cnt = 0;
+  static ap_uint<32> authorized_access_cnt = 0;
+  static ap_uint<32> fmc_tcp_bytes_cnt = 0;
+
+  static ap_uint<32> packet_count_RX = 0;
+  static ap_uint<32> packet_count_TX = 0;
+
+#pragma HLS reset variable=node_id_missmatch_RX_cnt
+#pragma HLS reset variable=node_id_missmatch_TX_cnt
+#pragma HLS reset variable=port_corrections_TX_cnt
+#pragma HLS reset variable=packet_count_RX
+#pragma HLS reset variable=packet_count_TX
+#pragma HLS reset variable=last_rx_node_id
+#pragma HLS reset variable=last_rx_port
+#pragma HLS reset variable=last_tx_node_id
+#pragma HLS reset variable=last_tx_port
+#pragma HLS reset variable=unauthorized_access_cnt
+#pragma HLS reset variable=authorized_access_cnt
+#pragma HLS reset variable=fmc_tcp_bytes_cnt
+
+  //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+
+   if(*layer_7_enabled == 0 || *role_decoupled == 1 )
+    {
+    //reset counters
+    packet_count_TX = 0x0;
+    packet_count_RX = 0x0;
+    last_rx_port = 0x0;
+    last_rx_node_id = 0x0;
+    last_tx_port = 0x0;
+    last_tx_node_id = 0x0;
+  return;
+    }
+
+  for(int i = 0; i<NAL_PARALEL_EVENT_PROCESSING_FACTOR; i++)
+{
+#pragma HLS unroll
+  //remove dependencies (yes, risking race conditions,
+  //but they should be very unlikely and are only affecting statistics data)
+#pragma HLS dependence variable=node_id_missmatch_RX_cnt  inter false
+#pragma HLS dependence variable=node_id_missmatch_TX_cnt  inter false
+#pragma HLS dependence variable=port_corrections_TX_cnt   inter false
+#pragma HLS dependence variable=packet_count_RX           inter false
+#pragma HLS dependence variable=packet_count_TX           inter false
+#pragma HLS dependence variable=last_rx_node_id           inter false
+#pragma HLS dependence variable=last_rx_port              inter false
+#pragma HLS dependence variable=last_tx_node_id           inter false
+#pragma HLS dependence variable=last_tx_port              inter false
+#pragma HLS dependence variable=unauthorized_access_cnt   inter false
+#pragma HLS dependence variable=authorized_access_cnt     inter false
+#pragma HLS dependence variable=fmc_tcp_bytes_cnt         inter false
+
+  if(!internal_event_fifo.empty())
+  {
+    NalEventNotif ne = internal_event_fifo.read();
+    switch(ne.type)
+    {
+    case NID_MISS_RX:
+      node_id_missmatch_RX_cnt += ne.update_value;
+      break;
+    case NID_MISS_TX:
+      node_id_missmatch_TX_cnt += ne.update_value;
+      break;
+    case PCOR_TX:
+      port_corrections_TX_cnt += ne.update_value;
+      break;
+    case TCP_CON_FAIL:
+      tcp_new_connection_failure_cnt += ne.update_value;
+      break;
+    case LAST_RX_PORT:
+      last_rx_port = ne.update_value;
+      break;
+    case LAST_RX_NID:
+      last_rx_node_id = ne.update_value;
+      break;
+    case LAST_TX_PORT:
+      last_tx_port = ne.update_value;
+      break;
+    case LAST_TX_NID:
+      last_tx_node_id = ne.update_value;
+      break;
+    case PACKET_RX:
+      packet_count_RX += ne.update_value;
+      break;
+    case PACKET_TX:
+      packet_count_TX += ne.update_value;
+      break;
+    case UNAUTH_ACCESS:
+      unauthorized_access_cnt += ne.update_value;
+      break;
+    case AUTH_ACCESS:
+      authorized_access_cnt += ne.update_value;
+      break;
+    case FMC_TCP_BYTES:
+      fmc_tcp_bytes_cnt += ne.update_value;
+      break;
+    default:
+      printf("[ERROR] Internal Event Processing received invalid event %d with update value %d\n", \
+          (int) ne.type, (int) ne.update_value);
+      break;
+    }
+  } else {
+    break;
+  }
+}
+
+
+    //update status entries
+    status[NAL_STATUS_MRT_VERSION] = mrt_version_processed;
+    status[NAL_STATUS_OPEN_UDP_PORTS] = udp_rx_ports_processed;
+    status[NAL_STATUS_OPEN_TCP_PORTS] = tcp_rx_ports_processed;
+    status[NAL_STATUS_FMC_PORT_PROCESSED] = (ap_uint<32>) processed_FMC_listen_port;
+    status[NAL_STATUS_OWN_RANK] = config[NAL_CONFIG_OWN_RANK];
+
+    //udp
+    //status[NAL_STATUS_SEND_STATE] = (ap_uint<32>) fsmStateRX_Udp;
+    //status[NAL_STATUS_RECEIVE_STATE] = (ap_uint<32>) fsmStateTXenq_Udp;
+    //status[NAL_STATUS_GLOBAL_STATE] = (ap_uint<32>) fsmStateTXdeq_Udp;
+
+    //tcp
+    status[NAL_STATUS_SEND_STATE] = (ap_uint<32>) wrpFsmState;
+    status[NAL_STATUS_RECEIVE_STATE] = (ap_uint<32>) rdpFsmState;
+    //status[NAL_STATUS_GLOBAL_STATE] = (ap_uint<32>) opnFsmState;
+
+    status[NAL_STATUS_GLOBAL_STATE] = fmc_tcp_bytes_cnt;
+
+    //status[NAL_STATUS_RX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_RX_cnt;
+    status[NAL_STATUS_RX_NODEID_ERROR] = (((ap_uint<32>) port_corrections_TX_cnt) << 16) | ( 0xFFFF & ((ap_uint<16>) node_id_missmatch_RX_cnt));
+    status[NAL_STATUS_LAST_RX_NODE_ID] = (ap_uint<32>) (( (ap_uint<32>) last_rx_port) << 16) | ( (ap_uint<32>) last_rx_node_id);
+    //status[NAL_STATUS_TX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_TX_cnt;
+    status[NAL_STATUS_TX_NODEID_ERROR] = (((ap_uint<32>) tcp_new_connection_failure_cnt) << 16) | ( 0xFFFF & ((ap_uint<16>) node_id_missmatch_TX_cnt));
+    status[NAL_STATUS_LAST_TX_NODE_ID] = (ap_uint<32>) (((ap_uint<32>) last_tx_port) << 16) | ((ap_uint<32>) last_tx_node_id);
+    //status[NAL_STATUS_TX_PORT_CORRECTIONS] = (((ap_uint<32>) tcp_new_connection_failure_cnt) << 16) | ((ap_uint<16>) port_corrections_TX_cnt);
+    status[NAL_STATUS_PACKET_CNT_RX] = (ap_uint<32>) packet_count_RX;
+    status[NAL_STATUS_PACKET_CNT_TX] = (ap_uint<32>) packet_count_TX;
+
+    status[NAL_UNAUTHORIZED_ACCESS] = (ap_uint<32>) unauthorized_access_cnt;
+    status[NAL_AUTHORIZED_ACCESS] = (ap_uint<32>) authorized_access_cnt;
+}
+
 
 /*****************************************************************************
  * @brief   Main process of the UDP Role Interface
@@ -458,7 +615,7 @@ void nal_main(
     stream<TcpAppOpnRep>   &siTOE_OpnRep,
     //-- TOE / Close Interfaces
     stream<TcpAppClsReq>   &soTOE_ClsReq
-	)
+  )
 {
 
 // ----- directives for AXI buses (AXI4 stream, AXI4 Lite) -----
@@ -469,9 +626,9 @@ void nal_main(
   #pragma HLS RESOURCE core=AXI4Stream variable=soUdp_data    metadata="-bus_bundle soUdp_data"
 
   #pragma HLS RESOURCE core=AXI4Stream variable=siUdp_meta    metadata="-bus_bundle siUdp_meta"
-  #pragma HLS DATA_PACK				   variable=siUdp_meta
+  #pragma HLS DATA_PACK          variable=siUdp_meta
   #pragma HLS RESOURCE core=AXI4Stream variable=soUdp_meta    metadata="-bus_bundle soUdp_meta"
-  #pragma HLS DATA_PACK				   variable=soUdp_meta
+  #pragma HLS DATA_PACK          variable=soUdp_meta
 
   #pragma HLS RESOURCE core=AXI4Stream variable=soUOE_LsnReq  metadata="-bus_bundle soUOE_LsnReq"
   #pragma HLS RESOURCE core=AXI4Stream variable=siUOE_LsnRep  metadata="-bus_bundle siUOE_LsnRep"
@@ -490,9 +647,9 @@ void nal_main(
   #pragma HLS RESOURCE core=AXI4Stream variable=siTcp_data    metadata="-bus_bundle siTcp_data"
   #pragma HLS RESOURCE core=AXI4Stream variable=soTcp_data    metadata="-bus_bundle soTcp_data"
   #pragma HLS RESOURCE core=AXI4Stream variable=siTcp_meta    metadata="-bus_bundle siTcp_meta"
-  #pragma HLS DATA_PACK				   variable=siTcp_meta
+  #pragma HLS DATA_PACK          variable=siTcp_meta
   #pragma HLS RESOURCE core=AXI4Stream variable=soTcp_meta    metadata="-bus_bundle soTcp_meta"
-  #pragma HLS DATA_PACK				   variable=soTcp_meta
+  #pragma HLS DATA_PACK          variable=soTcp_meta
 
   #pragma HLS RESOURCE core=AXI4Stream variable=siTOE_Notif   metadata="-bus_bundle siTOE_Notif"
   #pragma HLS DATA_PACK                variable=siTOE_Notif
@@ -589,7 +746,7 @@ void nal_main(
 #pragma HLS INTERFACE ap_vld register port=piFMC_Tcp_data_FIFO_prog_full name=piFMC_Tcp_data_FIFO_prog_full
 #pragma HLS INTERFACE ap_vld register port=piFMC_Tcp_sessid_FIFO_prog_full name=piFMC_Tcp_sessid_FIFO_prog_full
 
-	//TODO: add internal streams
+  //TODO: add internal streams
 
 #pragma HLS DATAFLOW
 //#pragma HLS PIPELINE II=1 //FIXME
@@ -604,6 +761,7 @@ void nal_main(
 #pragma HLS ARRAY_PARTITION variable=rowsToDelete cyclic factor=4 dim=1
 #pragma HLS ARRAY_PARTITION variable=localMRT complete dim=1
 
+#pragma HLS ARRAY_PARTITION variable=status cyclic factor=4 dim=1
 #pragma HLS STREAM variable=internal_event_fifo depth=128
 
 
@@ -623,22 +781,22 @@ void nal_main(
 //#pragma HLS reset variable=clsFsmState_Udp
 //#pragma HLS reset variable=newRelativePortToClose
 //#pragma HLS reset variable=newAbsolutePortToClose
-#pragma HLS reset variable=node_id_missmatch_RX_cnt
-#pragma HLS reset variable=node_id_missmatch_TX_cnt
-#pragma HLS reset variable=port_corrections_TX_cnt
-#pragma HLS reset variable=packet_count_RX
-#pragma HLS reset variable=packet_count_TX
-#pragma HLS reset variable=last_rx_node_id
-#pragma HLS reset variable=last_rx_port
-#pragma HLS reset variable=last_tx_node_id
-#pragma HLS reset variable=last_tx_port
-//#pragma HLS reset variable=out_meta_udp
-//#pragma HLS reset variable=in_meta_udp
-//#pragma HLS reset variable=udpTX_packet_length
-//#pragma HLS reset variable=udpTX_current_packet_length
-#pragma HLS reset variable=unauthorized_access_cnt
-#pragma HLS reset variable=authorized_access_cnt
-#pragma HLS reset variable=fmc_tcp_bytes_cnt
+//#pragma HLS reset variable=node_id_missmatch_RX_cnt
+//#pragma HLS reset variable=node_id_missmatch_TX_cnt
+//#pragma HLS reset variable=port_corrections_TX_cnt
+//#pragma HLS reset variable=packet_count_RX
+//#pragma HLS reset variable=packet_count_TX
+//#pragma HLS reset variable=last_rx_node_id
+//#pragma HLS reset variable=last_rx_port
+//#pragma HLS reset variable=last_tx_node_id
+//#pragma HLS reset variable=last_tx_port
+////#pragma HLS reset variable=out_meta_udp
+////#pragma HLS reset variable=in_meta_udp
+////#pragma HLS reset variable=udpTX_packet_length
+////#pragma HLS reset variable=udpTX_current_packet_length
+//#pragma HLS reset variable=unauthorized_access_cnt
+//#pragma HLS reset variable=authorized_access_cnt
+//#pragma HLS reset variable=fmc_tcp_bytes_cnt
 
 #pragma HLS reset variable=startupDelay
 #pragma HLS reset variable=opnFsmState
@@ -758,7 +916,7 @@ void nal_main(
         if( *role_decoupled == 0 )
         {//start closing FSM TCP
           //clsFsmState_Tcp = CLS_NEXT;
-        	start_tcp_cls_fsm = true;
+          start_tcp_cls_fsm = true;
         } else {
           //FMC is using TCP!
           pr_was_done_flag = true;
@@ -768,13 +926,6 @@ void nal_main(
     //in all cases
     udp_rx_ports_processed = 0x0;
     tcp_rx_ports_processed = 0x0;
-    //reset counters
-    packet_count_TX = 0x0;
-    packet_count_RX = 0x0;
-    last_rx_port = 0x0;
-    last_rx_node_id = 0x0;
-    last_tx_port = 0x0;
-    last_tx_node_id = 0x0;
     if( *role_decoupled == 0)
     { //invalidate cache
       //cached_udp_rx_ipaddr = 0;
@@ -795,7 +946,7 @@ void nal_main(
     //start closing FSM TCP
     //ports have been marked earlier
     //clsFsmState_Tcp = CLS_NEXT;
-	  start_tcp_cls_fsm = true;
+    start_tcp_cls_fsm = true;
     //FSM will wait until RDP and WRP are done
     pr_was_done_flag = false;
   }
@@ -902,7 +1053,7 @@ void nal_main(
   //TODO: add disable signal? (NTS_ready, layer4 enabled)
   //TODO: add cache invalidate mechanism
   pUdpRx(soUOE_LsnReq, siUOE_LsnRep, soUdp_data, soUdp_meta, siUOE_Data, siUOE_Meta, &need_udp_port_req, \
-		  &new_relative_port_to_req_udp, &udp_rx_ports_processed, &nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo);
+      &new_relative_port_to_req_udp, &udp_rx_ports_processed, &nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo);
 
   //=================================================================================================
   // UDP Port Close
@@ -912,7 +1063,7 @@ void nal_main(
     //=================================================================================================
     // TCP pListen
    pTcpLsn(piMMIO_FmcLsnPort, soTOE_LsnReq, siTOE_LsnRep, &tcp_rx_ports_processed, &need_tcp_port_req, \
-		   &new_relative_port_to_req_tcp, &processed_FMC_listen_port, &nts_ready_and_enabled);
+       &new_relative_port_to_req_tcp, &processed_FMC_listen_port, &nts_ready_and_enabled);
 
    //=================================================================================================
    // TCP Read Request Handler
@@ -925,19 +1076,19 @@ void nal_main(
     //=================================================================================================
     // TCP Read Path
     pTcpRDp(siTOE_Data, siTOE_SessId, soFMC_Tcp_data, soFMC_Tcp_SessId, soTcp_data, soTcp_meta, piMMIO_CfrmIp4Addr, \
-    		&processed_FMC_listen_port, layer_7_enabled, role_decoupled, &cached_tcp_rx_session_id, &expect_FMC_response, \
-			&nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo);
+        &processed_FMC_listen_port, layer_7_enabled, role_decoupled, &cached_tcp_rx_session_id, &expect_FMC_response, \
+      &nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo);
 
     //=================================================================================================
     // TCP Write Path
     pTcpWRp(siFMC_Tcp_data, siFMC_Tcp_SessId, siTcp_data, siTcp_meta, soTOE_Data, soTOE_SessId, &expect_FMC_response, \
-    		&tripple_for_new_connection, &tcp_need_new_connection_request, &tcp_new_connection_failure, &nts_ready_and_enabled, \
-			&detected_cache_invalidation, internal_event_fifo);
+        &tripple_for_new_connection, &tcp_need_new_connection_request, &tcp_new_connection_failure, &nts_ready_and_enabled, \
+      &detected_cache_invalidation, internal_event_fifo);
 
     //=================================================================================================
     // TCP start remote connection
     pTcpCOn(soTOE_OpnReq, siTOE_OpnRep, &tripple_for_new_connection, &tcp_need_new_connection_request, &tcp_new_connection_failure,\
-    		&nts_ready_and_enabled);
+        &nts_ready_and_enabled);
 
     //=================================================================================================
     // TCP connection close
@@ -946,43 +1097,14 @@ void nal_main(
     //===========================================================
     //  update status, config, MRT
 
+    eventStatusHousekeeping(layer_7_enabled, role_decoupled, internal_event_fifo);
 
     if( fsmStateTX_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC &&
         rdpFsmState != RDP_STREAM_FMC && rdpFsmState != RDP_STREAM_ROLE &&
         wrpFsmState != WRP_STREAM_FMC && wrpFsmState != WRP_STREAM_ROLE )
     { //so we are not in a critical data path
 
-      //update status entries
-      status[NAL_STATUS_MRT_VERSION] = mrt_version_processed;
-      status[NAL_STATUS_OPEN_UDP_PORTS] = udp_rx_ports_processed;
-      status[NAL_STATUS_OPEN_TCP_PORTS] = tcp_rx_ports_processed;
-      status[NAL_STATUS_FMC_PORT_PROCESSED] = (ap_uint<32>) processed_FMC_listen_port;
-      status[NAL_STATUS_OWN_RANK] = config[NAL_CONFIG_OWN_RANK];
 
-      //udp
-      //status[NAL_STATUS_SEND_STATE] = (ap_uint<32>) fsmStateRX_Udp;
-      //status[NAL_STATUS_RECEIVE_STATE] = (ap_uint<32>) fsmStateTXenq_Udp;
-      //status[NAL_STATUS_GLOBAL_STATE] = (ap_uint<32>) fsmStateTXdeq_Udp;
-
-      //tcp
-      status[NAL_STATUS_SEND_STATE] = (ap_uint<32>) wrpFsmState;
-      status[NAL_STATUS_RECEIVE_STATE] = (ap_uint<32>) rdpFsmState;
-      //status[NAL_STATUS_GLOBAL_STATE] = (ap_uint<32>) opnFsmState;
-      
-      status[NAL_STATUS_GLOBAL_STATE] = fmc_tcp_bytes_cnt;
-
-      //status[NAL_STATUS_RX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_RX_cnt;
-      status[NAL_STATUS_RX_NODEID_ERROR] = (((ap_uint<32>) port_corrections_TX_cnt) << 16) | ( 0xFFFF & ((ap_uint<16>) node_id_missmatch_RX_cnt));
-      status[NAL_STATUS_LAST_RX_NODE_ID] = (ap_uint<32>) (( (ap_uint<32>) last_rx_port) << 16) | ( (ap_uint<32>) last_rx_node_id);
-      //status[NAL_STATUS_TX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_TX_cnt;
-      status[NAL_STATUS_TX_NODEID_ERROR] = (((ap_uint<32>) tcp_new_connection_failure_cnt) << 16) | ( 0xFFFF & ((ap_uint<16>) node_id_missmatch_TX_cnt));
-      status[NAL_STATUS_LAST_TX_NODE_ID] = (ap_uint<32>) (((ap_uint<32>) last_tx_port) << 16) | ((ap_uint<32>) last_tx_node_id);
-      //status[NAL_STATUS_TX_PORT_CORRECTIONS] = (((ap_uint<32>) tcp_new_connection_failure_cnt) << 16) | ((ap_uint<16>) port_corrections_TX_cnt);
-      status[NAL_STATUS_PACKET_CNT_RX] = (ap_uint<32>) packet_count_RX;
-      status[NAL_STATUS_PACKET_CNT_TX] = (ap_uint<32>) packet_count_TX;
-
-      status[NAL_UNAUTHORIZED_ACCESS] = (ap_uint<32>) unauthorized_access_cnt;
-      status[NAL_AUTHORIZED_ACCESS] = (ap_uint<32>) authorized_access_cnt;
 
       //TODO: necessary? Or does this AXI4Lite anyways "in the background"?
       //or do we need to copy it explicetly, but could do this also every ~2 seconds?
