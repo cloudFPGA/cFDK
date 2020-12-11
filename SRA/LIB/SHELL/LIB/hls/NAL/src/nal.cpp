@@ -32,8 +32,6 @@
 
 #include "nal.hpp"
 
-uint16_t tableCopyVariable = 0;
-
 ap_uint<8>   openPortWaitTime = 100;
 //ap_uint<8>   udp_lsn_watchDogTimer = 100;
 #ifndef __SYNTHESIS__
@@ -49,8 +47,6 @@ ap_uint<32> localMRT[MAX_MRT_SIZE];
 ap_uint<32> config[NUMBER_CONFIG_WORDS];
 ap_uint<32> status[NUMBER_STATUS_WORDS];
 
-
-ap_uint<32> mrt_version_processed = 0;
 
 ap_uint<32> udp_rx_ports_processed = 0;
 ap_uint<32> udp_rx_ports_to_close = 0;
@@ -385,9 +381,10 @@ SessionId getAndDeleteNextMarkedRow()
 }
 
 void eventStatusHousekeeping(
-      ap_uint<1>        *layer_7_enabled,
-      ap_uint<1>        *role_decoupled,
-    stream<NalEventNotif>   &internal_event_fifo
+      ap_uint<1>        		*layer_7_enabled,
+      ap_uint<1>     			*role_decoupled,
+	  ap_uint<32> 				*mrt_version_processed,
+      stream<NalEventNotif>  	&internal_event_fifo
     )
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -509,7 +506,7 @@ void eventStatusHousekeeping(
 
 
     //update status entries
-    status[NAL_STATUS_MRT_VERSION] = mrt_version_processed;
+    status[NAL_STATUS_MRT_VERSION] = *mrt_version_processed;
     status[NAL_STATUS_OPEN_UDP_PORTS] = udp_rx_ports_processed;
     status[NAL_STATUS_OPEN_TCP_PORTS] = tcp_rx_ports_processed;
     status[NAL_STATUS_FMC_PORT_PROCESSED] = (ap_uint<32>) processed_FMC_listen_port;
@@ -539,6 +536,52 @@ void eventStatusHousekeeping(
 
     status[NAL_UNAUTHORIZED_ACCESS] = (ap_uint<32>) unauthorized_access_cnt;
     status[NAL_AUTHORIZED_ACCESS] = (ap_uint<32>) authorized_access_cnt;
+}
+
+void axi4liteProcessing(
+		ap_uint<32> 	ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
+		ap_uint<32> 	*mrt_version_processed
+		)
+{
+
+	static uint16_t tableCopyVariable = 0;
+
+#pragma HLS reset variable=tableCopyVariable
+
+    //TODO: necessary? Or does this AXI4Lite anyways "in the background"?
+    //or do we need to copy it explicetly, but could do this also every ~2 seconds?
+    if(tableCopyVariable < NUMBER_CONFIG_WORDS)
+    {
+      config[tableCopyVariable] = ctrlLink[tableCopyVariable];
+    }
+    if(tableCopyVariable < MAX_MRT_SIZE)
+    {
+      localMRT[tableCopyVariable] = ctrlLink[tableCopyVariable + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS];
+    }
+
+    if(tableCopyVariable < NUMBER_STATUS_WORDS)
+    {
+      ctrlLink[NUMBER_CONFIG_WORDS + tableCopyVariable] = status[tableCopyVariable];
+    }
+
+    if(tableCopyVariable >= MAX_MRT_SIZE)
+    {
+      tableCopyVariable = 0;
+      //acknowledge the processed version
+      ap_uint<32> new_mrt_version = config[NAL_CONFIG_MRT_VERSION];
+     // if(new_mrt_version > mrt_version_processed)
+     // {
+        //invalidate cache
+        //cached_udp_rx_ipaddr = 0;
+        //cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
+        //cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
+     //   detected_cache_invalidation = true;
+      //moved to outer process
+      //}
+      *mrt_version_processed = new_mrt_version;
+    }  else {
+      tableCopyVariable++;
+    }
 }
 
 
@@ -764,6 +807,11 @@ void nal_main(
 #pragma HLS ARRAY_PARTITION variable=status cyclic factor=4 dim=1
 #pragma HLS STREAM variable=internal_event_fifo depth=128
 
+	  //===========================================================
+	  //  core wide STATIC variables
+
+	static ap_uint<32> mrt_version_processed = 0;
+	static ap_uint<32> mrt_version_old = 0; //no reset needed
 
 //=================================================================================================
 // Reset global variables
@@ -823,7 +871,6 @@ void nal_main(
 #pragma HLS reset variable=tcp_new_connection_failure
 #pragma HLS reset variable=tcp_new_connection_failure_cnt
 
-#pragma HLS reset variable=tableCopyVariable
 #pragma HLS reset variable=expect_FMC_response
 
 //#pragma HLS reset variable=cached_udp_rx_id
@@ -833,6 +880,9 @@ void nal_main(
 //#pragma HLS reset variable=cached_tcp_tx_session_id
 //#pragma HLS reset variable=cached_tcp_tx_tripple
 #pragma HLS reset variable=pr_was_done_flag
+
+
+
 
   //===========================================================
   //  core wide variables (for one iteration)
@@ -875,6 +925,12 @@ void nal_main(
 
   //===========================================================
   // check for resets
+
+  if(mrt_version_old != mrt_version_processed)
+  {
+	  mrt_version_old = mrt_version_processed;
+	  detected_cache_invalidation = true;
+  }
 
   //if layer 4 is reset, ports will be closed
   if(*layer_4_enabled == 0)
@@ -1097,49 +1153,16 @@ void nal_main(
     //===========================================================
     //  update status, config, MRT
 
-    eventStatusHousekeeping(layer_7_enabled, role_decoupled, internal_event_fifo);
+    eventStatusHousekeeping(layer_7_enabled, role_decoupled, &mrt_version_old, internal_event_fifo);
 
-    if( fsmStateTX_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC &&
-        rdpFsmState != RDP_STREAM_FMC && rdpFsmState != RDP_STREAM_ROLE &&
-        wrpFsmState != WRP_STREAM_FMC && wrpFsmState != WRP_STREAM_ROLE )
-    { //so we are not in a critical data path
+    axi4liteProcessing(ctrlLink, &mrt_version_processed);
 
-
-
-      //TODO: necessary? Or does this AXI4Lite anyways "in the background"?
-      //or do we need to copy it explicetly, but could do this also every ~2 seconds?
-      if(tableCopyVariable < NUMBER_CONFIG_WORDS)
-      {
-        config[tableCopyVariable] = ctrlLink[tableCopyVariable];
-      }
-      if(tableCopyVariable < MAX_MRT_SIZE)
-      {
-        localMRT[tableCopyVariable] = ctrlLink[tableCopyVariable + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS];
-      }
-
-      if(tableCopyVariable < NUMBER_STATUS_WORDS)
-      {
-        ctrlLink[NUMBER_CONFIG_WORDS + tableCopyVariable] = status[tableCopyVariable];
-      }
-
-      if(tableCopyVariable >= MAX_MRT_SIZE)
-      {
-        tableCopyVariable = 0;
-        //acknowledge the processed version
-        ap_uint<32> new_mrt_version = config[NAL_CONFIG_MRT_VERSION];
-        if(new_mrt_version > mrt_version_processed)
-        {
-          //invalidate cache
-          //cached_udp_rx_ipaddr = 0;
-          //cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
-          //cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
-          detected_cache_invalidation = true;
-        }
-        mrt_version_processed = new_mrt_version;
-      }  else {
-        tableCopyVariable++;
-      }
-    }
+//    if( fsmStateTX_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC &&
+//        rdpFsmState != RDP_STREAM_FMC && rdpFsmState != RDP_STREAM_ROLE &&
+//        wrpFsmState != WRP_STREAM_FMC && wrpFsmState != WRP_STREAM_ROLE )
+//    { //so we are not in a critical data path
+//
+//    }
 
 }
 
