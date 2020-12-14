@@ -40,7 +40,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "rx_app_interface.hpp"
 
-
 using namespace hls;
 
 
@@ -65,30 +64,57 @@ using namespace hls;
 #define DEBUG_LEVEL (TRACE_OFF)
 
 /*******************************************************************************
- * @brief A 2-to-1 generic Stream Multiplexer
+ * @brief Rx Notification Multiplexer (Nmx)
  *
- *  @param[in]  si1     The input stream #1.
- *  @param[in]  si2     The input stream #2.
- *  @param[out] so      The output stream.
+ *  @param[in]  siRXe_Notif   Notification from RxEngine (RXe).
+ *  @param[in]  siTIm_Notif   Notification from Timers (TIm).
+ *  @param[out] soTAIF_Notif  Notification to TcpAppInterface (TAIF).
  *
  * @details
- *  This multiplexer behaves like an arbiter. It takes two streams as inputs and
- *   forwards one of them to the output channel. The stream connected to the
- *   first input always takes precedence over the second one.
+ *  This 2-to-1 stream multiplexer behaves like an arbiter. It takes two streams
+ *   as inputs and forwards one of them to the output channel.
+ *   Notice that the stream connected to the first input always takes precedence
+ *   over the second one.
+ *
+ * @warning
+ *  To avoid any blocking of [RAi], the current notification to be sent on the
+ *  outgoing stream will be dropped if that stream is full. As a results, the
+ *  application process must provision enough buffering to store all incoming
+ *  notifications, or the application must drain the stream as fast it fills up.
  *******************************************************************************/
-template<typename T> void pStreamMux(
-        stream<T>  &si1,
-        stream<T>  &si2,
-        stream<T>  &so)
+void pNotificationMux(
+        stream<TcpAppNotif>     &siRXe_Notif,
+        stream<TcpAppNotif>     &siTIm_Notif,
+        stream<TcpAppNotif>     &soTAIF_Notif)
 {
    //-- DIRECTIVES FOR THIS PROCESS --------------------------------------------
     #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
-    if (!si1.empty())
-        so.write(si1.read());
-    else if (!si2.empty())
-        so.write(si2.read());
+    const char *myName = concat3(THIS_NAME, "/", "Nmx");
+
+    TcpAppNotif  currNotif;
+
+    if (!siRXe_Notif.empty()) {
+        currNotif = siRXe_Notif.read();
+        if (!soTAIF_Notif.full()) {
+            soTAIF_Notif.write(currNotif);
+        }
+        else {
+            // Drop this notification
+            printFatal(myName, "Cannot write 'soTAIF_Notif()'. Stream is full!");
+        }
+    }
+    else if (!siTIm_Notif.empty()) {
+        currNotif = siTIm_Notif.read();
+        if (!soTAIF_Notif.full()) {
+            soTAIF_Notif.write(currNotif);
+        }
+        else {
+            // Drop this notification
+            printFatal(myName, "Cannot write 'soTAIF_Notif()'. Stream is full!");
+        }
+    }
 }
 
 /*******************************************************************************
@@ -107,11 +133,13 @@ template<typename T> void pStreamMux(
  *   RxApp pointer of the session is forwarded to the RxSarTable (RSt) and a
  *   meta-data (.i.e the current session-id) is sent back to [TAIF] to signal
  *   that the request has been processed.
+ *
  * @warning
- *  To avoid any blocking of [RAi], the outgoing metadata stream 'soTAIF_Meta'
- *  is never checked for fullness. This implies that the application process
- *  must provision enough buffering to store the metadata returned by this
- *  process upon a granted request to be read from the TCP Rx buffer.
+ *  To avoid any blocking of [RAi], the current metadata to be sent on the
+ *  outgoing stream 'soTAIF_Meta' will be dropped if that stream is full. This
+ *  implies that the application process must provision enough buffering to
+ *  store the metadata returned by this process upon a granted request to be
+ *  read from the TCP Rx buffer.
  *******************************************************************************/
 void pRxAppStream(
     stream<TcpAppRdReq>         &siTAIF_DataReq,
@@ -147,13 +175,18 @@ void pRxAppStream(
         }
         break;
     case S1:
-        //OBSOLETE_20201123 if (!siRSt_RxSarRep.empty() and !soTAIF_Meta.full() &&
         if (!siRSt_RxSarRep.empty() and
             !soMrd_MemRdCmd.full() and !soRSt_RxSarQry.full()) {
             RAiRxSarReply rxSarRep = siRSt_RxSarRep.read();
             // Signal that the data request has been processed by sending
             // the SessId back to [TAIF]
-            soTAIF_Meta.write(rxSarRep.sessionID);
+            if (!soTAIF_Meta.full()) {
+                soTAIF_Meta.write(rxSarRep.sessionID);
+            }
+            else {
+                // Drop this metadata
+                printFatal(myName, "Cannot write 'soTAIF_Meta()'. Stream is full!");
+            }
             // Generate a memory buffer read command
             RxMemPtr memSegAddr = TOE_RX_MEMORY_BASE;
             memSegAddr(29, 16) = rxSarRep.sessionID(13, 0);
@@ -268,11 +301,14 @@ void pRxMemoryReader(
  *  If a received data segment was splitted and stored as two Rx memory buffers
  *  as indicated by the signal flag 'siMrd_SplitSeg', this process will stitch
  *  them back into a single stream of bytes before delivering them to the [APP].
+ *
  * @warning
- *  To avoid any blocking of the [RAi], the outgoing data stream 'soTAIF_Data'
- *  is never checked for fullness. This implies that the application process
- *  must provision enough buffering to store all the bytes that were requested
- *  to be read from the TCP Rx buffer.
+ *  To avoid any blocking of the [RAi], the current data to be sent on the
+ *  outgoing stream 'soTAIF_Data' will be dropped if that stream is full.
+ *  This implies that the application process must provision enough buffering to
+ *  store all the bytes that were requested to be read from the TCP Rx buffer,
+ *  or the application must read them as fast as they come in i.e., as fast as
+ *  one chunk per clock cycle.
  *******************************************************************************/
 void pAppSegmentStitcher(
         stream<AxisApp>     &siMEM_RxP_Data,
@@ -302,19 +338,23 @@ void pAppSegmentStitcher(
     switch(ass_fsmState) {
     case ASS_IDLE:
         //-- Handle the very 1st data chunk from the 1st memory buffer
-        //OBSOLETE_20201123 if (!siMEM_RxP_Data.empty() and !siMrd_SplitSegFlag.empty() and !soTAIF_Data.full()) {
         if (!siMEM_RxP_Data.empty() and !siMrd_SplitSegFlag.empty()) {
             siMrd_SplitSegFlag.read(ass_mustJoin);
             AxisApp currAppChunk = siMEM_RxP_Data.read();
-
             if (currAppChunk.getTLast()) {
                 // We are done with the 1st memory buffer
                 if (ass_mustJoin == false) {
                     // The TCP segment was not splitted.
                     // We are done with this segment. Stay in this state.
-                    soTAIF_Data.write(currAppChunk);
+                    if (!soTAIF_Data.full()) {
+                        soTAIF_Data.write(currAppChunk);
+                        if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
+                    }
+                    else {
+                        // Drop this chunk
+                        printFatal(myName, "Cannot write 'soTAIF_Data()'. Stream is full!");
+                    }
                     ass_fsmState = ASS_IDLE;
-                    if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
                 }
                 else {
                     // The TCP segment was splitted in two parts
@@ -330,23 +370,34 @@ void pAppSegmentStitcher(
                         // The last chunk of the 1st memory buffer is populated with
                         // 8 valid bytes and is therefore also aligned.
                         // Forward this chunk and goto 'ASS_FWD_2ND_BUF'.
-                        soTAIF_Data.write(currAppChunk);
-                        if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
+                        if (!soTAIF_Data.full()) {
+                            soTAIF_Data.write(currAppChunk);
+                            if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
+                        }
+                        else {
+                            // Drop this chunk
+                            printFatal(myName, "Cannot write 'soTAIF_Data()'. Stream is full!");
+                        }
                         ass_fsmState = ASS_FWD_2ND_BUF;
                     }
                 }
             }
             else {
                // The 1st memory buffer contains more than one chunk
-               soTAIF_Data.write(currAppChunk);
-               if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
+               if (!soTAIF_Data.full()) {
+                   soTAIF_Data.write(currAppChunk);
+                   if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
+               }
+               else {
+                   // Drop this chunk
+                   printFatal(myName, "Cannot write 'soTAIF_Data()'. Stream is full!");
+               }
                ass_fsmState = ASS_FWD_1ST_BUF;
             }
         }
         break;
     case ASS_FWD_1ST_BUF:
         //-- Forward all the data chunks of the 1st memory buffer
-        //OBSOLETE_20201123 if (!siMEM_RxP_Data.empty() and !soTAIF_Data.full()) {
         if (!siMEM_RxP_Data.empty()) {
             AxisApp currAppChunk = siMEM_RxP_Data.read();
 
@@ -355,9 +406,15 @@ void pAppSegmentStitcher(
                 if (ass_mustJoin == false) {
                     // The TCP segment was not splitted.
                     // We are done with this segment. Go back to 'ASS_IDLE'.
-                    soTAIF_Data.write(currAppChunk);
+                    if (!soTAIF_Data.full()) {
+                        soTAIF_Data.write(currAppChunk);
+                        if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
+                    }
+                    else {
+                        // Drop this chunk
+                        printFatal(myName, "Cannot write 'soTAIF_Data()'. Stream is full!");
+                    }
                     ass_fsmState = ASS_IDLE;
-                    if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
                 }
                 else {
                     // The TCP segment was splitted in two parts
@@ -375,27 +432,41 @@ void pAppSegmentStitcher(
                         // The last chunk of the 1st memory buffer is populated with
                         // 8 valid bytes and is therefore also aligned.
                         // Forward this chunk and goto 'TSS_FWD_2ND_BUF'.
-                        soTAIF_Data.write(currAppChunk);
-                        if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
+                        if (!soTAIF_Data.full()) {
+                           soTAIF_Data.write(currAppChunk);
+                           if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
+                        }
+                        else {
+                            // Drop this chunk
+                            printFatal(myName, "Cannot write 'soTAIF_Data()'. Stream is full!");
+                        }
                         ass_fsmState = ASS_FWD_2ND_BUF;
                     }
                 }
             }
             else {
                 // Remain in this state and continue streaming the 1st memory buffer
-                soTAIF_Data.write(currAppChunk);
-                if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
-             }
+                if (!soTAIF_Data.full()) {
+                    soTAIF_Data.write(currAppChunk);
+                    if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
+                }
+                else {
+                    printFatal(myName, "Cannot write 'soTAIF_Data()'. Stream is full!");
+                }
+            }
         }
         break;
     case ASS_FWD_2ND_BUF:
         //-- Forward all the data chunks of the 2nd memory buffer
-        //OBSOLETE_20201123 if (!siMEM_RxP_Data.empty() and !soTAIF_Data.full()) {
         if (!siMEM_RxP_Data.empty()) {
             AxisApp currAppChunk = siMEM_RxP_Data.read();
-
-            soTAIF_Data.write(currAppChunk);
-            if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
+            if (!soTAIF_Data.full()) {
+                soTAIF_Data.write(currAppChunk);
+                if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
+            }
+            else {
+                printFatal(myName, "Cannot write 'soTAIF_Data()'. Stream is full!");
+            }
             if (currAppChunk.getTLast()) {
                 // We are done with the 2nd memory buffer
                 ass_fsmState = ASS_IDLE;
@@ -408,7 +479,6 @@ void pAppSegmentStitcher(
         //-- The re-alignment occurs between the previously read chunk stored
         //-- in 'tss_prevChunk' and the latest chunk stored in 'currAppChunk',
         //-- and 'tss_memRdOffset' specifies the number of valid bytes in 'tss_prevChunk'.
-        //OBSOLETE_20201123 if (!siMEM_RxP_Data.empty() and !soTAIF_Data.full()) {
         if (!siMEM_RxP_Data.empty()) {
             AxisApp currAppChunk = siMEM_RxP_Data.read();
 
@@ -436,8 +506,13 @@ void pAppSegmentStitcher(
                 ass_fsmState = ASS_RESIDUE;
             }
 
-            soTAIF_Data.write(joinedChunk);
-            if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", joinedChunk); }
+            if (!soTAIF_Data.full()) {
+                soTAIF_Data.write(joinedChunk);
+                if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", joinedChunk); }
+            }
+            else {
+                printFatal(myName, "Cannot write 'soTAIF_Data()'. Stream is full!");
+            }
 
             // Move remainder of current chunk to previous chunk
             ass_prevChunk.setLE_TData(currAppChunk.getLE_TData(64-1, 64-(int)ass_memRdOffset*8),
@@ -448,17 +523,20 @@ void pAppSegmentStitcher(
         break;
     case ASS_RESIDUE:
         //-- Output the very last unaligned chunk
-        //OBSOLETE_20201123 if (!soTAIF_Data.full()) {
         AxisApp lastChunk = AxisApp(0, 0, TLAST);
         lastChunk.setLE_TData(ass_prevChunk.getLE_TData(((int)ass_memRdOffset*8)-1, 0),
                                                         ((int)ass_memRdOffset*8)-1, 0);
         lastChunk.setLE_TKeep(ass_prevChunk.getLE_TKeep((int)ass_memRdOffset-1, 0),
                                                         (int)ass_memRdOffset-1, 0);
 
-        soTAIF_Data.write(lastChunk);
-        if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", lastChunk); }
+        if (!soTAIF_Data.full()) {
+            soTAIF_Data.write(lastChunk);
+            if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", lastChunk); }
+        }
+        else {
+            printFatal(myName, "Cannot write 'soTAIF_Data()'. Stream is full!");
+        }
         ass_fsmState = ASS_IDLE;
-        //OBSOLETE_20201123 }
         break;
     }
 }
@@ -476,11 +554,13 @@ void pAppSegmentStitcher(
  *  in passive listening mode and ready to accept an incoming connection on the
  *  socket {MY_IP, THIS_PORT}.
  *  [TODO-FIXME] The tear down of a connection is not implemented yet.
+ *
  * @warning
- *  To avoid any blocking of [RAi], the outgoing stream 'soTAIF_LsnRep'
- *  is never checked for fullness. This implies that the application process
- *  must provision enough buffering to store the listen reply returned by this
- *  process upon a granted request to open a new port in listen mode.
+ *  To avoid any blocking of [RAi], the current reply to be sent on the
+ *  outgoing stream 'soTAIF_LsnRep' will be dropped if the stream is full.
+ *  As a result, the application process must provision enough buffering to
+ *  store the listen reply returned by this process upon a granted request to
+ *  open a new port in listen mode.
  *******************************************************************************/
 void pLsnAppInterface(
         stream<TcpAppLsnReq>    &siTAIF_LsnReq,
@@ -497,24 +577,29 @@ void pLsnAppInterface(
     const char *myName = concat3(THIS_NAME, "/", "Lai");
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static bool                lai_waitForAck=false;
+    static bool                lai_waitForPRtRep=false;
     #pragma HLS reset variable=lai_waitForAck
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     TcpPort     listenPort;
     RepBit      listenRep;
 
-    if (!siTAIF_LsnReq.empty() and !lai_waitForAck) {
+    if (!siTAIF_LsnReq.empty() and !lai_waitForPRtRep) {
         siTAIF_LsnReq.read(listenPort);
         soPRt_LsnReq.write(listenPort);
-        lai_waitForAck = true;
+        lai_waitForPRtRep = true;
     }
-    else if (!siPRt_LsnRep.empty() and lai_waitForAck) {
+    else if (!siPRt_LsnRep.empty() and lai_waitForPRtRep) {
         siPRt_LsnRep.read(listenRep);
-        soTAIF_LsnRep.write((RepBool)listenRep);
-        lai_waitForAck = false;
+        if (!soTAIF_LsnRep.full()) {
+            soTAIF_LsnRep.write((RepBool)listenRep);
+        }
+        else {
+            // Drop this reply
+            printFatal(myName, "Cannot write 'soTAIF_Meta()'. Stream is full!");
+        }
+        lai_waitForPRtRep = false;
     }
-
     /*** Close listening port [TODO] ***
     if (!siTAIF_StopLsnReq.empty()) {
         soPRt_CloseReq.write(siTAIF_StopLsnReq.read());
@@ -549,9 +634,12 @@ void pLsnAppInterface(
  *
  * @warning
  *  To avoid any blocking of this process, all the outgoing 'soTAIF_***' streams
- *  are never checked for fullness. This implies that the user application process
- *  connected to these streams must provision enough buffering to store the
- *  corresponding bytes exchanged on these request-reply interfaces.
+ *  are checked for fullness and the current data to be sent out is dropped if
+ *  the stream is full. This implies that the user application process connected
+ *  to these streams must provision enough buffering to store the corresponding
+ *  bytes exchanged on these request-reply interfaces. Alternatively, the user
+ *  application must be able to drain the stream at its maximum rate (i.e. one
+ *  data piece per clock cycle).
  *******************************************************************************/
 void rx_app_interface(
         //-- TAIF / Handshake Interfaces
@@ -615,9 +703,7 @@ void rx_app_interface(
             soPRt_LsnReq,
             siPRt_LsnAck);
 
-    // Notification Mux (Nmx) based on template stream Mux
-    //  Notice order --> RXe has higher priority that TIm
-    pStreamMux(
+    pNotificationMux(
             siRXe_Notif,
             siTIm_Notif,
             soTAIF_Notif);
