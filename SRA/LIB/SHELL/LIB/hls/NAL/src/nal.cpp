@@ -38,9 +38,9 @@
 //FsmStateUdp fsmStateRX_Udp = FSM_RESET;
 //FsmStateUdp fsmStateTX_Udp = FSM_RESET;
 
-ap_uint<32> localMRT[MAX_MRT_SIZE];
-ap_uint<32> config[NUMBER_CONFIG_WORDS];
-ap_uint<32> status[NUMBER_STATUS_WORDS];
+//ap_uint<32> localMRT[MAX_MRT_SIZE];
+//ap_uint<32> config[NUMBER_CONFIG_WORDS];
+//ap_uint<32> status[NUMBER_STATUS_WORDS];
 
 
 
@@ -125,18 +125,18 @@ ap_uint<1>  privilegedRows[MAX_NAL_SESSIONS];
 
 
 
-Ip4Addr getIpFromRank(NodeId rank)
-{
-#pragma HLS INLINE off
-  return localMRT[rank];
-  //should return 0 on failure (since MRT is initialized with 0 -> ok)
-}
+//Ip4Addr getIpFromRank(NodeId rank)
+//{
+//#pragma HLS INLINE off
+//  return localMRT[rank];
+//  //should return 0 on failure (since MRT is initialized with 0 -> ok)
+//}
 
-NodeId getOwnRank()
-{
-#pragma HLS INLINE off
-  return (NodeId) config[NAL_CONFIG_OWN_RANK];
-}
+//NodeId getOwnRank()
+//{
+//#pragma HLS INLINE off
+//  return (NodeId) config[NAL_CONFIG_OWN_RANK];
+//}
 
 //returns the ZERO-based bit position (so 0 for LSB)
 ap_uint<32> getRightmostBitPos(ap_uint<32> num) 
@@ -158,19 +158,19 @@ ap_uint<32> getRightmostBitPos(ap_uint<32> num)
 }
 
 
-NodeId getNodeIdFromIpAddress(ap_uint<32> ipAddr)
-{
-#pragma HLS INLINE off
-  for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
-  {
+//NodeId getNodeIdFromIpAddress(ap_uint<32> ipAddr)
+//{
+//#pragma HLS INLINE off
+//  for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
+//  {
 //#pragma HLS unroll //factor=8
-    if(localMRT[i] == ipAddr)
-    {
-      return (NodeId) i;
-    }
-  }
-  return UNUSED_SESSION_ENTRY_VALUE;
-}
+//    if(localMRT[i] == ipAddr)
+//    {
+//      return (NodeId) i;
+//    }
+//  }
+//  return UNUSED_SESSION_ENTRY_VALUE;
+//}
 
 
 ap_uint<64> newTripple(Ip4Addr ipRemoteAddres, TcpPort tcpRemotePort, TcpPort tcpLocalPort)
@@ -362,10 +362,10 @@ SessionId getAndDeleteNextMarkedRow()
 void eventStatusHousekeeping(
       const ap_uint<1>       *layer_7_enabled,
       const ap_uint<1>       *role_decoupled,
-	  const ap_uint<32>      *mrt_version_processed,
-	  const ap_uint<32> 	 *udp_rx_ports_processed,
-	  const ap_uint<32> 	 *tcp_rx_ports_processed,
-	  const ap_uint<16> 	 *processed_FMC_listen_port,
+    const ap_uint<32>      *mrt_version_processed,
+    const ap_uint<32>    *udp_rx_ports_processed,
+    const ap_uint<32>    *tcp_rx_ports_processed,
+    const ap_uint<16>    *processed_FMC_listen_port,
       stream<NalEventNotif>  &internal_event_fifo_0,
       stream<NalEventNotif>  &internal_event_fifo_1,
       stream<NalEventNotif>  &internal_event_fifo_2,
@@ -541,53 +541,6 @@ void eventStatusHousekeeping(
 
     status[NAL_UNAUTHORIZED_ACCESS] = (ap_uint<32>) unauthorized_access_cnt;
     status[NAL_AUTHORIZED_ACCESS] = (ap_uint<32>) authorized_access_cnt;
-}
-
-void axi4liteProcessing(
-    ap_uint<32>   ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
-    ap_uint<32>   *mrt_version_processed
-    )
-{
-
-  static uint16_t tableCopyVariable = 0;
-
-#pragma HLS reset variable=tableCopyVariable
-
-    //TODO: necessary? Or does this AXI4Lite anyways "in the background"?
-    //or do we need to copy it explicetly, but could do this also every ~2 seconds?
-    if(tableCopyVariable < NUMBER_CONFIG_WORDS)
-    {
-      config[tableCopyVariable] = ctrlLink[tableCopyVariable];
-    }
-    if(tableCopyVariable < MAX_MRT_SIZE)
-    {
-      //todo: move to function?
-      localMRT[tableCopyVariable] = ctrlLink[tableCopyVariable + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS];
-    }
-
-    if(tableCopyVariable < NUMBER_STATUS_WORDS)
-    {
-      ctrlLink[NUMBER_CONFIG_WORDS + tableCopyVariable] = status[tableCopyVariable];
-    }
-
-    if(tableCopyVariable >= MAX_MRT_SIZE)
-    {
-      tableCopyVariable = 0;
-      //acknowledge the processed version
-      ap_uint<32> new_mrt_version = config[NAL_CONFIG_MRT_VERSION];
-     // if(new_mrt_version > mrt_version_processed)
-     // {
-        //invalidate cache
-        //cached_udp_rx_ipaddr = 0;
-        //cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
-        //cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
-     //   detected_cache_invalidation = true;
-      //moved to outer process
-      //}
-      *mrt_version_processed = new_mrt_version;
-    }  else {
-      tableCopyVariable++;
-    }
 }
 
 
@@ -850,11 +803,43 @@ static stream<NalEventNotif> internal_event_fifo_0 ("internal_event_fifo");
 static stream<NalEventNotif> internal_event_fifo_1 ("internal_event_fifo");
 static stream<NalEventNotif> internal_event_fifo_2 ("internal_event_fifo");
 static stream<NalEventNotif> internal_event_fifo_3 ("internal_event_fifo");
+static stream<NalConfigUpdate>   &sA4lToTcpAgency    ("sA4lToTcpAgency");
+static stream<NalConfigUpdate>   &sA4lToPortLogic    ("sA4lToPortLogic");
+static stream<NalConfigUpdate>   &sA4lToUdpRx        ("sA4lToUdpRx");
+static stream<NalConfigUpdate>   &sA4lToTcpRx        ("sA4lToTcpRx");
+//static stream<NalMrtUpdate>    &sA4lMrtUpdate    ("lMrtUpdate");
+static stream<NalStatusUpdate>   &sStatusUpdate    ("sStatusUpdate");
+static stream<NodeId>            &sGetIpReq_UdpTx    ("sGetIpReq_UdpTx");
+static stream<Ip4Addr>           &sGetIpRep_UdpTx    ("sGetIpRep_UdpTx");
+static stream<NodeId>            &sGetIpReq_TcpTx    ("sGetIpReq_TcpTx");
+static stream<Ip4Addr>           &sGetIpRep_TcpTx    ("sGetIpRep_TcpTx");
+static stream<Ip4Addr>           &sGetNidReq_UdpRx    ("sGetNidReq_UdpRx");
+static stream<NodeId>            &sGetNidRep_UdpRx    ("sGetNidRep_UdpRx");
+static stream<Ip4Addr>           &sGetNidReq_TcpRx    ("sGetNidReq_TcpRx");
+static stream<NodeId>            &sGetNidRep_TcpRx    ("sGetNidRep_TcpRx");
+static stream<Ip4Addr>           &sGetNidReq_TcpTx    ("sGetNidReq_TcpTx");
+static stream<NodeId>            &sGetNidRep_TcpTx    ("sGetNidRep_TcpTx");
 
 #pragma HLS STREAM variable=internal_event_fifo_0 depth=16
 #pragma HLS STREAM variable=internal_event_fifo_1 depth=16
 #pragma HLS STREAM variable=internal_event_fifo_2 depth=16
 #pragma HLS STREAM variable=internal_event_fifo_3 depth=16
+
+#pragma HLS STRAM variable=sA4lToTcpAgency  depth=16
+#pragma HLS STRAM variable=sA4lToPortLogic  depth=16
+#pragma HLS STRAM variable=sA4lToUdpRx      depth=16
+#pragma HLS STRAM variable=sA4lToTcpRx      depth=16
+#pragma HLS STRAM variable=sStatusUpdate    depth=16
+#pragma HLS STRAM variable=sGetIpReq_UdpTx  depth=16
+#pragma HLS STRAM variable=sGetIpRep_UdpTx  depth=16
+#pragma HLS STRAM variable=sGetIpReq_TcpTx  depth=16
+#pragma HLS STRAM variable=sGetIpRep_TcpTx  depth=16
+#pragma HLS STRAM variable=sGetNidReq_UdpRx depth=16
+#pragma HLS STRAM variable=sGetNidRep_UdpRx depth=16
+#pragma HLS STRAM variable=sGetNidReq_TcpRx depth=16
+#pragma HLS STRAM variable=sGetNidRep_TcpRx depth=16
+#pragma HLS STRAM variable=sGetNidReq_TcpTx depth=16
+#pragma HLS STRAM variable=sGetNidRep_TcpTx depth=16
 
 //=================================================================================================
 // Reset global variables
@@ -1144,15 +1129,19 @@ static stream<NalEventNotif> internal_event_fifo_3 ("internal_event_fifo");
   //only if NTS is ready
   //TODO: remove unused global variables
   //TODO: add disable signal? (NTS_ready, layer4 enabled)
-  pUdpTX(siUdp_data, siUdp_meta, soUOE_Data, soUOE_Meta, soUOE_DLen, &ipAddrBE, &nts_ready_and_enabled, internal_event_fifo_0);
+  pUdpTX(siUdp_data, siUdp_meta, soUOE_Data, soUOE_Meta, soUOE_DLen, \
+		  sGetIpReq_UdpTx, sGetIpRep_UdpTx, \
+		  &ipAddrBE, &nts_ready_and_enabled, internal_event_fifo_0);
 
   //=================================================================================================
   // RX UDP
   //TODO: remove unused global variables
   //TODO: add disable signal? (NTS_ready, layer4 enabled)
   //TODO: add cache invalidate mechanism
-  pUdpRx(soUOE_LsnReq, siUOE_LsnRep, soUdp_data, soUdp_meta, siUOE_Data, siUOE_Meta, &need_udp_port_req, \
-      &new_relative_port_to_req_udp, &udp_rx_ports_processed, &nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo_1);
+  pUdpRx(soUOE_LsnReq, siUOE_LsnRep, soUdp_data, soUdp_meta, siUOE_Data, siUOE_Meta, \
+		  sA4lToUdpRx, sGetNidReq_UdpRx, sGetNidRep_UdpRx, \
+		  &need_udp_port_req, &new_relative_port_to_req_udp, &udp_rx_ports_processed, \
+		  &nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo_1);
 
   //=================================================================================================
   // UDP Port Close
@@ -1174,14 +1163,17 @@ static stream<NalEventNotif> internal_event_fifo_3 ("internal_event_fifo");
 
     //=================================================================================================
     // TCP Read Path
-    pTcpRDp(siTOE_Data, siTOE_SessId, soFMC_Tcp_data, soFMC_Tcp_SessId, soTcp_data, soTcp_meta, piMMIO_CfrmIp4Addr, \
+    pTcpRDp(siTOE_Data, siTOE_SessId, soFMC_Tcp_data, soFMC_Tcp_SessId, soTcp_data, soTcp_meta,\
+    		sA4lToTcpRx, sGetNidReq_TcpRx, sGetNidRep_TcpRx, \
+    		piMMIO_CfrmIp4Addr, \
         &processed_FMC_listen_port, layer_7_enabled, role_decoupled, &cached_tcp_rx_session_id, &expect_FMC_response, \
       &nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo_2);
 
     //=================================================================================================
     // TCP Write Path
-    pTcpWRp(siFMC_Tcp_data, siFMC_Tcp_SessId, siTcp_data, siTcp_meta, soTOE_Data, soTOE_SessId, &expect_FMC_response, \
-        &tripple_for_new_connection, &tcp_need_new_connection_request, &tcp_new_connection_failure, &nts_ready_and_enabled, \
+    pTcpWRp(siFMC_Tcp_data, siFMC_Tcp_SessId, siTcp_data, siTcp_meta, soTOE_Data, soTOE_SessId, \
+    		sGetIpReq_TcpTx, sGetIpRep_TcpTx, sGetNidReq_TcpTx, sGetNidRep_TcpTx,\
+			 &expect_FMC_response, &tripple_for_new_connection, &tcp_need_new_connection_request, &tcp_new_connection_failure, &nts_ready_and_enabled, \
       &detected_cache_invalidation, internal_event_fifo_3);
 
     //=================================================================================================
@@ -1197,9 +1189,12 @@ static stream<NalEventNotif> internal_event_fifo_3 ("internal_event_fifo");
     //  update status, config, MRT
 
     eventStatusHousekeeping(layer_7_enabled, role_decoupled, &mrt_version_used, &udp_rx_ports_processed, &tcp_rx_ports_processed, \
-    		&processed_FMC_listen_port, internal_event_fifo_0, internal_event_fifo_1, internal_event_fifo_2, internal_event_fifo_3);
+        &processed_FMC_listen_port, internal_event_fifo_0, internal_event_fifo_1, internal_event_fifo_2, internal_event_fifo_3);
 
-    axi4liteProcessing(ctrlLink, &mrt_version_processed);
+    axi4liteProcessing(ctrlLink, &mrt_version_processed, sA4lToTcpAgency, sA4lToPortLogic, sA4lToUdpRx, sA4lToTcpRx, sStatusUpdate,\
+    				   sGetIpReq_UdpTx, sGetIpRep_UdpTx, sGetIpReq_TcpTx, sGetIpRep_TcpTx, sGetNidReq_UdpRx, sGetNidRep_UdpRx,
+					   sGetNidReq_TcpRx, sGetNidRep_TcpRx, sGetNidReq_TcpTx, sGetNidRep_TcpTx);
+
 
 //    if( fsmStateTX_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC &&
 //        rdpFsmState != RDP_STREAM_FMC && rdpFsmState != RDP_STREAM_ROLE &&

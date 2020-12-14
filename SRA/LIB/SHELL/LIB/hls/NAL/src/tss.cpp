@@ -303,6 +303,9 @@ void pTcpRDp(
 		stream<TcpAppMeta>          &soFMC_Tcp_SessId,
 	    stream<NetworkWord>         &soTcp_data,
 	    stream<NetworkMetaStream>   &soTcp_meta,
+		stream<NalConfigUpdate>		&sConfigUpdate,
+		stream<Ip4Addr> 			&sGetNidReq_TcpRx,
+		stream<NodeId> 				&sGetNidRep_TcpRx,
 	    ap_uint<32> 				*piMMIO_CfrmIp4Addr,
 		ap_uint<16> 				*processed_FMC_listen_port,
 	    ap_uint<1> 					*layer_7_enabled,
@@ -324,20 +327,18 @@ void pTcpRDp(
 
 		//-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
 		static RdpFsmStates rdpFsmState = RDP_WAIT_META;
-		//static SessionId cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
 		static ap_uint<64> cached_tcp_rx_tripple = UNUSED_TABLE_ENTRY_VALUE;
 		static bool Tcp_RX_metaWritten = false;
-
 		static SessionId cached_tcp_tx_session_id = UNUSED_SESSION_ENTRY_VALUE;
 		static ap_uint<64> cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
+		static NodeId own_rank = 0;
 
 		#pragma HLS RESET variable=rdpFsmState
-		//#pragma HLS RESET variable=cached_tcp_rx_session_id
 		#pragma HLS RESET variable=cached_tcp_rx_tripple
 		#pragma HLS RESET variable=Tcp_RX_metaWritten
-
 		#pragma HLS RESET variable=cached_tcp_tx_session_id
 		#pragma HLS RESET variable=cached_tcp_tx_tripple
+		#pragma HLS RESET variable=own_rank
 		//-- STATIC DATAFLOW VARIABLES --------------------------------------------
 		static SessionId session_toFMC = 0;
 		static NetworkMetaStream in_meta_tcp = NetworkMetaStream(); //ATTENTION: don't forget to initialize...
@@ -362,6 +363,14 @@ void pTcpRDp(
 			cached_tcp_rx_tripple = UNUSED_TABLE_ENTRY_VALUE;
 		}
 
+		if(!sConfigUpdate.empty())
+		{
+			NalConfigUpdate ca = sConfigUpdate.read();
+			if(ca.config_addr == NAL_CONFIG_OWN_RANK)
+			{
+				own_rank = ca.update_value;
+			}
+		}
 
 		//default actions
 		*expect_FMC_response = false;
@@ -426,7 +435,10 @@ void pTcpRDp(
 		                  break;
 		                }
 		              }
-		              NodeId src_id = getNodeIdFromIpAddress(remoteAddr);
+		              //NodeId src_id = getNodeIdFromIpAddress(remoteAddr);
+		              sGetNidReq_TcpRx.write(remoteAddr);
+		              NodeId src_id = sGetNidRep_TcpRx.read();
+		              //TODO new FSM states
 		              //printf("TO ROLE: src_rank: %d\n", (int) src_id);
 		              //Role packet
 		              if(src_id == 0xFFFF
@@ -446,7 +458,7 @@ void pTcpRDp(
 		              //last_rx_port = dstPort;
 			          new_ev_not = NalEventNotif(LAST_RX_PORT, dstPort);
 			          internal_event_fifo.write_nb(new_ev_not);
-		              NetworkMeta tmp_meta = NetworkMeta(getOwnRank(), dstPort, src_id, srcPort, 0);
+		              NetworkMeta tmp_meta = NetworkMeta(own_rank, dstPort, src_id, srcPort, 0);
 		              in_meta_tcp = NetworkMetaStream(tmp_meta);
 		              Tcp_RX_metaWritten = false;
 		              rdpFsmState  = RDP_STREAM_ROLE;
@@ -572,6 +584,10 @@ void pTcpWRp(
 	    stream<NetworkMetaStream>   &siTcp_meta,
 		stream<TcpAppData>     		&soTOE_Data,
 		stream<TcpAppMeta>     		&soTOE_SessId,
+		stream<NodeId> 				&sGetIpReq_TcpTx,
+		stream<Ip4Addr> 			&sGetIpRep_TcpTx,
+		stream<Ip4Addr> 			&sGetNidReq_TcpTx,
+		stream<NodeId> 				&sGetNidRep_TcpTx,
 		bool						*expect_FMC_response,
 		ap_uint<64>  				*tripple_for_new_connection,
 		bool 						*tcp_need_new_connection_request,
@@ -671,7 +687,9 @@ void pTcpWRp(
 		                printf("NRC drops the packet...\n");
 		                break;
 		              }
-		              Ip4Addr dst_ip_addr = getIpFromRank(dst_rank);
+		              //Ip4Addr dst_ip_addr = getIpFromRank(dst_rank);
+		              sGetIpReq_TcpTx.write(dst_rank);
+		              Ip4Addr dst_ip_addr = sGetIpRep_TcpTx.read();
 		              if(dst_ip_addr == 0)
 		              {
 		                //node_id_missmatch_TX_cnt++;
@@ -744,7 +762,10 @@ void pTcpWRp(
 		              SessionId sessId = getSessionIdFromTripple(*tripple_for_new_connection);
 
 		              NrcPort dst_port = getRemotePortFromTripple(*tripple_for_new_connection);
-		              NodeId dst_rank = getNodeIdFromIpAddress(getRemoteIpAddrFromTripple(*tripple_for_new_connection));
+		              //NodeId dst_rank = getNodeIdFromIpAddress(getRemoteIpAddrFromTripple(*tripple_for_new_connection));
+		              sGetNidReq_TcpTx.write(getRemoteIpAddrFromTripple(*tripple_for_new_connection));
+		             NodeId dst_rank = sGetNidRep_TcpTx.read();
+		             		              //TODO new FSM states
 		              NalEventNotif new_ev_not = NalEventNotif(LAST_TX_NID, dst_rank);
 		              internal_event_fifo.write_nb(new_ev_not); //TODO: blocking?
 		              new_ev_not = NalEventNotif(LAST_TX_PORT, dst_port);
@@ -752,13 +773,14 @@ void pTcpWRp(
 		              //packet_count_TX++;
 		              new_ev_not = NalEventNotif(PACKET_TX, 1);
 		              internal_event_fifo.write_nb(new_ev_not);
-
 		              soTOE_SessId.write(sessId);
 		              if (DEBUG_LEVEL & TRACE_WRP) {
 		                printInfo(myName, "Received new session ID #%d from [ROLE].\n",
 		                    sessId.to_uint());
 		              }
 		              wrpFsmState = WRP_STREAM_ROLE;
+		              cached_tcp_tx_session_id = sessId;
+		              cached_tcp_tx_tripple = *tripple_for_new_connection;
 
 		            } else if (*tcp_new_connection_failure)
 		            {

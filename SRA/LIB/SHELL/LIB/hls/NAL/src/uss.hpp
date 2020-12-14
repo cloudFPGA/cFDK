@@ -41,6 +41,7 @@
 #include <stdint.h>
 
 #include "nal.hpp"
+#include "hss.hpp"
 
 using namespace hls;
 
@@ -50,6 +51,8 @@ void pUdpTX(
 	    stream<UdpAppData>          &soUOE_Data,
 	    stream<UdpAppMeta>          &soUOE_Meta,
 	    stream<UdpAppDLen>          &soUOE_DLen,
+		stream<NodeId> 				&sGetIpReq_UdpTx,
+		stream<Ip4Addr> 			&sGetIpRep_UdpTx,
 		ap_uint<32> 				*ipAddrBE,
 		bool						*nts_ready_and_enabled,
 		stream<NalEventNotif> 		&internal_event_fifo
@@ -62,6 +65,9 @@ void pUdpRx(
 		stream<NetworkMetaStream>   &soUdp_meta,
 	    stream<UdpAppData>          &siUOE_Data,
 	    stream<UdpAppMeta>          &siUOE_Meta,
+		stream<NalConfigUpdate>		&sConfigUpdate,
+		stream<Ip4Addr>				&sGetNidReq_UdpRx,
+		stream<NodeId>	 			&sGetNidRep_UdpRx,
 		bool 						*need_udp_port_req,
 		ap_uint<16>					*new_relative_port_to_req_udp,
 		ap_uint<32>					*udp_rx_ports_processed,

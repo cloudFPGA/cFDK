@@ -291,9 +291,9 @@ struct NalEventNotif {
 //typedef NalEventNotif NalEventNotifType;
 
 
-Ip4Addr getIpFromRank(NodeId rank);
-NodeId getNodeIdFromIpAddress(ap_uint<32> ipAddr);
-NodeId getOwnRank();
+//Ip4Addr getIpFromRank(NodeId rank);
+//NodeId getNodeIdFromIpAddress(ap_uint<32> ipAddr);
+//NodeId getOwnRank();
 ap_uint<32> getRightmostBitPos(ap_uint<32> num);
 void addnewTrippleToTable(SessionId sessionID, ap_uint<64> new_entry);
 void addnewSessionToTable(SessionId sessionID, Ip4Addr ipRemoteAddres, TcpPort tcpRemotePort, TcpPort tcpLocalPort);
@@ -310,7 +310,7 @@ SessionId getAndDeleteNextMarkedRow();
 
 #include "uss.hpp"
 #include "tss.hpp"
-
+#include "hss.hpp"
 
 
 void nal_main(

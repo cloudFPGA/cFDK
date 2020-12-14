@@ -29,6 +29,7 @@
 
 #include "uss.hpp"
 #include "nal.hpp"
+#include "hss.hpp"
 
 using namespace hls;
 
@@ -38,6 +39,8 @@ void pUdpTX(
 	    stream<UdpAppData>          &soUOE_Data,
 	    stream<UdpAppMeta>          &soUOE_Meta,
 	    stream<UdpAppDLen>          &soUOE_DLen,
+		stream<NodeId> 				&sGetIpReq_UdpTx,
+		stream<Ip4Addr> 			&sGetIpRep_UdpTx,
 		ap_uint<32> 				*ipAddrBE,
 		bool						*nts_ready_and_enabled,
 		stream<NalEventNotif> 		&internal_event_fifo
@@ -103,7 +106,10 @@ void pUdpTX(
 	              break;
 	            }
 	            //ap_uint<32> dst_ip_addr = localMRT[dst_rank];
-	            ap_uint<32> dst_ip_addr = getIpFromRank(dst_rank);
+	            //ap_uint<32> dst_ip_addr = getIpFromRank(dst_rank);
+	            sGetIpReq_UdpTx.write(dst_rank);
+	            ap_uint<32> dst_ip_addr = sGetIpRep_UdpTx.read(); //blocking read
+	            //TODO: need new FSM states
 	            if(dst_ip_addr == 0)
 	            {
 	              //node_id_missmatch_TX_cnt++;
@@ -212,6 +218,9 @@ void pUdpRx(
 		stream<NetworkMetaStream>   &soUdp_meta,
 	    stream<UdpAppData>          &siUOE_Data,
 	    stream<UdpAppMeta>          &siUOE_Meta,
+		stream<NalConfigUpdate>		&sConfigUpdate,
+		stream<Ip4Addr>				&sGetNidReq_UdpRx,
+		stream<NodeId>	 			&sGetNidRep_UdpRx,
 		bool 						*need_udp_port_req,
 		ap_uint<16>					*new_relative_port_to_req_udp,
 		ap_uint<32>					*udp_rx_ports_processed,
@@ -232,12 +241,14 @@ void pUdpRx(
 		static ap_uint<8>   udp_lsn_watchDogTimer = 100;
 		static NodeId cached_udp_rx_id = 0; //TODO add reset mechanism!
 		static Ip4Addr cached_udp_rx_ipaddr = 0;
+		static NodeId own_rank = 0;
 
 		#pragma HLS RESET variable=fsmStateRX_Udp
 		#pragma HLS RESET variable=openPortWaitTime
 		#pragma HLS RESET variable=udp_lsn_watchDogTimer
 		#pragma HLS RESET variable=cached_udp_rx_id
 		#pragma HLS RESET variable=cached_udp_rx_ipaddr
+		#pragma HLS RESET variable=own_rank
 		//-- STATIC DATAFLOW VARIABLES --------------------------------------------
 		static NetworkMetaStream in_meta_udp = NetworkMetaStream(); //ATTENTION: don't forget initilizer..
 
@@ -253,6 +264,15 @@ void pUdpRx(
 		{
 			cached_udp_rx_id = 0;
 			cached_udp_rx_ipaddr = 0;
+		}
+
+		if(!sConfigUpdate.empty())
+		{
+			NalConfigUpdate ca = sConfigUpdate.read();
+			if(ca.config_addr == NAL_CONFIG_OWN_RANK)
+			{
+				own_rank = ca.update_value;
+			}
 		}
 
 	  //only if NTS is ready
@@ -342,7 +362,10 @@ void pUdpRx(
 	              printf("used UDP RX id cache\n");
 	              src_id = cached_udp_rx_id;
 	            } else {
-	              src_id = getNodeIdFromIpAddress(udpRxMeta.src.addr);
+	              //src_id = getNodeIdFromIpAddress(udpRxMeta.src.addr);
+	              sGetNidReq_UdpRx.write(udpRxMeta.src.addr);
+	              src_id = sGetNidRep_UdpRx.read();
+	              //TODO
 	              cached_udp_rx_ipaddr = udpRxMeta.src.addr;
 	              cached_udp_rx_id = src_id;
 	            }
@@ -364,7 +387,7 @@ void pUdpRx(
 	            //last_rx_port = udpRxMeta.dst.port;
                 new_ev_not = NalEventNotif(LAST_RX_PORT, udpRxMeta.dst.port);
 	            internal_event_fifo.write_nb(new_ev_not);
-	            NetworkMeta tmp_meta = NetworkMeta(getOwnRank(), udpRxMeta.dst.port, src_id, udpRxMeta.src.port, 0);
+	            NetworkMeta tmp_meta = NetworkMeta(own_rank, udpRxMeta.dst.port, src_id, udpRxMeta.src.port, 0);
 	            //FIXME: add length here as soon as available from the UOE
 	            in_meta_udp = NetworkMetaStream(tmp_meta);
 	            //write metadata
