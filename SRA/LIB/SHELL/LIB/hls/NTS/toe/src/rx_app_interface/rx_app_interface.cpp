@@ -578,7 +578,7 @@ void pLsnAppInterface(
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static bool                lai_waitForPRtRep=false;
-    #pragma HLS reset variable=lai_waitForAck
+    #pragma HLS reset variable=lai_waitForPRtRep
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     TcpPort     listenPort;
