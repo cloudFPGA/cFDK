@@ -41,18 +41,16 @@
 #include <stdint.h>
 
 #include "nal.hpp"
+#include "hss.hpp"
 
 using namespace hls;
 
 void pTcpLsn(
-	    ap_uint<16> 				*piMMIO_FmcLsnPort,
 		stream<TcpAppLsnReq>   		&soTOE_LsnReq,
 		stream<TcpAppLsnRep>   		&siTOE_LsnRep,
-		ap_uint<32> 				*tcp_rx_ports_processed,
-		bool 						*need_tcp_port_req,
-		ap_uint<16> 				*new_relative_port_to_req_tcp,
-		ap_uint<16> 				*processed_FMC_listen_port,
-		bool						*nts_ready_and_enabled
+		stream<TcpPort>				&sTcpPortsToOpen,
+		stream<bool>				&sTcpPortsOpenFeedback,
+		const bool					*nts_ready_and_enabled
 		);
 
 void pTcpRRh(
@@ -75,7 +73,7 @@ void pTcpRDp(
 		stream<Ip4Addr> 			&sGetNidReq_TcpRx,
 		stream<NodeId> 				&sGetNidRep_TcpRx,
 	    ap_uint<32> 				*piMMIO_CfrmIp4Addr,
-		ap_uint<16> 				*processed_FMC_listen_port,
+		const ap_uint<16> 			*processed_FMC_listen_port,
 	    ap_uint<1> 					*layer_7_enabled,
 	    ap_uint<1> 					*role_decoupled,
 		SessionId					*cached_tcp_rx_session_id,

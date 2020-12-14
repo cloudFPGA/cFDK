@@ -47,13 +47,10 @@ using namespace hls;
     *   to 32,767.
     ******************************************************************************/
 void pTcpLsn(
-	    const ap_uint<16> 			*piMMIO_FmcLsnPort,
 		stream<TcpAppLsnReq>   		&soTOE_LsnReq,
 		stream<TcpAppLsnRep>   		&siTOE_LsnRep,
-		ap_uint<32> 				*tcp_rx_ports_processed,
-		bool 		 				*need_tcp_port_req,
-		ap_uint<16> 				*new_relative_port_to_req_tcp,
-		ap_uint<16> 				*processed_FMC_listen_port,
+		stream<TcpPort>				&sTcpPortsToOpen,
+		stream<bool>				&sTcpPortsOpenFeedback,
 		const bool					*nts_ready_and_enabled
 		)
 {
@@ -65,7 +62,6 @@ void pTcpLsn(
 
 			//-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
 			static LsnFsmStates lsnFsmState = LSN_IDLE;
-			static bool fmc_port_opened = false;
 			#ifdef __SYNTHESIS_
 			static ap_uint<16>         startupDelay = 0x8000;
 			#else
@@ -73,10 +69,10 @@ void pTcpLsn(
 			#endif
 
 			#pragma HLS RESET variable=lsnFsmState
-			#pragma HLS RESET variable=fmc_port_opened
 			#pragma HLS RESET variable=startupDelay
 			//-- STATIC DATAFLOW VARIABLES --------------------------------------------
 			static ap_uint<8>   watchDogTimer_plisten = 0;
+			ap_uint<16> new_absolute_port = 0;
 
 
 			if(!*nts_ready_and_enabled)
@@ -97,7 +93,8 @@ void pTcpLsn(
             {
               startupDelay--;
             } else {
-              if(*need_tcp_port_req == true)
+              //if(*need_tcp_port_req == true)
+              if(!sTcpPortsToOpen.empty())
               {
                 lsnFsmState = LSN_SEND_REQ;
               } else {
@@ -107,15 +104,15 @@ void pTcpLsn(
             break;
 
           case LSN_SEND_REQ: //we arrive here only if need_tcp_port_req == true
-            if (!soTOE_LsnReq.full()) {
-              ap_uint<16> new_absolute_port = 0;
+            if (!soTOE_LsnReq.full() && !sTcpPortsToOpen.empty()) {
+              new_absolute_port = sTcpPortsToOpen.read();
               //always process FMC first
-              if(fmc_port_opened == false)
-              {
-                new_absolute_port = *piMMIO_FmcLsnPort;
-              } else {
-                new_absolute_port = NAL_RX_MIN_PORT + *new_relative_port_to_req_tcp;
-              }
+//              if(fmc_port_opened == false)
+//              {
+//                new_absolute_port = *piMMIO_FmcLsnPort;
+//              } else {
+//                new_absolute_port = NAL_RX_MIN_PORT + *new_relative_port_to_req_tcp;
+//              }
 
               TcpAppLsnReq    tcpListenPort = new_absolute_port;
               soTOE_LsnReq.write(tcpListenPort);
@@ -137,55 +134,58 @@ void pTcpLsn(
 
           case LSN_WAIT_ACK:
             watchDogTimer_plisten--;
-            if (!siTOE_LsnRep.empty()) {
+            if (!siTOE_LsnRep.empty() && !sTcpPortsOpenFeedback.full()) {
               bool    listenDone;
               siTOE_LsnRep.read(listenDone);
               if (listenDone) {
                 printInfo(myName, "Received listen acknowledgment from [TOE].\n");
                 lsnFsmState = LSN_DONE;
 
-                *need_tcp_port_req = false;
-                if(fmc_port_opened == false)
-                {
-                  fmc_port_opened = true;
-                  *processed_FMC_listen_port = *piMMIO_FmcLsnPort;
-                } else {
-                  *tcp_rx_ports_processed |= ((ap_uint<32>) 1) << (*new_relative_port_to_req_tcp);
-                  printf("new tcp_rx_ports_processed: %#03x\n",(int) *tcp_rx_ports_processed);
-                }
+//                *need_tcp_port_req = false;
+//                if(fmc_port_opened == false)
+//                {
+//                  fmc_port_opened = true;
+//                  *processed_FMC_listen_port = *piMMIO_FmcLsnPort;
+//                } else {
+//                  *tcp_rx_ports_processed |= ((ap_uint<32>) 1) << (*new_relative_port_to_req_tcp);
+//                  printf("new tcp_rx_ports_processed: %#03x\n",(int) *tcp_rx_ports_processed);
+//                }
+                sTcpPortsOpenFeedback.write(true);
               }
               else {
-                ap_uint<16> new_absolute_port = 0;
+                //ap_uint<16> new_absolute_port = 0;
                 //always process FMC first
-                if(fmc_port_opened == false)
-                {
-                  new_absolute_port = *piMMIO_FmcLsnPort;
-                } else {
-                  new_absolute_port = NAL_RX_MIN_PORT + *new_relative_port_to_req_tcp;
-                }
+//                if(fmc_port_opened == false)
+//                {
+//                  new_absolute_port = *piMMIO_FmcLsnPort;
+//                } else {
+//                  new_absolute_port = NAL_RX_MIN_PORT + *new_relative_port_to_req_tcp;
+//                }
                 printWarn(myName, "TOE denied listening on port %d (0x%4.4X).\n",
                     (int) new_absolute_port, (int) new_absolute_port);
+                sTcpPortsOpenFeedback.write(false);
                 lsnFsmState = LSN_SEND_REQ;
               }
             } else {
               if (watchDogTimer_plisten == 0) {
                 ap_uint<16> new_absolute_port = 0;
                 //always process FMC first
-                if(fmc_port_opened == false)
-                {
-                  new_absolute_port = *piMMIO_FmcLsnPort;
-                } else {
-                  new_absolute_port = NAL_RX_MIN_PORT + *new_relative_port_to_req_tcp;
-                }
+//                if(fmc_port_opened == false)
+//                {
+//                  new_absolute_port = *piMMIO_FmcLsnPort;
+//                } else {
+//                  new_absolute_port = NAL_RX_MIN_PORT + *new_relative_port_to_req_tcp;
+//                }
                 printError(myName, "Timeout: Server failed to listen on port %d %d (0x%4.4X).\n",
                     (int)  new_absolute_port, (int) new_absolute_port);
+                sTcpPortsOpenFeedback.write(false);
                 lsnFsmState = LSN_SEND_REQ;
               }
             }
             break;
 
           case LSN_DONE:
-            if(*need_tcp_port_req == true)
+              if(!sTcpPortsToOpen.empty())
             {
               lsnFsmState = LSN_SEND_REQ;
             }
@@ -307,7 +307,7 @@ void pTcpRDp(
 		stream<Ip4Addr> 			&sGetNidReq_TcpRx,
 		stream<NodeId> 				&sGetNidRep_TcpRx,
 	    ap_uint<32> 				*piMMIO_CfrmIp4Addr,
-		ap_uint<16> 				*processed_FMC_listen_port,
+		const ap_uint<16> 			*processed_FMC_listen_port,
 	    ap_uint<1> 					*layer_7_enabled,
 	    ap_uint<1> 					*role_decoupled,
 		SessionId					*cached_tcp_rx_session_id,

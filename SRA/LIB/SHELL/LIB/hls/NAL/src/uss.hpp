@@ -68,9 +68,8 @@ void pUdpRx(
 		stream<NalConfigUpdate>		&sConfigUpdate,
 		stream<Ip4Addr>				&sGetNidReq_UdpRx,
 		stream<NodeId>	 			&sGetNidRep_UdpRx,
-		bool 						*need_udp_port_req,
-		ap_uint<16>					*new_relative_port_to_req_udp,
-		ap_uint<32>					*udp_rx_ports_processed,
+		stream<UdpPort>				&sUdpPortsToOpen,
+		stream<bool>				&sUdpPortsOpenFeedback,
 		bool						*nts_ready_and_enabled,
 		bool						*detected_cache_invalidation,
 		stream<NalEventNotif> 		&internal_event_fifo
@@ -79,8 +78,7 @@ void pUdpRx(
 void pUdpCls(
 	    stream<UdpPort>             &soUOE_ClsReq,
 	    stream<StsBool>             &siUOE_ClsRep,
-		ap_uint<32>					*udp_rx_ports_to_close,
-		bool						*start_udp_cls_fsm,
+		stream<UdpPort>				&sUdpPortsToClose,
 		bool						*nts_ready_and_enabled
 		);
 

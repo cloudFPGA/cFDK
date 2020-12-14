@@ -307,6 +307,8 @@ TcpPort getLocalPortFromTripple(ap_uint<64> tripple);
 ap_uint<64> getTrippleFromSessionId(SessionId sessionID);
 SessionId getSessionIdFromTripple(ap_uint<64> tripple);
 SessionId getAndDeleteNextMarkedRow();
+void markCurrentRowsAsToDelete_unprivileged();
+
 
 #include "uss.hpp"
 #include "tss.hpp"

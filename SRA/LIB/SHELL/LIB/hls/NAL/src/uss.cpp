@@ -221,9 +221,8 @@ void pUdpRx(
 		stream<NalConfigUpdate>		&sConfigUpdate,
 		stream<Ip4Addr>				&sGetNidReq_UdpRx,
 		stream<NodeId>	 			&sGetNidRep_UdpRx,
-		bool 						*need_udp_port_req,
-		ap_uint<16>					*new_relative_port_to_req_udp,
-		ap_uint<32>					*udp_rx_ports_processed,
+		stream<UdpPort>				&sUdpPortsToOpen,
+		stream<bool>				&sUdpPortsOpenFeedback,
 		bool						*nts_ready_and_enabled,
 		bool						*detected_cache_invalidation,
 		stream<NalEventNotif> 		&internal_event_fifo
@@ -296,8 +295,9 @@ void pUdpRx(
 
 	        case FSM_IDLE:
 	          if(openPortWaitTime == 0) {
-	            if ( !soUOE_LsnReq.full() && *need_udp_port_req) {
-	              ap_uint<16> new_absolute_port = NAL_RX_MIN_PORT + *new_relative_port_to_req_udp;
+	            if ( !soUOE_LsnReq.full() && !sUdpPortsToOpen.empty()) {
+	              //ap_uint<16> new_absolute_port = NAL_RX_MIN_PORT + *new_relative_port_to_req_udp;
+	            	ap_uint<16> new_absolute_port = sUdpPortsToOpen.read();
 	              soUOE_LsnReq.write(new_absolute_port);
 	              fsmStateRX_Udp = FSM_W8FORPORT;
 	#ifndef __SYNTHESIS__
@@ -309,7 +309,8 @@ void pUdpRx(
 	                printInfo(myName, "SHELL/UOE is requested to listen on port #%d (0x%4.4X).\n",
 	                    (int) new_absolute_port, (int) new_absolute_port);
 	              }
-	            } else if(*udp_rx_ports_processed > 0)
+	            } //else if(*udp_rx_ports_processed > 0)
+	            else if(sUdpPortsToOpen.empty())
 	            { // we have already at least one open port
 	              //don't hang after reset
 	              fsmStateRX_Udp = FSM_FIRST_ACC;
@@ -322,21 +323,24 @@ void pUdpRx(
 
 	        case FSM_W8FORPORT:
 	          udp_lsn_watchDogTimer--;
-	          if ( !siUOE_LsnRep.empty() ) {
+	          if ( !siUOE_LsnRep.empty() && !sUdpPortsOpenFeedback.full()) {
 	            // Read the acknowledgment
 	            StsBool sOpenAck = siUOE_LsnRep.read();
-	            printf("new udp_rx_ports_processed: %#03x\n",(int) *udp_rx_ports_processed);
+	            //printf("new udp_rx_ports_processed: %#03x\n",(int) *udp_rx_ports_processed);
 	            if (sOpenAck) {
 	              printInfo(myName, "Received listen acknowledgment from [UOE].\n");
 	              fsmStateRX_Udp = FSM_FIRST_ACC;
 	              //port acknowleded
-	              *need_udp_port_req = false;
-	              *udp_rx_ports_processed |= ((ap_uint<32>) 1) << (*new_relative_port_to_req_udp);
+	             // *need_udp_port_req = false;
+	             // *udp_rx_ports_processed |= ((ap_uint<32>) 1) << (*new_relative_port_to_req_udp);
+	              sUdpPortsOpenFeedback.write(true);
 	            }
 	            else {
-	              printWarn(myName, "UOE denied listening on port %d (0x%4.4X).\n",
-	                  (int) (NAL_RX_MIN_PORT + *new_relative_port_to_req_udp),
-	                  (int) (NAL_RX_MIN_PORT + *new_relative_port_to_req_udp));
+	              //printWarn(myName, "UOE denied listening on port %d (0x%4.4X).\n",
+	              //    (int) (NAL_RX_MIN_PORT + *new_relative_port_to_req_udp),
+	              //    (int) (NAL_RX_MIN_PORT + *new_relative_port_to_req_udp));
+	            	printWarn(myName, "UOE denied listening on port!\n");
+	            	sUdpPortsToOpen.write(false);
 	              fsmStateRX_Udp = FSM_IDLE;
 	            }
 	          } else {
@@ -408,7 +412,8 @@ void pUdpRx(
 	            }
 	          }
 	          //edge to port request
-	          if(*need_udp_port_req)
+	          //if(*need_udp_port_req)
+	          if(!sUdpPortsToOpen.empty())
 	          {
 	            fsmStateRX_Udp = FSM_IDLE;
 	          }
@@ -449,8 +454,7 @@ void pUdpRx(
 void pUdpCls(
 	    stream<UdpPort>             &soUOE_ClsReq,
 	    stream<StsBool>             &siUOE_ClsRep,
-		ap_uint<32>					*udp_rx_ports_to_close,
-		bool						*start_udp_cls_fsm,
+		stream<UdpPort>				&sUdpPortsToClose,
 		bool						*nts_ready_and_enabled
 		)
 {
@@ -465,7 +469,7 @@ void pUdpCls(
 
 		#pragma HLS RESET variable=clsFsmState_Udp
 		//-- STATIC DATAFLOW VARIABLES --------------------------------------------
-		static ap_uint<16> newRelativePortToClose = 0;
+		//static ap_uint<16> newRelativePortToClose = 0;
 		static ap_uint<16> newAbsolutePortToClose = 0;
 
 
@@ -485,20 +489,23 @@ void pUdpCls(
 		        default:
 		        case CLS_IDLE:
 		          //we wait until we are activated;
-		          newRelativePortToClose = 0;
+		          //newRelativePortToClose = 0;
 		          newAbsolutePortToClose = 0;
-		          if(*start_udp_cls_fsm)
+		          //if(*start_udp_cls_fsm)
+		          if(!sUdpPortsToClose.empty())
 		          {
 		        	  clsFsmState_Udp = CLS_NEXT;
-		        	  *start_udp_cls_fsm = false;
+		        	  //*start_udp_cls_fsm = false;
 		          }
 		          break;
 		        case CLS_NEXT:
-		          if( *udp_rx_ports_to_close != 0 )
+		          //if( *udp_rx_ports_to_close != 0 )
+		          if(!sUdpPortsToClose.empty())
 		          {
 		            //we have to close opened ports, one after another
-		            newRelativePortToClose = getRightmostBitPos(*udp_rx_ports_to_close);
-		            newAbsolutePortToClose = NAL_RX_MIN_PORT + newRelativePortToClose;
+		            //newRelativePortToClose = getRightmostBitPos(*udp_rx_ports_to_close);
+		            //newAbsolutePortToClose = NAL_RX_MIN_PORT + newRelativePortToClose;
+		        	  newAbsolutePortToClose = sUdpPortsToClose.read();
 		            if(!soUOE_ClsReq.full()) {
 		              soUOE_ClsReq.write(newAbsolutePortToClose);
 		              clsFsmState_Udp = CLS_WAIT4RESP;
@@ -516,9 +523,9 @@ void pUdpCls(
 		            {
 		              printInfo(myName, "Received close acknowledgment from [UOE].\n");
 		              //update ports to close
-		              ap_uint<32> one_cold_closed_port = ~(((ap_uint<32>) 1) << (newRelativePortToClose));
-		              *udp_rx_ports_to_close &= one_cold_closed_port;
-		              printf("new UDP port ports to close: %#04x\n",(unsigned int) *udp_rx_ports_to_close);
+		              //ap_uint<32> one_cold_closed_port = ~(((ap_uint<32>) 1) << (newRelativePortToClose));
+		              //*udp_rx_ports_to_close &= one_cold_closed_port;
+		              //printf("new UDP port ports to close: %#04x\n",(unsigned int) *udp_rx_ports_to_close);
 		            }
 		            else {
 		              printWarn(myName, "UOE denied closing the port %d (0x%4.4X) which is still opened.\n",

@@ -360,16 +360,19 @@ SessionId getAndDeleteNextMarkedRow()
 }
 
 void eventStatusHousekeeping(
+	const ap_uint<1> 					*layer_4_enabled,
       const ap_uint<1>       *layer_7_enabled,
       const ap_uint<1>       *role_decoupled,
     const ap_uint<32>      *mrt_version_processed,
     const ap_uint<32>    *udp_rx_ports_processed,
     const ap_uint<32>    *tcp_rx_ports_processed,
     const ap_uint<16>    *processed_FMC_listen_port,
+	stream<NalConfigUpdate>		&sConfigUpdate,
       stream<NalEventNotif>  &internal_event_fifo_0,
       stream<NalEventNotif>  &internal_event_fifo_1,
       stream<NalEventNotif>  &internal_event_fifo_2,
-      stream<NalEventNotif>  &internal_event_fifo_3
+      stream<NalEventNotif>  &internal_event_fifo_3,
+		stream<NalStatusUpdate> 	&sStatusUpdate
     )
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -392,6 +395,9 @@ void eventStatusHousekeeping(
 
   static ap_uint<16> tcp_new_connection_failure_cnt = 0;
 
+	static bool tables_initialized = false;
+	static NodeId own_rank = 0;
+
 #pragma HLS reset variable=node_id_missmatch_RX_cnt
 #pragma HLS reset variable=node_id_missmatch_TX_cnt
 #pragma HLS reset variable=port_corrections_TX_cnt
@@ -405,11 +411,33 @@ void eventStatusHousekeeping(
 #pragma HLS reset variable=authorized_access_cnt
 #pragma HLS reset variable=fmc_tcp_bytes_cnt
 #pragma HLS reset variable=tcp_new_connection_failure_cnt
+#pragma HLS reset variable=tables_initialized
+#pragma HLS reset variable=own_rank
 
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
 
+	static ap_uint<32> status[NUMBER_STATUS_WORDS];
+	static ap_uint<32> old_status[NUMBER_STATUS_WORDS];
+
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
   NalEventNotif nevs[4];
+
+  if(*layer_4_enabled == 0)
+  	{
+  	    //also, all sessions should be lost
+  	    tables_initalized = false;
+  	}
+  	// ----- tables init -----
+
+  	if(!tables_initialized)
+  	{
+  		for(int i = 0; i < NUMBER_STATUS_WORDS; i++)
+  		{
+  			status[i] = 0x0;
+  			old_status[i] = 0x0;
+  		}
+  		tables_initialized = true;
+  	}
 
    if(*layer_7_enabled == 0 || *role_decoupled == 1 )
     {
@@ -422,6 +450,15 @@ void eventStatusHousekeeping(
     last_tx_node_id = 0x0;
     //return;
     }
+
+	if(!sConfigUpdate.empty())
+	{
+		NalConfigUpdate ca = sConfigUpdate.read();
+		if(ca.config_addr == NAL_CONFIG_OWN_RANK)
+		{
+			own_rank = ca.update_value;
+		}
+	}
 
    if(!internal_event_fifo_0.empty())
     {
@@ -515,7 +552,7 @@ void eventStatusHousekeeping(
     status[NAL_STATUS_OPEN_UDP_PORTS] = *udp_rx_ports_processed;
     status[NAL_STATUS_OPEN_TCP_PORTS] = *tcp_rx_ports_processed;
     status[NAL_STATUS_FMC_PORT_PROCESSED] = (ap_uint<32>) *processed_FMC_listen_port;
-    status[NAL_STATUS_OWN_RANK] = getOwnRank();
+    status[NAL_STATUS_OWN_RANK] = own_rank;
 
     //udp
     //status[NAL_STATUS_SEND_STATE] = (ap_uint<32>) fsmStateRX_Udp;
@@ -541,6 +578,23 @@ void eventStatusHousekeeping(
 
     status[NAL_UNAUTHORIZED_ACCESS] = (ap_uint<32>) unauthorized_access_cnt;
     status[NAL_AUTHORIZED_ACCESS] = (ap_uint<32>) authorized_access_cnt;
+
+    //check for differences
+    for(int i = 0; i < NUMBER_STATUS_WORDS; i++)
+     {
+    	if(old_status[i] != status[i])
+    	{
+    		NalStatusUpdate su = NalStatusUpdate(i, status[i]);
+    		if(!sStatusUpdate.write_nb(su))
+    		{
+    			//we can wait
+    			break;
+    		} else {
+    			old_status[i] = status[i];
+    		}
+    	}
+     }
+
 }
 
 
@@ -773,25 +827,19 @@ void nal_main(
   static ap_uint<32> mrt_version_old = 0; //no reset needed
   static ap_uint<32> mrt_version_used = 0; //no reset needed
 
-#ifndef __SYNTHESIS__
-static ap_uint<16>  mmio_stabilize_counter = 1;
-#else
-static ap_uint<16>  mmio_stabilize_counter = NAL_MMIO_STABILIZE_TIME;
-#endif
-static ap_uint<32> udp_rx_ports_processed = 0;
-static ap_uint<32> udp_rx_ports_to_close = 0;
-static bool need_udp_port_req = false;
-static ap_uint<16> new_relative_port_to_req_udp = 0;
+
+
+//static ap_uint<32> udp_rx_ports_to_close = 0;
+//static bool need_udp_port_req = false;
+//static ap_uint<16> new_relative_port_to_req_udp = 0;
 
 static SessionId cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE; //pTcpRrh and pTcpRDp need this
-static bool pr_was_done_flag = false;
 
-static ap_uint<32> tcp_rx_ports_processed = 0;
-static bool need_tcp_port_req = false;
-static ap_uint<16> new_relative_port_to_req_tcp = 0;
 
-static ap_uint<16> processed_FMC_listen_port = 0;
-static bool fmc_port_opened = false;
+
+//static bool need_tcp_port_req = false;
+//static ap_uint<16> new_relative_port_to_req_tcp = 0;
+
 
 static ap_uint<64>  tripple_for_new_connection = 0; //pTcpWrp and CON need this
 static bool tcp_need_new_connection_request = false; //pTcpWrp and CON need this
@@ -803,43 +851,58 @@ static stream<NalEventNotif> internal_event_fifo_0 ("internal_event_fifo");
 static stream<NalEventNotif> internal_event_fifo_1 ("internal_event_fifo");
 static stream<NalEventNotif> internal_event_fifo_2 ("internal_event_fifo");
 static stream<NalEventNotif> internal_event_fifo_3 ("internal_event_fifo");
-static stream<NalConfigUpdate>   &sA4lToTcpAgency    ("sA4lToTcpAgency");
-static stream<NalConfigUpdate>   &sA4lToPortLogic    ("sA4lToPortLogic");
-static stream<NalConfigUpdate>   &sA4lToUdpRx        ("sA4lToUdpRx");
-static stream<NalConfigUpdate>   &sA4lToTcpRx        ("sA4lToTcpRx");
-//static stream<NalMrtUpdate>    &sA4lMrtUpdate    ("lMrtUpdate");
-static stream<NalStatusUpdate>   &sStatusUpdate    ("sStatusUpdate");
-static stream<NodeId>            &sGetIpReq_UdpTx    ("sGetIpReq_UdpTx");
-static stream<Ip4Addr>           &sGetIpRep_UdpTx    ("sGetIpRep_UdpTx");
-static stream<NodeId>            &sGetIpReq_TcpTx    ("sGetIpReq_TcpTx");
-static stream<Ip4Addr>           &sGetIpRep_TcpTx    ("sGetIpRep_TcpTx");
-static stream<Ip4Addr>           &sGetNidReq_UdpRx    ("sGetNidReq_UdpRx");
-static stream<NodeId>            &sGetNidRep_UdpRx    ("sGetNidRep_UdpRx");
-static stream<Ip4Addr>           &sGetNidReq_TcpRx    ("sGetNidReq_TcpRx");
-static stream<NodeId>            &sGetNidRep_TcpRx    ("sGetNidRep_TcpRx");
-static stream<Ip4Addr>           &sGetNidReq_TcpTx    ("sGetNidReq_TcpTx");
-static stream<NodeId>            &sGetNidRep_TcpTx    ("sGetNidRep_TcpTx");
+static stream<NalConfigUpdate>   sA4lToTcpAgency    ("sA4lToTcpAgency");
+static stream<NalConfigUpdate>   sA4lToPortLogic    ("sA4lToPortLogic");
+static stream<NalConfigUpdate>   sA4lToUdpRx        ("sA4lToUdpRx");
+static stream<NalConfigUpdate>   sA4lToTcpRx        ("sA4lToTcpRx");
+static stream<NalConfigUpdate>   sA4lToStatusProc   ("sA4lToStatusProc");
+//static stream<NalMrtUpdate>    sA4lMrtUpdate    ("lMrtUpdate");
+static stream<NalStatusUpdate>   sStatusUpdate    ("sStatusUpdate");
+static stream<NodeId>            sGetIpReq_UdpTx    ("sGetIpReq_UdpTx");
+static stream<Ip4Addr>           sGetIpRep_UdpTx    ("sGetIpRep_UdpTx");
+static stream<NodeId>            sGetIpReq_TcpTx    ("sGetIpReq_TcpTx");
+static stream<Ip4Addr>           sGetIpRep_TcpTx    ("sGetIpRep_TcpTx");
+static stream<Ip4Addr>           sGetNidReq_UdpRx    ("sGetNidReq_UdpRx");
+static stream<NodeId>            sGetNidRep_UdpRx    ("sGetNidRep_UdpRx");
+static stream<Ip4Addr>           sGetNidReq_TcpRx    ("sGetNidReq_TcpRx");
+static stream<NodeId>            sGetNidRep_TcpRx    ("sGetNidRep_TcpRx");
+static stream<Ip4Addr>           sGetNidReq_TcpTx    ("sGetNidReq_TcpTx");
+static stream<NodeId>            sGetNidRep_TcpTx    ("sGetNidRep_TcpTx");
+
+static stream<UdpPort>			sUdpPortsToClose	 ("sUdpPortsToClose");
+static stream<UdpPort> 			sUdpPortsToOpen		 ("sUdpPortsToOpen");
+static stream<TcpPort>			sTcpPortsToOpen	     ("sTcpPortsToOpen");
+static stream<bool>				sUdpPortsOpenFeedback ("sUdpPortsOpenFeedback");
+static stream<bool>				sTcpPortsOpenFeedback ("sTcpPortsOpenFeedback");
 
 #pragma HLS STREAM variable=internal_event_fifo_0 depth=16
 #pragma HLS STREAM variable=internal_event_fifo_1 depth=16
 #pragma HLS STREAM variable=internal_event_fifo_2 depth=16
 #pragma HLS STREAM variable=internal_event_fifo_3 depth=16
 
-#pragma HLS STRAM variable=sA4lToTcpAgency  depth=16
-#pragma HLS STRAM variable=sA4lToPortLogic  depth=16
-#pragma HLS STRAM variable=sA4lToUdpRx      depth=16
-#pragma HLS STRAM variable=sA4lToTcpRx      depth=16
-#pragma HLS STRAM variable=sStatusUpdate    depth=16
-#pragma HLS STRAM variable=sGetIpReq_UdpTx  depth=16
-#pragma HLS STRAM variable=sGetIpRep_UdpTx  depth=16
-#pragma HLS STRAM variable=sGetIpReq_TcpTx  depth=16
-#pragma HLS STRAM variable=sGetIpRep_TcpTx  depth=16
-#pragma HLS STRAM variable=sGetNidReq_UdpRx depth=16
-#pragma HLS STRAM variable=sGetNidRep_UdpRx depth=16
-#pragma HLS STRAM variable=sGetNidReq_TcpRx depth=16
-#pragma HLS STRAM variable=sGetNidRep_TcpRx depth=16
-#pragma HLS STRAM variable=sGetNidReq_TcpTx depth=16
-#pragma HLS STRAM variable=sGetNidRep_TcpTx depth=16
+#pragma HLS STREAM variable=sA4lToTcpAgency  depth=16
+#pragma HLS STREAM variable=sA4lToPortLogic  depth=16
+#pragma HLS STREAM variable=sA4lToUdpRx      depth=16
+#pragma HLS STREAM variable=sA4lToTcpRx      depth=16
+#pragma HLS STREAM variable=sA4lToStatusProc depth=16
+#pragma HLS STREAM variable=sStatusUpdate    depth=16
+#pragma HLS STREAM variable=sGetIpReq_UdpTx  depth=16
+#pragma HLS STREAM variable=sGetIpRep_UdpTx  depth=16
+#pragma HLS STREAM variable=sGetIpReq_TcpTx  depth=16
+#pragma HLS STREAM variable=sGetIpRep_TcpTx  depth=16
+#pragma HLS STREAM variable=sGetNidReq_UdpRx depth=16
+#pragma HLS STREAM variable=sGetNidRep_UdpRx depth=16
+#pragma HLS STREAM variable=sGetNidReq_TcpRx depth=16
+#pragma HLS STREAM variable=sGetNidRep_TcpRx depth=16
+#pragma HLS STREAM variable=sGetNidReq_TcpTx depth=16
+#pragma HLS STREAM variable=sGetNidRep_TcpTx depth=16
+
+#pragma HLS STREAM variable=sUdpPortsToClose depth=32  //needs to be as depth as many ports the user can open
+#pragma HLS STREAM variable=sUdpPortsToOpen  depth=32
+#pragma HLS STREAM variable=sUdpPortsOpenFeedback depth=32
+#pragma HLS STREAM variable=sTcpPortsToOpen  depth=32
+#pragma HLS STREAM variable=sTcpPortsOpenFeedback depth=32
+
 
 //=================================================================================================
 // Reset global variables
@@ -847,13 +910,13 @@ static stream<NodeId>            &sGetNidRep_TcpTx    ("sGetNidRep_TcpTx");
 //#pragma HLS reset variable=fsmStateRX_Udp
 //#pragma HLS reset variable=fsmStateTX_Udp
 //#pragma HLS reset variable=openPortWaitTime
-#pragma HLS reset variable=mmio_stabilize_counter
+//#pragma HLS reset variable=mmio_stabilize_counter
 //#pragma HLS reset variable=udp_lsn_watchDogTimer
 #pragma HLS reset variable=mrt_version_processed
-#pragma HLS reset variable=udp_rx_ports_processed
-#pragma HLS reset variable=udp_rx_ports_to_close
-#pragma HLS reset variable=need_udp_port_req
-#pragma HLS reset variable=new_relative_port_to_req_udp
+//#pragma HLS reset variable=udp_rx_ports_processed
+//#pragma HLS reset variable=udp_rx_ports_to_close
+//#pragma HLS reset variable=need_udp_port_req
+//#pragma HLS reset variable=new_relative_port_to_req_udp
 //#pragma HLS reset variable=clsFsmState_Udp
 //#pragma HLS reset variable=newRelativePortToClose
 //#pragma HLS reset variable=newAbsolutePortToClose
@@ -881,11 +944,11 @@ static stream<NodeId>            &sGetNidRep_TcpTx    ("sGetNidRep_TcpTx");
 //#pragma HLS reset variable=rrhFsmState
 //#pragma HLS reset variable=rdpFsmState
 //#pragma HLS reset variable=wrpFsmState
-#pragma HLS reset variable=tcp_rx_ports_processed
-#pragma HLS reset variable=need_tcp_port_req
-#pragma HLS reset variable=new_relative_port_to_req_tcp
-#pragma HLS reset variable=processed_FMC_listen_port
-#pragma HLS reset variable=fmc_port_opened
+//#pragma HLS reset variable=tcp_rx_ports_processed
+//#pragma HLS reset variable=need_tcp_port_req
+//#pragma HLS reset variable=new_relative_port_to_req_tcp
+//#pragma HLS reset variable=processed_FMC_listen_port
+//#pragma HLS reset variable=fmc_port_opened
 #pragma HLS reset variable=tables_initalized
 //#pragma HLS reset variable=out_meta_tcp
 //#pragma HLS reset variable=in_meta_tcp
@@ -906,7 +969,7 @@ static stream<NodeId>            &sGetNidRep_TcpTx    ("sGetNidRep_TcpTx");
 //#pragma HLS reset variable=cached_tcp_rx_tripple
 //#pragma HLS reset variable=cached_tcp_tx_session_id
 //#pragma HLS reset variable=cached_tcp_tx_tripple
-#pragma HLS reset variable=pr_was_done_flag
+//#pragma HLS reset variable=pr_was_done_flag
 
 
 
@@ -917,38 +980,20 @@ static stream<NodeId>            &sGetNidRep_TcpTx    ("sGetNidRep_TcpTx");
   ap_uint<32> ipAddrBE = *myIpAddress;
   bool nts_ready_and_enabled = (*piNTS_ready == 1 && *layer_4_enabled == 1);
   bool detected_cache_invalidation = false;
-  bool start_udp_cls_fsm = false;
+  //bool start_udp_cls_fsm = false;
   bool start_tcp_cls_fsm = false;
 
+  ap_uint<32> 	status_udp_ports;
+  ap_uint<32>	status_tcp_ports;
+  ap_uint<16>	status_fmc_ports;
 
   //===========================================================
-  // restore saved states
- // if( fsmStateTX_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC &&
- //     rdpFsmState != RDP_STREAM_FMC && rdpFsmState != RDP_STREAM_ROLE &&
- //     wrpFsmState != WRP_STREAM_FMC && wrpFsmState != WRP_STREAM_ROLE )
- // { //so we are not in a critical data path
+  // restore saved states and ports handling
 
-    // > to avoid loop at 0
-    if(config[NAL_CONFIG_SAVED_FMC_PORTS] > processed_FMC_listen_port)
-    {
-      processed_FMC_listen_port = (ap_uint<16>) config[NAL_CONFIG_SAVED_FMC_PORTS];
-    }
-
-    if(*layer_7_enabled == 1 && *role_decoupled == 0)
-    { // looks like only we were reset
-      // since the user cannot close ports (up to now), the > should work...
-      if(config[NAL_CONFIG_SAVED_UDP_PORTS] > udp_rx_ports_processed)
-      {
-        udp_rx_ports_processed = config[NAL_CONFIG_SAVED_UDP_PORTS];
-      }
-
-      if(config[NAL_CONFIG_SAVED_TCP_PORTS] > tcp_rx_ports_processed)
-      {
-        tcp_rx_ports_processed = config[NAL_CONFIG_SAVED_TCP_PORTS];
-      }
-    }
-
- // }
+  pPortAndResetLogic(layer_4_enabled, layer_7_enabled, role_decoupled, piNTS_ready, piMMIO_FmcLsnPort,
+		  pi_udp_rx_ports, pi_tcp_rx_ports, sA4lToPortLogic, sUdpPortsToOpen, sUdpPortsToClose,
+		  sTcpPortsToOpen, sUdpPortsOpenFeedback, sTcpPortsOpenFeedback, &detected_cache_invalidation,
+		  &status_udp_ports, &status_tcp_ports, &status_fmc_ports, &start_tcp_cls_fsm);
 
   //===========================================================
   // check for resets
@@ -960,80 +1005,7 @@ static stream<NodeId>            &sGetNidRep_TcpTx    ("sGetNidRep_TcpTx");
   }
   mrt_version_used = mrt_version_old;
 
-  //if layer 4 is reset, ports will be closed
-  if(*layer_4_enabled == 0)
-  {
-    processed_FMC_listen_port = 0x0;
-    udp_rx_ports_processed = 0x0;
-    tcp_rx_ports_processed = 0x0;
-    //also, all sessions should be lost 
-    tables_initalized = false;
-    //we don't need to close ports any more
-    //clsFsmState_Tcp = CLS_IDLE;
-    //clsFsmState_Udp = CLS_IDLE;
-    //and we shouldn't expect smth
-    expect_FMC_response = false;
-    //invalidate cache
-    //cached_udp_rx_ipaddr = 0;
-    //cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
-    //cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
-    detected_cache_invalidation = true;
-  }
 
-  if(*layer_7_enabled == 0 || *role_decoupled == 1 )
-  {
-    if(*layer_4_enabled == 1 && *piNTS_ready == 1 && tables_initalized)
-    {
-      if(udp_rx_ports_processed > 0)
-      {
-        //mark all UDP ports as to be deleted
-        udp_rx_ports_to_close = udp_rx_ports_processed;
-        //start closing FSM UDP
-        //clsFsmState_Udp = CLS_NEXT;
-        start_udp_cls_fsm = true;
-      }
-
-      if(tcp_rx_ports_processed > 0)
-      {
-        //mark all TCP ports as to be deleted
-        markCurrentRowsAsToDelete_unprivileged();
-        if( *role_decoupled == 0 )
-        {//start closing FSM TCP
-          //clsFsmState_Tcp = CLS_NEXT;
-          start_tcp_cls_fsm = true;
-        } else {
-          //FMC is using TCP!
-          pr_was_done_flag = true;
-        }
-      }
-    }
-    //in all cases
-    udp_rx_ports_processed = 0x0;
-    tcp_rx_ports_processed = 0x0;
-    if( *role_decoupled == 0)
-    { //invalidate cache
-      //cached_udp_rx_ipaddr = 0;
-      //cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
-      //cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
-      detected_cache_invalidation = true;
-    } else {
-      //FMC is using TCP!
-      pr_was_done_flag = true;
-    }
-  }
-  if(pr_was_done_flag && *role_decoupled == 0)
-  {//so, after the PR was done
-    //invalidate cache
-    //cached_udp_rx_ipaddr = 0;
-    //cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
-    //cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
-    //start closing FSM TCP
-    //ports have been marked earlier
-    //clsFsmState_Tcp = CLS_NEXT;
-    start_tcp_cls_fsm = true;
-    //FSM will wait until RDP and WRP are done
-    pr_was_done_flag = false;
-  }
   //===========================================================
   // MRT init
 
@@ -1051,7 +1023,7 @@ static stream<NodeId>            &sGetNidRep_TcpTx    ("sGetNidRep_TcpTx");
       rowsToDelete[i] = 0;
       privilegedRows[i] = 0;
     }
-    udp_rx_ports_to_close = 0x0;
+    //udp_rx_ports_to_close = 0x0;
     
     tables_initalized = true;
     //printf("Table layout:\n");
@@ -1063,65 +1035,11 @@ static stream<NodeId>            &sGetNidRep_TcpTx    ("sGetNidRep_TcpTx");
 
   //remaining MRT handling moved to the bottom
 
-  //only if NTS is ready
-  if(*piNTS_ready == 1 && *layer_4_enabled == 1)
-  {
-    //===========================================================
-    //  port requests
-    //  only if a user application is running...
-    if((udp_rx_ports_processed != *pi_udp_rx_ports) && *layer_7_enabled == 1
-        && *role_decoupled == 0 && !need_udp_port_req )
-    {
-      //we close ports only if layer 7 is reset, so only look for new ports
-      ap_uint<32> tmp = udp_rx_ports_processed | *pi_udp_rx_ports;
-      ap_uint<32> diff = udp_rx_ports_processed ^ tmp;
-      //printf("rx_ports IN: %#04x\n",(int) *pi_udp_rx_ports);
-      //printf("udp_rx_ports_processed: %#04x\n",(int) udp_rx_ports_processed);
-      printf("UDP port diff: %#04x\n",(unsigned int) diff);
-      if(diff != 0)
-      {//we have to open new ports, one after another
-        new_relative_port_to_req_udp = getRightmostBitPos(diff);
-        need_udp_port_req = true;
-      }
-    } //else {
-      //need_udp_port_req = false;
-    //}
+  // if(*layer_4_enabled == 0)
+  // {
+  //	  expect_FMC_response = false;
+  // }
 
-    if(processed_FMC_listen_port != *piMMIO_FmcLsnPort
-        && !need_tcp_port_req )
-    {
-      if(mmio_stabilize_counter == 0)
-      {
-        fmc_port_opened = false;
-        need_tcp_port_req = true;
-#ifndef __SYNTHESIS__
-        mmio_stabilize_counter = 1;
-#else
-        mmio_stabilize_counter = NAL_MMIO_STABILIZE_TIME;
-#endif
-        printf("Need FMC port request: %#02x\n",(unsigned int) *piMMIO_FmcLsnPort);
-      } else {
-        mmio_stabilize_counter--;
-      }
-
-    } else if((tcp_rx_ports_processed != *pi_tcp_rx_ports) && *layer_7_enabled == 1
-        && *role_decoupled == 0 && !need_tcp_port_req )
-    { //  only if a user application is running...
-      //we close ports only if layer 7 is reset, so only look for new ports
-      ap_uint<32> tmp = tcp_rx_ports_processed | *pi_tcp_rx_ports;
-      ap_uint<32> diff = tcp_rx_ports_processed ^ tmp;
-      //printf("rx_ports IN: %#04x\n",(int) *pi_tcp_rx_ports);
-      //printf("tcp_rx_ports_processed: %#04x\n",(int) tcp_rx_ports_processed);
-      printf("TCP port diff: %#04x\n",(unsigned int) diff);
-      if(diff != 0)
-      {//we have to open new ports, one after another
-        new_relative_port_to_req_tcp = getRightmostBitPos(diff);
-        need_tcp_port_req = true;
-      }
-    } //else {
-      //need_tcp_port_req = false;
-    //}
-  }
 
   //=================================================================================================
   // TX UDP
@@ -1140,18 +1058,17 @@ static stream<NodeId>            &sGetNidRep_TcpTx    ("sGetNidRep_TcpTx");
   //TODO: add cache invalidate mechanism
   pUdpRx(soUOE_LsnReq, siUOE_LsnRep, soUdp_data, soUdp_meta, siUOE_Data, siUOE_Meta, \
 		  sA4lToUdpRx, sGetNidReq_UdpRx, sGetNidRep_UdpRx, \
-		  &need_udp_port_req, &new_relative_port_to_req_udp, &udp_rx_ports_processed, \
+		  sUdpPortsToOpen, sUdpPortsOpenFeedback, \
 		  &nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo_1);
 
   //=================================================================================================
   // UDP Port Close
 
-  pUdpCls(soUOE_ClsReq, siUOE_ClsRep, &udp_rx_ports_to_close, &start_udp_cls_fsm, &nts_ready_and_enabled);
+  pUdpCls(soUOE_ClsReq, siUOE_ClsRep, sUdpPortsToClose, &nts_ready_and_enabled);
 
     //=================================================================================================
     // TCP pListen
-   pTcpLsn(piMMIO_FmcLsnPort, soTOE_LsnReq, siTOE_LsnRep, &tcp_rx_ports_processed, &need_tcp_port_req, \
-       &new_relative_port_to_req_tcp, &processed_FMC_listen_port, &nts_ready_and_enabled);
+   pTcpLsn(soTOE_LsnReq, siTOE_LsnRep, sTcpPortsToOpen, sTcpPortsOpenFeedback, &nts_ready_and_enabled);
 
    //=================================================================================================
    // TCP Read Request Handler
@@ -1166,7 +1083,7 @@ static stream<NodeId>            &sGetNidRep_TcpTx    ("sGetNidRep_TcpTx");
     pTcpRDp(siTOE_Data, siTOE_SessId, soFMC_Tcp_data, soFMC_Tcp_SessId, soTcp_data, soTcp_meta,\
     		sA4lToTcpRx, sGetNidReq_TcpRx, sGetNidRep_TcpRx, \
     		piMMIO_CfrmIp4Addr, \
-        &processed_FMC_listen_port, layer_7_enabled, role_decoupled, &cached_tcp_rx_session_id, &expect_FMC_response, \
+        &status_fmc_ports, layer_7_enabled, role_decoupled, &cached_tcp_rx_session_id, &expect_FMC_response, \
       &nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo_2);
 
     //=================================================================================================
@@ -1188,10 +1105,11 @@ static stream<NodeId>            &sGetNidRep_TcpTx    ("sGetNidRep_TcpTx");
     //===========================================================
     //  update status, config, MRT
 
-    eventStatusHousekeeping(layer_7_enabled, role_decoupled, &mrt_version_used, &udp_rx_ports_processed, &tcp_rx_ports_processed, \
-        &processed_FMC_listen_port, internal_event_fifo_0, internal_event_fifo_1, internal_event_fifo_2, internal_event_fifo_3);
+    eventStatusHousekeeping(layer_4_enabled, layer_7_enabled, role_decoupled, &mrt_version_used, &status_udp_ports, &status_tcp_ports, \
+        &status_fmc_ports, sA4lToStatusProc, internal_event_fifo_0, internal_event_fifo_1, internal_event_fifo_2, internal_event_fifo_3, sStatusUpdate);
 
-    axi4liteProcessing(ctrlLink, &mrt_version_processed, sA4lToTcpAgency, sA4lToPortLogic, sA4lToUdpRx, sA4lToTcpRx, sStatusUpdate,\
+    axi4liteProcessing(layer_4_enabled, ctrlLink, &mrt_version_processed, sA4lToTcpAgency, sA4lToPortLogic, sA4lToUdpRx, \
+    					sA4lToTcpRx, sA4lToStatusProc, sStatusUpdate,\
     				   sGetIpReq_UdpTx, sGetIpRep_UdpTx, sGetIpReq_TcpTx, sGetIpRep_TcpTx, sGetNidReq_UdpRx, sGetNidRep_UdpRx,
 					   sGetNidReq_TcpRx, sGetNidRep_TcpRx, sGetNidReq_TcpTx, sGetNidRep_TcpTx);
 

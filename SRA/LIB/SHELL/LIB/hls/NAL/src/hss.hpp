@@ -61,31 +61,54 @@ struct NalConfigUpdate {
 struct NalStatusUpdate {
 	ap_uint<16>   status_addr;
 	ap_uint<16>   new_value;
+	NalStatusUpdate() {}
 	NalStatusUpdate(ap_uint<16> sa, ap_uint<16> nv): status_addr(sa), new_value(nv) {}
 };
 
 
 void axi4liteProcessing(
-    ap_uint<32>   ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
-    ap_uint<32>   *mrt_version_processed,
-	stream<NalConfigUpdate> 	&sToTcpAgency,
-	stream<NalConfigUpdate> 	&sToPortLogic,
-	stream<NalConfigUpdate>		&sToUdpRx,
-	stream<NalConfigUpdate>		&sToTcpRx,
-	//stream<NalMrtUpdate>		&sMrtUpdate,
-	stream<NalStatusUpdate> 	&sStatusUpdate,
-	stream<NodeId> 				&sGetIpReq_UdpTx,
-	stream<Ip4Addr> 			&sGetIpRep_UdpTx,
-	stream<NodeId> 				&sGetIpReq_TcpTx,
-	stream<Ip4Addr> 			&sGetIpRep_TcpTx,
-	stream<Ip4Addr>				&sGetNidReq_UdpRx,
-	stream<NodeId>				&sGetNidRep_UdpRx,
-	stream<Ip4Addr>				&sGetNidReq_TcpRx,
-	stream<NodeId>				&sGetNidRep_TcpRx,
-	stream<Ip4Addr>				&sGetNidReq_TcpTx,
-	stream<NodeId>				&sGetNidRep_TcpTx,
+		ap_uint<1> 					*layer_4_enabled,
+	    ap_uint<32>   ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
+	    ap_uint<32>   *mrt_version_processed,
+		stream<NalConfigUpdate> 	&sToTcpAgency,
+		stream<NalConfigUpdate> 	&sToPortLogic,
+		stream<NalConfigUpdate>		&sToUdpRx,
+		stream<NalConfigUpdate>		&sToTcpRx,
+		stream<NalConfigUpdate>		&sToStatusProc,
+		//stream<NalMrtUpdate>		&sMrtUpdate,
+		stream<NalStatusUpdate> 	&sStatusUpdate,
+		stream<NodeId> 				&sGetIpReq_UdpTx,
+		stream<Ip4Addr> 			&sGetIpRep_UdpTx,
+		stream<NodeId> 				&sGetIpReq_TcpTx,
+		stream<Ip4Addr> 			&sGetIpRep_TcpTx,
+		stream<Ip4Addr>				&sGetNidReq_UdpRx,
+		stream<NodeId>				&sGetNidRep_UdpRx,
+		stream<Ip4Addr>				&sGetNidReq_TcpRx,
+		stream<NodeId>				&sGetNidRep_TcpRx,
+		stream<Ip4Addr>				&sGetNidReq_TcpTx,
+		stream<NodeId>				&sGetNidRep_TcpTx
     );
 
+void pPortAndResetLogic(
+		ap_uint<1> 				*layer_4_enabled,
+		ap_uint<1> 				*layer_7_enabled,
+		ap_uint<1> 				*role_decoupled,
+		ap_uint<1>				*piNTS_ready,
+	    ap_uint<16> 			*piMMIO_FmcLsnPort,
+		ap_uint<32>         	*pi_udp_rx_ports,
+		ap_uint<32>  		    *pi_tcp_rx_ports,
+		stream<NalConfigUpdate>	&sConfigUpdate,
+		stream<UdpPort>			&sUdpPortsToOpen,
+		stream<UdpPort>			&sUdpPortsToClose,
+		stream<TcpPort>			&sTcpPortsToOpen,
+		stream<bool>			&sUdpPortsOpenFeedback,
+		stream<bool>			&sTcpPortsOpenFeedback,
+		bool 					*detected_cache_invalidation,
+		ap_uint<32> 			*status_udp_ports,
+		ap_uint<32>				*status_tcp_ports,
+		ap_uint<16>				*status_fmc_ports,
+		bool					*start_tcp_cls_fsm
+		);
 
 #endif
 
