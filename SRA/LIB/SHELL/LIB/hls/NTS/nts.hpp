@@ -298,6 +298,7 @@ void nts(
         stream<UdpAppLsnReq>    &siUAIF_LsnReq,
         stream<UdpAppLsnRep>    &soUAIF_LsnRep,
         stream<UdpAppClsReq>    &siUAIF_ClsReq,
+        stream<UdpAppClsRep>    &soUAIF_ClsRep,
 
         //------------------------------------------------------
         //-- UAIF / Received Datagram Interfaces
