@@ -379,52 +379,6 @@ void pTxAppTable(
     }
 }
 
-/*** OBSOLETE_20201104 *********************************************************
- * @brief Stream Length Generator (Slg)
- *
- * @param[in]  siTAIF_Data   TCP data stream from [TAIF].
- * @param[out] soMwr_Data    TCP data stream to MemoryWriter (Mwr).
- * @param[out] soSml_SegLen  The length of the TCP segment to StreamMetaLoader (Sml).
- *
- * @details
- *   This process generates the length of the incoming TCP segment from [APP]
- *    while forwarding that same data stream to the MemoryWriter (Mwr).
- *    [FIXME - This part is completely bugus!!! Must fix like with UOE]
- *******************************************************************************/
-/*** OBSOLETE_20201104 *********************************************************
-void pStreamLengthGenerator(
-        stream<TcpAppData>  &siTAIF_Data,
-        stream<AxisApp>     &soMwr_Data,
-        stream<TcpSegLen>   &soSml_SegLen)
-{
-    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS pipeline II=1
-
-    const char *myName  = concat3(THIS_NAME, "/", "Slg");
-
-    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static TcpSegLen           slg_segLen=0;
-    #pragma HLS RESET variable=slg_segLen
-
-    //-- DYNAMIC VARIABLES -----------------------------------------------------
-    AxisApp currChunk = AxisApp(0, 0xFF, 0);
-
-    if (!siTAIF_Data.empty()) {
-        siTAIF_Data.read(currChunk);
-        soMwr_Data.write(currChunk);
-        slg_segLen += currChunk.getLen();
-        if (currChunk.getTLast()) {
-            assessSize(myName, soSml_SegLen, "soSml_SegLen", 32);
-            soSml_SegLen.write(slg_segLen);
-            if (DEBUG_LEVEL & TRACE_SLG) {
-                printInfo(myName, "Received end-of-segment. SegLen=%d\n", slg_segLen.to_int());
-            }
-            slg_segLen = 0;
-        }
-    }
-}
-*******************************************************************************/
-
 /*******************************************************************************
  * @brief Stream Metadata Loader (Sml)
  *
