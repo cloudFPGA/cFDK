@@ -126,8 +126,11 @@ template<typename T> void pStreamMux(
  *   the connection.
  *
  * @warning
- *  The outgoing stream 'soTAIF_OpnRep is operated in non-blocking mode to avoid
- *   any stalling of this process.
+ *  The outgoing stream 'soTAIF_SndRep is operated in non-blocking mode to avoid
+ *   any stalling of this process. This means that the current reply to be sent
+ *   on this stream will be dropped if the stream is full. As a result, the
+ *   application process must provision enough buffering to store the reply
+ *   returned by this process upon a request to open an active connection.
  *******************************************************************************/
 void pTxAppConnect(
         stream<TcpAppOpnReq>        &siTAIF_OpnReq,
@@ -182,7 +185,13 @@ void pTxAppConnect(
             }
             else {
                 // Tell the [APP ]that opening of the active connection failed
-                soTAIF_OpnRep.write(TcpAppOpnRep(sessLkpRep.sessionID, CLOSED));
+                if (!soTAIF_OpnRep.full()) {
+                    soTAIF_OpnRep.write(TcpAppOpnRep(sessLkpRep.sessionID, CLOSED));
+                }
+                else {
+                    // Drop this reply
+                    printFatal(myName, "Cannot write 'soTAIF_OpnRep()'. Stream is full!");
+                }
             }
         }
         else if (!siRXe_ActSessState.empty()) {
@@ -190,10 +199,22 @@ void pTxAppConnect(
             siRXe_ActSessState.read(activeSessState);
             // And forward it to [TAIF]
             //  [TODO-FIXME We should check if [TAIF] is actually waiting for such a status]
-            soTAIF_OpnRep.write(activeSessState);
+            if (!soTAIF_OpnRep.full()) {
+                soTAIF_OpnRep.write(activeSessState);
+            }
+            else {
+                // Drop this reply
+                printFatal(myName, "Cannot write 'soTAIF_OpnRep()'. Stream is full!");
+            }
         }
         else if (!siTIm_Notif.empty()) {
-            soTAIF_OpnRep.write(siTIm_Notif.read());
+            if (!soTAIF_OpnRep.full()) {
+                soTAIF_OpnRep.write(siTIm_Notif.read());
+            }
+            else {
+                // Drop this reply
+                printFatal(myName, "Cannot write 'soTAIF_OpnRep()'. Stream is full!");
+            }
         }
         else if(!siTAIF_ClsReq.empty()) {
             siTAIF_ClsReq.read(tac_closeSessionID);
@@ -379,52 +400,6 @@ void pTxAppTable(
     }
 }
 
-/*** OBSOLETE_20201104 *********************************************************
- * @brief Stream Length Generator (Slg)
- *
- * @param[in]  siTAIF_Data   TCP data stream from [TAIF].
- * @param[out] soMwr_Data    TCP data stream to MemoryWriter (Mwr).
- * @param[out] soSml_SegLen  The length of the TCP segment to StreamMetaLoader (Sml).
- *
- * @details
- *   This process generates the length of the incoming TCP segment from [APP]
- *    while forwarding that same data stream to the MemoryWriter (Mwr).
- *    [FIXME - This part is completely bugus!!! Must fix like with UOE]
- *******************************************************************************/
-/*** OBSOLETE_20201104 *********************************************************
-void pStreamLengthGenerator(
-        stream<TcpAppData>  &siTAIF_Data,
-        stream<AxisApp>     &soMwr_Data,
-        stream<TcpSegLen>   &soSml_SegLen)
-{
-    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS pipeline II=1
-
-    const char *myName  = concat3(THIS_NAME, "/", "Slg");
-
-    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static TcpSegLen           slg_segLen=0;
-    #pragma HLS RESET variable=slg_segLen
-
-    //-- DYNAMIC VARIABLES -----------------------------------------------------
-    AxisApp currChunk = AxisApp(0, 0xFF, 0);
-
-    if (!siTAIF_Data.empty()) {
-        siTAIF_Data.read(currChunk);
-        soMwr_Data.write(currChunk);
-        slg_segLen += currChunk.getLen();
-        if (currChunk.getTLast()) {
-            assessSize(myName, soSml_SegLen, "soSml_SegLen", 32);
-            soSml_SegLen.write(slg_segLen);
-            if (DEBUG_LEVEL & TRACE_SLG) {
-                printInfo(myName, "Received end-of-segment. SegLen=%d\n", slg_segLen.to_int());
-            }
-            slg_segLen = 0;
-        }
-    }
-}
-*******************************************************************************/
-
 /*******************************************************************************
  * @brief Stream Metadata Loader (Sml)
  *
@@ -456,9 +431,12 @@ void pStreamLengthGenerator(
  *   3) It the connection is not established, the application will be noticed it
  *      should act accordingly (e.g. by first opening the connection).
  *
-  * @warning
+ * @warning
  *  The outgoing stream 'soTAIF_SndRep is operated in non-blocking mode to avoid
- *   any stalling of this process.
+ *   any stalling of this process. This means that the current reply to be sent
+ *   on this stream will be dropped if the stream is full. As a result, the
+ *   application process must provision enough buffering to store the reply
+ *   returned by this process upon a request to send.
  *
  *  [TODO: Implement TCP_NODELAY]
  *******************************************************************************/
@@ -520,28 +498,34 @@ void pStreamMetaLoader(
                 }
             #endif
             *******************************************/
-            if (sessState != ESTABLISHED) {
-                // Notify APP about the none-established connection
-                soTAIF_SndRep.write(TcpAppSndRep(mdl_appSndReq.sessId, mdl_appSndReq.length, maxWriteLength, NO_CONNECTION));
-                printError(myName, "Session %d is not established. Current session state is \'%s\'.\n",
-                           mdl_appSndReq.sessId.to_uint(), getTcpStateName(sessState));
+            if (!soTAIF_SndRep.full()) {
+                if (sessState != ESTABLISHED) {
+                    // Notify APP about the none-established connection
+                    soTAIF_SndRep.write(TcpAppSndRep(mdl_appSndReq.sessId, mdl_appSndReq.length, maxWriteLength, NO_CONNECTION));
+                    printError(myName, "Session %d is not established. Current session state is \'%s\'.\n",
+                               mdl_appSndReq.sessId.to_uint(), getTcpStateName(sessState));
+                }
+                else if (mdl_appSndReq.length > maxWriteLength) {
+                    // Notify APP about the lack of space
+                    soTAIF_SndRep.write(TcpAppSndRep(mdl_appSndReq.sessId, mdl_appSndReq.length, maxWriteLength, NO_SPACE));
+                    printError(myName, "There is not enough TxBuf memory space available for session %d.\n",
+                               mdl_appSndReq.sessId.to_uint());
+                }
+                else { //-- Session is ESTABLISHED and data-length <= maxWriteLength
+                    // Forward the metadata to the SegmentMemoryWriter (Mwr)
+                    soMwr_AppMeta.write(AppMemMeta(mdl_appSndReq.sessId, txAppTableReply.mempt, mdl_appSndReq.length));
+                    // Notify APP about acceptance of the transmission
+                    soTAIF_SndRep.write(TcpAppSndRep(mdl_appSndReq.sessId, mdl_appSndReq.length, maxWriteLength, NO_ERROR));
+                    // Notify [TXe] about new data to be sent via an event to [EVe]
+                    assessSize(myName, soEmx_Event, "soEmx_Event", 2);  // [FIXME-Use constant for the length]
+                    soEmx_Event.write(Event(TX_EVENT, mdl_appSndReq.sessId, txAppTableReply.mempt, mdl_appSndReq.length));
+                    // Update the 'txMemPtr' in TxAppTable
+                    soTat_AccessReq.write(TxAppTableQuery(mdl_appSndReq.sessId, txAppTableReply.mempt + mdl_appSndReq.length));
+                }
             }
-            else if (mdl_appSndReq.length > maxWriteLength) {
-                // Notify APP about the lack of space
-                soTAIF_SndRep.write(TcpAppSndRep(mdl_appSndReq.sessId, mdl_appSndReq.length, maxWriteLength, NO_SPACE));
-                printError(myName, "There is not enough TxBuf memory space available for session %d.\n",
-                           mdl_appSndReq.sessId.to_uint());
-            }
-            else { //-- Session is ESTABLISHED and data-length <= maxWriteLength
-                // Forward the metadata to the SegmentMemoryWriter (Mwr)
-                soMwr_AppMeta.write(AppMemMeta(mdl_appSndReq.sessId, txAppTableReply.mempt, mdl_appSndReq.length));
-                // Notify APP about acceptance of the transmission
-                soTAIF_SndRep.write(TcpAppSndRep(mdl_appSndReq.sessId, mdl_appSndReq.length, maxWriteLength, NO_ERROR));
-                // Notify [TXe] about new data to be sent via an event to [EVe]
-                assessSize(myName, soEmx_Event, "soEmx_Event", 2);  // [FIXME-Use constant for the length]
-                soEmx_Event.write(Event(TX_EVENT, mdl_appSndReq.sessId, txAppTableReply.mempt, mdl_appSndReq.length));
-                // Update the 'txMemPtr' in TxAppTable
-                soTat_AccessReq.write(TxAppTableQuery(mdl_appSndReq.sessId, txAppTableReply.mempt + mdl_appSndReq.length));
+            else {
+                // Drop this reply
+                printFatal(myName, "Cannot write 'soTAIF_SndRep()'. Stream is full!");
             }
             mdl_fsmState = READ_REQUEST;
         }
