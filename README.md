@@ -1,7 +1,6 @@
-# cF(DK) Documentation
+# cFDK Documentation
 
 **cloudFPGA Development Kit (cFDK)**
-
 
 The cFDK provides all the design files that are necessary to create a new cloudFPGA application, also called *cloudFPGA project (cFp)*.
 
