@@ -59,29 +59,29 @@ void pTcpRRh(
 		ap_uint<1>                  *piFMC_Tcp_data_FIFO_prog_full,
 		ap_uint<1>                  *piFMC_Tcp_sessid_FIFO_prog_full,
 		SessionId					*cached_tcp_rx_session_id,
-		bool						*nts_ready_and_enabled
+		const bool					*nts_ready_and_enabled
 		);
 
 void pTcpRDp(
-		stream<TcpAppData>     		&siTOE_Data,
-		stream<TcpAppMeta>     		&siTOE_SessId,
-		stream<TcpAppData>          &soFMC_Tcp_data,
-		stream<TcpAppMeta>          &soFMC_Tcp_SessId,
-	    stream<NetworkWord>         &soTcp_data,
-	    stream<NetworkMetaStream>   &soTcp_meta,
-		stream<NalConfigUpdate>		&sConfigUpdate,
-		stream<Ip4Addr> 			&sGetNidReq_TcpRx,
-		stream<NodeId> 				&sGetNidRep_TcpRx,
-	    ap_uint<32> 				*piMMIO_CfrmIp4Addr,
-		const ap_uint<16> 			*processed_FMC_listen_port,
-	    ap_uint<1> 					*layer_7_enabled,
-	    ap_uint<1> 					*role_decoupled,
-		SessionId					*cached_tcp_rx_session_id,
-		bool						*expect_FMC_response,
-		bool						*nts_ready_and_enabled,
-		bool						*detected_cache_invalidation,
-		stream<NalEventNotif> 		&internal_event_fifo
-		);
+    stream<TcpAppData>        &siTOE_Data,
+    stream<TcpAppMeta>        &siTOE_SessId,
+    stream<TcpAppData>          &soFMC_Tcp_data,
+    stream<TcpAppMeta>          &soFMC_Tcp_SessId,
+    stream<NetworkWord>         &soTcp_data,
+    stream<NetworkMetaStream>   &soTcp_meta,
+    stream<NalConfigUpdate>   &sConfigUpdate,
+    stream<Ip4Addr>       &sGetNidReq_TcpRx,
+    stream<NodeId>        &sGetNidRep_TcpRx,
+    ap_uint<32>         *piMMIO_CfrmIp4Addr,
+    const ap_uint<16>       *processed_FMC_listen_port,
+    ap_uint<1>          *layer_7_enabled,
+    ap_uint<1>          *role_decoupled,
+    //SessionId         *cached_tcp_rx_session_id,
+    bool            *expect_FMC_response,
+    const bool          *nts_ready_and_enabled,
+    const bool          *detected_cache_invalidation,
+    stream<NalEventNotif>     &internal_event_fifo
+    );
 
 void pTcpWRp(
 		stream<TcpAppData>          &siFMC_Tcp_data,
@@ -94,12 +94,12 @@ void pTcpWRp(
 		stream<Ip4Addr> 			&sGetIpRep_TcpTx,
 		stream<Ip4Addr> 			&sGetNidReq_TcpTx,
 		stream<NodeId> 				&sGetNidRep_TcpTx,
-		bool						*expect_FMC_response,
+		const bool					*expect_FMC_response,
 		ap_uint<64>  				*tripple_for_new_connection,
 		bool 						*tcp_need_new_connection_request,
 		bool 						*tcp_new_connection_failure,
-		bool						*nts_ready_and_enabled,
-		bool						*detected_cache_invalidation,
+		const bool					*nts_ready_and_enabled,
+		const bool					*detected_cache_invalidation,
 		stream<NalEventNotif> 		&internal_event_fifo
 		);
 
@@ -110,13 +110,13 @@ void pTcpCOn(
 		ap_uint<64>  				*tripple_for_new_connection,
 		bool 						*tcp_need_new_connection_request,
 		bool 						*tcp_new_connection_failure,
-		bool						*nts_ready_and_enabled
+		const bool					*nts_ready_and_enabled
 		);
 
 void pTcpCls(
 		stream<TcpAppClsReq>   		&soTOE_ClsReq,
 		bool						*start_tcp_cls_fsm,
-		bool						*nts_ready_and_enabled
+		const bool					*nts_ready_and_enabled
 		);
 
 #endif

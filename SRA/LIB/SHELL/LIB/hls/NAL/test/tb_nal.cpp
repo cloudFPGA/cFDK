@@ -1103,7 +1103,8 @@ int main() {
         //    nrErr++;
         //}
         //there are 3 streams from the UDMX to NRC
-        UdpMeta     socketPair = SocketPair({DEFAULT_RX_PORT, 0x0A0B0C0E}, {DEFAULT_RX_PORT, 0x0A0B0C01});
+        //UdpMeta     socketPair = SocketPair({DEFAULT_RX_PORT, 0x0A0B0C0E}, {DEFAULT_RX_PORT, 0x0A0B0C01});
+        UdpMeta     socketPair = SocketPair({0x0A0B0C0E, DEFAULT_RX_PORT}, {0x0A0B0C01, DEFAULT_RX_PORT});
         sUOE_NRC_Meta.write(socketPair);
         sUOE_NRC_Meta.write(socketPair);
         sUOE_NRC_Meta.write(socketPair);

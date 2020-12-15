@@ -47,9 +47,9 @@ using namespace hls;
 
 struct NalConfigUpdate {
 	ap_uint<16>   config_addr;
-	ap_uint<16>   update_value;
+	ap_uint<32>   update_value;
 	NalConfigUpdate() {}
-	NalConfigUpdate(ap_uint<16> ca, ap_uint<16> uv): config_addr(ca), update_value(uv) {}
+	NalConfigUpdate(ap_uint<16> ca, ap_uint<32> uv): config_addr(ca), update_value(uv) {}
 };
 
 //struct NalMrtUpdate {
@@ -60,9 +60,9 @@ struct NalConfigUpdate {
 
 struct NalStatusUpdate {
 	ap_uint<16>   status_addr;
-	ap_uint<16>   new_value;
+	ap_uint<32>   new_value;
 	NalStatusUpdate() {}
-	NalStatusUpdate(ap_uint<16> sa, ap_uint<16> nv): status_addr(sa), new_value(nv) {}
+	NalStatusUpdate(ap_uint<16> sa, ap_uint<32> nv): status_addr(sa), new_value(nv) {}
 };
 
 

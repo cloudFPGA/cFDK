@@ -53,8 +53,9 @@ void pUdpTX(
 	    stream<UdpAppDLen>          &soUOE_DLen,
 		stream<NodeId> 				&sGetIpReq_UdpTx,
 		stream<Ip4Addr> 			&sGetIpRep_UdpTx,
-		ap_uint<32> 				*ipAddrBE,
-		bool						*nts_ready_and_enabled,
+		const ap_uint<32> 			*ipAddrBE,
+		const bool					*nts_ready_and_enabled,
+		const bool					*detected_cache_invalidation,
 		stream<NalEventNotif> 		&internal_event_fifo
 		);
 
@@ -70,8 +71,8 @@ void pUdpRx(
 		stream<NodeId>	 			&sGetNidRep_UdpRx,
 		stream<UdpPort>				&sUdpPortsToOpen,
 		stream<bool>				&sUdpPortsOpenFeedback,
-		bool						*nts_ready_and_enabled,
-		bool						*detected_cache_invalidation,
+		const bool					*nts_ready_and_enabled,
+		const bool					*detected_cache_invalidation,
 		stream<NalEventNotif> 		&internal_event_fifo
 		);
 
@@ -79,7 +80,7 @@ void pUdpCls(
 	    stream<UdpPort>             &soUOE_ClsReq,
 	    stream<StsBool>             &siUOE_ClsRep,
 		stream<UdpPort>				&sUdpPortsToClose,
-		bool						*nts_ready_and_enabled
+		const bool					*nts_ready_and_enabled
 		);
 
 

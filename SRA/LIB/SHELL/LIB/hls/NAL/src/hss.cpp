@@ -128,6 +128,7 @@ void axi4liteProcessing(
 	    {
 	    	NalStatusUpdate su = sStatusUpdate.read();
 	    	status[su.status_addr] = su.new_value;
+	    	printf("[A4l] got status update for address %d with value %d\n", (int) su.status_addr, (int) su.new_value);
 	    }
 
 	    if(!sGetIpReq_UdpTx.empty())
@@ -158,7 +159,7 @@ void axi4liteProcessing(
 	    if(!sGetNidReq_UdpRx.empty())
 	    {
 	    	ap_uint<32> ipAddr = sGetNidReq_UdpRx.read();
-	    	NodeId rep = UNUSED_SESSION_ENTRY_VALUE;
+	    	NodeId rep = INVALID_MRT_VALUE;
 	    	  for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
 	    	  {
 	    	#pragma HLS unroll factor=8
@@ -174,7 +175,7 @@ void axi4liteProcessing(
 	    if(!sGetNidReq_TcpRx.empty())
 	    	    {
 	    	    	ap_uint<32> ipAddr = sGetNidReq_TcpRx.read();
-	    	    	NodeId rep = UNUSED_SESSION_ENTRY_VALUE;
+	    	    	NodeId rep = INVALID_MRT_VALUE;
 	    	    	  for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
 	    	    	  {
 	    	    	#pragma HLS unroll factor=8
@@ -190,7 +191,7 @@ void axi4liteProcessing(
 	    if(!sGetNidReq_TcpTx.empty())
 	   	    	    {
 	   	    	    	ap_uint<32> ipAddr = sGetNidReq_TcpTx.read();
-	   	    	    	NodeId rep = UNUSED_SESSION_ENTRY_VALUE;
+	   	    	    	NodeId rep = INVALID_MRT_VALUE;
 	   	    	    	  for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
 	   	    	    	  {
 	   	    	    	#pragma HLS unroll factor=8
@@ -230,6 +231,7 @@ void axi4liteProcessing(
     	  		sToUdpRx.write(cu);
     	  		sToTcpRx.write(cu);
     	  		sToStatusProc.write(cu);
+    	  		printf("[A4l] Issued rank update: %d\n", (int) cu.update_value);
     	  		break;
 		}
     	config[tableCopyVariable] = new_word;
@@ -503,7 +505,8 @@ static ap_uint<16> new_relative_port_to_req_tcp = 0;
 	         }
 
 	         if(processed_FMC_listen_port != *piMMIO_FmcLsnPort
-	             && !wait_for_tcp_port_open )
+	             && !wait_for_tcp_port_open
+				 && !sTcpPortsToOpen.full())
 	         {
 	           if(mmio_stabilize_counter == 0)
 	           {
@@ -515,12 +518,14 @@ static ap_uint<16> new_relative_port_to_req_tcp = 0;
 	             mmio_stabilize_counter = NAL_MMIO_STABILIZE_TIME;
 	     #endif
 	             printf("Need FMC port request: %#02x\n",(unsigned int) *piMMIO_FmcLsnPort);
+	             sTcpPortsToOpen.write(*piMMIO_FmcLsnPort);
+	             wait_for_tcp_port_open = true;
 	           } else {
 	             mmio_stabilize_counter--;
 	           }
 
 	         } else if((tcp_rx_ports_processed != *pi_tcp_rx_ports) && *layer_7_enabled == 1
-	             && *role_decoupled == 0 && !wait_for_tcp_port_open )
+	             && *role_decoupled == 0 && !wait_for_tcp_port_open  && !sTcpPortsToOpen.full() )
 	         { //  only if a user application is running...
 	           //we close ports only if layer 7 is reset, so only look for new ports
 	           ap_uint<32> tmp = tcp_rx_ports_processed | *pi_tcp_rx_ports;
@@ -536,7 +541,22 @@ static ap_uint<16> new_relative_port_to_req_tcp = 0;
 	             wait_for_tcp_port_open = true;
 	             //need_tcp_port_req = true;
 	           }
-	         } else if(wait_for_tcp_port_open && !sTcpPortsOpenFeedback.empty())
+	         } else if(wait_for_tcp_port_open && !fmc_port_opened && !sTcpPortsOpenFeedback.empty())
+	         {
+	        	 bool fed = sTcpPortsOpenFeedback.read();
+	        	 if(fed)
+	        	 {
+	        		 processed_FMC_listen_port = *piMMIO_FmcLsnPort;
+	        		 printf("FMC Port opened: %#03x\n",(int) processed_FMC_listen_port);
+	        		 fmc_port_opened = true;
+	        	 } else {
+	        		 printf("[ERROR] FMC TCP port opening failed.\n");
+	        		 //TODO: add block list for ports? otherwise we will try it again and again
+	        	 }
+	        	 //in all cases
+	        	 wait_for_tcp_port_open = false;
+	         }
+	         else if(wait_for_tcp_port_open && !sTcpPortsOpenFeedback.empty())
 	         {
 	        	 bool fed = sTcpPortsOpenFeedback.read();
 	        	 if(fed)

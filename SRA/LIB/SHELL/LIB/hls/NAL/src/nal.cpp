@@ -421,6 +421,7 @@ void eventStatusHousekeeping(
 
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
   NalEventNotif nevs[4];
+  bool skip_fifo[4];
 
   if(*layer_4_enabled == 0)
   	{
@@ -462,20 +463,48 @@ void eventStatusHousekeeping(
 
    if(!internal_event_fifo_0.empty())
     {
-      nevs[0] = internal_event_fifo_0.read();
+	  NalEventNotif tmp = internal_event_fifo_0.read();
+      nevs[0].type = tmp.type;
+      nevs[0].update_value = tmp.update_value;
+      printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_0\n", \
+                (int) tmp.type, (int) tmp.update_value);
+      skip_fifo[0] = false;
+    } else {
+    	skip_fifo[0] = true;
     }
    if(!internal_event_fifo_1.empty())
       {
-        nevs[1] = internal_event_fifo_1.read();
-      }
+	   NalEventNotif tmp = internal_event_fifo_1.read();
+	         nevs[1].type = tmp.type;
+	         nevs[1].update_value = tmp.update_value;
+	         printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_1\n", \
+	                 (int) tmp.type, (int) tmp.update_value);
+	         skip_fifo[1] = false;
+	             } else {
+	             	skip_fifo[1] = true;
+	             }
    if(!internal_event_fifo_2.empty())
       {
-        nevs[2] = internal_event_fifo_2.read();
-      }
+	   NalEventNotif tmp = internal_event_fifo_2.read();
+	         nevs[2].type = tmp.type;
+	         nevs[2].update_value = tmp.update_value;
+	         printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_2\n", \
+	                 (int) tmp.type, (int) tmp.update_value);
+	         skip_fifo[2] = false;
+	             } else {
+	             	skip_fifo[2] = true;
+	             }
    if(!internal_event_fifo_3.empty())
       {
-        nevs[3] = internal_event_fifo_3.read();
-      }
+	   NalEventNotif tmp = internal_event_fifo_3.read();
+	         nevs[3].type = tmp.type;
+	         nevs[3].update_value = tmp.update_value;
+	         printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_3\n", \
+	                 (int) tmp.type, (int) tmp.update_value);
+	         skip_fifo[3] = false;
+	             } else {
+	             	skip_fifo[3] = true;
+	             }
 
   for(int i = 0; i<4; i++)
 {
@@ -496,6 +525,10 @@ void eventStatusHousekeeping(
 #pragma HLS dependence variable=fmc_tcp_bytes_cnt         inter false
 #pragma HLS dependence variable=tcp_new_connection_failure_cnt inter false
 
+	  if(skip_fifo[i] == true)
+	  {
+		  continue;
+	  }
 
     switch(nevs[i].type)
     {
@@ -847,10 +880,10 @@ static bool tcp_new_connection_failure = false; //pTcpWrp and CON need this
 
 static bool expect_FMC_response = false; //pTcpRDP and pTcpWRp need this
 
-static stream<NalEventNotif> internal_event_fifo_0 ("internal_event_fifo");
-static stream<NalEventNotif> internal_event_fifo_1 ("internal_event_fifo");
-static stream<NalEventNotif> internal_event_fifo_2 ("internal_event_fifo");
-static stream<NalEventNotif> internal_event_fifo_3 ("internal_event_fifo");
+static stream<NalEventNotif> internal_event_fifo_0 ("internal_event_fifo_0");
+static stream<NalEventNotif> internal_event_fifo_1 ("internal_event_fifo_1");
+static stream<NalEventNotif> internal_event_fifo_2 ("internal_event_fifo_2");
+static stream<NalEventNotif> internal_event_fifo_3 ("internal_event_fifo_3");
 static stream<NalConfigUpdate>   sA4lToTcpAgency    ("sA4lToTcpAgency");
 static stream<NalConfigUpdate>   sA4lToPortLogic    ("sA4lToPortLogic");
 static stream<NalConfigUpdate>   sA4lToUdpRx        ("sA4lToUdpRx");
@@ -1049,7 +1082,7 @@ static stream<bool>				sTcpPortsOpenFeedback ("sTcpPortsOpenFeedback");
   //TODO: add disable signal? (NTS_ready, layer4 enabled)
   pUdpTX(siUdp_data, siUdp_meta, soUOE_Data, soUOE_Meta, soUOE_DLen, \
 		  sGetIpReq_UdpTx, sGetIpRep_UdpTx, \
-		  &ipAddrBE, &nts_ready_and_enabled, internal_event_fifo_0);
+		  &ipAddrBE, &nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo_0);
 
   //=================================================================================================
   // RX UDP
@@ -1083,7 +1116,7 @@ static stream<bool>				sTcpPortsOpenFeedback ("sTcpPortsOpenFeedback");
     pTcpRDp(siTOE_Data, siTOE_SessId, soFMC_Tcp_data, soFMC_Tcp_SessId, soTcp_data, soTcp_meta,\
     		sA4lToTcpRx, sGetNidReq_TcpRx, sGetNidRep_TcpRx, \
     		piMMIO_CfrmIp4Addr, \
-        &status_fmc_ports, layer_7_enabled, role_decoupled, &cached_tcp_rx_session_id, &expect_FMC_response, \
+        &status_fmc_ports, layer_7_enabled, role_decoupled, &expect_FMC_response, \
       &nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo_2);
 
     //=================================================================================================

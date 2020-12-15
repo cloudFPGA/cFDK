@@ -114,7 +114,7 @@
 extern bool gTraceEvent;
 #endif
 
-#define THIS_NAME "NRC"
+#define THIS_NAME "NAL"
 
 #define TRACE_OFF  0x0000
 #define TRACE_RDP 1 <<  1
@@ -152,7 +152,7 @@ using namespace hls;
 //#define FSM_WRITE_META 7
 //#define FSM_DROP_PACKET 8
 //#define FsmStateUdp uint8_t
-enum FsmStateUdp {FSM_RESET = 0, FSM_IDLE, FSM_W8FORPORT, FSM_FIRST_ACC, FSM_ACC, \
+enum FsmStateUdp {FSM_RESET = 0, FSM_IDLE, FSM_W8FORPORT, FSM_W8FORREQS, FSM_FIRST_ACC, FSM_ACC, \
                   FSM_LAST_ACC, FSM_W8FORMETA, FSM_WRITE_META, FSM_DROP_PACKET};
 
 //#define OpnFsmStates uint8_t
@@ -181,7 +181,7 @@ enum RrhFsmStates {RRH_WAIT_NOTIF = 0, RRH_SEND_DREQ};
 //#define RDP_WRITE_META_ROLE 3
 //#define RDP_WRITE_META_FMC 4
 //#define RDP_DROP_PACKET 5
-enum RdpFsmStates {RDP_WAIT_META = 0, RDP_STREAM_ROLE, RDP_STREAM_FMC, \
+enum RdpFsmStates {RDP_WAIT_META = 0, RDP_W8FORREQS_1, RDP_W8FORREQS_2, RDP_FILTER_META, RDP_STREAM_ROLE, RDP_STREAM_FMC, \
 	               RDP_WRITE_META_ROLE, RDP_WRITE_META_FMC, RDP_DROP_PACKET};
 
 //#define WrpFsmStates uint8_t
@@ -214,6 +214,7 @@ enum ClsFsmStates {CLS_IDLE = 0, CLS_NEXT, CLS_WAIT4RESP};
 
 #define UNUSED_TABLE_ENTRY_VALUE 0x111000
 #define UNUSED_SESSION_ENTRY_VALUE 0xFFFE
+#define INVALID_MRT_VALUE 0xFFFFF
 
  /*
   * ctrlLINK Structure:
@@ -282,11 +283,11 @@ enum NalCntIncType {NID_MISS_RX = 0, NID_MISS_TX, PCOR_TX, TCP_CON_FAIL, LAST_RX
 
 struct NalEventNotif {
 	NalCntIncType type;
-	ap_uint<16>   update_value;
+	ap_uint<32>   update_value;
 	//in case of LAST_* types, the update_value is the new value
 	//on other cases, it is an increment value
 	NalEventNotif() {}
-	NalEventNotif(NalCntIncType nt, ap_uint<16> uv): type(nt), update_value(uv) {}
+	NalEventNotif(NalCntIncType nt, ap_uint<32> uv): type(nt), update_value(uv) {}
 };
 //typedef NalEventNotif NalEventNotifType;
 
