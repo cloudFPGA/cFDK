@@ -201,6 +201,8 @@ enum ClsFsmStates {CLS_IDLE = 0, CLS_NEXT, CLS_WAIT4RESP};
 
 enum DeqFsmStates {DEQ_WAIT_META = 0, DEQ_STREAM_DATA};
 
+enum TableFsmStates {TAB_FSM_READ = 0, TAB_FSM_WRITE};
+
 #define MAX_NAL_SESSIONS (TOE_MAX_SESSIONS)
 
 //#define MAX_MRT_SIZE 1024
@@ -294,24 +296,21 @@ struct NalEventNotif {
 };
 //typedef NalEventNotif NalEventNotifType;
 
+typedef ap_uint<64> NalTriple;
 
-//Ip4Addr getIpFromRank(NodeId rank);
-//NodeId getNodeIdFromIpAddress(ap_uint<32> ipAddr);
-//NodeId getOwnRank();
+struct NalNewTableEntry {
+	NalTriple  new_triple;
+	SessionId	sessId;
+	NalNewTableEntry() {}
+	NalNewTableEntry(NalTriple nt, SessionId sid): new_triple(nt), sessId(sid) {}
+};
+
+//INLINE METHODs
 ap_uint<32> getRightmostBitPos(ap_uint<32> num);
-void addnewTrippleToTable(SessionId sessionID, ap_uint<64> new_entry);
-void addnewSessionToTable(SessionId sessionID, Ip4Addr ipRemoteAddres, TcpPort tcpRemotePort, TcpPort tcpLocalPort);
-void deleteSessionFromTables(SessionId sessionID);
-void markSessionAsPrivileged(SessionId sessionID);
-
-ap_uint<64> newTripple(Ip4Addr ipRemoteAddres, TcpPort tcpRemotePort, TcpPort tcpLocalPort);
-Ip4Addr getRemoteIpAddrFromTripple(ap_uint<64> tripple);
-TcpPort getRemotePortFromTripple(ap_uint<64> tripple);
-TcpPort getLocalPortFromTripple(ap_uint<64> tripple);
-ap_uint<64> getTrippleFromSessionId(SessionId sessionID);
-SessionId getSessionIdFromTripple(ap_uint<64> tripple);
-SessionId getAndDeleteNextMarkedRow();
-void markCurrentRowsAsToDelete_unprivileged();
+NalTriple newTriple(Ip4Addr ipRemoteAddres, TcpPort tcpRemotePort, TcpPort tcpLocalPort);
+Ip4Addr getRemoteIpAddrFromTriple(NalTriple triple);
+TcpPort getRemotePortFromTriple(NalTriple triple);
+TcpPort getLocalPortFromTriple(NalTriple triple);
 
 
 #include "uss.hpp"

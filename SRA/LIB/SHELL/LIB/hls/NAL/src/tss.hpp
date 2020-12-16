@@ -64,24 +64,27 @@ void pTcpRRh(
     );
 
 void pTcpRDp(
-    stream<TcpAppData>        &siTOE_Data,
-    stream<TcpAppMeta>        &siTOE_SessId,
-    stream<TcpAppData>          &soFMC_Tcp_data,
-    stream<TcpAppMeta>          &soFMC_Tcp_SessId,
-    stream<NetworkWord>         &soTcp_data,
-    stream<NetworkMetaStream>   &soTcp_meta,
-    stream<NalConfigUpdate>   &sConfigUpdate,
-    stream<Ip4Addr>       &sGetNidReq_TcpRx,
-    stream<NodeId>        &sGetNidRep_TcpRx,
-    ap_uint<32>         *piMMIO_CfrmIp4Addr,
-    const ap_uint<16>       *processed_FMC_listen_port,
-    ap_uint<1>          *layer_7_enabled,
-    ap_uint<1>          *role_decoupled,
-    //SessionId         *cached_tcp_rx_session_id,
-    bool            *expect_FMC_response,
-    const bool          *nts_ready_and_enabled,
-    const bool          *detected_cache_invalidation,
-    stream<NalEventNotif>     &internal_event_fifo
+	    stream<TcpAppData>        &siTOE_Data,
+	    stream<TcpAppMeta>        &siTOE_SessId,
+	    stream<TcpAppData>          &soFMC_Tcp_data,
+	    stream<TcpAppMeta>          &soFMC_Tcp_SessId,
+	    stream<NetworkWord>         &soTcp_data,
+	    stream<NetworkMetaStream>   &soTcp_meta,
+	    stream<NalConfigUpdate>   &sConfigUpdate,
+	    stream<Ip4Addr>       &sGetNidReq_TcpRx,
+	    stream<NodeId>        &sGetNidRep_TcpRx,
+		stream<SessionId>	  &sGetTripleFromSid_Req,
+		stream<NalTriple>	  &sGetTripleFromSid_Rep,
+		stream<NalTriple>	  &sMarkAsPriv,
+	    ap_uint<32>         *piMMIO_CfrmIp4Addr,
+	    const ap_uint<16>       *processed_FMC_listen_port,
+	    ap_uint<1>          *layer_7_enabled,
+	    ap_uint<1>          *role_decoupled,
+	    //SessionId         *cached_tcp_rx_session_id,
+	    bool            *expect_FMC_response,
+	    const bool          *nts_ready_and_enabled,
+	    const bool          *detected_cache_invalidation,
+	    stream<NalEventNotif>     &internal_event_fifo
     );
 
 void pTcpWRp(

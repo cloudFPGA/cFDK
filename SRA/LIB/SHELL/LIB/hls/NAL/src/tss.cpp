@@ -209,7 +209,8 @@ void pTcpLsn(
 void pTcpRRh(
     stream<TcpAppNotif>       &siTOE_Notif,
     stream<TcpAppRdReq>       &soTOE_DReq,
-	//add add and delete streams
+	stream<NalNewTableEntry>  &sAddNewTripple_TcpRrh,
+	stream<SessionId>		  &sDeleteEntryBySid,
     ap_uint<1>                *piFMC_Tcp_data_FIFO_prog_full,
     ap_uint<1>                *piFMC_Tcp_sessid_FIFO_prog_full,
     const bool				  *role_fifo_empty,
@@ -263,7 +264,7 @@ void pTcpRRh(
 
   switch(rrhFsmState) {
     case RRH_WAIT_NOTIF:
-      if(!siTOE_Notif.empty() && true && true)
+      if(!siTOE_Notif.empty() && !sAddNewTripple_TcpRrh.full() && !sDeleteEntryBySid.full() )
       {
         siTOE_Notif.read(notif_pRrh);
         if (notif_pRrh.tcpDatLen != 0) {
@@ -310,7 +311,10 @@ void pTcpRRh(
 
           if(!already_known)
           {
-            addnewSessionToTable(notif_pRrh.sessionID, notif_pRrh.ip4SrcAddr, notif_pRrh.tcpSrcPort, notif_pRrh.tcpDstPort);
+            //addnewSessionToTable(notif_pRrh.sessionID, notif_pRrh.ip4SrcAddr, notif_pRrh.tcpSrcPort, notif_pRrh.tcpDstPort);
+        	  NalNewTableEntry ne_struct = NalNewTableEntry(newTriple(notif_pRrh.ip4SrcAddr, notif_pRrh.tcpSrcPort, notif_pRrh.tcpDstPort),
+        			  notif_pRrh.sessionID);
+        	  sAddNewTripple_TcpRrh.write(ne_struct);
           }
           rrhFsmState = RRH_SEND_DREQ;
 
@@ -319,7 +323,8 @@ void pTcpRRh(
             || notif_pRrh.tcpState == LAST_ACK || notif_pRrh.tcpState == CLOSED)
         {
           // we were notified about a closing connection
-          deleteSessionFromTables(notif_pRrh.sessionID);
+          //deleteSessionFromTables(notif_pRrh.sessionID);
+        	sDeleteEntryBySid.write(notif_pRrh.sessionID);
         }
       } else if(waitingConnections > 0)
       {
@@ -443,6 +448,9 @@ void pTcpRDp(
     stream<NalConfigUpdate>   &sConfigUpdate,
     stream<Ip4Addr>       &sGetNidReq_TcpRx,
     stream<NodeId>        &sGetNidRep_TcpRx,
+	stream<SessionId>	  &sGetTripleFromSid_Req,
+	stream<NalTriple>	  &sGetTripleFromSid_Rep,
+	stream<NalTriple>	  &sMarkAsPriv,
     ap_uint<32>         *piMMIO_CfrmIp4Addr,
     const ap_uint<16>       *processed_FMC_listen_port,
     ap_uint<1>          *layer_7_enabled,
@@ -464,7 +472,7 @@ void pTcpRDp(
 
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
   static RdpFsmStates rdpFsmState = RDP_WAIT_META;
-  static ap_uint<64> cached_tcp_rx_tripple = UNUSED_TABLE_ENTRY_VALUE;
+  static ap_uint<64> cached_tcp_rx_triple = UNUSED_TABLE_ENTRY_VALUE;
   static bool Tcp_RX_metaWritten = false;
   static SessionId cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
   static NodeId own_rank = 0;
@@ -472,7 +480,7 @@ void pTcpRDp(
   static bool cache_init = false;
 
 #pragma HLS RESET variable=rdpFsmState
-#pragma HLS RESET variable=cached_tcp_rx_tripple
+#pragma HLS RESET variable=cached_tcp_rx_triple
 #pragma HLS RESET variable=Tcp_RX_metaWritten
 #pragma HLS RESET variable=cached_tcp_rx_session_id
 #pragma HLS RESET variable=cached_src_id
@@ -484,7 +492,7 @@ void pTcpRDp(
   static bool first_word_written = false;
   static TcpAppData first_word = TcpAppData();
   static NodeId src_id = INVALID_MRT_VALUE;
-  static ap_uint<64> tripple_in = UNUSED_TABLE_ENTRY_VALUE;
+  static ap_uint<64> triple_in = UNUSED_TABLE_ENTRY_VALUE;
   static Ip4Addr remoteAddr = Ip4Addr();
   static TcpPort dstPort = 0x0;
   static TcpPort srcPort = 0x0;
@@ -502,7 +510,7 @@ void pTcpRDp(
   {
     rdpFsmState = RDP_WAIT_META;
     cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
-    cached_tcp_rx_tripple = UNUSED_TABLE_ENTRY_VALUE;
+    cached_tcp_rx_triple = UNUSED_TABLE_ENTRY_VALUE;
     cached_src_id = INVALID_MRT_VALUE;
     cache_init = false;
   }
@@ -510,7 +518,7 @@ void pTcpRDp(
   if(*detected_cache_invalidation)
   {
     cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
-    cached_tcp_rx_tripple = UNUSED_TABLE_ENTRY_VALUE;
+    cached_tcp_rx_triple = UNUSED_TABLE_ENTRY_VALUE;
     cached_src_id = INVALID_MRT_VALUE;
     cache_init = false;
   }
@@ -540,22 +548,22 @@ void pTcpRDp(
     default:
     case RDP_WAIT_META:
       if (!siTOE_SessId.empty()
-          && !sGetNidReq_TcpRx.full()
+          && !sGetNidReq_TcpRx.full() && !sGetTripleFromSid_Req.full() && !sMarkAsPriv.full()
          )
       {
         siTOE_SessId.read(sessId);
 
-        tripple_in = UNUSED_TABLE_ENTRY_VALUE;
+        triple_in = UNUSED_TABLE_ENTRY_VALUE;
         found_in_cache = false;
         if(cache_init && sessId == cached_tcp_rx_session_id)
         {
           printf("used TCP RX tripple and NID cache.\n");
-          tripple_in = cached_tcp_rx_tripple;
+          triple_in = cached_tcp_rx_triple;
           src_id = cached_src_id;
           found_in_cache = true;
           rdpFsmState = RDP_FILTER_META;
         } else {
-          //TODO request tripple
+          sGetTripleFromSid_Req.write(sessId);
           rdpFsmState = RDP_W8FORREQS_1;
           cache_init = false;
           printf("[Tcp-RDP:INFO] Need to request session and node id.\n");
@@ -568,11 +576,12 @@ void pTcpRDp(
     case RDP_W8FORREQS_1:
       if(!cache_init)
       {
-        if(true && !sGetNidReq_TcpRx.full())
+        if(!sGetTripleFromSid_Rep.empty() && !sGetNidReq_TcpRx.full())
         {
-          tripple_in = getTrippleFromSessionId(sessId);
-          remoteAddr = getRemoteIpAddrFromTripple(tripple_in);
-          dstPort = getLocalPortFromTripple(tripple_in);
+          //triple_in = getTrippleFromSessionId(sessId);
+        	triple_in = sGetTripleFromSid_Rep.read();
+          remoteAddr = getRemoteIpAddrFromTriple(triple_in);
+          dstPort = getLocalPortFromTriple(triple_in);
           if(dstPort != *processed_FMC_listen_port)
           {
             sGetNidReq_TcpRx.write(remoteAddr);
@@ -584,7 +593,7 @@ void pTcpRDp(
             cache_init = true;
             cached_src_id = INVALID_MRT_VALUE;
             cached_tcp_rx_session_id = sessId;
-            cached_tcp_rx_tripple = tripple_in;
+            cached_tcp_rx_triple = triple_in;
             rdpFsmState = RDP_FILTER_META;
           }
           rdpFsmState = RDP_W8FORREQS_2;
@@ -607,7 +616,7 @@ void pTcpRDp(
           cache_init = true;
           cached_src_id = src_id;
           cached_tcp_rx_session_id = sessId;
-          cached_tcp_rx_tripple = tripple_in;
+          cached_tcp_rx_triple = triple_in;
           rdpFsmState = RDP_FILTER_META;
         } else {
           break;
@@ -617,11 +626,13 @@ void pTcpRDp(
       }
       //NO break;
     case RDP_FILTER_META:
-      printf("tripple_in: %llu\n",(unsigned long long) tripple_in);
+    	if(!sMarkAsPriv.full())
+    	{
+      printf("tripple_in: %llu\n",(unsigned long long) triple_in);
       //since we requested the session, we should know it -> no error handling
-      dstPort = getLocalPortFromTripple(tripple_in);
-      srcPort = getRemotePortFromTripple(tripple_in);
-      remoteAddr = getRemoteIpAddrFromTripple(tripple_in);
+      dstPort = getLocalPortFromTriple(triple_in);
+      srcPort = getRemotePortFromTriple(triple_in);
+      remoteAddr = getRemoteIpAddrFromTriple(triple_in);
       printf("remote Addr: %d; dstPort: %d; srcPort %d\n", (int) remoteAddr, (int) dstPort, (int) srcPort);
 
       if(dstPort == *processed_FMC_listen_port)
@@ -637,7 +648,8 @@ void pTcpRDp(
           internal_event_fifo.write(new_ev_not);
           if(!found_in_cache)
           {
-            markSessionAsPrivileged(sessId);
+            //markSessionAsPrivileged(sessId);
+        	  sMarkAsPriv.write(sessId);
           }
           break;
         } else {
@@ -676,7 +688,7 @@ void pTcpRDp(
       in_meta_tcp = NetworkMetaStream(tmp_meta);
       Tcp_RX_metaWritten = false;
       rdpFsmState  = RDP_STREAM_ROLE;
-
+    	}
       break;
     case RDP_STREAM_ROLE:
       if (!siTOE_Data.empty() && !soTcp_data.full())
@@ -822,14 +834,14 @@ void pTcpWRp(
   static WrpFsmStates wrpFsmState = WRP_WAIT_META;
 
   static SessionId cached_tcp_tx_session_id = UNUSED_SESSION_ENTRY_VALUE;
-  static ap_uint<64> cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
+  static ap_uint<64> cached_tcp_tx_triple = UNUSED_TABLE_ENTRY_VALUE;
   static NodeId cached_dst_rank = INVALID_MRT_VALUE;
   static Ip4Addr cached_dst_ip_addr = 0x0;
   static bool cache_init = false;
 
 #pragma HLS RESET variable=wrpFsmState
 #pragma HLS RESET variable=cached_tcp_tx_session_id
-#pragma HLS RESET variable=cached_tcp_tx_tripple
+#pragma HLS RESET variable=cached_tcp_tx_triple
 #pragma HLS RESET variable=cached_dst_rank
 #pragma HLS RESET variable=cache_init
 #pragma HLS RESET variable=cached_dst_ip_addr
@@ -842,7 +854,7 @@ void pTcpWRp(
   static Ip4Addr dst_ip_addr = 0x0;
   static NrcPort src_port = 0x0;
   static NrcPort dst_port = 0x0;
-  static ap_uint<64> new_tripple = UNUSED_TABLE_ENTRY_VALUE;
+  static ap_uint<64> new_triple = UNUSED_TABLE_ENTRY_VALUE;
   static SessionId sessId = UNUSED_SESSION_ENTRY_VALUE;
 
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
@@ -856,7 +868,7 @@ void pTcpWRp(
   {
     wrpFsmState = WRP_WAIT_META;
     cached_tcp_tx_session_id = UNUSED_SESSION_ENTRY_VALUE;
-    cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
+    cached_tcp_tx_triple = UNUSED_TABLE_ENTRY_VALUE;
     cached_dst_rank = INVALID_MRT_VALUE;
     cache_init = false;
     cached_dst_ip_addr = 0x0;
@@ -866,7 +878,7 @@ void pTcpWRp(
   if(*detected_cache_invalidation)
   {
     cached_tcp_tx_session_id = UNUSED_SESSION_ENTRY_VALUE;
-    cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
+    cached_tcp_tx_triple = UNUSED_TABLE_ENTRY_VALUE;
     cached_dst_rank = INVALID_MRT_VALUE;
     cached_dst_ip_addr = 0x0;
     cache_init = false;
@@ -979,10 +991,10 @@ void pTcpWRp(
         }
 
         //check if session is present
-        new_tripple = newTripple(dst_ip_addr, dst_port, src_port);
+        new_triple = newTriple(dst_ip_addr, dst_port, src_port);
         printf("From ROLE: remote Addr: %d; dstPort: %d; srcPort %d; (rank: %d)\n", (int) dst_ip_addr, (int) dst_port, (int) src_port, (int) dst_rank);
         sessId = UNUSED_SESSION_ENTRY_VALUE;
-        if(cache_init && new_tripple == cached_tcp_tx_tripple)
+        if(cache_init && new_triple == cached_tcp_tx_triple)
         {
           printf("used TCP TX tripple chache.\n");
           sessId = cached_tcp_tx_session_id;
@@ -1000,8 +1012,8 @@ void pTcpWRp(
       {
         if(true)
         {
-          sessId = getSessionIdFromTripple(new_tripple);
-          cached_tcp_tx_tripple = new_tripple;
+          sessId = getSessionIdFromTriple(new_triple);
+          cached_tcp_tx_triple = new_triple;
           cached_tcp_tx_session_id = sessId;
           cached_dst_ip_addr = dst_ip_addr;
           cached_dst_rank = dst_rank;
@@ -1015,7 +1027,7 @@ void pTcpWRp(
       printf("session id found: %d\n", (int) sessId);
       if(sessId == (SessionId) UNUSED_SESSION_ENTRY_VALUE)
       {//we need to create one first
-        *tripple_for_new_connection = new_tripple;
+        *tripple_for_new_connection = new_triple;
         *tcp_need_new_connection_request = true;
         *tcp_new_connection_failure = false;
         wrpFsmState = WRP_WAIT_CONNECTION;
@@ -1044,9 +1056,10 @@ void pTcpWRp(
     case WRP_WAIT_CONNECTION:
       if( !*tcp_need_new_connection_request && !soTOE_SessId.full() && !*tcp_new_connection_failure )
       {
+    	  new_triple = *tripple_for_new_connection;
         SessionId sessId = getSessionIdFromTripple(*tripple_for_new_connection);
 
-        NrcPort dst_port = getRemotePortFromTripple(*tripple_for_new_connection);
+        NrcPort dst_port = getRemotePortFromTriple(*tripple_for_new_connection);
         //NodeId dst_rank = getNodeIdFromIpAddress(getRemoteIpAddrFromTripple(*tripple_for_new_connection));
         //sGetNidReq_TcpTx.write(getRemoteIpAddrFromTripple(*tripple_for_new_connection));
         //NodeId dst_rank = sGetNidRep_TcpTx.read();
@@ -1064,7 +1077,7 @@ void pTcpWRp(
               sessId.to_uint());
         }
         wrpFsmState = WRP_STREAM_ROLE;
-        cached_tcp_tx_tripple = new_tripple;
+        cached_tcp_tx_triple = new_triple;
         cached_tcp_tx_session_id = sessId;
         cached_dst_ip_addr = dst_ip_addr;
         cached_dst_rank = dst_rank;
@@ -1228,8 +1241,8 @@ void pTcpCOn(
 
     case OPN_REQ:
       if (*tcp_need_new_connection_request && !soTOE_OpnReq.full()) {
-        Ip4Addr remoteIp = getRemoteIpAddrFromTripple(*tripple_for_new_connection);
-        TcpPort remotePort = getRemotePortFromTripple(*tripple_for_new_connection);
+        Ip4Addr remoteIp = getRemoteIpAddrFromTriple(*tripple_for_new_connection);
+        TcpPort remotePort = getRemotePortFromTriple(*tripple_for_new_connection);
 
         SockAddr    hostSockAddr(remoteIp, remotePort);
         HostSockAddr.addr = hostSockAddr.addr;

@@ -89,26 +89,42 @@ void axi4liteProcessing(
 		stream<NodeId>				&sGetNidRep_TcpTx
     );
 
-void pPortAndResetLogic(
-		ap_uint<1> 				*layer_4_enabled,
-		ap_uint<1> 				*layer_7_enabled,
-		ap_uint<1> 				*role_decoupled,
-		ap_uint<1>				*piNTS_ready,
-	    ap_uint<16> 			*piMMIO_FmcLsnPort,
-		ap_uint<32>         	*pi_udp_rx_ports,
-		ap_uint<32>  		    *pi_tcp_rx_ports,
-		stream<NalConfigUpdate>	&sConfigUpdate,
-		stream<UdpPort>			&sUdpPortsToOpen,
-		stream<UdpPort>			&sUdpPortsToClose,
-		stream<TcpPort>			&sTcpPortsToOpen,
-		stream<bool>			&sUdpPortsOpenFeedback,
-		stream<bool>			&sTcpPortsOpenFeedback,
-		bool 					*detected_cache_invalidation,
-		ap_uint<32> 			*status_udp_ports,
-		ap_uint<32>				*status_tcp_ports,
-		ap_uint<16>				*status_fmc_ports,
-		bool					*start_tcp_cls_fsm
+void pPortAndResetLogic(    ap_uint<1>        *layer_4_enabled,
+	    ap_uint<1>        *layer_7_enabled,
+	    ap_uint<1>        *role_decoupled,
+	    ap_uint<1>        *piNTS_ready,
+	    ap_uint<16>       *piMMIO_FmcLsnPort,
+	    ap_uint<32>           *pi_udp_rx_ports,
+	    ap_uint<32>         *pi_tcp_rx_ports,
+	    stream<NalConfigUpdate> &sConfigUpdate,
+	    stream<UdpPort>     &sUdpPortsToOpen,
+	    stream<UdpPort>     &sUdpPortsToClose,
+	    stream<TcpPort>     &sTcpPortsToOpen,
+	    stream<bool>      &sUdpPortsOpenFeedback,
+	    stream<bool>      &sTcpPortsOpenFeedback,
+		stream<bool>      &sMarkToDel_unpriv,
+	    bool          *detected_cache_invalidation,
+	    ap_uint<32>       *status_udp_ports,
+	    ap_uint<32>       *status_tcp_ports,
+	    ap_uint<16>       *status_fmc_ports,
+	    bool          *start_tcp_cls_fsm
 		);
+
+void pTcpAgency(
+    stream<SessionId>     &sGetTripleFromSid_Req,
+    stream<NalTriple>       &sGetTripleFromSid_Rep,
+    stream<NalTriple>       &sGetSidFromTriple_Req,
+    stream<SessionId>       &sGetSidFromTriple_Rep,
+    stream<NalNewTableEntry>  &sAddNewTriple_TcpRrh,
+    stream<NalNewTableEntry>  &sAddNewTriple_TcpCon,
+    stream<SessionId>     &sDeleteEntryBySid,
+    stream<SessionId>     &sMarkAsPriv,
+    stream<bool>        &sMarkToDel_unpriv,
+    stream<bool>        &sGetNextDelRow_Req,
+    stream<SessionId>     &sGetNextDelRow_Rep,
+    const bool              *nts_ready_and_enabled
+    );
+
 
 #endif
 

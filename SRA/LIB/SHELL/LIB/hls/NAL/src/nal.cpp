@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*******************************************************************************/
+ *******************************************************************************/
 
 /*****************************************************************************
  * @file       : nal.hpp
@@ -69,13 +69,6 @@
 //UdpAppDLen udpTX_current_packet_length = 0;
 
 
-ap_uint<64> tripleList[MAX_NAL_SESSIONS];
-ap_uint<17> sessionIdList[MAX_NAL_SESSIONS];
-ap_uint<1>  usedRows[MAX_NAL_SESSIONS];
-ap_uint<1>  rowsToDelete[MAX_NAL_SESSIONS];
-bool tables_initalized = false;
-
-ap_uint<1>  privilegedRows[MAX_NAL_SESSIONS];
 
 //NodeId cached_udp_rx_id = 0;
 //Ip4Addr cached_udp_rx_ipaddr = 0;
@@ -145,7 +138,7 @@ ap_uint<32> getRightmostBitPos(ap_uint<32> num)
   //return (ap_uint<32>) log2((ap_fixed<32,2>) (num & -num));
   ap_uint<32> pos = 0; 
   for (int i = 0; i < 32; i++) {
-//#pragma HLS unroll factor=8
+    //#pragma HLS unroll factor=8
     if (!(num & (1 << i)))
     {
       pos++; 
@@ -173,206 +166,206 @@ ap_uint<32> getRightmostBitPos(ap_uint<32> num)
 //}
 
 
-ap_uint<64> newTripple(Ip4Addr ipRemoteAddres, TcpPort tcpRemotePort, TcpPort tcpLocalPort)
+NalTriple newTriple(Ip4Addr ipRemoteAddres, TcpPort tcpRemotePort, TcpPort tcpLocalPort)
 {
 #pragma HLS INLINE
-  ap_uint<64> new_entry = (((ap_uint<64>) ipRemoteAddres) << 32) | (((ap_uint<32>) tcpRemotePort) << 16) | tcpLocalPort;
+  NalTriple new_entry = (((ap_uint<64>) ipRemoteAddres) << 32) | (((ap_uint<32>) tcpRemotePort) << 16) | tcpLocalPort;
   return new_entry;
 }
 
 
-Ip4Addr getRemoteIpAddrFromTripple(ap_uint<64> tripple)
+Ip4Addr getRemoteIpAddrFromTriple(NalTriple triple)
 {
 #pragma HLS INLINE
-  ap_uint<32> ret = ((ap_uint<32>) (tripple >> 32)) & 0xFFFFFFFF;
+  ap_uint<32> ret = ((ap_uint<32>) (triple >> 32)) & 0xFFFFFFFF;
   return (Ip4Addr) ret;
 }
 
 
-TcpPort getRemotePortFromTripple(ap_uint<64> tripple)
+TcpPort getRemotePortFromTriple(NalTriple triple)
 {
 #pragma HLS INLINE
-  ap_uint<16> ret = ((ap_uint<16>) (tripple >> 16)) & 0xFFFF;
+  ap_uint<16> ret = ((ap_uint<16>) (triple >> 16)) & 0xFFFF;
   return (TcpPort) ret;
 }
 
 
-TcpPort getLocalPortFromTripple(ap_uint<64> tripple)
+TcpPort getLocalPortFromTriple(NalTriple triple)
 {
 #pragma HLS INLINE
-  ap_uint<16> ret = (ap_uint<16>) (tripple & 0xFFFF);
+  ap_uint<16> ret = (ap_uint<16>) (triple & 0xFFFF);
   return (TcpPort) ret;
 }
 
 
-ap_uint<64> getTrippleFromSessionId(SessionId sessionID)
-{
-#pragma HLS inline OFF
-  printf("searching for session: %d\n", (int) sessionID);
-  uint32_t i = 0;
-  for(i = 0; i < MAX_NAL_SESSIONS; i++)
-  {
-//#pragma HLS unroll factor=8
-    if(sessionIdList[i] == sessionID && usedRows[i] == 1 && rowsToDelete[i] == 0)
-    {
-      ap_uint<64> ret = tripleList[i];
-      printf("found tripple entry: %d | %d |  %llu\n",(int) i, (int) sessionID, (unsigned long long) ret);
-      return ret;
-    }
-  }
-  //unkown session TODO
-  printf("ERROR: unkown session\n");
-  return (ap_uint<64>) UNUSED_TABLE_ENTRY_VALUE;
-}
+//ap_uint<64> getTrippleFromSessionId(SessionId sessionID)
+//{
+//#pragma HLS inline OFF
+//  printf("searching for session: %d\n", (int) sessionID);
+//  uint32_t i = 0;
+//  for(i = 0; i < MAX_NAL_SESSIONS; i++)
+//  {
+////#pragma HLS unroll factor=8
+//    if(sessionIdList[i] == sessionID && usedRows[i] == 1 && rowsToDelete[i] == 0)
+//    {
+//      ap_uint<64> ret = tripleList[i];
+//      printf("found tripple entry: %d | %d |  %llu\n",(int) i, (int) sessionID, (unsigned long long) ret);
+//      return ret;
+//    }
+//  }
+//  //unkown session TODO
+//  printf("ERROR: unkown session\n");
+//  return (ap_uint<64>) UNUSED_TABLE_ENTRY_VALUE;
+//}
 
 
-SessionId getSessionIdFromTripple(ap_uint<64> tripple)
-{
-#pragma HLS inline OFF
-  printf("Searching for tripple: %llu\n", (unsigned long long) tripple);
-  uint32_t i = 0;
-  for(i = 0; i < MAX_NAL_SESSIONS; i++)
-  {
-//#pragma HLS unroll factor=8
-    if(tripleList[i] == tripple && usedRows[i] == 1 && rowsToDelete[i] == 0)
-    {
-      return sessionIdList[i];
-    }
-  }
-  //there is (not yet) a connection
-  printf("ERROR: unkown tripple\n");
-  return (SessionId) UNUSED_SESSION_ENTRY_VALUE;
-}
+//SessionId getSessionIdFromTripple(ap_uint<64> tripple)
+//{
+//#pragma HLS inline OFF
+//  printf("Searching for tripple: %llu\n", (unsigned long long) tripple);
+//  uint32_t i = 0;
+//  for(i = 0; i < MAX_NAL_SESSIONS; i++)
+//  {
+////#pragma HLS unroll factor=8
+//    if(tripleList[i] == tripple && usedRows[i] == 1 && rowsToDelete[i] == 0)
+//    {
+//      return sessionIdList[i];
+//    }
+//  }
+//  //there is (not yet) a connection
+//  printf("ERROR: unkown tripple\n");
+//  return (SessionId) UNUSED_SESSION_ENTRY_VALUE;
+//}
 
 
-void addnewTrippleToTable(SessionId sessionID, ap_uint<64> new_entry)
-{
-#pragma HLS INLINE off
-  printf("new tripple entry: %d |  %llu\n",(int) sessionID, (unsigned long long) new_entry);
-  //first check for duplicates!
-  ap_uint<64> test_tripple = getTrippleFromSessionId(sessionID);
-  if(test_tripple == new_entry)
-  {
-    printf("session/tripple already known, skipping. \n");
-    return;
-  }
+//void addnewTrippleToTable(SessionId sessionID, ap_uint<64> new_entry)
+//{
+//#pragma HLS INLINE off
+//  printf("new tripple entry: %d |  %llu\n",(int) sessionID, (unsigned long long) new_entry);
+//  //first check for duplicates!
+//  ap_uint<64> test_tripple = getTrippleFromSessionId(sessionID);
+//  if(test_tripple == new_entry)
+//  {
+//    printf("session/tripple already known, skipping. \n");
+//    return;
+//  }
+//
+//  uint32_t i = 0;
+//  for(i = 0; i < MAX_NAL_SESSIONS; i++)
+//  {
+////#pragma HLS unroll factor=8
+//    if(usedRows[i] == 0)
+//    {//next free one, tables stay in sync
+//      sessionIdList[i] = sessionID;
+//      tripleList[i] = new_entry;
+//      usedRows[i] = 1;
+//      privilegedRows[i] = 0;
+//      printf("stored tripple entry: %d | %d |  %llu\n",(int) i, (int) sessionID, (unsigned long long) new_entry);
+//      return;
+//    }
+//  }
+//  //we run out of sessions...TODO
+//  printf("ERROR: no free space in table left!\n");
+//}
 
-  uint32_t i = 0;
-  for(i = 0; i < MAX_NAL_SESSIONS; i++)
-  {
-//#pragma HLS unroll factor=8
-    if(usedRows[i] == 0)
-    {//next free one, tables stay in sync
-      sessionIdList[i] = sessionID;
-      tripleList[i] = new_entry;
-      usedRows[i] = 1;
-      privilegedRows[i] = 0;
-      printf("stored tripple entry: %d | %d |  %llu\n",(int) i, (int) sessionID, (unsigned long long) new_entry);
-      return;
-    }
-  }
-  //we run out of sessions...TODO
-  printf("ERROR: no free space in table left!\n");
-}
+
+//void addnewSessionToTable(SessionId sessionID, Ip4Addr ipRemoteAddres, TcpPort tcpRemotePort, TcpPort tcpLocalPort)
+//{
+////#pragma HLS inline off
+//  ap_uint<64> new_entry = newTripple(ipRemoteAddres, tcpRemotePort, tcpLocalPort);
+//  addnewTrippleToTable(sessionID, new_entry);
+//}
 
 
-void addnewSessionToTable(SessionId sessionID, Ip4Addr ipRemoteAddres, TcpPort tcpRemotePort, TcpPort tcpLocalPort)
-{
+//void deleteSessionFromTables(SessionId sessionID)
+//{
 //#pragma HLS inline off
-  ap_uint<64> new_entry = newTripple(ipRemoteAddres, tcpRemotePort, tcpLocalPort);
-  addnewTrippleToTable(sessionID, new_entry);
-}
+//  printf("try to delete session: %d\n", (int) sessionID);
+//  for(uint32_t i = 0; i < MAX_NAL_SESSIONS; i++)
+//  {
+////#pragma HLS unroll factor=8
+//    if(sessionIdList[i] == sessionID && usedRows[i] == 1)
+//    {
+//      usedRows[i] = 0;
+//      printf("found and deleting session: %d\n", (int) sessionID);
+//      //printf("invalidating TCP RX cache\n");
+//      //cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
+//      return;
+//    }
+//  }
+//  //nothing to delete, nothing to do...
+//}
+
+//void markSessionAsPrivileged(SessionId sessionID)
+//{
+//#pragma HLS inline off
+//  printf("mark session as privileged: %d\n", (int) sessionID);
+//  for(uint32_t i = 0; i < MAX_NAL_SESSIONS; i++)
+//  {
+////#pragma HLS unroll factor=8
+//    if(sessionIdList[i] == sessionID && usedRows[i] == 1)
+//    {
+//      privilegedRows[i] = 1;
+//      rowsToDelete[i] = 0;
+//      return;
+//    }
+//  }
+//  //nothing found, nothing to do...
+//}
+
+//void markCurrentRowsAsToDelete_unprivileged()
+//{
+////#pragma HLS inline
+//  for(uint32_t i = 0; i< MAX_NAL_SESSIONS; i++)
+//  {
+////#pragma HLS unroll factor=8
+//    if(privilegedRows[i] == 1)
+//    {
+//      continue;
+//    } else {
+//      rowsToDelete[i] = usedRows[i];
+//    }
+//  }
+//}
 
 
-void deleteSessionFromTables(SessionId sessionID)
-{
-#pragma HLS inline off
-  printf("try to delete session: %d\n", (int) sessionID);
-  for(uint32_t i = 0; i < MAX_NAL_SESSIONS; i++)
-  {
-//#pragma HLS unroll factor=8
-    if(sessionIdList[i] == sessionID && usedRows[i] == 1)
-    {
-      usedRows[i] = 0;
-      printf("found and deleting session: %d\n", (int) sessionID);
-      //printf("invalidating TCP RX cache\n");
-      //cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
-      return;
-    }
-  }
-  //nothing to delete, nothing to do...
-}
-
-void markSessionAsPrivileged(SessionId sessionID)
-{
-#pragma HLS inline off
-  printf("mark session as privileged: %d\n", (int) sessionID);
-  for(uint32_t i = 0; i < MAX_NAL_SESSIONS; i++)
-  {
-//#pragma HLS unroll factor=8
-    if(sessionIdList[i] == sessionID && usedRows[i] == 1)
-    {
-      privilegedRows[i] = 1;
-      rowsToDelete[i] = 0;
-      return;
-    }
-  }
-  //nothing found, nothing to do...
-}
-
-void markCurrentRowsAsToDelete_unprivileged()
-{
-//#pragma HLS inline
-  for(uint32_t i = 0; i< MAX_NAL_SESSIONS; i++)
-  {
-//#pragma HLS unroll factor=8
-    if(privilegedRows[i] == 1)
-    {
-      continue;
-    } else {
-      rowsToDelete[i] = usedRows[i];
-    }
-  }
-}
-
-
-SessionId getAndDeleteNextMarkedRow()
-{
-#pragma HLS INLINE off
-  for(uint32_t i = 0; i< MAX_NAL_SESSIONS; i++)
-  {
-//#pragma HLS unroll factor=8
-    if(rowsToDelete[i] == 1)
-    {
-      SessionId ret = sessionIdList[i];
-      //sessionIdList[i] = 0x0; //not necessary
-      //tripleList[i] = 0x0;
-      usedRows[i] = 0;
-      rowsToDelete[i] = 0;
-      //privilegedRows[i] = 0; //not necessary
-      printf("Closing session %d at table row %d.\n",(int) ret, (int) i);
-      return ret;
-    }
-  }
-  //Tables are empty
-  printf("TCP tables are empty\n");
-  return (SessionId) UNUSED_SESSION_ENTRY_VALUE;
-}
+//SessionId getAndDeleteNextMarkedRow()
+//{
+//#pragma HLS INLINE off
+//  for(uint32_t i = 0; i< MAX_NAL_SESSIONS; i++)
+//  {
+////#pragma HLS unroll factor=8
+//    if(rowsToDelete[i] == 1)
+//    {
+//      SessionId ret = sessionIdList[i];
+//      //sessionIdList[i] = 0x0; //not necessary
+//      //tripleList[i] = 0x0;
+//      usedRows[i] = 0;
+//      rowsToDelete[i] = 0;
+//      //privilegedRows[i] = 0; //not necessary
+//      printf("Closing session %d at table row %d.\n",(int) ret, (int) i);
+//      return ret;
+//    }
+//  }
+//  //Tables are empty
+//  printf("TCP tables are empty\n");
+//  return (SessionId) UNUSED_SESSION_ENTRY_VALUE;
+//}
 
 void eventStatusHousekeeping(
-	const ap_uint<1> 					*layer_4_enabled,
-      const ap_uint<1>       *layer_7_enabled,
-      const ap_uint<1>       *role_decoupled,
+    const ap_uint<1>          *layer_4_enabled,
+    const ap_uint<1>       *layer_7_enabled,
+    const ap_uint<1>       *role_decoupled,
     const ap_uint<32>      *mrt_version_processed,
     const ap_uint<32>    *udp_rx_ports_processed,
     const ap_uint<32>    *tcp_rx_ports_processed,
     const ap_uint<16>    *processed_FMC_listen_port,
-	stream<NalConfigUpdate>		&sConfigUpdate,
-      stream<NalEventNotif>  &internal_event_fifo_0,
-      stream<NalEventNotif>  &internal_event_fifo_1,
-      stream<NalEventNotif>  &internal_event_fifo_2,
-      stream<NalEventNotif>  &internal_event_fifo_3,
-		stream<NalStatusUpdate> 	&sStatusUpdate
+    stream<NalConfigUpdate>   &sConfigUpdate,
+    stream<NalEventNotif>  &internal_event_fifo_0,
+    stream<NalEventNotif>  &internal_event_fifo_1,
+    stream<NalEventNotif>  &internal_event_fifo_2,
+    stream<NalEventNotif>  &internal_event_fifo_3,
+    stream<NalStatusUpdate>   &sStatusUpdate
     )
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -395,8 +388,8 @@ void eventStatusHousekeeping(
 
   static ap_uint<16> tcp_new_connection_failure_cnt = 0;
 
-	static bool tables_initialized = false;
-	static NodeId own_rank = 0;
+  static bool tables_initialized = false;
+  static NodeId own_rank = 0;
 
 #pragma HLS reset variable=node_id_missmatch_RX_cnt
 #pragma HLS reset variable=node_id_missmatch_TX_cnt
@@ -416,32 +409,32 @@ void eventStatusHousekeeping(
 
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
 
-	static ap_uint<32> status[NUMBER_STATUS_WORDS];
-	static ap_uint<32> old_status[NUMBER_STATUS_WORDS];
+  static ap_uint<32> status[NUMBER_STATUS_WORDS];
+  static ap_uint<32> old_status[NUMBER_STATUS_WORDS];
 
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
   NalEventNotif nevs[4];
   bool skip_fifo[4];
 
   if(*layer_4_enabled == 0)
-  	{
-  	    //also, all sessions should be lost
-  	    tables_initalized = false;
-  	}
-  	// ----- tables init -----
+  {
+    //also, all sessions should be lost
+    tables_initialized = false;
+  }
+  // ----- tables init -----
 
-  	if(!tables_initialized)
-  	{
-  		for(int i = 0; i < NUMBER_STATUS_WORDS; i++)
-  		{
-  			status[i] = 0x0;
-  			old_status[i] = 0x0;
-  		}
-  		tables_initialized = true;
-  	}
-
-   if(*layer_7_enabled == 0 || *role_decoupled == 1 )
+  if(!tables_initialized)
+  {
+    for(int i = 0; i < NUMBER_STATUS_WORDS; i++)
     {
+      status[i] = 0x0;
+      old_status[i] = 0x0;
+    }
+    tables_initialized = true;
+  }
+
+  if(*layer_7_enabled == 0 || *role_decoupled == 1 )
+  {
     //reset counters
     packet_count_TX = 0x0;
     packet_count_RX = 0x0;
@@ -450,67 +443,67 @@ void eventStatusHousekeeping(
     last_tx_port = 0x0;
     last_tx_node_id = 0x0;
     //return;
-    }
+  }
 
-	if(!sConfigUpdate.empty())
-	{
-		NalConfigUpdate ca = sConfigUpdate.read();
-		if(ca.config_addr == NAL_CONFIG_OWN_RANK)
-		{
-			own_rank = ca.update_value;
-		}
-	}
-
-   if(!internal_event_fifo_0.empty())
+  if(!sConfigUpdate.empty())
+  {
+    NalConfigUpdate ca = sConfigUpdate.read();
+    if(ca.config_addr == NAL_CONFIG_OWN_RANK)
     {
-	  NalEventNotif tmp = internal_event_fifo_0.read();
-      nevs[0].type = tmp.type;
-      nevs[0].update_value = tmp.update_value;
-      printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_0\n", \
-                (int) tmp.type, (int) tmp.update_value);
-      skip_fifo[0] = false;
-    } else {
-    	skip_fifo[0] = true;
+      own_rank = ca.update_value;
     }
-   if(!internal_event_fifo_1.empty())
-      {
-	   NalEventNotif tmp = internal_event_fifo_1.read();
-	         nevs[1].type = tmp.type;
-	         nevs[1].update_value = tmp.update_value;
-	         printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_1\n", \
-	                 (int) tmp.type, (int) tmp.update_value);
-	         skip_fifo[1] = false;
-	             } else {
-	             	skip_fifo[1] = true;
-	             }
-   if(!internal_event_fifo_2.empty())
-      {
-	   NalEventNotif tmp = internal_event_fifo_2.read();
-	         nevs[2].type = tmp.type;
-	         nevs[2].update_value = tmp.update_value;
-	         printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_2\n", \
-	                 (int) tmp.type, (int) tmp.update_value);
-	         skip_fifo[2] = false;
-	             } else {
-	             	skip_fifo[2] = true;
-	             }
-   if(!internal_event_fifo_3.empty())
-      {
-	   NalEventNotif tmp = internal_event_fifo_3.read();
-	         nevs[3].type = tmp.type;
-	         nevs[3].update_value = tmp.update_value;
-	         printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_3\n", \
-	                 (int) tmp.type, (int) tmp.update_value);
-	         skip_fifo[3] = false;
-	             } else {
-	             	skip_fifo[3] = true;
-	             }
+  }
+
+  if(!internal_event_fifo_0.empty())
+  {
+    NalEventNotif tmp = internal_event_fifo_0.read();
+    nevs[0].type = tmp.type;
+    nevs[0].update_value = tmp.update_value;
+    printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_0\n", \
+        (int) tmp.type, (int) tmp.update_value);
+    skip_fifo[0] = false;
+  } else {
+    skip_fifo[0] = true;
+  }
+  if(!internal_event_fifo_1.empty())
+  {
+    NalEventNotif tmp = internal_event_fifo_1.read();
+    nevs[1].type = tmp.type;
+    nevs[1].update_value = tmp.update_value;
+    printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_1\n", \
+        (int) tmp.type, (int) tmp.update_value);
+    skip_fifo[1] = false;
+  } else {
+    skip_fifo[1] = true;
+  }
+  if(!internal_event_fifo_2.empty())
+  {
+    NalEventNotif tmp = internal_event_fifo_2.read();
+    nevs[2].type = tmp.type;
+    nevs[2].update_value = tmp.update_value;
+    printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_2\n", \
+        (int) tmp.type, (int) tmp.update_value);
+    skip_fifo[2] = false;
+  } else {
+    skip_fifo[2] = true;
+  }
+  if(!internal_event_fifo_3.empty())
+  {
+    NalEventNotif tmp = internal_event_fifo_3.read();
+    nevs[3].type = tmp.type;
+    nevs[3].update_value = tmp.update_value;
+    printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_3\n", \
+        (int) tmp.type, (int) tmp.update_value);
+    skip_fifo[3] = false;
+  } else {
+    skip_fifo[3] = true;
+  }
 
   for(int i = 0; i<4; i++)
-{
+  {
 #pragma HLS unroll
-  //remove dependencies (yes, risking race conditions,
-  //but they should be very unlikely and are only affecting statistics data)
+    //remove dependencies (yes, risking race conditions,
+    //but they should be very unlikely and are only affecting statistics data)
 #pragma HLS dependence variable=node_id_missmatch_RX_cnt  inter false
 #pragma HLS dependence variable=node_id_missmatch_TX_cnt  inter false
 #pragma HLS dependence variable=port_corrections_TX_cnt   inter false
@@ -525,172 +518,172 @@ void eventStatusHousekeeping(
 #pragma HLS dependence variable=fmc_tcp_bytes_cnt         inter false
 #pragma HLS dependence variable=tcp_new_connection_failure_cnt inter false
 
-	  if(skip_fifo[i] == true)
-	  {
-		  continue;
-	  }
+    if(skip_fifo[i] == true)
+    {
+      continue;
+    }
 
     switch(nevs[i].type)
     {
-    case NID_MISS_RX:
-      node_id_missmatch_RX_cnt += nevs[i].update_value;
-      break;
-    case NID_MISS_TX:
-      node_id_missmatch_TX_cnt += nevs[i].update_value;
-      break;
-    case PCOR_TX:
-      port_corrections_TX_cnt += nevs[i].update_value;
-      break;
-    case TCP_CON_FAIL:
-      tcp_new_connection_failure_cnt += nevs[i].update_value;
-      break;
-    case LAST_RX_PORT:
-      last_rx_port = nevs[i].update_value;
-      break;
-    case LAST_RX_NID:
-      last_rx_node_id = nevs[i].update_value;
-      break;
-    case LAST_TX_PORT:
-      last_tx_port = nevs[i].update_value;
-      break;
-    case LAST_TX_NID:
-      last_tx_node_id = nevs[i].update_value;
-      break;
-    case PACKET_RX:
-      packet_count_RX += nevs[i].update_value;
-      break;
-    case PACKET_TX:
-      packet_count_TX += nevs[i].update_value;
-      break;
-    case UNAUTH_ACCESS:
-      unauthorized_access_cnt += nevs[i].update_value;
-      break;
-    case AUTH_ACCESS:
-      authorized_access_cnt += nevs[i].update_value;
-      break;
-    case FMC_TCP_BYTES:
-      fmc_tcp_bytes_cnt += nevs[i].update_value;
-      break;
-    default:
-      printf("[ERROR] Internal Event Processing received invalid event %d with update value %d\n", \
-          (int) nevs[i].type, (int) nevs[i].update_value);
-      break;
+      case NID_MISS_RX:
+        node_id_missmatch_RX_cnt += nevs[i].update_value;
+        break;
+      case NID_MISS_TX:
+        node_id_missmatch_TX_cnt += nevs[i].update_value;
+        break;
+      case PCOR_TX:
+        port_corrections_TX_cnt += nevs[i].update_value;
+        break;
+      case TCP_CON_FAIL:
+        tcp_new_connection_failure_cnt += nevs[i].update_value;
+        break;
+      case LAST_RX_PORT:
+        last_rx_port = nevs[i].update_value;
+        break;
+      case LAST_RX_NID:
+        last_rx_node_id = nevs[i].update_value;
+        break;
+      case LAST_TX_PORT:
+        last_tx_port = nevs[i].update_value;
+        break;
+      case LAST_TX_NID:
+        last_tx_node_id = nevs[i].update_value;
+        break;
+      case PACKET_RX:
+        packet_count_RX += nevs[i].update_value;
+        break;
+      case PACKET_TX:
+        packet_count_TX += nevs[i].update_value;
+        break;
+      case UNAUTH_ACCESS:
+        unauthorized_access_cnt += nevs[i].update_value;
+        break;
+      case AUTH_ACCESS:
+        authorized_access_cnt += nevs[i].update_value;
+        break;
+      case FMC_TCP_BYTES:
+        fmc_tcp_bytes_cnt += nevs[i].update_value;
+        break;
+      default:
+        printf("[ERROR] Internal Event Processing received invalid event %d with update value %d\n", \
+            (int) nevs[i].type, (int) nevs[i].update_value);
+        break;
     }
 
-}
+  }
 
 
-    //update status entries
-    status[NAL_STATUS_MRT_VERSION] = *mrt_version_processed;
-    status[NAL_STATUS_OPEN_UDP_PORTS] = *udp_rx_ports_processed;
-    status[NAL_STATUS_OPEN_TCP_PORTS] = *tcp_rx_ports_processed;
-    status[NAL_STATUS_FMC_PORT_PROCESSED] = (ap_uint<32>) *processed_FMC_listen_port;
-    status[NAL_STATUS_OWN_RANK] = own_rank;
+  //update status entries
+  status[NAL_STATUS_MRT_VERSION] = *mrt_version_processed;
+  status[NAL_STATUS_OPEN_UDP_PORTS] = *udp_rx_ports_processed;
+  status[NAL_STATUS_OPEN_TCP_PORTS] = *tcp_rx_ports_processed;
+  status[NAL_STATUS_FMC_PORT_PROCESSED] = (ap_uint<32>) *processed_FMC_listen_port;
+  status[NAL_STATUS_OWN_RANK] = own_rank;
 
-    //udp
-    //status[NAL_STATUS_SEND_STATE] = (ap_uint<32>) fsmStateRX_Udp;
-    //status[NAL_STATUS_RECEIVE_STATE] = (ap_uint<32>) fsmStateTXenq_Udp;
-    //status[NAL_STATUS_GLOBAL_STATE] = (ap_uint<32>) fsmStateTXdeq_Udp;
+  //udp
+  //status[NAL_STATUS_SEND_STATE] = (ap_uint<32>) fsmStateRX_Udp;
+  //status[NAL_STATUS_RECEIVE_STATE] = (ap_uint<32>) fsmStateTXenq_Udp;
+  //status[NAL_STATUS_GLOBAL_STATE] = (ap_uint<32>) fsmStateTXdeq_Udp;
 
-    //tcp
-    //status[NAL_STATUS_SEND_STATE] = (ap_uint<32>) wrpFsmState;
-    //status[NAL_STATUS_RECEIVE_STATE] = (ap_uint<32>) rdpFsmState;
-    //status[NAL_STATUS_GLOBAL_STATE] = (ap_uint<32>) opnFsmState;
+  //tcp
+  //status[NAL_STATUS_SEND_STATE] = (ap_uint<32>) wrpFsmState;
+  //status[NAL_STATUS_RECEIVE_STATE] = (ap_uint<32>) rdpFsmState;
+  //status[NAL_STATUS_GLOBAL_STATE] = (ap_uint<32>) opnFsmState;
 
-    status[NAL_STATUS_GLOBAL_STATE] = fmc_tcp_bytes_cnt;
+  status[NAL_STATUS_GLOBAL_STATE] = fmc_tcp_bytes_cnt;
 
-    //status[NAL_STATUS_RX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_RX_cnt;
-    status[NAL_STATUS_RX_NODEID_ERROR] = (((ap_uint<32>) port_corrections_TX_cnt) << 16) | ( 0xFFFF & ((ap_uint<16>) node_id_missmatch_RX_cnt));
-    status[NAL_STATUS_LAST_RX_NODE_ID] = (ap_uint<32>) (( (ap_uint<32>) last_rx_port) << 16) | ( (ap_uint<32>) last_rx_node_id);
-    //status[NAL_STATUS_TX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_TX_cnt;
-    status[NAL_STATUS_TX_NODEID_ERROR] = (((ap_uint<32>) tcp_new_connection_failure_cnt) << 16) | ( 0xFFFF & ((ap_uint<16>) node_id_missmatch_TX_cnt));
-    status[NAL_STATUS_LAST_TX_NODE_ID] = (ap_uint<32>) (((ap_uint<32>) last_tx_port) << 16) | ((ap_uint<32>) last_tx_node_id);
-    //status[NAL_STATUS_TX_PORT_CORRECTIONS] = (((ap_uint<32>) tcp_new_connection_failure_cnt) << 16) | ((ap_uint<16>) port_corrections_TX_cnt);
-    status[NAL_STATUS_PACKET_CNT_RX] = (ap_uint<32>) packet_count_RX;
-    status[NAL_STATUS_PACKET_CNT_TX] = (ap_uint<32>) packet_count_TX;
+  //status[NAL_STATUS_RX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_RX_cnt;
+  status[NAL_STATUS_RX_NODEID_ERROR] = (((ap_uint<32>) port_corrections_TX_cnt) << 16) | ( 0xFFFF & ((ap_uint<16>) node_id_missmatch_RX_cnt));
+  status[NAL_STATUS_LAST_RX_NODE_ID] = (ap_uint<32>) (( (ap_uint<32>) last_rx_port) << 16) | ( (ap_uint<32>) last_rx_node_id);
+  //status[NAL_STATUS_TX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_TX_cnt;
+  status[NAL_STATUS_TX_NODEID_ERROR] = (((ap_uint<32>) tcp_new_connection_failure_cnt) << 16) | ( 0xFFFF & ((ap_uint<16>) node_id_missmatch_TX_cnt));
+  status[NAL_STATUS_LAST_TX_NODE_ID] = (ap_uint<32>) (((ap_uint<32>) last_tx_port) << 16) | ((ap_uint<32>) last_tx_node_id);
+  //status[NAL_STATUS_TX_PORT_CORRECTIONS] = (((ap_uint<32>) tcp_new_connection_failure_cnt) << 16) | ((ap_uint<16>) port_corrections_TX_cnt);
+  status[NAL_STATUS_PACKET_CNT_RX] = (ap_uint<32>) packet_count_RX;
+  status[NAL_STATUS_PACKET_CNT_TX] = (ap_uint<32>) packet_count_TX;
 
-    status[NAL_UNAUTHORIZED_ACCESS] = (ap_uint<32>) unauthorized_access_cnt;
-    status[NAL_AUTHORIZED_ACCESS] = (ap_uint<32>) authorized_access_cnt;
+  status[NAL_UNAUTHORIZED_ACCESS] = (ap_uint<32>) unauthorized_access_cnt;
+  status[NAL_AUTHORIZED_ACCESS] = (ap_uint<32>) authorized_access_cnt;
 
-    //check for differences
-    for(int i = 0; i < NUMBER_STATUS_WORDS; i++)
-     {
-    	if(old_status[i] != status[i])
-    	{
-    		NalStatusUpdate su = NalStatusUpdate(i, status[i]);
-    		if(!sStatusUpdate.write_nb(su))
-    		{
-    			//we can wait
-    			break;
-    		} else {
-    			old_status[i] = status[i];
-    		}
-    	}
-     }
+  //check for differences
+  for(int i = 0; i < NUMBER_STATUS_WORDS; i++)
+  {
+    if(old_status[i] != status[i])
+    {
+      NalStatusUpdate su = NalStatusUpdate(i, status[i]);
+      if(!sStatusUpdate.write_nb(su))
+      {
+        //we can wait
+        break;
+      } else {
+        old_status[i] = status[i];
+      }
+    }
+  }
 
 }
 
 
 void pRoleTcpDeq(
-	    ap_uint<1> 					*layer_7_enabled,
-	    ap_uint<1> 					*role_decoupled,
-		stream<NetworkWord>      	&sRoleTcpDataRx_buffer,
-		stream<NetworkMetaStream>   &sRoleTcpMetaRx_buffer,
-	    stream<NetworkWord>         &soTcp_data,
-	    stream<NetworkMetaStream>   &soTcp_meta
-		)
+    ap_uint<1>          *layer_7_enabled,
+    ap_uint<1>          *role_decoupled,
+    stream<NetworkWord>       &sRoleTcpDataRx_buffer,
+    stream<NetworkMetaStream>   &sRoleTcpMetaRx_buffer,
+    stream<NetworkWord>         &soTcp_data,
+    stream<NetworkMetaStream>   &soTcp_meta
+    )
 {
-	  //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-	#pragma HLS INLINE off
-	#pragma HLS pipeline II=1
-	//-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-	static DeqFsmStates deqFsmState = DEQ_WAIT_META;
+  //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+#pragma HLS INLINE off
+#pragma HLS pipeline II=1
+  //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+  static DeqFsmStates deqFsmState = DEQ_WAIT_META;
 #pragma HLS RESET variable=deqFsmState
-	//-- STATIC DATAFLOW VARIABLES --------------------------------------------
-	 //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
-	NetworkWord cur_word = NetworkWord();
-	NetworkMetaStream cur_meta = NetworkMetaStream();
-	bool role_disabled = (*layer_7_enabled == 0 && *role_decoupled == 1);
+  //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+  //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
+  NetworkWord cur_word = NetworkWord();
+  NetworkMetaStream cur_meta = NetworkMetaStream();
+  bool role_disabled = (*layer_7_enabled == 0 && *role_decoupled == 1);
 
-	switch(deqFsmState)
-	{
-	case DEQ_WAIT_META:
-		if(!sRoleTcpDataRx_buffer.empty() && !sRoleTcpMetaRx_buffer.empty()
-		   && ( (!soTcp_data.full() && !soTcp_meta.full()) ||  //user can read
-				 (role_disabled) //role is disabled -> drain FIFOs
-			   )
-		   )
-		{
-			cur_word = sRoleTcpDataRx_buffer.read();
-			cur_meta = sRoleTcpMetaRx_buffer.read();
-			if(!role_disabled)
-			{
-				soTcp_data.write(cur_word);
-				soTcp_meta.write(cur_meta);
-			}
-			if(cur_word.tlast == 0)
-			{
-				deqFsmState = DEQ_STREAM_DATA;
-			}
-		}
-		break;
-	case DEQ_STREAM_DATA:
-		if(!sRoleTcpDataRx_buffer.empty()
-		   && (!soTcp_data.full() || role_disabled)
-		   )
-		{
-			cur_word = sRoleTcpDataRx_buffer.read();
-						if(!role_disabled)
-						{
-							soTcp_data.write(cur_word);
-						}
-						if(cur_word.tlast == 1)
-						{
-							deqFsmState = DEQ_WAIT_META;
-						}
-		}
-		break;
-	}
+  switch(deqFsmState)
+  {
+    case DEQ_WAIT_META:
+      if(!sRoleTcpDataRx_buffer.empty() && !sRoleTcpMetaRx_buffer.empty()
+          && ( (!soTcp_data.full() && !soTcp_meta.full()) ||  //user can read
+            (role_disabled) //role is disabled -> drain FIFOs
+            )
+        )
+      {
+        cur_word = sRoleTcpDataRx_buffer.read();
+        cur_meta = sRoleTcpMetaRx_buffer.read();
+        if(!role_disabled)
+        {
+          soTcp_data.write(cur_word);
+          soTcp_meta.write(cur_meta);
+        }
+        if(cur_word.tlast == 0)
+        {
+          deqFsmState = DEQ_STREAM_DATA;
+        }
+      }
+      break;
+    case DEQ_STREAM_DATA:
+      if(!sRoleTcpDataRx_buffer.empty()
+          && (!soTcp_data.full() || role_disabled)
+        )
+      {
+        cur_word = sRoleTcpDataRx_buffer.read();
+        if(!role_disabled)
+        {
+          soTcp_data.write(cur_word);
+        }
+        if(cur_word.tlast == 1)
+        {
+          deqFsmState = DEQ_WAIT_META;
+        }
+      }
+      break;
+  }
 
 }
 
@@ -768,115 +761,115 @@ void nal_main(
     stream<TcpAppOpnRep>   &siTOE_OpnRep,
     //-- TOE / Close Interfaces
     stream<TcpAppClsReq>   &soTOE_ClsReq
-  )
+    )
 {
 
-// ----- directives for AXI buses (AXI4 stream, AXI4 Lite) -----
+  // ----- directives for AXI buses (AXI4 stream, AXI4 Lite) -----
 #ifdef USE_DEPRECATED_DIRECTIVES
-  #pragma HLS RESOURCE core=AXI4LiteS variable=ctrlLink metadata="-bus_bundle piFMC_NAL_ctrlLink_AXI"
-  
-  #pragma HLS RESOURCE core=AXI4Stream variable=siUdp_data    metadata="-bus_bundle siUdp_data"
-  #pragma HLS RESOURCE core=AXI4Stream variable=soUdp_data    metadata="-bus_bundle soUdp_data"
+#pragma HLS RESOURCE core=AXI4LiteS variable=ctrlLink metadata="-bus_bundle piFMC_NAL_ctrlLink_AXI"
 
-  #pragma HLS RESOURCE core=AXI4Stream variable=siUdp_meta    metadata="-bus_bundle siUdp_meta"
-  #pragma HLS DATA_PACK          variable=siUdp_meta
-  #pragma HLS RESOURCE core=AXI4Stream variable=soUdp_meta    metadata="-bus_bundle soUdp_meta"
-  #pragma HLS DATA_PACK          variable=soUdp_meta
+#pragma HLS RESOURCE core=AXI4Stream variable=siUdp_data    metadata="-bus_bundle siUdp_data"
+#pragma HLS RESOURCE core=AXI4Stream variable=soUdp_data    metadata="-bus_bundle soUdp_data"
 
-  #pragma HLS RESOURCE core=AXI4Stream variable=soUOE_LsnReq  metadata="-bus_bundle soUOE_LsnReq"
-  #pragma HLS RESOURCE core=AXI4Stream variable=siUOE_LsnRep  metadata="-bus_bundle siUOE_LsnRep"
-  #pragma HLS RESOURCE core=AXI4Stream variable=soUOE_ClsReq  metadata="-bus_bundle soUOE_ClsReq"
-  #pragma HLS RESOURCE core=AXI4Stream variable=siUOE_ClsRep  metadata="-bus_bundle siUOE_ClsRep"
+#pragma HLS RESOURCE core=AXI4Stream variable=siUdp_meta    metadata="-bus_bundle siUdp_meta"
+#pragma HLS DATA_PACK          variable=siUdp_meta
+#pragma HLS RESOURCE core=AXI4Stream variable=soUdp_meta    metadata="-bus_bundle soUdp_meta"
+#pragma HLS DATA_PACK          variable=soUdp_meta
 
-  #pragma HLS RESOURCE core=AXI4Stream variable=siUOE_Data    metadata="-bus_bundle siUOE_Data"
-  #pragma HLS RESOURCE core=AXI4Stream variable=siUOE_Meta    metadata="-bus_bundle siUOE_Meta"
-  #pragma HLS DATA_PACK                variable=siUOE_Meta
+#pragma HLS RESOURCE core=AXI4Stream variable=soUOE_LsnReq  metadata="-bus_bundle soUOE_LsnReq"
+#pragma HLS RESOURCE core=AXI4Stream variable=siUOE_LsnRep  metadata="-bus_bundle siUOE_LsnRep"
+#pragma HLS RESOURCE core=AXI4Stream variable=soUOE_ClsReq  metadata="-bus_bundle soUOE_ClsReq"
+#pragma HLS RESOURCE core=AXI4Stream variable=siUOE_ClsRep  metadata="-bus_bundle siUOE_ClsRep"
 
-  #pragma HLS RESOURCE core=AXI4Stream variable=soUOE_Data    metadata="-bus_bundle soUOE_Data"
-  #pragma HLS RESOURCE core=AXI4Stream variable=soUOE_Meta    metadata="-bus_bundle soUOE_Meta"
-  #pragma HLS DATA_PACK                variable=soUOE_Meta
-  #pragma HLS RESOURCE core=AXI4Stream variable=soUOE_DLen    metadata="-bus_bundle soUOE_DLen"
+#pragma HLS RESOURCE core=AXI4Stream variable=siUOE_Data    metadata="-bus_bundle siUOE_Data"
+#pragma HLS RESOURCE core=AXI4Stream variable=siUOE_Meta    metadata="-bus_bundle siUOE_Meta"
+#pragma HLS DATA_PACK                variable=siUOE_Meta
 
-  #pragma HLS RESOURCE core=AXI4Stream variable=siTcp_data    metadata="-bus_bundle siTcp_data"
-  #pragma HLS RESOURCE core=AXI4Stream variable=soTcp_data    metadata="-bus_bundle soTcp_data"
-  #pragma HLS RESOURCE core=AXI4Stream variable=siTcp_meta    metadata="-bus_bundle siTcp_meta"
-  #pragma HLS DATA_PACK          variable=siTcp_meta
-  #pragma HLS RESOURCE core=AXI4Stream variable=soTcp_meta    metadata="-bus_bundle soTcp_meta"
-  #pragma HLS DATA_PACK          variable=soTcp_meta
+#pragma HLS RESOURCE core=AXI4Stream variable=soUOE_Data    metadata="-bus_bundle soUOE_Data"
+#pragma HLS RESOURCE core=AXI4Stream variable=soUOE_Meta    metadata="-bus_bundle soUOE_Meta"
+#pragma HLS DATA_PACK                variable=soUOE_Meta
+#pragma HLS RESOURCE core=AXI4Stream variable=soUOE_DLen    metadata="-bus_bundle soUOE_DLen"
 
-  #pragma HLS RESOURCE core=AXI4Stream variable=siTOE_Notif   metadata="-bus_bundle siTOE_Notif"
-  #pragma HLS DATA_PACK                variable=siTOE_Notif
-  #pragma HLS RESOURCE core=AXI4Stream variable=soTOE_DReq    metadata="-bus_bundle soTOE_DReq"
-  #pragma HLS DATA_PACK                variable=soTOE_DReq
-  #pragma HLS RESOURCE core=AXI4Stream variable=siTOE_Data    metadata="-bus_bundle siTOE_Data"
-  #pragma HLS RESOURCE core=AXI4Stream variable=siTOE_SessId  metadata="-bus_bundle siTOE_SessId"
-  
-  #pragma HLS RESOURCE core=AXI4Stream variable=soTOE_LsnReq  metadata="-bus_bundle soTOE_LsnReq"
-  #pragma HLS RESOURCE core=AXI4Stream variable=siTOE_LsnRep  metadata="-bus_bundle siTOE_LsnRep"
+#pragma HLS RESOURCE core=AXI4Stream variable=siTcp_data    metadata="-bus_bundle siTcp_data"
+#pragma HLS RESOURCE core=AXI4Stream variable=soTcp_data    metadata="-bus_bundle soTcp_data"
+#pragma HLS RESOURCE core=AXI4Stream variable=siTcp_meta    metadata="-bus_bundle siTcp_meta"
+#pragma HLS DATA_PACK          variable=siTcp_meta
+#pragma HLS RESOURCE core=AXI4Stream variable=soTcp_meta    metadata="-bus_bundle soTcp_meta"
+#pragma HLS DATA_PACK          variable=soTcp_meta
 
-  #pragma HLS RESOURCE core=AXI4Stream variable=soTOE_Data    metadata="-bus_bundle soTOE_Data"
-  #pragma HLS RESOURCE core=AXI4Stream variable=soTOE_SessId  metadata="-bus_bundle soTOE_SessId"
+#pragma HLS RESOURCE core=AXI4Stream variable=siTOE_Notif   metadata="-bus_bundle siTOE_Notif"
+#pragma HLS DATA_PACK                variable=siTOE_Notif
+#pragma HLS RESOURCE core=AXI4Stream variable=soTOE_DReq    metadata="-bus_bundle soTOE_DReq"
+#pragma HLS DATA_PACK                variable=soTOE_DReq
+#pragma HLS RESOURCE core=AXI4Stream variable=siTOE_Data    metadata="-bus_bundle siTOE_Data"
+#pragma HLS RESOURCE core=AXI4Stream variable=siTOE_SessId  metadata="-bus_bundle siTOE_SessId"
+
+#pragma HLS RESOURCE core=AXI4Stream variable=soTOE_LsnReq  metadata="-bus_bundle soTOE_LsnReq"
+#pragma HLS RESOURCE core=AXI4Stream variable=siTOE_LsnRep  metadata="-bus_bundle siTOE_LsnRep"
+
+#pragma HLS RESOURCE core=AXI4Stream variable=soTOE_Data    metadata="-bus_bundle soTOE_Data"
+#pragma HLS RESOURCE core=AXI4Stream variable=soTOE_SessId  metadata="-bus_bundle soTOE_SessId"
   //#pragma HLS RESOURCE core=AXI4Stream variable=siTOE_DSts  metadata="-bus_bundle "
 
-  #pragma HLS RESOURCE core=AXI4Stream variable=soTOE_OpnReq  metadata="-bus_bundle soTOE_OpnReq"
-  #pragma HLS DATA_PACK                variable=soTOE_OpnReq
-  #pragma HLS RESOURCE core=AXI4Stream variable=siTOE_OpnRep  metadata="-bus_bundle siTOE_OpnRep"
-  #pragma HLS DATA_PACK                variable=siTOE_OpnRep
-  
-  #pragma HLS RESOURCE core=AXI4Stream variable=soTOE_ClsReq  metadata="-bus_bundle soTOE_ClsReq"
+#pragma HLS RESOURCE core=AXI4Stream variable=soTOE_OpnReq  metadata="-bus_bundle soTOE_OpnReq"
+#pragma HLS DATA_PACK                variable=soTOE_OpnReq
+#pragma HLS RESOURCE core=AXI4Stream variable=siTOE_OpnRep  metadata="-bus_bundle siTOE_OpnRep"
+#pragma HLS DATA_PACK                variable=siTOE_OpnRep
+
+#pragma HLS RESOURCE core=AXI4Stream variable=soTOE_ClsReq  metadata="-bus_bundle soTOE_ClsReq"
 
 #else
-  #pragma HLS INTERFACE s_axilite depth=512 port=ctrlLink bundle=piFMC_NAL_ctrlLink_AXI
+#pragma HLS INTERFACE s_axilite depth=512 port=ctrlLink bundle=piFMC_NAL_ctrlLink_AXI
 
-  #pragma HLS INTERFACE axis register both port=siUdp_data
-  #pragma HLS INTERFACE axis register both port=soUdp_data
+#pragma HLS INTERFACE axis register both port=siUdp_data
+#pragma HLS INTERFACE axis register both port=soUdp_data
 
-  #pragma HLS INTERFACE axis register both port=siUdp_meta
-  #pragma HLS INTERFACE axis register both port=soUdp_meta
+#pragma HLS INTERFACE axis register both port=siUdp_meta
+#pragma HLS INTERFACE axis register both port=soUdp_meta
 
-  #pragma HLS INTERFACE axis register both port=soUOE_LsnReq
-  #pragma HLS INTERFACE axis register both port=siUOE_LsnRep
-  #pragma HLS INTERFACE axis register both port=soUOE_ClsReq
-  #pragma HLS INTERFACE axis register both port=siUOE_ClsRep
+#pragma HLS INTERFACE axis register both port=soUOE_LsnReq
+#pragma HLS INTERFACE axis register both port=siUOE_LsnRep
+#pragma HLS INTERFACE axis register both port=soUOE_ClsReq
+#pragma HLS INTERFACE axis register both port=siUOE_ClsRep
 
-  #pragma HLS INTERFACE axis register both port=siUOE_Data
-  #pragma HLS INTERFACE axis register both port=siUOE_Meta
-  #pragma HLS DATA_PACK                variable=siUOE_Meta
+#pragma HLS INTERFACE axis register both port=siUOE_Data
+#pragma HLS INTERFACE axis register both port=siUOE_Meta
+#pragma HLS DATA_PACK                variable=siUOE_Meta
 
-  #pragma HLS INTERFACE axis register both port=soUOE_Data
-  #pragma HLS INTERFACE axis register both port=soUOE_Meta
-  #pragma HLS DATA_PACK                variable=soUOE_Meta
-  #pragma HLS INTERFACE axis register both port=soUOE_DLen
+#pragma HLS INTERFACE axis register both port=soUOE_Data
+#pragma HLS INTERFACE axis register both port=soUOE_Meta
+#pragma HLS DATA_PACK                variable=soUOE_Meta
+#pragma HLS INTERFACE axis register both port=soUOE_DLen
 
-  #pragma HLS INTERFACE axis register both port=siTcp_data
-  #pragma HLS INTERFACE axis register both port=soTcp_data
-  #pragma HLS INTERFACE axis register both port=siTcp_meta
-  #pragma HLS INTERFACE axis register both port=soTcp_meta
+#pragma HLS INTERFACE axis register both port=siTcp_data
+#pragma HLS INTERFACE axis register both port=soTcp_data
+#pragma HLS INTERFACE axis register both port=siTcp_meta
+#pragma HLS INTERFACE axis register both port=soTcp_meta
 
-  #pragma HLS INTERFACE axis register both port=siTOE_Notif
-  #pragma HLS DATA_PACK                variable=siTOE_Notif
-  #pragma HLS INTERFACE axis register both port=soTOE_DReq
-  #pragma HLS DATA_PACK                variable=soTOE_DReq
-  #pragma HLS INTERFACE axis register both port=siTOE_Data
-  #pragma HLS INTERFACE axis register both port=siTOE_SessId
-  
-  #pragma HLS INTERFACE axis register both port=soTOE_LsnReq
-  #pragma HLS INTERFACE axis register both port=siTOE_LsnRep
-  
-  #pragma HLS INTERFACE axis register both port=soTOE_Data
-  #pragma HLS INTERFACE axis register both port=soTOE_SessId
+#pragma HLS INTERFACE axis register both port=siTOE_Notif
+#pragma HLS DATA_PACK                variable=siTOE_Notif
+#pragma HLS INTERFACE axis register both port=soTOE_DReq
+#pragma HLS DATA_PACK                variable=soTOE_DReq
+#pragma HLS INTERFACE axis register both port=siTOE_Data
+#pragma HLS INTERFACE axis register both port=siTOE_SessId
+
+#pragma HLS INTERFACE axis register both port=soTOE_LsnReq
+#pragma HLS INTERFACE axis register both port=siTOE_LsnRep
+
+#pragma HLS INTERFACE axis register both port=soTOE_Data
+#pragma HLS INTERFACE axis register both port=soTOE_SessId
   //#pragma HLS INTERFACE axis register both port=siTOE_DSts
-  
-  #pragma HLS INTERFACE axis register both port=soTOE_OpnReq
-  #pragma HLS DATA_PACK                variable=soTOE_OpnReq
-  #pragma HLS INTERFACE axis register both port=siTOE_OpnRep
-  #pragma HLS DATA_PACK                variable=siTOE_OpnRep
-  
-  #pragma HLS INTERFACE axis register both port=soTOE_ClsReq
+
+#pragma HLS INTERFACE axis register both port=soTOE_OpnReq
+#pragma HLS DATA_PACK                variable=soTOE_OpnReq
+#pragma HLS INTERFACE axis register both port=siTOE_OpnRep
+#pragma HLS DATA_PACK                variable=siTOE_OpnRep
+
+#pragma HLS INTERFACE axis register both port=soTOE_ClsReq
 
 #endif
 
-// ----- common directives -----
+  // ----- common directives -----
 
 #pragma HLS INTERFACE ap_ctrl_none port=return
 
@@ -902,23 +895,23 @@ void nal_main(
   //TODO: add internal streams
 
 #pragma HLS DATAFLOW
-//#pragma HLS PIPELINE II=1 //FIXME
+  //#pragma HLS PIPELINE II=1 //FIXME
 
-//=================================================================================================
-// Variable Pragmas
+  //=================================================================================================
+  // Variable Pragmas
 
-#pragma HLS ARRAY_PARTITION variable=tripleList cyclic factor=4 dim=1
-#pragma HLS ARRAY_PARTITION variable=sessionIdList cyclic factor=4 dim=1
-#pragma HLS ARRAY_PARTITION variable=usedRows cyclic factor=4 dim=1
-#pragma HLS ARRAY_PARTITION variable=privilegedRows cyclic factor=4 dim=1
-#pragma HLS ARRAY_PARTITION variable=rowsToDelete cyclic factor=4 dim=1
-//#pragma HLS ARRAY_PARTITION variable=localMRT complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=tripleList cyclic factor=4 dim=1
+//#pragma HLS ARRAY_PARTITION variable=sessionIdList cyclic factor=4 dim=1
+//#pragma HLS ARRAY_PARTITION variable=usedRows cyclic factor=4 dim=1
+//#pragma HLS ARRAY_PARTITION variable=privilegedRows cyclic factor=4 dim=1
+//#pragma HLS ARRAY_PARTITION variable=rowsToDelete cyclic factor=4 dim=1
+  //#pragma HLS ARRAY_PARTITION variable=localMRT complete dim=1
 
-//#pragma HLS ARRAY_PARTITION variable=status cyclic factor=4 dim=1
+  //#pragma HLS ARRAY_PARTITION variable=status cyclic factor=4 dim=1
 
 
-    //===========================================================
-    //  core wide STATIC variables
+  //===========================================================
+  //  core wide STATIC variables
 
   static ap_uint<32> mrt_version_processed = 0;
   static ap_uint<32> mrt_version_old = 0; //no reset needed
@@ -926,55 +919,67 @@ void nal_main(
 
 
 
-//static ap_uint<32> udp_rx_ports_to_close = 0;
-//static bool need_udp_port_req = false;
-//static ap_uint<16> new_relative_port_to_req_udp = 0;
+  //static ap_uint<32> udp_rx_ports_to_close = 0;
+  //static bool need_udp_port_req = false;
+  //static ap_uint<16> new_relative_port_to_req_udp = 0;
 
-static SessionId cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE; //pTcpRrh and pTcpRDp need this
-
-
-
-//static bool need_tcp_port_req = false;
-//static ap_uint<16> new_relative_port_to_req_tcp = 0;
+  //static SessionId cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE; //pTcpRrh and pTcpRDp need this
 
 
-static ap_uint<64>  tripple_for_new_connection = 0; //pTcpWrp and CON need this
-static bool tcp_need_new_connection_request = false; //pTcpWrp and CON need this
-static bool tcp_new_connection_failure = false; //pTcpWrp and CON need this
 
-static bool expect_FMC_response = false; //pTcpRDP and pTcpWRp need this
-
-static stream<NalEventNotif> internal_event_fifo_0 ("internal_event_fifo_0");
-static stream<NalEventNotif> internal_event_fifo_1 ("internal_event_fifo_1");
-static stream<NalEventNotif> internal_event_fifo_2 ("internal_event_fifo_2");
-static stream<NalEventNotif> internal_event_fifo_3 ("internal_event_fifo_3");
-static stream<NalConfigUpdate>   sA4lToTcpAgency    ("sA4lToTcpAgency");
-static stream<NalConfigUpdate>   sA4lToPortLogic    ("sA4lToPortLogic");
-static stream<NalConfigUpdate>   sA4lToUdpRx        ("sA4lToUdpRx");
-static stream<NalConfigUpdate>   sA4lToTcpRx        ("sA4lToTcpRx");
-static stream<NalConfigUpdate>   sA4lToStatusProc   ("sA4lToStatusProc");
-//static stream<NalMrtUpdate>    sA4lMrtUpdate    ("lMrtUpdate");
-static stream<NalStatusUpdate>   sStatusUpdate    ("sStatusUpdate");
-static stream<NodeId>            sGetIpReq_UdpTx    ("sGetIpReq_UdpTx");
-static stream<Ip4Addr>           sGetIpRep_UdpTx    ("sGetIpRep_UdpTx");
-static stream<NodeId>            sGetIpReq_TcpTx    ("sGetIpReq_TcpTx");
-static stream<Ip4Addr>           sGetIpRep_TcpTx    ("sGetIpRep_TcpTx");
-static stream<Ip4Addr>           sGetNidReq_UdpRx    ("sGetNidReq_UdpRx");
-static stream<NodeId>            sGetNidRep_UdpRx    ("sGetNidRep_UdpRx");
-static stream<Ip4Addr>           sGetNidReq_TcpRx    ("sGetNidReq_TcpRx");
-static stream<NodeId>            sGetNidRep_TcpRx    ("sGetNidRep_TcpRx");
-static stream<Ip4Addr>           sGetNidReq_TcpTx    ("sGetNidReq_TcpTx");
-static stream<NodeId>            sGetNidRep_TcpTx    ("sGetNidRep_TcpTx");
-
-static stream<UdpPort>			sUdpPortsToClose	 ("sUdpPortsToClose");
-static stream<UdpPort> 			sUdpPortsToOpen		 ("sUdpPortsToOpen");
-static stream<TcpPort>			sTcpPortsToOpen	     ("sTcpPortsToOpen");
-static stream<bool>				sUdpPortsOpenFeedback ("sUdpPortsOpenFeedback");
-static stream<bool>				sTcpPortsOpenFeedback ("sTcpPortsOpenFeedback");
+  //static bool need_tcp_port_req = false;
+  //static ap_uint<16> new_relative_port_to_req_tcp = 0;
 
 
-static stream<NetworkWord>      	sRoleTcpDataRx_buffer ("sRoleTcpDataRx_buffer");
-static stream<NetworkMetaStream>   	sRoleTcpMetaRx_buffer ("sRoleTcpMetaRx_buffer");
+  static ap_uint<64>  tripple_for_new_connection = 0; //pTcpWrp and CON need this
+  static bool tcp_need_new_connection_request = false; //pTcpWrp and CON need this
+  static bool tcp_new_connection_failure = false; //pTcpWrp and CON need this
+
+  static bool expect_FMC_response = false; //pTcpRDP and pTcpWRp need this
+
+  static stream<NalEventNotif> internal_event_fifo_0 ("internal_event_fifo_0");
+  static stream<NalEventNotif> internal_event_fifo_1 ("internal_event_fifo_1");
+  static stream<NalEventNotif> internal_event_fifo_2 ("internal_event_fifo_2");
+  static stream<NalEventNotif> internal_event_fifo_3 ("internal_event_fifo_3");
+  static stream<NalConfigUpdate>   sA4lToTcpAgency    ("sA4lToTcpAgency");
+  static stream<NalConfigUpdate>   sA4lToPortLogic    ("sA4lToPortLogic");
+  static stream<NalConfigUpdate>   sA4lToUdpRx        ("sA4lToUdpRx");
+  static stream<NalConfigUpdate>   sA4lToTcpRx        ("sA4lToTcpRx");
+  static stream<NalConfigUpdate>   sA4lToStatusProc   ("sA4lToStatusProc");
+  //static stream<NalMrtUpdate>    sA4lMrtUpdate    ("lMrtUpdate");
+  static stream<NalStatusUpdate>   sStatusUpdate    ("sStatusUpdate");
+  static stream<NodeId>            sGetIpReq_UdpTx    ("sGetIpReq_UdpTx");
+  static stream<Ip4Addr>           sGetIpRep_UdpTx    ("sGetIpRep_UdpTx");
+  static stream<NodeId>            sGetIpReq_TcpTx    ("sGetIpReq_TcpTx");
+  static stream<Ip4Addr>           sGetIpRep_TcpTx    ("sGetIpRep_TcpTx");
+  static stream<Ip4Addr>           sGetNidReq_UdpRx    ("sGetNidReq_UdpRx");
+  static stream<NodeId>            sGetNidRep_UdpRx    ("sGetNidRep_UdpRx");
+  static stream<Ip4Addr>           sGetNidReq_TcpRx    ("sGetNidReq_TcpRx");
+  static stream<NodeId>            sGetNidRep_TcpRx    ("sGetNidRep_TcpRx");
+  static stream<Ip4Addr>           sGetNidReq_TcpTx    ("sGetNidReq_TcpTx");
+  static stream<NodeId>            sGetNidRep_TcpTx    ("sGetNidRep_TcpTx");
+
+  static stream<UdpPort>      sUdpPortsToClose   ("sUdpPortsToClose");
+  static stream<UdpPort>      sUdpPortsToOpen    ("sUdpPortsToOpen");
+  static stream<TcpPort>      sTcpPortsToOpen      ("sTcpPortsToOpen");
+  static stream<bool>       sUdpPortsOpenFeedback ("sUdpPortsOpenFeedback");
+  static stream<bool>       sTcpPortsOpenFeedback ("sTcpPortsOpenFeedback");
+
+
+  static stream<NetworkWord>        sRoleTcpDataRx_buffer ("sRoleTcpDataRx_buffer");
+  static stream<NetworkMetaStream>    sRoleTcpMetaRx_buffer ("sRoleTcpMetaRx_buffer");
+
+  static stream<SessionId>          sGetTripleFromSid_Req    ("sGetTripleFromSid_Req");
+  static stream<NalTriple>          sGetTripleFromSid_Rep    ("sGetTripleFromSid_Rep");
+  static stream<NalTriple>          sGetSidFromTriple_Req    ("sGetSidFromTriple_Req");
+  static stream<SessionId>          sGetSidFromTriple_Rep    ("sGetSidFromTriple_Rep");
+  static stream<NalNewTableEntry>   sAddNewTriple_TcpRrh     ("sAddNewTriple_TcpRrh");
+  static stream<NalNewTableEntry>   sAddNewTriple_TcpCon     ("sAddNewTriple_TcpCon");
+  static stream<SessionId>          sDeleteEntryBySid        ("sDeleteEntryBySid");
+  static stream<SessionId>          sMarkAsPriv              ("sMarkAsPriv");
+  static stream<bool>               sMarkToDel_unpriv        ("sMarkToDel_unpriv");
+  static stream<bool>               sGetNextDelRow_Req       ("sGetNextDelRow_Req");
+  static stream<SessionId>          sGetNextDelRow_Rep       ("sGetNextDelRow_Rep");
 
 
 #pragma HLS STREAM variable=internal_event_fifo_0 depth=16
@@ -1009,89 +1014,101 @@ static stream<NetworkMetaStream>   	sRoleTcpMetaRx_buffer ("sRoleTcpMetaRx_buffe
 #pragma HLS STREAM variable=sRoleTcpDataRx_buffer depth=252 //NAL_MAX_FIFO_DEPTS_BYTES/8 (+2)
 #pragma HLS STREAM variable=sRoleTcpMetaRx_buffer depth=252 //TODO: maybe smaller?
 
+#pragma HLS STREAM variable=sGetTripleFromSid_Req
+#pragma HLS STREAM variable=sGetTripleFromSid_Rep
+#pragma HLS STREAM variable=sGetSidFromTriple_Req
+#pragma HLS STREAM variable=sGetSidFromTriple_Rep
+#pragma HLS STREAM variable=sAddNewTriple_TcpRrh
+#pragma HLS STREAM variable=sAddNewTriple_TcpCon 
+#pragma HLS STREAM variable=sDeleteEntryBySid    
+#pragma HLS STREAM variable=sMarkAsPriv          
+#pragma HLS STREAM variable=sMarkToDel_unpriv    
+#pragma HLS STREAM variable=sGetNextDelRow_Req   
+#pragma HLS STREAM variable=sGetNextDelRow_Rep   
 
-//=================================================================================================
-// Reset global variables
 
-//#pragma HLS reset variable=fsmStateRX_Udp
-//#pragma HLS reset variable=fsmStateTX_Udp
-//#pragma HLS reset variable=openPortWaitTime
-//#pragma HLS reset variable=mmio_stabilize_counter
-//#pragma HLS reset variable=udp_lsn_watchDogTimer
+    //=================================================================================================
+    // Reset global variables
+
+    //#pragma HLS reset variable=fsmStateRX_Udp
+    //#pragma HLS reset variable=fsmStateTX_Udp
+    //#pragma HLS reset variable=openPortWaitTime
+    //#pragma HLS reset variable=mmio_stabilize_counter
+    //#pragma HLS reset variable=udp_lsn_watchDogTimer
 #pragma HLS reset variable=mrt_version_processed
-//#pragma HLS reset variable=udp_rx_ports_processed
-//#pragma HLS reset variable=udp_rx_ports_to_close
-//#pragma HLS reset variable=need_udp_port_req
-//#pragma HLS reset variable=new_relative_port_to_req_udp
-//#pragma HLS reset variable=clsFsmState_Udp
-//#pragma HLS reset variable=newRelativePortToClose
-//#pragma HLS reset variable=newAbsolutePortToClose
-//#pragma HLS reset variable=node_id_missmatch_RX_cnt
-//#pragma HLS reset variable=node_id_missmatch_TX_cnt
-//#pragma HLS reset variable=port_corrections_TX_cnt
-//#pragma HLS reset variable=packet_count_RX
-//#pragma HLS reset variable=packet_count_TX
-//#pragma HLS reset variable=last_rx_node_id
-//#pragma HLS reset variable=last_rx_port
-//#pragma HLS reset variable=last_tx_node_id
-//#pragma HLS reset variable=last_tx_port
-////#pragma HLS reset variable=out_meta_udp
-////#pragma HLS reset variable=in_meta_udp
-////#pragma HLS reset variable=udpTX_packet_length
-////#pragma HLS reset variable=udpTX_current_packet_length
-//#pragma HLS reset variable=unauthorized_access_cnt
-//#pragma HLS reset variable=authorized_access_cnt
-//#pragma HLS reset variable=fmc_tcp_bytes_cnt
+    //#pragma HLS reset variable=udp_rx_ports_processed
+    //#pragma HLS reset variable=udp_rx_ports_to_close
+    //#pragma HLS reset variable=need_udp_port_req
+    //#pragma HLS reset variable=new_relative_port_to_req_udp
+    //#pragma HLS reset variable=clsFsmState_Udp
+    //#pragma HLS reset variable=newRelativePortToClose
+    //#pragma HLS reset variable=newAbsolutePortToClose
+    //#pragma HLS reset variable=node_id_missmatch_RX_cnt
+    //#pragma HLS reset variable=node_id_missmatch_TX_cnt
+    //#pragma HLS reset variable=port_corrections_TX_cnt
+    //#pragma HLS reset variable=packet_count_RX
+    //#pragma HLS reset variable=packet_count_TX
+    //#pragma HLS reset variable=last_rx_node_id
+    //#pragma HLS reset variable=last_rx_port
+    //#pragma HLS reset variable=last_tx_node_id
+    //#pragma HLS reset variable=last_tx_port
+    ////#pragma HLS reset variable=out_meta_udp
+    ////#pragma HLS reset variable=in_meta_udp
+    ////#pragma HLS reset variable=udpTX_packet_length
+    ////#pragma HLS reset variable=udpTX_current_packet_length
+    //#pragma HLS reset variable=unauthorized_access_cnt
+    //#pragma HLS reset variable=authorized_access_cnt
+    //#pragma HLS reset variable=fmc_tcp_bytes_cnt
 
-//#pragma HLS reset variable=startupDelay
-//#pragma HLS reset variable=opnFsmState
-//#pragma HLS reset variable=clsFsmState_Tcp
-//#pragma HLS reset variable=lsnFsmState
-//#pragma HLS reset variable=rrhFsmState
-//#pragma HLS reset variable=rdpFsmState
-//#pragma HLS reset variable=wrpFsmState
-//#pragma HLS reset variable=tcp_rx_ports_processed
-//#pragma HLS reset variable=need_tcp_port_req
-//#pragma HLS reset variable=new_relative_port_to_req_tcp
-//#pragma HLS reset variable=processed_FMC_listen_port
-//#pragma HLS reset variable=fmc_port_opened
+    //#pragma HLS reset variable=startupDelay
+    //#pragma HLS reset variable=opnFsmState
+    //#pragma HLS reset variable=clsFsmState_Tcp
+    //#pragma HLS reset variable=lsnFsmState
+    //#pragma HLS reset variable=rrhFsmState
+    //#pragma HLS reset variable=rdpFsmState
+    //#pragma HLS reset variable=wrpFsmState
+    //#pragma HLS reset variable=tcp_rx_ports_processed
+    //#pragma HLS reset variable=need_tcp_port_req
+    //#pragma HLS reset variable=new_relative_port_to_req_tcp
+    //#pragma HLS reset variable=processed_FMC_listen_port
+    //#pragma HLS reset variable=fmc_port_opened
 #pragma HLS reset variable=tables_initalized
-//#pragma HLS reset variable=out_meta_tcp
-//#pragma HLS reset variable=in_meta_tcp
-//#pragma HLS reset variable=session_toFMC
-//#pragma HLS reset variable=session_fromFMC
-//#pragma HLS reset variable=Tcp_RX_metaWritten
-//#pragma HLS reset variable=tcpTX_packet_length
-//#pragma HLS reset variable=tcpTX_current_packet_length
+    //#pragma HLS reset variable=out_meta_tcp
+    //#pragma HLS reset variable=in_meta_tcp
+    //#pragma HLS reset variable=session_toFMC
+    //#pragma HLS reset variable=session_fromFMC
+    //#pragma HLS reset variable=Tcp_RX_metaWritten
+    //#pragma HLS reset variable=tcpTX_packet_length
+    //#pragma HLS reset variable=tcpTX_current_packet_length
 #pragma HLS reset variable=tripple_for_new_connection
 #pragma HLS reset variable=tcp_need_new_connection_request
 #pragma HLS reset variable=tcp_new_connection_failure
 
 #pragma HLS reset variable=expect_FMC_response
 
-//#pragma HLS reset variable=cached_udp_rx_id
-//#pragma HLS reset variable=cached_udp_rx_ipaddr
-//#pragma HLS reset variable=cached_tcp_rx_session_id
-//#pragma HLS reset variable=cached_tcp_rx_tripple
-//#pragma HLS reset variable=cached_tcp_tx_session_id
-//#pragma HLS reset variable=cached_tcp_tx_tripple
-//#pragma HLS reset variable=pr_was_done_flag
+    //#pragma HLS reset variable=cached_udp_rx_id
+    //#pragma HLS reset variable=cached_udp_rx_ipaddr
+    //#pragma HLS reset variable=cached_tcp_rx_session_id
+    //#pragma HLS reset variable=cached_tcp_rx_tripple
+    //#pragma HLS reset variable=cached_tcp_tx_session_id
+    //#pragma HLS reset variable=cached_tcp_tx_tripple
+    //#pragma HLS reset variable=pr_was_done_flag
 
 
 
 
-  //===========================================================
-  //  core wide variables (for one iteration)
+    //===========================================================
+    //  core wide variables (for one iteration)
 
-  ap_uint<32> ipAddrBE = *myIpAddress;
+    ap_uint<32> ipAddrBE = *myIpAddress;
   bool nts_ready_and_enabled = (*piNTS_ready == 1 && *layer_4_enabled == 1);
   bool detected_cache_invalidation = false;
   //bool start_udp_cls_fsm = false;
   bool start_tcp_cls_fsm = false;
 
-  ap_uint<32> 	status_udp_ports;
-  ap_uint<32>	status_tcp_ports;
-  ap_uint<16>	status_fmc_ports;
+  ap_uint<32>   status_udp_ports;
+  ap_uint<32> status_tcp_ports;
+  ap_uint<16> status_fmc_ports;
 
   bool role_fifo_empty = (sRoleTcpDataRx_buffer.empty());
 
@@ -1099,9 +1116,9 @@ static stream<NetworkMetaStream>   	sRoleTcpMetaRx_buffer ("sRoleTcpMetaRx_buffe
   // restore saved states and ports handling
 
   pPortAndResetLogic(layer_4_enabled, layer_7_enabled, role_decoupled, piNTS_ready, piMMIO_FmcLsnPort,
-		  pi_udp_rx_ports, pi_tcp_rx_ports, sA4lToPortLogic, sUdpPortsToOpen, sUdpPortsToClose,
-		  sTcpPortsToOpen, sUdpPortsOpenFeedback, sTcpPortsOpenFeedback, &detected_cache_invalidation,
-		  &status_udp_ports, &status_tcp_ports, &status_fmc_ports, &start_tcp_cls_fsm);
+      pi_udp_rx_ports, pi_tcp_rx_ports, sA4lToPortLogic, sUdpPortsToOpen, sUdpPortsToClose,
+      sTcpPortsToOpen, sUdpPortsOpenFeedback, sTcpPortsOpenFeedback, &detected_cache_invalidation,
+      &status_udp_ports, &status_tcp_ports, &status_fmc_ports, &start_tcp_cls_fsm);
 
   //===========================================================
   // check for resets
@@ -1119,33 +1136,33 @@ static stream<NetworkMetaStream>   	sRoleTcpMetaRx_buffer ("sRoleTcpMetaRx_buffe
 
   //TODO: some consistency check for tables? (e.g. every IP address only once...)
 
-  if (!tables_initalized)
-  {
-    printf("init tables...\n");
-    for(int i = 0; i<MAX_NAL_SESSIONS; i++)
-    {
-      //#pragma HLS unroll
-      sessionIdList[i] = 0;
-      tripleList[i] = 0;
-      usedRows[i]  =  0;
-      rowsToDelete[i] = 0;
-      privilegedRows[i] = 0;
-    }
-    //udp_rx_ports_to_close = 0x0;
-    
-    tables_initalized = true;
-    //printf("Table layout:\n");
-    //for(int i = 0; i<MAX_NAL_SESSIONS; i++)
-    //{
-    //  printf("%d | %d |  %llu\n",(int) i, (int) sessionIdList[i], (unsigned long long) tripleList[i]);
-    //}
-  }
+  //  if (!tables_initalized)
+  //  {
+  //    printf("init tables...\n");
+  //    for(int i = 0; i<MAX_NAL_SESSIONS; i++)
+  //    {
+  //      //#pragma HLS unroll
+  //      sessionIdList[i] = 0;
+  //      tripleList[i] = 0;
+  //      usedRows[i]  =  0;
+  //      rowsToDelete[i] = 0;
+  //      privilegedRows[i] = 0;
+  //    }
+  //    //udp_rx_ports_to_close = 0x0;
+  //
+  //    tables_initalized = true;
+  //    //printf("Table layout:\n");
+  //    //for(int i = 0; i<MAX_NAL_SESSIONS; i++)
+  //    //{
+  //    //  printf("%d | %d |  %llu\n",(int) i, (int) sessionIdList[i], (unsigned long long) tripleList[i]);
+  //    //}
+  //  }
 
   //remaining MRT handling moved to the bottom
 
   // if(*layer_4_enabled == 0)
   // {
-  //	  expect_FMC_response = false;
+  //    expect_FMC_response = false;
   // }
 
 
@@ -1156,8 +1173,8 @@ static stream<NetworkMetaStream>   	sRoleTcpMetaRx_buffer ("sRoleTcpMetaRx_buffe
   //TODO: remove unused global variables
   //TODO: add disable signal? (NTS_ready, layer4 enabled)
   pUdpTX(siUdp_data, siUdp_meta, soUOE_Data, soUOE_Meta, soUOE_DLen, \
-		  sGetIpReq_UdpTx, sGetIpRep_UdpTx, \
-		  &ipAddrBE, &nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo_0);
+      sGetIpReq_UdpTx, sGetIpRep_UdpTx, \
+      &ipAddrBE, &nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo_0);
 
   //=================================================================================================
   // RX UDP
@@ -1165,77 +1182,77 @@ static stream<NetworkMetaStream>   	sRoleTcpMetaRx_buffer ("sRoleTcpMetaRx_buffe
   //TODO: add disable signal? (NTS_ready, layer4 enabled)
   //TODO: add cache invalidate mechanism
   pUdpRx(soUOE_LsnReq, siUOE_LsnRep, soUdp_data, soUdp_meta, siUOE_Data, siUOE_Meta, \
-		  sA4lToUdpRx, sGetNidReq_UdpRx, sGetNidRep_UdpRx, \
-		  sUdpPortsToOpen, sUdpPortsOpenFeedback, \
-		  &nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo_1);
+      sA4lToUdpRx, sGetNidReq_UdpRx, sGetNidRep_UdpRx, \
+      sUdpPortsToOpen, sUdpPortsOpenFeedback, \
+      &nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo_1);
 
   //=================================================================================================
   // UDP Port Close
 
   pUdpCls(soUOE_ClsReq, siUOE_ClsRep, sUdpPortsToClose, &nts_ready_and_enabled);
 
-    //=================================================================================================
-    // TCP pListen
-   pTcpLsn(soTOE_LsnReq, siTOE_LsnRep, sTcpPortsToOpen, sTcpPortsOpenFeedback, &nts_ready_and_enabled);
+  //=================================================================================================
+  // TCP pListen
+  pTcpLsn(soTOE_LsnReq, siTOE_LsnRep, sTcpPortsToOpen, sTcpPortsOpenFeedback, &nts_ready_and_enabled);
 
-   //=================================================================================================
-   // TCP Read Request Handler
+  //=================================================================================================
+  // TCP Read Request Handler
 
-   //TODO: remove unused global variables
-     //TODO: add disable signal? (NTS_ready, layer4 enabled)
-     //TODO: add cache invalidate mechanism
-   pTcpRRh(siTOE_Notif, soTOE_DReq, piFMC_Tcp_data_FIFO_prog_full, piFMC_Tcp_sessid_FIFO_prog_full, &role_fifo_empty, &nts_ready_and_enabled);
+  //TODO: remove unused global variables
+  //TODO: add disable signal? (NTS_ready, layer4 enabled)
+  //TODO: add cache invalidate mechanism
+  pTcpRRh(siTOE_Notif, soTOE_DReq, piFMC_Tcp_data_FIFO_prog_full, piFMC_Tcp_sessid_FIFO_prog_full, &role_fifo_empty, &nts_ready_and_enabled);
 
-    //=================================================================================================
-    // TCP Read Path
-    pTcpRDp(siTOE_Data, siTOE_SessId, soFMC_Tcp_data, soFMC_Tcp_SessId,
-    		//soTcp_data, soTcp_meta,
-    		sRoleTcpDataRx_buffer, sRoleTcpMetaRx_buffer, \
-    		sA4lToTcpRx, sGetNidReq_TcpRx, sGetNidRep_TcpRx, \
-    		piMMIO_CfrmIp4Addr, \
-        &status_fmc_ports, layer_7_enabled, role_decoupled, &expect_FMC_response, \
+  //=================================================================================================
+  // TCP Read Path
+  pTcpRDp(siTOE_Data, siTOE_SessId, soFMC_Tcp_data, soFMC_Tcp_SessId,
+      //soTcp_data, soTcp_meta,
+      sRoleTcpDataRx_buffer, sRoleTcpMetaRx_buffer, \
+      sA4lToTcpRx, sGetNidReq_TcpRx, sGetNidRep_TcpRx, \
+      piMMIO_CfrmIp4Addr, \
+      &status_fmc_ports, layer_7_enabled, role_decoupled, &expect_FMC_response, \
       &nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo_2);
 
 
-    pRoleTcpDeq(layer_7_enabled, role_decoupled, sRoleTcpDataRx_buffer, sRoleTcpMetaRx_buffer, soTcp_data, soTcp_meta);
+  pRoleTcpDeq(layer_7_enabled, role_decoupled, sRoleTcpDataRx_buffer, sRoleTcpMetaRx_buffer, soTcp_data, soTcp_meta);
 
-    //=================================================================================================
-    // TCP Write Path
-    pTcpWRp(siFMC_Tcp_data, siFMC_Tcp_SessId, siTcp_data, siTcp_meta, soTOE_Data, soTOE_SessId, \
-    		sGetIpReq_TcpTx, sGetIpRep_TcpTx, sGetNidReq_TcpTx, sGetNidRep_TcpTx,\
-			 &expect_FMC_response, &tripple_for_new_connection, &tcp_need_new_connection_request, &tcp_new_connection_failure, &nts_ready_and_enabled, \
+  //=================================================================================================
+  // TCP Write Path
+  pTcpWRp(siFMC_Tcp_data, siFMC_Tcp_SessId, siTcp_data, siTcp_meta, soTOE_Data, soTOE_SessId, \
+      sGetIpReq_TcpTx, sGetIpRep_TcpTx, sGetNidReq_TcpTx, sGetNidRep_TcpTx,\
+      &expect_FMC_response, &tripple_for_new_connection, &tcp_need_new_connection_request, &tcp_new_connection_failure, &nts_ready_and_enabled, \
       &detected_cache_invalidation, internal_event_fifo_3);
 
-    //=================================================================================================
-    // TCP start remote connection
-    pTcpCOn(soTOE_OpnReq, siTOE_OpnRep, &tripple_for_new_connection, &tcp_need_new_connection_request, &tcp_new_connection_failure,\
-        &nts_ready_and_enabled);
+  //=================================================================================================
+  // TCP start remote connection
+  pTcpCOn(soTOE_OpnReq, siTOE_OpnRep, &tripple_for_new_connection, &tcp_need_new_connection_request, &tcp_new_connection_failure,\
+      &nts_ready_and_enabled);
 
-    //=================================================================================================
-    // TCP connection close
-    pTcpCls(soTOE_ClsReq, &start_tcp_cls_fsm, &nts_ready_and_enabled);
+  //=================================================================================================
+  // TCP connection close
+  pTcpCls(soTOE_ClsReq, &start_tcp_cls_fsm, &nts_ready_and_enabled);
 
-    //===========================================================
-    //  update status, config, MRT
+  //===========================================================
+  //  update status, config, MRT
 
-    eventStatusHousekeeping(layer_4_enabled, layer_7_enabled, role_decoupled, &mrt_version_used, &status_udp_ports, &status_tcp_ports, \
-        &status_fmc_ports, sA4lToStatusProc, internal_event_fifo_0, internal_event_fifo_1, internal_event_fifo_2, internal_event_fifo_3, sStatusUpdate);
+  eventStatusHousekeeping(layer_4_enabled, layer_7_enabled, role_decoupled, &mrt_version_used, &status_udp_ports, &status_tcp_ports, \
+      &status_fmc_ports, sA4lToStatusProc, internal_event_fifo_0, internal_event_fifo_1, internal_event_fifo_2, internal_event_fifo_3, sStatusUpdate);
 
-    axi4liteProcessing(layer_4_enabled, ctrlLink, &mrt_version_processed, sA4lToTcpAgency, sA4lToPortLogic, sA4lToUdpRx, \
-    					sA4lToTcpRx, sA4lToStatusProc, sStatusUpdate,\
-    				   sGetIpReq_UdpTx, sGetIpRep_UdpTx, sGetIpReq_TcpTx, sGetIpRep_TcpTx, sGetNidReq_UdpRx, sGetNidRep_UdpRx,
-					   sGetNidReq_TcpRx, sGetNidRep_TcpRx, sGetNidReq_TcpTx, sGetNidRep_TcpTx);
+  axi4liteProcessing(layer_4_enabled, ctrlLink, &mrt_version_processed, sA4lToTcpAgency, sA4lToPortLogic, sA4lToUdpRx, \
+      sA4lToTcpRx, sA4lToStatusProc, sStatusUpdate,\
+      sGetIpReq_UdpTx, sGetIpRep_UdpTx, sGetIpReq_TcpTx, sGetIpRep_TcpTx, sGetNidReq_UdpRx, sGetNidRep_UdpRx,
+      sGetNidReq_TcpRx, sGetNidRep_TcpRx, sGetNidReq_TcpTx, sGetNidRep_TcpTx);
 
 
-//    if( fsmStateTX_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC &&
-//        rdpFsmState != RDP_STREAM_FMC && rdpFsmState != RDP_STREAM_ROLE &&
-//        wrpFsmState != WRP_STREAM_FMC && wrpFsmState != WRP_STREAM_ROLE )
-//    { //so we are not in a critical data path
-//
-//    }
+  //    if( fsmStateTX_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC &&
+  //        rdpFsmState != RDP_STREAM_FMC && rdpFsmState != RDP_STREAM_ROLE &&
+  //        wrpFsmState != WRP_STREAM_FMC && wrpFsmState != WRP_STREAM_ROLE )
+  //    { //so we are not in a critical data path
+  //
+  //    }
 
 }
 
 
-  /*! \} */
+/*! \} */
 
