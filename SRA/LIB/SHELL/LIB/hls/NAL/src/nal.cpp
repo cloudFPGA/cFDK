@@ -631,6 +631,70 @@ void eventStatusHousekeeping(
 }
 
 
+void pRoleTcpDeq(
+	    ap_uint<1> 					*layer_7_enabled,
+	    ap_uint<1> 					*role_decoupled,
+		stream<NetworkWord>      	&sRoleTcpDataRx_buffer,
+		stream<NetworkMetaStream>   &sRoleTcpMetaRx_buffer,
+	    stream<NetworkWord>         &soTcp_data,
+	    stream<NetworkMetaStream>   &soTcp_meta
+		)
+{
+	  //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+	#pragma HLS INLINE off
+	#pragma HLS pipeline II=1
+	//-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+	static DeqFsmStates deqFsmState = DEQ_WAIT_META;
+#pragma HLS RESET variable=deqFsmState
+	//-- STATIC DATAFLOW VARIABLES --------------------------------------------
+	 //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
+	NetworkWord cur_word = NetworkWord();
+	NetworkMetaStream cur_meta = NetworkMetaStream();
+	bool role_disabled = (*layer_7_enabled == 0 && *role_decoupled == 1);
+
+	switch(deqFsmState)
+	{
+	case DEQ_WAIT_META:
+		if(!sRoleTcpDataRx_buffer.empty() && !sRoleTcpMetaRx_buffer.empty()
+		   && ( (!soTcp_data.full() && !soTcp_meta.full()) ||  //user can read
+				 (role_disabled) //role is disabled -> drain FIFOs
+			   )
+		   )
+		{
+			cur_word = sRoleTcpDataRx_buffer.read();
+			cur_meta = sRoleTcpMetaRx_buffer.read();
+			if(!role_disabled)
+			{
+				soTcp_data.write(cur_word);
+				soTcp_meta.write(cur_meta);
+			}
+			if(cur_word.tlast == 0)
+			{
+				deqFsmState = DEQ_STREAM_DATA;
+			}
+		}
+		break;
+	case DEQ_STREAM_DATA:
+		if(!sRoleTcpDataRx_buffer.empty()
+		   && (!soTcp_data.full() || role_disabled)
+		   )
+		{
+			cur_word = sRoleTcpDataRx_buffer.read();
+						if(!role_disabled)
+						{
+							soTcp_data.write(cur_word);
+						}
+						if(cur_word.tlast == 1)
+						{
+							deqFsmState = DEQ_WAIT_META;
+						}
+		}
+		break;
+	}
+
+}
+
+
 /*****************************************************************************
  * @brief   Main process of the UDP Role Interface
  *
@@ -848,9 +912,9 @@ void nal_main(
 #pragma HLS ARRAY_PARTITION variable=usedRows cyclic factor=4 dim=1
 #pragma HLS ARRAY_PARTITION variable=privilegedRows cyclic factor=4 dim=1
 #pragma HLS ARRAY_PARTITION variable=rowsToDelete cyclic factor=4 dim=1
-#pragma HLS ARRAY_PARTITION variable=localMRT complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=localMRT complete dim=1
 
-#pragma HLS ARRAY_PARTITION variable=status cyclic factor=4 dim=1
+//#pragma HLS ARRAY_PARTITION variable=status cyclic factor=4 dim=1
 
 
     //===========================================================
@@ -908,6 +972,11 @@ static stream<TcpPort>			sTcpPortsToOpen	     ("sTcpPortsToOpen");
 static stream<bool>				sUdpPortsOpenFeedback ("sUdpPortsOpenFeedback");
 static stream<bool>				sTcpPortsOpenFeedback ("sTcpPortsOpenFeedback");
 
+
+static stream<NetworkWord>      	sRoleTcpDataRx_buffer ("sRoleTcpDataRx_buffer");
+static stream<NetworkMetaStream>   	sRoleTcpMetaRx_buffer ("sRoleTcpMetaRx_buffer");
+
+
 #pragma HLS STREAM variable=internal_event_fifo_0 depth=16
 #pragma HLS STREAM variable=internal_event_fifo_1 depth=16
 #pragma HLS STREAM variable=internal_event_fifo_2 depth=16
@@ -935,6 +1004,10 @@ static stream<bool>				sTcpPortsOpenFeedback ("sTcpPortsOpenFeedback");
 #pragma HLS STREAM variable=sUdpPortsOpenFeedback depth=32
 #pragma HLS STREAM variable=sTcpPortsToOpen  depth=32
 #pragma HLS STREAM variable=sTcpPortsOpenFeedback depth=32
+
+
+#pragma HLS STREAM variable=sRoleTcpDataRx_buffer depth=252 //NAL_MAX_FIFO_DEPTS_BYTES/8 (+2)
+#pragma HLS STREAM variable=sRoleTcpMetaRx_buffer depth=252 //TODO: maybe smaller?
 
 
 //=================================================================================================
@@ -1019,6 +1092,8 @@ static stream<bool>				sTcpPortsOpenFeedback ("sTcpPortsOpenFeedback");
   ap_uint<32> 	status_udp_ports;
   ap_uint<32>	status_tcp_ports;
   ap_uint<16>	status_fmc_ports;
+
+  bool role_fifo_empty = (sRoleTcpDataRx_buffer.empty());
 
   //===========================================================
   // restore saved states and ports handling
@@ -1109,15 +1184,20 @@ static stream<bool>				sTcpPortsOpenFeedback ("sTcpPortsOpenFeedback");
    //TODO: remove unused global variables
      //TODO: add disable signal? (NTS_ready, layer4 enabled)
      //TODO: add cache invalidate mechanism
-   pTcpRRh(siTOE_Notif, soTOE_DReq, piFMC_Tcp_data_FIFO_prog_full, piFMC_Tcp_sessid_FIFO_prog_full, &cached_tcp_rx_session_id, &nts_ready_and_enabled);
+   pTcpRRh(siTOE_Notif, soTOE_DReq, piFMC_Tcp_data_FIFO_prog_full, piFMC_Tcp_sessid_FIFO_prog_full, &role_fifo_empty, &nts_ready_and_enabled);
 
     //=================================================================================================
     // TCP Read Path
-    pTcpRDp(siTOE_Data, siTOE_SessId, soFMC_Tcp_data, soFMC_Tcp_SessId, soTcp_data, soTcp_meta,\
+    pTcpRDp(siTOE_Data, siTOE_SessId, soFMC_Tcp_data, soFMC_Tcp_SessId,
+    		//soTcp_data, soTcp_meta,
+    		sRoleTcpDataRx_buffer, sRoleTcpMetaRx_buffer, \
     		sA4lToTcpRx, sGetNidReq_TcpRx, sGetNidRep_TcpRx, \
     		piMMIO_CfrmIp4Addr, \
         &status_fmc_ports, layer_7_enabled, role_decoupled, &expect_FMC_response, \
       &nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo_2);
+
+
+    pRoleTcpDeq(layer_7_enabled, role_decoupled, sRoleTcpDataRx_buffer, sRoleTcpMetaRx_buffer, soTcp_data, soTcp_meta);
 
     //=================================================================================================
     // TCP Write Path

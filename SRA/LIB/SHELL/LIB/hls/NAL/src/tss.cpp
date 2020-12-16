@@ -209,10 +209,11 @@ void pTcpLsn(
 void pTcpRRh(
     stream<TcpAppNotif>       &siTOE_Notif,
     stream<TcpAppRdReq>       &soTOE_DReq,
-    ap_uint<1>                  *piFMC_Tcp_data_FIFO_prog_full,
-    ap_uint<1>                  *piFMC_Tcp_sessid_FIFO_prog_full,
-    SessionId         *cached_tcp_rx_session_id,
-    const bool          *nts_ready_and_enabled
+	//add add and delete streams
+    ap_uint<1>                *piFMC_Tcp_data_FIFO_prog_full,
+    ap_uint<1>                *piFMC_Tcp_sessid_FIFO_prog_full,
+    const bool				  *role_fifo_empty,
+    const bool                *nts_ready_and_enabled
     )
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -223,22 +224,155 @@ void pTcpRRh(
 
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
   static RrhFsmStates rrhFsmState = RRH_WAIT_NOTIF;
-  //todo: DReq table
+  static bool table_initialized = false;
 
 #pragma HLS RESET variable=rrhFsmState
+#pragma HLS RESET variable=tables_initialized
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
   static TcpAppNotif notif_pRrh;
+  static SessionId waitingSessIds[MAX_NAL_SESSIONS];
+  static TcpDatLen waitingBytes[MAX_NAL_SESSIONS];
+  static uint8_t waitingConnections = 0;
+  static uint32_t next_search_start_point = 0;
 
-  static stream<TcpAppNotif> notifBuffer  ("pTcpRRh_NotifBuffer");
-#pragma HLS STREAM variable=notifBuffer depth=2048
+  //  static stream<TcpAppNotif> notifBuffer  ("pTcpRRh_NotifBuffer");
+  //#pragma HLS STREAM variable=notifBuffer depth=2048
 
-  //TODO?
   if(!*nts_ready_and_enabled)
   {
     rrhFsmState = RRH_WAIT_NOTIF;
     notif_pRrh = TcpAppNotif();
+    table_initialized = false;
   }
 
+  if(!table_initialized)
+  {
+    for(uint32_t i = 0; i < MAX_NAL_SESSIONS; i++)
+    {
+      waitingSessIds[i] = UNUSED_SESSION_ENTRY_VALUE;
+      waitingBytes[i] = 0;
+    }
+    //while(!notifBuffer.empty())
+    //{
+    //    notifBuffer.read();
+    // }
+    waitingConnections = 0;
+    next_search_start_point = 0;
+    table_initialized = true;
+  }
+
+  switch(rrhFsmState) {
+    case RRH_WAIT_NOTIF:
+      if(!siTOE_Notif.empty() && true && true)
+      {
+        siTOE_Notif.read(notif_pRrh);
+        if (notif_pRrh.tcpDatLen != 0) {
+          // Always request the data segment to be received
+          // rrhFsmState = RRH_SEND_DREQ;
+          //remember the session ID if not yet known
+          // if(notif_pRrh.sessionID != *cached_tcp_rx_session_id)
+          // {
+          //  } else {
+          //   printf("session/tripple id already in cache.\n");
+          //  }
+
+          bool already_known = false;
+          int first_free_slot = 0;
+          bool found_slot = false;
+          for(uint32_t i = 0; i < MAX_NAL_SESSIONS; i++)
+          {
+#pragma HLS unroll
+            if(waitingSessIds[i] == notif_pRrh.sessionID)
+            {
+              waitingBytes[i] += notif_pRrh.tcpDatLen;
+              already_known = true;
+              printf("adding %d to waitingBytes.\n",(int) notif_pRrh.tcpDatLen);
+              break;
+            } else if(waitingSessIds[i] == UNUSED_SESSION_ENTRY_VALUE && !found_slot)
+            { //free space available
+              first_free_slot = i;
+              found_slot = true;
+              //we have to search the remaining table...
+            }
+          }
+          if(!already_known && found_slot)
+          {
+            waitingSessIds[first_free_slot] = notif_pRrh.sessionID;
+            waitingBytes[first_free_slot] = notif_pRrh.tcpDatLen;
+          } else if(!already_known && !found_slot)
+          {
+            //we have a problem...
+            //but shouldn't happen actually since we have the same size as the table in TOE...
+            printf("[TCP-RRH:PANIC] We don't have space left in the waiting Table...\n");
+            break;
+          }
+          waitingConnections++;
+
+          if(!already_known)
+          {
+            addnewSessionToTable(notif_pRrh.sessionID, notif_pRrh.ip4SrcAddr, notif_pRrh.tcpSrcPort, notif_pRrh.tcpDstPort);
+          }
+          rrhFsmState = RRH_SEND_DREQ;
+
+        } else if(notif_pRrh.tcpState == FIN_WAIT_1 || notif_pRrh.tcpState == FIN_WAIT_2
+            || notif_pRrh.tcpState == CLOSING || notif_pRrh.tcpState == TIME_WAIT
+            || notif_pRrh.tcpState == LAST_ACK || notif_pRrh.tcpState == CLOSED)
+        {
+          // we were notified about a closing connection
+          deleteSessionFromTables(notif_pRrh.sessionID);
+        }
+      } else if(waitingConnections > 0)
+      {
+        rrhFsmState = RRH_SEND_DREQ;
+      }
+      break;
+    case RRH_SEND_DREQ:
+      if((*piFMC_Tcp_data_FIFO_prog_full == 0 && *piFMC_Tcp_sessid_FIFO_prog_full == 0 )
+          && *role_fifo_empty
+          && !soTOE_DReq.full()
+        )
+      {
+        bool found_smth = false;
+        SessionId found_ID = 0;
+        TcpDatLen found_length_max = 0;
+        for(uint32_t i = 0; i < MAX_NAL_SESSIONS; i++)
+        {
+#pragma HLS unroll
+          if(i < next_search_start_point)
+          {
+            continue;
+          }
+          if(waitingSessIds[i] != UNUSED_SESSION_ENTRY_VALUE && waitingBytes[i] > 0 )
+          {
+            found_smth = true;
+            found_ID = waitingSessIds[i];
+            if(waitingBytes[i] > NAL_MAX_FIFO_DEPTHS_BYTES)
+            {
+              found_length_max = NAL_MAX_FIFO_DEPTHS_BYTES;
+              waitingBytes[i] -= NAL_MAX_FIFO_DEPTHS_BYTES;
+              next_search_start_point = i;
+            } else {
+              found_length_max = waitingBytes[i];
+              waitingSessIds[i] = UNUSED_SESSION_ENTRY_VALUE;
+              waitingBytes[i] = 0;
+              next_search_start_point = i + 1;
+            }
+          }
+        }
+        if(found_smth)
+        {
+          waitingConnections--;
+          if(waitingConnections == 0)
+          {
+            next_search_start_point = 0;
+          }
+          soTOE_DReq.write(TcpAppRdReq(found_ID, found_length_max));
+        }
+      }
+      //always
+      rrhFsmState = RRH_WAIT_NOTIF;
+      break;
+  }
 
 
   //only if NTS is ready
@@ -250,40 +384,40 @@ void pTcpRRh(
   //            (*piFMC_Tcp_data_FIFO_prog_full == 0 && *piFMC_Tcp_sessid_FIFO_prog_full == 0 )
   //          )
   //        {
-  switch(rrhFsmState) {
-    case RRH_WAIT_NOTIF:
-      if (!siTOE_Notif.empty()) {
-        siTOE_Notif.read(notif_pRrh);
-        if (notif_pRrh.tcpDatLen != 0) {
-          // Always request the data segment to be received
-          rrhFsmState = RRH_SEND_DREQ;
-          //remember the session ID if not yet known
-          if(notif_pRrh.sessionID != *cached_tcp_rx_session_id)
-          {
-            addnewSessionToTable(notif_pRrh.sessionID, notif_pRrh.ip4SrcAddr, notif_pRrh.tcpSrcPort, notif_pRrh.tcpDstPort);
-          } else {
-            printf("session/tripple id already in cache.\n");
-          }
-        } else if(notif_pRrh.tcpState == FIN_WAIT_1 || notif_pRrh.tcpState == FIN_WAIT_2
-            || notif_pRrh.tcpState == CLOSING || notif_pRrh.tcpState == TIME_WAIT
-            || notif_pRrh.tcpState == LAST_ACK || notif_pRrh.tcpState == CLOSED)
-        {
-          // we were notified about a closing connection
-          deleteSessionFromTables(notif_pRrh.sessionID);
-        }
-      }
-      break;
-    case RRH_SEND_DREQ:
-      //TODO increment tcpDatLen if necessary
-      if(*piFMC_Tcp_data_FIFO_prog_full == 0 && *piFMC_Tcp_sessid_FIFO_prog_full == 0 )
-      {
-        if (!soTOE_DReq.full()) {
-          soTOE_DReq.write(TcpAppRdReq(notif_pRrh.sessionID, notif_pRrh.tcpDatLen));
-          rrhFsmState = RRH_WAIT_NOTIF;
-        }
-      }
-      break;
-  }
+  //switch(rrhFsmState) {
+  //  case RRH_WAIT_NOTIF:
+  //    if (!siTOE_Notif.empty()) {
+  //      siTOE_Notif.read(notif_pRrh);
+  //      if (notif_pRrh.tcpDatLen != 0) {
+  //        // Always request the data segment to be received
+  //        rrhFsmState = RRH_SEND_DREQ;
+  //        //remember the session ID if not yet known
+  //        // if(notif_pRrh.sessionID != *cached_tcp_rx_session_id)
+  //        // {
+  //        addnewSessionToTable(notif_pRrh.sessionID, notif_pRrh.ip4SrcAddr, notif_pRrh.tcpSrcPort, notif_pRrh.tcpDstPort);
+  //        //  } else {
+  //        //   printf("session/tripple id already in cache.\n");
+  //        //  }
+  //      } else if(notif_pRrh.tcpState == FIN_WAIT_1 || notif_pRrh.tcpState == FIN_WAIT_2
+  //          || notif_pRrh.tcpState == CLOSING || notif_pRrh.tcpState == TIME_WAIT
+  //          || notif_pRrh.tcpState == LAST_ACK || notif_pRrh.tcpState == CLOSED)
+  //      {
+  //        // we were notified about a closing connection
+  //        deleteSessionFromTables(notif_pRrh.sessionID);
+  //      }
+  //    }
+  //    break;
+  //  case RRH_SEND_DREQ:
+  //    //TODO increment tcpDatLen if necessary
+  //    if(*piFMC_Tcp_data_FIFO_prog_full == 0 && *piFMC_Tcp_sessid_FIFO_prog_full == 0 )
+  //    {
+  //      if (!soTOE_DReq.full()) {
+  //        soTOE_DReq.write(TcpAppRdReq(notif_pRrh.sessionID, notif_pRrh.tcpDatLen));
+  //        rrhFsmState = RRH_WAIT_NOTIF;
+  //      }
+  //    }
+  //    break;
+  //}
   //    }
   //  }
 

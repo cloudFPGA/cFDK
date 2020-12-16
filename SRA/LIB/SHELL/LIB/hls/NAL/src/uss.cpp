@@ -422,7 +422,7 @@ void pUdpRx(
           //    (int) (NAL_RX_MIN_PORT + *new_relative_port_to_req_udp),
           //    (int) (NAL_RX_MIN_PORT + *new_relative_port_to_req_udp));
           printWarn(myName, "UOE denied listening on port!\n");
-          sUdpPortsToOpen.write(false);
+          sUdpPortsOpenFeedback.write(false);
           fsmStateRX_Udp = FSM_IDLE;
         }
       } else {

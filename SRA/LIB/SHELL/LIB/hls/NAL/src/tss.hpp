@@ -54,13 +54,14 @@ void pTcpLsn(
 		);
 
 void pTcpRRh(
-		stream<TcpAppNotif>    		&siTOE_Notif,
-		stream<TcpAppRdReq>    		&soTOE_DReq,
-		ap_uint<1>                  *piFMC_Tcp_data_FIFO_prog_full,
-		ap_uint<1>                  *piFMC_Tcp_sessid_FIFO_prog_full,
-		SessionId					*cached_tcp_rx_session_id,
-		const bool					*nts_ready_and_enabled
-		);
+    stream<TcpAppNotif>       &siTOE_Notif,
+    stream<TcpAppRdReq>       &soTOE_DReq,
+	//add add and delete streams
+    ap_uint<1>                *piFMC_Tcp_data_FIFO_prog_full,
+    ap_uint<1>                *piFMC_Tcp_sessid_FIFO_prog_full,
+    const bool				  *role_fifo_empty,
+    const bool                *nts_ready_and_enabled
+    );
 
 void pTcpRDp(
     stream<TcpAppData>        &siTOE_Data,
