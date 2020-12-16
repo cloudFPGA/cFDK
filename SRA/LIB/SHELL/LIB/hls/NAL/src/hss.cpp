@@ -159,6 +159,7 @@ void axi4liteProcessing(
 	    if(!sGetNidReq_UdpRx.empty())
 	    {
 	    	ap_uint<32> ipAddr = sGetNidReq_UdpRx.read();
+	    	printf("[HSS-INFO] Searching for Node ID of IP %d.\n", (int) ipAddr);
 	    	NodeId rep = INVALID_MRT_VALUE;
 	    	  for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
 	    	  {
@@ -175,6 +176,7 @@ void axi4liteProcessing(
 	    if(!sGetNidReq_TcpRx.empty())
 	    	    {
 	    	    	ap_uint<32> ipAddr = sGetNidReq_TcpRx.read();
+	    	    	printf("[HSS-INFO] Searching for Node ID of IP %d.\n", (int) ipAddr);
 	    	    	NodeId rep = INVALID_MRT_VALUE;
 	    	    	  for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
 	    	    	  {
@@ -191,6 +193,7 @@ void axi4liteProcessing(
 	    if(!sGetNidReq_TcpTx.empty())
 	   	    	    {
 	   	    	    	ap_uint<32> ipAddr = sGetNidReq_TcpTx.read();
+		    	    	printf("[HSS-INFO] Searching for Node ID of IP %d.\n", (int) ipAddr);
 	   	    	    	NodeId rep = INVALID_MRT_VALUE;
 	   	    	    	  for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
 	   	    	    	  {

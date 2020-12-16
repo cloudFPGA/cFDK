@@ -351,11 +351,11 @@ void pTcpRDp(
   static TcpAppData first_word = TcpAppData();
   static NodeId src_id = INVALID_MRT_VALUE;
   static ap_uint<64> tripple_in = UNUSED_TABLE_ENTRY_VALUE;
-  static Ip4Addr remoteAddr;
-  static TcpPort dstPort;
-  static TcpPort srcPort;
+  static Ip4Addr remoteAddr = Ip4Addr();
+  static TcpPort dstPort = 0x0;
+  static TcpPort srcPort = 0x0;
   static bool found_in_cache = false;
-  static  AppMeta     sessId;
+  static  AppMeta     sessId = 0x0;
 
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
   TcpAppData currWord;
@@ -421,9 +421,11 @@ void pTcpRDp(
           found_in_cache = true;
           rdpFsmState = RDP_FILTER_META;
         } else {
-        	//TODO request tripple
-        	rdpFsmState = RDP_W8FORREQS_1;
-        	break;
+          //TODO request tripple
+          rdpFsmState = RDP_W8FORREQS_1;
+          cache_init = false;
+          printf("[Tcp-RDP:INFO] Need to request session and node id.\n");
+          break;
         }
       } else {
         break;
@@ -440,7 +442,11 @@ void pTcpRDp(
           if(dstPort != *processed_FMC_listen_port)
           {
             sGetNidReq_TcpRx.write(remoteAddr);
+            printf("[TCP-RX:INFO] need to ask for Node ID.\n");
+            rdpFsmState = RDP_W8FORREQS_2;
+            break;
           } else {
+            printf("[TCP-RX:INFO] found possible FMC connection, write to cache.\n");
             cache_init = true;
             cached_src_id = INVALID_MRT_VALUE;
             cached_tcp_rx_session_id = sessId;
@@ -481,6 +487,7 @@ void pTcpRDp(
       //since we requested the session, we should know it -> no error handling
       dstPort = getLocalPortFromTripple(tripple_in);
       srcPort = getRemotePortFromTripple(tripple_in);
+      remoteAddr = getRemoteIpAddrFromTripple(tripple_in);
       printf("remote Addr: %d; dstPort: %d; srcPort %d\n", (int) remoteAddr, (int) dstPort, (int) srcPort);
 
       if(dstPort == *processed_FMC_listen_port)
@@ -506,13 +513,14 @@ void pTcpRDp(
           printf("unauthorized access to FMC!\n");
           rdpFsmState = RDP_DROP_PACKET;
           printf("NRC drops the packet...\n");
+          cache_init = false;
           break;
         }
       }
 
-      //printf("TO ROLE: src_rank: %d\n", (int) src_id);
+      printf("TO ROLE: src_rank: %d\n", (int) src_id);
       //Role packet
-      if(src_id == 0xFFFF
+      if(src_id == INVALID_MRT_VALUE
           || *layer_7_enabled == 0 || *role_decoupled == 1)
       {
         //SINK packet
@@ -521,6 +529,7 @@ void pTcpRDp(
         internal_event_fifo.write(new_ev_not);
         rdpFsmState = RDP_DROP_PACKET;
         printf("NRC drops the packet...\n");
+        cache_init = false;
         break;
       }
       //last_rx_node_id = src_id;
@@ -625,6 +634,7 @@ void pTcpRDp(
         if (currWord.getTLast() == 1)
         {
           rdpFsmState  = RDP_WAIT_META;
+          cache_init = false;
         }
       }
       break;
@@ -679,20 +689,32 @@ void pTcpWRp(
 
   static SessionId cached_tcp_tx_session_id = UNUSED_SESSION_ENTRY_VALUE;
   static ap_uint<64> cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
+  static NodeId cached_dst_rank = INVALID_MRT_VALUE;
+  static Ip4Addr cached_dst_ip_addr = 0x0;
+  static bool cache_init = false;
 
 #pragma HLS RESET variable=wrpFsmState
 #pragma HLS RESET variable=cached_tcp_tx_session_id
 #pragma HLS RESET variable=cached_tcp_tx_tripple
+#pragma HLS RESET variable=cached_dst_rank
+#pragma HLS RESET variable=cache_init
+#pragma HLS RESET variable=cached_dst_ip_addr
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
   static NetworkMetaStream out_meta_tcp = NetworkMetaStream(); //DON'T FORGET to initilize!
   static NetworkDataLength tcpTX_packet_length = 0;
   static NetworkDataLength tcpTX_current_packet_length = 0;
-
+  static   TcpAppMeta   tcpSessId = TcpAppMeta();
+  static NodeId dst_rank = INVALID_MRT_VALUE;
+  static Ip4Addr dst_ip_addr = 0x0;
+  static NrcPort src_port = 0x0;
+  static NrcPort dst_port = 0x0;
+  static ap_uint<64> new_tripple = UNUSED_TABLE_ENTRY_VALUE;
+  static SessionId sessId = UNUSED_SESSION_ENTRY_VALUE;
 
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
-  TcpAppMeta   tcpSessId;
   NetworkWord  currWordIn;
   //TcpAppData   currWordOut;
+  NalEventNotif new_ev_not;
 
 
 
@@ -701,6 +723,9 @@ void pTcpWRp(
     wrpFsmState = WRP_WAIT_META;
     cached_tcp_tx_session_id = UNUSED_SESSION_ENTRY_VALUE;
     cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
+    cached_dst_rank = INVALID_MRT_VALUE;
+    cache_init = false;
+    cached_dst_ip_addr = 0x0;
     //return;
   }
 
@@ -708,6 +733,9 @@ void pTcpWRp(
   {
     cached_tcp_tx_session_id = UNUSED_SESSION_ENTRY_VALUE;
     cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
+    cached_dst_rank = INVALID_MRT_VALUE;
+    cached_dst_ip_addr = 0x0;
+    cache_init = false;
   }
 
 
@@ -740,90 +768,143 @@ void pTcpWRp(
         break;
       }
       //now ask the ROLE
-      if (!siTcp_meta.empty() && !soTOE_SessId.full())
+      if (!siTcp_meta.empty() && !soTOE_SessId.full() && !sGetIpReq_TcpTx.full())
       {
         out_meta_tcp = siTcp_meta.read();
         tcpTX_packet_length = out_meta_tcp.tdata.len;
         tcpTX_current_packet_length = 0;
 
-        NodeId dst_rank = out_meta_tcp.tdata.dst_rank;
+        dst_rank = out_meta_tcp.tdata.dst_rank;
         if(dst_rank > MAX_CF_NODE_ID)
         {
           //node_id_missmatch_TX_cnt++;
-          NalEventNotif new_ev_not = NalEventNotif(NID_MISS_TX, 1);
+          new_ev_not = NalEventNotif(NID_MISS_TX, 1);
           internal_event_fifo.write(new_ev_not);
           //SINK packet
           wrpFsmState = WRP_DROP_PACKET;
           printf("NRC drops the packet...\n");
           break;
         }
-        //Ip4Addr dst_ip_addr = getIpFromRank(dst_rank);
-        sGetIpReq_TcpTx.write(dst_rank);
-        Ip4Addr dst_ip_addr = sGetIpRep_TcpTx.read();
+
+        if(cache_init && dst_rank == cached_dst_rank)
+        {
+          dst_ip_addr = cached_dst_ip_addr;
+        } else {
+          //need request both...
+          //Ip4Addr dst_ip_addr = getIpFromRank(dst_rank);
+          sGetIpReq_TcpTx.write(dst_rank);
+          cache_init = false;
+          wrpFsmState = WRP_W8FORREQS_1;
+          break;
+        }
+
+
+      } else {
+        break;
+      }
+      // NO break;
+
+    case WRP_W8FORREQS_1:
+      if(!cache_init)
+      {
+        if(true && !sGetIpRep_TcpTx.empty())
+        {
+          dst_ip_addr = sGetIpRep_TcpTx.read();
+        } else {
+          break;
+        }
+
+      }
+      //both cases
+      if(true)
+      {
+        //not else, in both cases
+        wrpFsmState = WRP_W8FORREQS_2;
         if(dst_ip_addr == 0)
         {
           //node_id_missmatch_TX_cnt++;
-          NalEventNotif new_ev_not = NalEventNotif(NID_MISS_TX, 1);
+          new_ev_not = NalEventNotif(NID_MISS_TX, 1);
           internal_event_fifo.write(new_ev_not);
           //SINK packet
           wrpFsmState = WRP_DROP_PACKET;
           printf("NRC drops the packet...\n");
           break;
         }
-        NrcPort src_port = out_meta_tcp.tdata.src_port;
+        src_port = out_meta_tcp.tdata.src_port;
         if (src_port == 0)
         {
           src_port = DEFAULT_RX_PORT;
         }
-        NrcPort dst_port = out_meta_tcp.tdata.dst_port;
+        dst_port = out_meta_tcp.tdata.dst_port;
         if (dst_port == 0)
         {
           dst_port = DEFAULT_RX_PORT;
           //port_corrections_TX_cnt++;
-          NalEventNotif new_ev_not = NalEventNotif(PCOR_TX, 1);
+          new_ev_not = NalEventNotif(PCOR_TX, 1);
           internal_event_fifo.write(new_ev_not);
         }
 
         //check if session is present
-        ap_uint<64> new_tripple = newTripple(dst_ip_addr, dst_port, src_port);
+        new_tripple = newTripple(dst_ip_addr, dst_port, src_port);
         printf("From ROLE: remote Addr: %d; dstPort: %d; srcPort %d; (rank: %d)\n", (int) dst_ip_addr, (int) dst_port, (int) src_port, (int) dst_rank);
-        SessionId sessId = UNUSED_SESSION_ENTRY_VALUE;
-        if(new_tripple == cached_tcp_tx_tripple)
+        sessId = UNUSED_SESSION_ENTRY_VALUE;
+        if(cache_init && new_tripple == cached_tcp_tx_tripple)
         {
           printf("used TCP TX tripple chache.\n");
           sessId = cached_tcp_tx_session_id;
         } else {
+          //need request
+          cache_init = false;
+          break;
+        }
+      } else {
+        break;
+      }
+      //NO break;
+    case WRP_W8FORREQS_2:
+      if(!cache_init )
+      {
+        if(true)
+        {
           sessId = getSessionIdFromTripple(new_tripple);
           cached_tcp_tx_tripple = new_tripple;
           cached_tcp_tx_session_id = sessId;
-        }
-        printf("session id found: %d\n", (int) sessId);
-        if(sessId == (SessionId) UNUSED_SESSION_ENTRY_VALUE)
-        {//we need to create one first
-          *tripple_for_new_connection = new_tripple;
-          *tcp_need_new_connection_request = true;
-          *tcp_new_connection_failure = false;
-          wrpFsmState = WRP_WAIT_CONNECTION;
-          printf("requesting new connection.\n");
+          cached_dst_ip_addr = dst_ip_addr;
+          cached_dst_rank = dst_rank;
+          cache_init = true;
+        } else {
           break;
         }
-        //last_tx_port = dst_port;
-        //last_tx_node_id = dst_rank;
-        NalEventNotif new_ev_not = NalEventNotif(LAST_TX_NID, dst_rank);
-        internal_event_fifo.write_nb(new_ev_not); //TODO: blocking?
-        new_ev_not = NalEventNotif(LAST_TX_PORT, dst_port);
-        internal_event_fifo.write_nb(new_ev_not);
-        //packet_count_TX++;
-        new_ev_not = NalEventNotif(PACKET_TX, 1);
-        internal_event_fifo.write_nb(new_ev_not);
-
-        soTOE_SessId.write(sessId);
-        if (DEBUG_LEVEL & TRACE_WRP) {
-          printInfo(myName, "Received new session ID #%d from [ROLE].\n",
-              sessId.to_uint());
-        }
-        wrpFsmState = WRP_STREAM_ROLE;
       }
+      //both cases
+      //"final" preprocessing
+      printf("session id found: %d\n", (int) sessId);
+      if(sessId == (SessionId) UNUSED_SESSION_ENTRY_VALUE)
+      {//we need to create one first
+        *tripple_for_new_connection = new_tripple;
+        *tcp_need_new_connection_request = true;
+        *tcp_new_connection_failure = false;
+        wrpFsmState = WRP_WAIT_CONNECTION;
+        cache_init = false;
+        printf("requesting new connection.\n");
+        break;
+      }
+      //last_tx_port = dst_port;
+      //last_tx_node_id = dst_rank;
+      new_ev_not = NalEventNotif(LAST_TX_NID, dst_rank);
+      internal_event_fifo.write_nb(new_ev_not); //TODO: blocking?
+      new_ev_not = NalEventNotif(LAST_TX_PORT, dst_port);
+      internal_event_fifo.write_nb(new_ev_not);
+      //packet_count_TX++;
+      new_ev_not = NalEventNotif(PACKET_TX, 1);
+      internal_event_fifo.write_nb(new_ev_not);
+
+      soTOE_SessId.write(sessId);
+      if (DEBUG_LEVEL & TRACE_WRP) {
+        printInfo(myName, "Received new session ID #%d from [ROLE].\n",
+            sessId.to_uint());
+      }
+      wrpFsmState = WRP_STREAM_ROLE;
       break;
 
     case WRP_WAIT_CONNECTION:
@@ -833,8 +914,8 @@ void pTcpWRp(
 
         NrcPort dst_port = getRemotePortFromTripple(*tripple_for_new_connection);
         //NodeId dst_rank = getNodeIdFromIpAddress(getRemoteIpAddrFromTripple(*tripple_for_new_connection));
-        sGetNidReq_TcpTx.write(getRemoteIpAddrFromTripple(*tripple_for_new_connection));
-        NodeId dst_rank = sGetNidRep_TcpTx.read();
+        //sGetNidReq_TcpTx.write(getRemoteIpAddrFromTripple(*tripple_for_new_connection));
+        //NodeId dst_rank = sGetNidRep_TcpTx.read();
         //TODO new FSM states
         NalEventNotif new_ev_not = NalEventNotif(LAST_TX_NID, dst_rank);
         internal_event_fifo.write_nb(new_ev_not); //TODO: blocking?
@@ -849,8 +930,11 @@ void pTcpWRp(
               sessId.to_uint());
         }
         wrpFsmState = WRP_STREAM_ROLE;
+        cached_tcp_tx_tripple = new_tripple;
         cached_tcp_tx_session_id = sessId;
-        cached_tcp_tx_tripple = *tripple_for_new_connection;
+        cached_dst_ip_addr = dst_ip_addr;
+        cached_dst_rank = dst_rank;
+        cache_init = true;
 
       } else if (*tcp_new_connection_failure)
       {
