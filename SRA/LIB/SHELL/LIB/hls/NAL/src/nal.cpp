@@ -914,7 +914,6 @@ void nal_main(
   //  core wide STATIC variables
 
   static ap_uint<32> mrt_version_processed = 0;
-  static ap_uint<32> mrt_version_old = 0; //no reset needed
   static ap_uint<32> mrt_version_used = 0; //no reset needed
 
 
@@ -1125,17 +1124,12 @@ void nal_main(
   pPortAndResetLogic(layer_4_enabled, layer_7_enabled, role_decoupled, piNTS_ready, piMMIO_FmcLsnPort,
       pi_udp_rx_ports, pi_tcp_rx_ports, sA4lToPortLogic, sUdpPortsToOpen, sUdpPortsToClose,
       sTcpPortsToOpen, sUdpPortsOpenFeedback, sTcpPortsOpenFeedback, sMarkToDel_unpriv, &detected_cache_invalidation,
-      &status_udp_ports, &status_tcp_ports, &status_fmc_ports, &start_tcp_cls_fsm);
+      &status_udp_ports, &status_tcp_ports, &status_fmc_ports, &start_tcp_cls_fsm, &mrt_version_processed, &mrt_version_used);
 
   //===========================================================
   // check for resets
 
-  if(mrt_version_old != mrt_version_processed)
-  {
-    mrt_version_old = mrt_version_processed;
-    detected_cache_invalidation = true;
-  }
-  mrt_version_used = mrt_version_old;
+
 
 
   //===========================================================

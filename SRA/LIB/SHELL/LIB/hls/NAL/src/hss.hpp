@@ -89,7 +89,8 @@ void axi4liteProcessing(
 		stream<NodeId>				&sGetNidRep_TcpTx
     );
 
-void pPortAndResetLogic(    ap_uint<1>        *layer_4_enabled,
+void pPortAndResetLogic(
+	    ap_uint<1>        *layer_4_enabled,
 	    ap_uint<1>        *layer_7_enabled,
 	    ap_uint<1>        *role_decoupled,
 	    ap_uint<1>        *piNTS_ready,
@@ -107,7 +108,9 @@ void pPortAndResetLogic(    ap_uint<1>        *layer_4_enabled,
 	    ap_uint<32>       *status_udp_ports,
 	    ap_uint<32>       *status_tcp_ports,
 	    ap_uint<16>       *status_fmc_ports,
-	    bool          *start_tcp_cls_fsm
+	    bool          *start_tcp_cls_fsm,
+		const ap_uint<32> 	*mrt_version_processed,
+		ap_uint<32> 	*mrt_version_used
 		);
 
 void pTcpAgency(

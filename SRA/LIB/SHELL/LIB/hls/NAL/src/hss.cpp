@@ -44,6 +44,7 @@ using namespace hls;
  */
 uint8_t selectConfigUpdatePropagation(uint16_t config_addr)
 {
+#pragma HLS INLINE
   switch(config_addr) {
     default:
       return 0;
@@ -298,7 +299,9 @@ void pPortAndResetLogic(
     ap_uint<32>       *status_udp_ports,
     ap_uint<32>       *status_tcp_ports,
     ap_uint<16>       *status_fmc_ports,
-    bool          *start_tcp_cls_fsm
+    bool          *start_tcp_cls_fsm,
+	const ap_uint<32> 	*mrt_version_processed,
+	ap_uint<32> 	*mrt_version_used
     )
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -335,6 +338,7 @@ void pPortAndResetLogic(
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
   static ap_uint<16> new_relative_port_to_req_udp = 0;
   static ap_uint<16> new_relative_port_to_req_tcp = 0;
+  static ap_uint<32> mrt_version_old = 0; //no reset needed
 
 
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
@@ -382,10 +386,10 @@ void pPortAndResetLogic(
   //        }
   //      }
 
-  if(*start_tcp_cls_fsm == true)
-  {
+  //if(*start_tcp_cls_fsm == true)
+  //{
 	  *start_tcp_cls_fsm = false;
-  }
+ // }
 
   //if layer 4 is reset, ports will be closed
   if(*layer_4_enabled == 0)
@@ -591,6 +595,13 @@ void pPortAndResetLogic(
 	  sMarkToDel_unpriv.write(true);
 	  need_write_sMarkToDel_unpriv = false;
   }
+
+  if(mrt_version_old != *mrt_version_processed)
+  {
+    mrt_version_old = *mrt_version_processed;
+    *detected_cache_invalidation = true;
+  }
+  *mrt_version_used = mrt_version_old;
 
   //"publish" current processed ports
   *status_udp_ports = udp_rx_ports_processed;

@@ -228,7 +228,7 @@ void pTcpRRh(
   static bool table_initialized = false;
 
 #pragma HLS RESET variable=rrhFsmState
-#pragma HLS RESET variable=tables_initialized
+#pragma HLS RESET variable=table_initialized
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
   static TcpAppNotif notif_pRrh;
   static SessionId waitingSessIds[MAX_NAL_SESSIONS];
