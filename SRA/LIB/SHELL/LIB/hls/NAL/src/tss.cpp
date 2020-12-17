@@ -450,7 +450,7 @@ void pTcpRDp(
     stream<NodeId>        &sGetNidRep_TcpRx,
 	stream<SessionId>	  &sGetTripleFromSid_Req,
 	stream<NalTriple>	  &sGetTripleFromSid_Rep,
-	stream<NalTriple>	  &sMarkAsPriv,
+	stream<SessionId>	  &sMarkAsPriv,
     ap_uint<32>         *piMMIO_CfrmIp4Addr,
     const ap_uint<16>       *processed_FMC_listen_port,
     ap_uint<1>          *layer_7_enabled,
@@ -814,10 +814,11 @@ void pTcpWRp(
     stream<Ip4Addr>       &sGetIpRep_TcpTx,
     stream<Ip4Addr>       &sGetNidReq_TcpTx,
     stream<NodeId>        &sGetNidRep_TcpTx,
+	stream<NalTriple>	  &sGetSidFromTriple_Req,
+	stream<SessionId>     &sGetSidFromTriple_Rep,
+	stream<NalTriple>     &sNewTcpCon_Req,
+	stream<NalNewTcpConRep>    &sNewTcpCon_Rep,
     const bool          *expect_FMC_response,
-    ap_uint<64>         *tripple_for_new_connection,
-    bool            *tcp_need_new_connection_request,
-    bool            *tcp_new_connection_failure,
     const bool          *nts_ready_and_enabled,
     const bool          *detected_cache_invalidation,
     stream<NalEventNotif>     &internal_event_fifo
@@ -935,6 +936,7 @@ void pTcpWRp(
         if(cache_init && dst_rank == cached_dst_rank)
         {
           dst_ip_addr = cached_dst_ip_addr;
+          wrpFsmState = WRP_W8FORREQS_1;
         } else {
           //need request both...
           //Ip4Addr dst_ip_addr = getIpFromRank(dst_rank);
@@ -962,7 +964,7 @@ void pTcpWRp(
 
       }
       //both cases
-      if(true)
+      if(cache_init || !sGetSidFromTriple_Req.full())
       {
         //not else, in both cases
         wrpFsmState = WRP_W8FORREQS_2;
@@ -1000,6 +1002,7 @@ void pTcpWRp(
           sessId = cached_tcp_tx_session_id;
         } else {
           //need request
+        	sGetSidFromTriple_Req.write(new_triple);
           cache_init = false;
           break;
         }
@@ -1010,9 +1013,10 @@ void pTcpWRp(
     case WRP_W8FORREQS_2:
       if(!cache_init )
       {
-        if(true)
+        if(!sGetSidFromTriple_Rep.empty())
         {
-          sessId = getSessionIdFromTriple(new_triple);
+          //sessId = getSessionIdFromTriple(new_triple);
+        	sessId = sGetSidFromTriple_Rep.read();
           cached_tcp_tx_triple = new_triple;
           cached_tcp_tx_session_id = sessId;
           cached_dst_ip_addr = dst_ip_addr;
@@ -1022,15 +1026,18 @@ void pTcpWRp(
           break;
         }
       }
+      if(!soTOE_SessId.full() && !sNewTcpCon_Req.full())
+      {
       //both cases
       //"final" preprocessing
       printf("session id found: %d\n", (int) sessId);
       if(sessId == (SessionId) UNUSED_SESSION_ENTRY_VALUE)
       {//we need to create one first
-        *tripple_for_new_connection = new_triple;
-        *tcp_need_new_connection_request = true;
-        *tcp_new_connection_failure = false;
-        wrpFsmState = WRP_WAIT_CONNECTION;
+        //*tripple_for_new_connection = new_triple;
+        //*tcp_need_new_connection_request = true;
+        //*tcp_new_connection_failure = false;
+        sNewTcpCon_Req.write(new_triple);
+    	  wrpFsmState = WRP_WAIT_CONNECTION;
         cache_init = false;
         printf("requesting new connection.\n");
         break;
@@ -1051,19 +1058,33 @@ void pTcpWRp(
             sessId.to_uint());
       }
       wrpFsmState = WRP_STREAM_ROLE;
+      }
       break;
 
     case WRP_WAIT_CONNECTION:
-      if( !*tcp_need_new_connection_request && !soTOE_SessId.full() && !*tcp_new_connection_failure )
+      if( !soTOE_SessId.full() && !sNewTcpCon_Rep.empty())
       {
-    	  new_triple = *tripple_for_new_connection;
-        SessionId sessId = getSessionIdFromTripple(*tripple_for_new_connection);
+    	  //new_triple = *tripple_for_new_connection;
+        //SessionId sessId = getSessionIdFromTripple(*tripple_for_new_connection);
+    	  NalNewTcpConRep con_rep = sNewTcpCon_Rep.read();
+    	  if(con_rep.failure == true)
+    	  {
+    		  NalEventNotif new_ev_not = NalEventNotif(TCP_CON_FAIL, 1);
+    		        internal_event_fifo.write(new_ev_not);
+    		        // we sink the packet, because otherwise the design will hang
+    		        // and the user is notified with the flight recorder status
+    		        wrpFsmState = WRP_DROP_PACKET;
+    		        printf("NRC drops the packet...\n");
+    		        break;
+    	  }
+    	  new_triple = con_rep.new_triple;
+    	  sessId = con_rep.newSessionId;
 
-        NrcPort dst_port = getRemotePortFromTriple(*tripple_for_new_connection);
+        //NrcPort dst_port = getRemotePortFromTriple(*tripple_for_new_connection);
         //NodeId dst_rank = getNodeIdFromIpAddress(getRemoteIpAddrFromTripple(*tripple_for_new_connection));
         //sGetNidReq_TcpTx.write(getRemoteIpAddrFromTripple(*tripple_for_new_connection));
         //NodeId dst_rank = sGetNidRep_TcpTx.read();
-        //TODO new FSM states
+
         NalEventNotif new_ev_not = NalEventNotif(LAST_TX_NID, dst_rank);
         internal_event_fifo.write_nb(new_ev_not); //TODO: blocking?
         new_ev_not = NalEventNotif(LAST_TX_PORT, dst_port);
@@ -1083,16 +1104,6 @@ void pTcpWRp(
         cached_dst_rank = dst_rank;
         cache_init = true;
 
-      } else if (*tcp_new_connection_failure)
-      {
-        //tcp_new_connection_failure_cnt++;
-        NalEventNotif new_ev_not = NalEventNotif(TCP_CON_FAIL, 1);
-        internal_event_fifo.write(new_ev_not);
-        // we sink the packet, because otherwise the design will hang
-        // and the user is notified with the flight recorder status
-        wrpFsmState = WRP_DROP_PACKET;
-        printf("NRC drops the packet...\n");
-        break;
       }
       break;
 
@@ -1170,9 +1181,9 @@ void pTcpCOn(
     stream<TcpAppOpnReq>        &soTOE_OpnReq,
     stream<TcpAppOpnRep>      &siTOE_OpnRep,
     //stream<TcpAppClsReq>      &soTOE_ClsReq,
-    ap_uint<64>         *tripple_for_new_connection,
-    bool            *tcp_need_new_connection_request,
-    bool            *tcp_new_connection_failure,
+	 stream<NalNewTableEntry>   &sAddNewTriple_TcpCon,
+		stream<NalTriple>     &sNewTcpCon_Req,
+		stream<NalNewTcpConRep>    &sNewTcpCon_Rep,
     const bool          *nts_ready_and_enabled
     )
 {
@@ -1200,6 +1211,7 @@ void pTcpCOn(
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
   static ap_uint<32>  watchDogTimer_pcon = 0;
   static TcpAppOpnReq     HostSockAddr;  // Socket Address stored in LITTLE-ENDIAN ORDER
+  static NalTriple         triple_for_new_connection = 0x0;
 
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
   TcpAppOpnRep     newConn;
@@ -1240,9 +1252,11 @@ void pTcpCOn(
       break;
 
     case OPN_REQ:
-      if (*tcp_need_new_connection_request && !soTOE_OpnReq.full()) {
-        Ip4Addr remoteIp = getRemoteIpAddrFromTriple(*tripple_for_new_connection);
-        TcpPort remotePort = getRemotePortFromTriple(*tripple_for_new_connection);
+      if (!sNewTcpCon_Req.empty() && !soTOE_OpnReq.full())
+      {
+    	triple_for_new_connection = sNewTcpCon_Req.read();
+        Ip4Addr remoteIp = getRemoteIpAddrFromTriple(triple_for_new_connection);
+        TcpPort remotePort = getRemotePortFromTriple(triple_for_new_connection);
 
         SockAddr    hostSockAddr(remoteIp, remotePort);
         HostSockAddr.addr = hostSockAddr.addr;
@@ -1262,8 +1276,11 @@ void pTcpCOn(
       break;
 
     case OPN_REP:
+    	if(!sAddNewTriple_TcpCon.full() && !sNewTcpCon_Rep.full())
+    	{
       watchDogTimer_pcon--;
-      if (!siTOE_OpnRep.empty()) {
+      if (!siTOE_OpnRep.empty())
+      {
         // Read the reply stream
         siTOE_OpnRep.read(newConn);
         if (newConn.tcpState == ESTABLISHED) {
@@ -1271,17 +1288,23 @@ void pTcpCOn(
             printInfo(myName, "Client successfully connected to remote socket:\n");
             printSockAddr(myName, HostSockAddr);
           }
-          addnewTrippleToTable(newConn.sessId, *tripple_for_new_connection);
+          //addnewTrippleToTable(newConn.sessId, *tripple_for_new_connection);
+          NalNewTableEntry ne_struct =  NalNewTableEntry(triple_for_new_connection, newConn.sessId);
+          sAddNewTriple_TcpCon.write(ne_struct);
           opnFsmState = OPN_DONE;
-          *tcp_need_new_connection_request = false;
-          *tcp_new_connection_failure = false;
+          //*tcp_need_new_connection_request = false;
+          //*tcp_new_connection_failure = false;
+          NalNewTcpConRep con_rep = NalNewTcpConRep(triple_for_new_connection, newConn.sessId, false);
+          sNewTcpCon_Rep.write(con_rep);
         }
         else {
           printError(myName, "Client failed to connect to remote socket:\n");
           printSockAddr(myName, HostSockAddr);
           opnFsmState = OPN_DONE;
-          *tcp_need_new_connection_request = false;
-          *tcp_new_connection_failure = true;
+          //*tcp_need_new_connection_request = false;
+          //*tcp_new_connection_failure = true;
+          NalNewTcpConRep con_rep = NalNewTcpConRep(triple_for_new_connection, UNUSED_SESSION_ENTRY_VALUE, true);
+          sNewTcpCon_Rep.write(con_rep);
         }
       }
       else {
@@ -1290,13 +1313,16 @@ void pTcpCOn(
             printError(myName, "Timeout: Failed to connect to the following remote socket:\n");
             printSockAddr(myName, HostSockAddr);
           }
-          *tcp_need_new_connection_request = false;
-          *tcp_new_connection_failure = true;
+          //*tcp_need_new_connection_request = false;
+          //*tcp_new_connection_failure = true;
           //the packet will be dropped, so we are done
           opnFsmState = OPN_DONE;
+          NalNewTcpConRep con_rep = NalNewTcpConRep(triple_for_new_connection, UNUSED_SESSION_ENTRY_VALUE, true);
+                    sNewTcpCon_Rep.write(con_rep);
         }
 
       }
+    	}
       break;
     case OPN_DONE:
       //No need to wait...
@@ -1316,7 +1342,9 @@ void pTcpCOn(
  ******************************************************************************/
 void pTcpCls(
     stream<TcpAppClsReq>      &soTOE_ClsReq,
-    bool            *start_tcp_cls_fsm,
+	stream<bool>              &sGetNextDelRow_Req,
+	stream<SessionId>         &sGetNextDelRow_Rep,
+    const bool            *start_tcp_cls_fsm,
     const bool            *nts_ready_and_enabled
     )
 {
@@ -1357,16 +1385,25 @@ void pTcpCls(
       if(*start_tcp_cls_fsm)
       {
         clsFsmState_Tcp = CLS_NEXT;
-        *start_tcp_cls_fsm = false;
+        //*start_tcp_cls_fsm = false;
       }
       break;
     case CLS_NEXT:
-      if(!soTOE_ClsReq.full())
+    	if(!sGetNextDelRow_Req.full())
+    	{
+    		sGetNextDelRow_Req.write(true);
+    		clsFsmState_Tcp = CLS_WAIT4RESP;
+    		break;
+    	}
+    case CLS_WAIT4RESP:
+      if(!soTOE_ClsReq.full() && !sGetNextDelRow_Rep.empty())
       {
-        SessionId nextToDelete = getAndDeleteNextMarkedRow();
+        //SessionId nextToDelete = getAndDeleteNextMarkedRow();
+    	  SessionId nextToDelete = sGetNextDelRow_Rep.read();
         if(nextToDelete != (SessionId) UNUSED_SESSION_ENTRY_VALUE)
         {
           soTOE_ClsReq.write(nextToDelete);
+          clsFsmState_Tcp = CLS_NEXT;
         } else {
           clsFsmState_Tcp = CLS_IDLE;
         }

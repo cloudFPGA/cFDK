@@ -382,6 +382,11 @@ void pPortAndResetLogic(
   //        }
   //      }
 
+  if(*start_tcp_cls_fsm == true)
+  {
+	  *start_tcp_cls_fsm = false;
+  }
+
   //if layer 4 is reset, ports will be closed
   if(*layer_4_enabled == 0)
   {
@@ -630,6 +635,7 @@ void pTcpAgency(
 
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
 
+
   if(!*nts_ready_and_enabled)
   {
     agencyFsm = TAB_FSM_READ;
@@ -657,7 +663,7 @@ void pTcpAgency(
   switch(agencyFsm)
   {
     case TAB_FSM_READ:
-      if(!sGetTripleFromSid_Req.empty() && sGetTripleFromSid_Rep.full())
+      if(!sGetTripleFromSid_Req.empty() && !sGetTripleFromSid_Rep.full())
       {
         SessionId sessionID = sGetTripleFromSid_Req.read();
         printf("searching for session: %d\n", (int) sessionID);
@@ -682,7 +688,7 @@ void pTcpAgency(
         }
         sGetTripleFromSid_Rep.write(ret);
       }
-      if(!sGetSidFromTriple_Req.empty() && sGetSidFromTriple_Rep.full())
+      if(!sGetSidFromTriple_Req.empty() && !sGetSidFromTriple_Rep.full())
       {
         NalTriple triple = sGetSidFromTriple_Req.read();
         printf("Searching for triple: %llu\n", (unsigned long long) triple);
@@ -698,6 +704,7 @@ void pTcpAgency(
             found_smth = true;
             break;
           }
+        }
           if(!found_smth)
           {
             //there is (not yet) a connection TODO
@@ -722,6 +729,8 @@ void pTcpAgency(
           printf("new tripple entry: %d |  %llu\n",(int) sessionID, (unsigned long long) new_entry);
           //first check for duplicates!
           //ap_uint<64> test_tripple = getTrippleFromSessionId(sessionID);
+          uint32_t i = 0;
+          SessionId ret = UNUSED_SESSION_ENTRY_VALUE;
           bool found_smth = false;
           for(i = 0; i < MAX_NAL_SESSIONS; i++)
           {

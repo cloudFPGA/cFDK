@@ -931,11 +931,12 @@ void nal_main(
   //static ap_uint<16> new_relative_port_to_req_tcp = 0;
 
 
-  static ap_uint<64>  tripple_for_new_connection = 0; //pTcpWrp and CON need this
-  static bool tcp_need_new_connection_request = false; //pTcpWrp and CON need this
-  static bool tcp_new_connection_failure = false; //pTcpWrp and CON need this
+  //static ap_uint<64>  tripple_for_new_connection = 0; //pTcpWrp and CON need this
+  //static bool tcp_need_new_connection_request = false; //pTcpWrp and CON need this
+  //static bool tcp_new_connection_failure = false; //pTcpWrp and CON need this
 
   static bool expect_FMC_response = false; //pTcpRDP and pTcpWRp need this
+  static bool start_tcp_cls_fsm = false;
 
   static stream<NalEventNotif> internal_event_fifo_0 ("internal_event_fifo_0");
   static stream<NalEventNotif> internal_event_fifo_1 ("internal_event_fifo_1");
@@ -981,6 +982,9 @@ void nal_main(
   static stream<bool>               sGetNextDelRow_Req       ("sGetNextDelRow_Req");
   static stream<SessionId>          sGetNextDelRow_Rep       ("sGetNextDelRow_Rep");
 
+  static stream<NalTriple>      sNewTcpCon_Req       ("sNewTcpCon_Req");
+  static stream<NalNewTcpConRep>    sNewTcpCon_Rep           ("sNewTcpConRep");
+
 
 #pragma HLS STREAM variable=internal_event_fifo_0 depth=16
 #pragma HLS STREAM variable=internal_event_fifo_1 depth=16
@@ -1014,17 +1018,20 @@ void nal_main(
 #pragma HLS STREAM variable=sRoleTcpDataRx_buffer depth=252 //NAL_MAX_FIFO_DEPTS_BYTES/8 (+2)
 #pragma HLS STREAM variable=sRoleTcpMetaRx_buffer depth=252 //TODO: maybe smaller?
 
-#pragma HLS STREAM variable=sGetTripleFromSid_Req
-#pragma HLS STREAM variable=sGetTripleFromSid_Rep
-#pragma HLS STREAM variable=sGetSidFromTriple_Req
-#pragma HLS STREAM variable=sGetSidFromTriple_Rep
-#pragma HLS STREAM variable=sAddNewTriple_TcpRrh
-#pragma HLS STREAM variable=sAddNewTriple_TcpCon 
-#pragma HLS STREAM variable=sDeleteEntryBySid    
-#pragma HLS STREAM variable=sMarkAsPriv          
-#pragma HLS STREAM variable=sMarkToDel_unpriv    
-#pragma HLS STREAM variable=sGetNextDelRow_Req   
-#pragma HLS STREAM variable=sGetNextDelRow_Rep   
+#pragma HLS STREAM variable=sGetTripleFromSid_Req    depth=16
+#pragma HLS STREAM variable=sGetTripleFromSid_Rep    depth=16
+#pragma HLS STREAM variable=sGetSidFromTriple_Req    depth=16
+#pragma HLS STREAM variable=sGetSidFromTriple_Rep    depth=16
+#pragma HLS STREAM variable=sAddNewTriple_TcpRrh     depth=16
+#pragma HLS STREAM variable=sAddNewTriple_TcpCon     depth=16
+#pragma HLS STREAM variable=sDeleteEntryBySid        depth=16
+#pragma HLS STREAM variable=sMarkAsPriv              depth=16
+#pragma HLS STREAM variable=sMarkToDel_unpriv        depth=16
+#pragma HLS STREAM variable=sGetNextDelRow_Req       depth=16
+#pragma HLS STREAM variable=sGetNextDelRow_Rep       depth=16
+
+#pragma HLS STREAM variable=sNewTcpCon_Req       depth=16
+#pragma HLS STREAM variable=sNewTcpCon_Rep       depth=16
 
 
     //=================================================================================================
@@ -1072,7 +1079,7 @@ void nal_main(
     //#pragma HLS reset variable=new_relative_port_to_req_tcp
     //#pragma HLS reset variable=processed_FMC_listen_port
     //#pragma HLS reset variable=fmc_port_opened
-#pragma HLS reset variable=tables_initalized
+//#pragma HLS reset variable=tables_initalized
     //#pragma HLS reset variable=out_meta_tcp
     //#pragma HLS reset variable=in_meta_tcp
     //#pragma HLS reset variable=session_toFMC
@@ -1080,12 +1087,12 @@ void nal_main(
     //#pragma HLS reset variable=Tcp_RX_metaWritten
     //#pragma HLS reset variable=tcpTX_packet_length
     //#pragma HLS reset variable=tcpTX_current_packet_length
-#pragma HLS reset variable=tripple_for_new_connection
-#pragma HLS reset variable=tcp_need_new_connection_request
-#pragma HLS reset variable=tcp_new_connection_failure
+//#pragma HLS reset variable=tripple_for_new_connection
+//#pragma HLS reset variable=tcp_need_new_connection_request
+//#pragma HLS reset variable=tcp_new_connection_failure
 
 #pragma HLS reset variable=expect_FMC_response
-
+#pragma HLS reset variable=start_tcp_cls_fsm
     //#pragma HLS reset variable=cached_udp_rx_id
     //#pragma HLS reset variable=cached_udp_rx_ipaddr
     //#pragma HLS reset variable=cached_tcp_rx_session_id
@@ -1104,7 +1111,7 @@ void nal_main(
   bool nts_ready_and_enabled = (*piNTS_ready == 1 && *layer_4_enabled == 1);
   bool detected_cache_invalidation = false;
   //bool start_udp_cls_fsm = false;
-  bool start_tcp_cls_fsm = false;
+
 
   ap_uint<32>   status_udp_ports;
   ap_uint<32> status_tcp_ports;
@@ -1117,7 +1124,7 @@ void nal_main(
 
   pPortAndResetLogic(layer_4_enabled, layer_7_enabled, role_decoupled, piNTS_ready, piMMIO_FmcLsnPort,
       pi_udp_rx_ports, pi_tcp_rx_ports, sA4lToPortLogic, sUdpPortsToOpen, sUdpPortsToClose,
-      sTcpPortsToOpen, sUdpPortsOpenFeedback, sTcpPortsOpenFeedback, &detected_cache_invalidation,
+      sTcpPortsToOpen, sUdpPortsOpenFeedback, sTcpPortsOpenFeedback, sMarkToDel_unpriv, &detected_cache_invalidation,
       &status_udp_ports, &status_tcp_ports, &status_fmc_ports, &start_tcp_cls_fsm);
 
   //===========================================================
@@ -1201,15 +1208,16 @@ void nal_main(
   //TODO: remove unused global variables
   //TODO: add disable signal? (NTS_ready, layer4 enabled)
   //TODO: add cache invalidate mechanism
-  pTcpRRh(siTOE_Notif, soTOE_DReq, piFMC_Tcp_data_FIFO_prog_full, piFMC_Tcp_sessid_FIFO_prog_full, &role_fifo_empty, &nts_ready_and_enabled);
+  pTcpRRh(siTOE_Notif, soTOE_DReq, sAddNewTriple_TcpRrh, sDeleteEntryBySid, piFMC_Tcp_data_FIFO_prog_full,
+		  piFMC_Tcp_sessid_FIFO_prog_full, &role_fifo_empty, &nts_ready_and_enabled);
 
   //=================================================================================================
   // TCP Read Path
   pTcpRDp(siTOE_Data, siTOE_SessId, soFMC_Tcp_data, soFMC_Tcp_SessId,
       //soTcp_data, soTcp_meta,
       sRoleTcpDataRx_buffer, sRoleTcpMetaRx_buffer, \
-      sA4lToTcpRx, sGetNidReq_TcpRx, sGetNidRep_TcpRx, \
-      piMMIO_CfrmIp4Addr, \
+      sA4lToTcpRx, sGetNidReq_TcpRx, sGetNidRep_TcpRx, sGetTripleFromSid_Req, sGetTripleFromSid_Rep, \
+      sMarkAsPriv, piMMIO_CfrmIp4Addr, \
       &status_fmc_ports, layer_7_enabled, role_decoupled, &expect_FMC_response, \
       &nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo_2);
 
@@ -1220,20 +1228,29 @@ void nal_main(
   // TCP Write Path
   pTcpWRp(siFMC_Tcp_data, siFMC_Tcp_SessId, siTcp_data, siTcp_meta, soTOE_Data, soTOE_SessId, \
       sGetIpReq_TcpTx, sGetIpRep_TcpTx, sGetNidReq_TcpTx, sGetNidRep_TcpTx,\
-      &expect_FMC_response, &tripple_for_new_connection, &tcp_need_new_connection_request, &tcp_new_connection_failure, &nts_ready_and_enabled, \
+	  sGetSidFromTriple_Req, sGetSidFromTriple_Rep, sNewTcpCon_Req, sNewTcpCon_Rep, \
+      &expect_FMC_response, &nts_ready_and_enabled, \
       &detected_cache_invalidation, internal_event_fifo_3);
 
   //=================================================================================================
   // TCP start remote connection
-  pTcpCOn(soTOE_OpnReq, siTOE_OpnRep, &tripple_for_new_connection, &tcp_need_new_connection_request, &tcp_new_connection_failure,\
+  pTcpCOn(soTOE_OpnReq, siTOE_OpnRep, sAddNewTriple_TcpCon, sNewTcpCon_Req, sNewTcpCon_Rep, \
       &nts_ready_and_enabled);
 
   //=================================================================================================
   // TCP connection close
-  pTcpCls(soTOE_ClsReq, &start_tcp_cls_fsm, &nts_ready_and_enabled);
+  pTcpCls(soTOE_ClsReq, sGetNextDelRow_Req, sGetNextDelRow_Rep, &start_tcp_cls_fsm, &nts_ready_and_enabled);
 
   //===========================================================
   //  update status, config, MRT
+
+  //=================================================================================================
+  // TCP Table Management
+
+  pTcpAgency(sGetTripleFromSid_Req, sGetTripleFromSid_Rep, sGetSidFromTriple_Req, sGetSidFromTriple_Rep,
+		  sAddNewTriple_TcpRrh, sAddNewTriple_TcpCon, sDeleteEntryBySid, sMarkAsPriv, sMarkToDel_unpriv,
+		  sGetNextDelRow_Req, sGetNextDelRow_Rep, &nts_ready_and_enabled);
+
 
   eventStatusHousekeeping(layer_4_enabled, layer_7_enabled, role_decoupled, &mrt_version_used, &status_udp_ports, &status_tcp_ports, \
       &status_fmc_ports, sA4lToStatusProc, internal_event_fifo_0, internal_event_fifo_1, internal_event_fifo_2, internal_event_fifo_3, sStatusUpdate);

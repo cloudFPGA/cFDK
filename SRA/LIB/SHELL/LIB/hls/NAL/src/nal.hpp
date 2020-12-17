@@ -305,6 +305,14 @@ struct NalNewTableEntry {
 	NalNewTableEntry(NalTriple nt, SessionId sid): new_triple(nt), sessId(sid) {}
 };
 
+struct NalNewTcpConRep {
+	NalTriple new_triple;
+	SessionId newSessionId;
+	bool	  failure;
+	NalNewTcpConRep() {}
+	NalNewTcpConRep(NalTriple nt, SessionId ns, bool fail): new_triple(nt), newSessionId(ns), failure(fail) {}
+};
+
 //INLINE METHODs
 ap_uint<32> getRightmostBitPos(ap_uint<32> num);
 NalTriple newTriple(Ip4Addr ipRemoteAddres, TcpPort tcpRemotePort, TcpPort tcpLocalPort);
