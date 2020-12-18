@@ -89,20 +89,24 @@ void axi4liteProcessing(
   static uint16_t tableCopyVariable = 0;
   static bool tables_initialized = false;
   static AxiLiteFsmStates a4lFsm = A4L_COPY_CONFIG;
+  static ConfigBcastStates cbFsm = CB_WAIT;
 
 #pragma HLS reset variable=tableCopyVariable
 #pragma HLS reset variable=tables_initialized
 #pragma HLS reset variable=a4lFsm
+#pragma HLS reset variable=cbFsm
 
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
   static ap_uint<32> localMRT[MAX_MRT_SIZE];
   static ap_uint<32> config[NUMBER_CONFIG_WORDS];
   static ap_uint<32> status[NUMBER_STATUS_WORDS];
 
-  static NalConfigUpdate cu = NalConfigUpdate();
+  static ap_uint<16> configProp = 0x0;
+  static NalConfigUpdate cu_toCB = NalConfigUpdate();
 
 
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
+  NalConfigUpdate cu = NalConfigUpdate();
 
   /* if(*layer_4_enabled == 0)
      {
@@ -208,69 +212,32 @@ void axi4liteProcessing(
 
   // ----- AXI4Lite Processing -----
 
-  if(!sToTcpAgency.full() && !sToPortLogic.full() && !sToUdpRx.full()
-      && !sToTcpRx.full() && !sToStatusProc.full())
-  {
-    switch(a4lFsm) {
+
+    switch(a4lFsm)
+    {
       default:
       case A4L_COPY_CONFIG:
         //TODO: necessary? Or does this AXI4Lite anyways "in the background"?
         //or do we need to copy it explicetly, but could do this also every ~2 seconds?
         if(tableCopyVariable < NUMBER_CONFIG_WORDS)
         {
-          if(!sToTcpAgency.full() && !sToPortLogic.full() && !sToUdpRx.full())
-          {
             ap_uint<16> new_word = ctrlLink[tableCopyVariable];
             if(new_word != config[tableCopyVariable])
             {
-              ap_uint<16> configProp = selectConfigUpdatePropagation(tableCopyVariable);
+              configProp = selectConfigUpdatePropagation(tableCopyVariable);
               cu = NalConfigUpdate(tableCopyVariable, new_word);
-              switch (configProp) {
-                default:
-                case 0:
-                  //NOP
-                  break;
-                case 1:
-                  sToTcpAgency.write(cu);
-                  break;
-                case 2:
-                  sToPortLogic.write(cu);
-                  break;
-                case 3:
-                  sToUdpRx.write(cu);
-                  a4lFsm = A4L_BROADCAST_CONFIG_1;
-                  //sToTcpRx.write(cu);
-                  //sToStatusProc.write(cu);
-                  printf("[A4l] Issued rank update: %d\n", (int) cu.update_value);
-                  break;
-              }
+              cbFsm = CB_START;
               config[tableCopyVariable] = new_word;
             }
             tableCopyVariable++;
-            if(tableCopyVariable >= NUMBER_CONFIG_WORDS && a4lFsm != A4L_BROADCAST_CONFIG_1)
+            if(tableCopyVariable >= NUMBER_CONFIG_WORDS)
             {
               tableCopyVariable = 0;
               a4lFsm = A4L_COPY_MRT;
             }
-          }
         } else {
           tableCopyVariable = 0;
           a4lFsm = A4L_COPY_MRT;
-        }
-        break;
-      case A4L_BROADCAST_CONFIG_1:
-        if(!sToTcpRx.full())
-        {
-          sToTcpRx.write(cu);
-          a4lFsm = A4L_BROADCAST_CONFIG_2;
-        }
-        break;
-      case A4L_BROADCAST_CONFIG_2:
-        if(!sToStatusProc.full())
-        {
-          sToStatusProc.write(cu);
-          //continue where interupted
-          a4lFsm = A4L_COPY_CONFIG;
         }
         break;
       case A4L_COPY_MRT:
@@ -339,7 +306,70 @@ void axi4liteProcessing(
     //  }  else {
     //    tableCopyVariable++;
     //  }
-  }
+
+  // ----- Config Broadcast -----
+
+     	switch(cbFsm)
+    	{
+    	default:
+    	case CB_WAIT:
+    		break;
+    	case CB_START:
+    		cu_toCB = cu;
+    		switch (configProp) {
+    		                default:
+    		                case 0:
+    		                  //NOP
+    		                  break;
+    		                case 1:
+    		                	cbFsm = CB_1;
+    		                  break;
+    		                case 2:
+    		                	cbFsm = CB_2;
+    		                  break;
+    		                case 3:
+    		                	cbFsm = CB_3_0;
+    		                  printf("[A4l] Issued rank update: %d\n", (int) cu.update_value);
+    		                  break;
+    		              }
+    		break;
+    		case CB_1:
+    			if(!sToTcpAgency.full())
+    			{
+	                  sToTcpAgency.write(cu_toCB);
+	                  cbFsm = CB_WAIT;
+    			}
+    			break;
+    		case CB_2:
+    			if(!sToPortLogic.full())
+    			{
+	                  sToPortLogic.write(cu_toCB);
+	                  cbFsm = CB_WAIT;
+    			}
+    			break;
+    		case CB_3_0:
+    			if(!sToUdpRx.full())
+    			{
+	                  sToUdpRx.write(cu_toCB);
+	                  cbFsm = CB_3_1;
+    			}
+    			break;
+    	      case CB_3_1:
+    	        if(!sToTcpRx.full())
+    	        {
+    	          sToTcpRx.write(cu_toCB);
+                  cbFsm = CB_3_2;
+    	        }
+    	        break;
+    	      case CB_3_2:
+    	        if(!sToStatusProc.full())
+    	        {
+    	          sToStatusProc.write(cu_toCB);
+                  cbFsm = CB_WAIT;
+    	        }
+    	        break;
+    	}
+
 
 
 }
