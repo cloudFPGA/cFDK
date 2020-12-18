@@ -219,7 +219,7 @@ void pTcpRRh(
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-#pragma HLS pipeline II=1
+//#pragma HLS pipeline II=1
 
   char* myName  = concat3(THIS_NAME, "/", "Tcp_RRh");
 
@@ -282,7 +282,7 @@ void pTcpRRh(
           bool found_slot = false;
           for(uint32_t i = 0; i < MAX_NAL_SESSIONS; i++)
           {
-#pragma HLS unroll
+//#pragma HLS unroll
             if(waitingSessIds[i] == notif_pRrh.sessionID)
             {
               waitingBytes[i] += notif_pRrh.tcpDatLen;
@@ -342,7 +342,7 @@ void pTcpRRh(
         TcpDatLen found_length_max = 0;
         for(uint32_t i = 0; i < MAX_NAL_SESSIONS; i++)
         {
-#pragma HLS unroll
+//#pragma HLS unroll
           if(i < next_search_start_point)
           {
             continue;
@@ -464,7 +464,7 @@ void pTcpRDp(
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-#pragma HLS pipeline II=1
+//#pragma HLS pipeline II=1
 
 
   char* myName  = concat3(THIS_NAME, "/", "Tcp_RDp");
@@ -626,7 +626,7 @@ void pTcpRDp(
       }
       //NO break;
     case RDP_FILTER_META:
-    	if(!sMarkAsPriv.full())
+    	if(!sMarkAsPriv.full() && !internal_event_fifo.full())
     	{
       printf("tripple_in: %llu\n",(unsigned long long) triple_in);
       //since we requested the session, we should know it -> no error handling
@@ -680,10 +680,10 @@ void pTcpRDp(
       }
       //last_rx_node_id = src_id;
       new_ev_not = NalEventNotif(LAST_RX_NID, src_id);
-      internal_event_fifo.write_nb(new_ev_not);
+      internal_event_fifo.write(new_ev_not);
       //last_rx_port = dstPort;
       new_ev_not = NalEventNotif(LAST_RX_PORT, dstPort);
-      internal_event_fifo.write_nb(new_ev_not);
+      internal_event_fifo.write(new_ev_not);
       tmp_meta = NetworkMeta(own_rank, dstPort, src_id, srcPort, 0);
       in_meta_tcp = NetworkMetaStream(tmp_meta);
       Tcp_RX_metaWritten = false;
@@ -713,7 +713,7 @@ void pTcpRDp(
         soTcp_meta.write(in_meta_tcp);
         //packet_count_RX++;
         NalEventNotif new_ev_not = NalEventNotif(PACKET_RX, 1);
-        internal_event_fifo.write_nb(new_ev_not);
+        internal_event_fifo.write(new_ev_not);
         Tcp_RX_metaWritten = true;
       }
       break;
@@ -812,8 +812,8 @@ void pTcpWRp(
     stream<TcpAppMeta>        &soTOE_SessId,
     stream<NodeId>        &sGetIpReq_TcpTx,
     stream<Ip4Addr>       &sGetIpRep_TcpTx,
-    stream<Ip4Addr>       &sGetNidReq_TcpTx,
-    stream<NodeId>        &sGetNidRep_TcpTx,
+    //stream<Ip4Addr>       &sGetNidReq_TcpTx,
+    //stream<NodeId>        &sGetNidRep_TcpTx,
 	stream<NalTriple>	  &sGetSidFromTriple_Req,
 	stream<SessionId>     &sGetSidFromTriple_Rep,
 	stream<NalTriple>     &sNewTcpCon_Req,
@@ -826,7 +826,7 @@ void pTcpWRp(
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-#pragma HLS pipeline II=1
+//#pragma HLS pipeline II=1
 
 
   char* myName  = concat3(THIS_NAME, "/", "Tcp_WRp");
@@ -1026,7 +1026,7 @@ void pTcpWRp(
           break;
         }
       }
-      if(!soTOE_SessId.full() && !sNewTcpCon_Req.full())
+      if(!soTOE_SessId.full() && !sNewTcpCon_Req.full() && !internal_event_fifo.full())
       {
       //both cases
       //"final" preprocessing
@@ -1045,12 +1045,12 @@ void pTcpWRp(
       //last_tx_port = dst_port;
       //last_tx_node_id = dst_rank;
       new_ev_not = NalEventNotif(LAST_TX_NID, dst_rank);
-      internal_event_fifo.write_nb(new_ev_not); //TODO: blocking?
+      internal_event_fifo.write(new_ev_not); //TODO: blocking?
       new_ev_not = NalEventNotif(LAST_TX_PORT, dst_port);
-      internal_event_fifo.write_nb(new_ev_not);
+      internal_event_fifo.write(new_ev_not);
       //packet_count_TX++;
       new_ev_not = NalEventNotif(PACKET_TX, 1);
-      internal_event_fifo.write_nb(new_ev_not);
+      internal_event_fifo.write(new_ev_not);
 
       soTOE_SessId.write(sessId);
       if (DEBUG_LEVEL & TRACE_WRP) {
@@ -1062,7 +1062,7 @@ void pTcpWRp(
       break;
 
     case WRP_WAIT_CONNECTION:
-      if( !soTOE_SessId.full() && !sNewTcpCon_Rep.empty())
+      if( !soTOE_SessId.full() && !sNewTcpCon_Rep.empty() && !internal_event_fifo.full())
       {
     	  //new_triple = *tripple_for_new_connection;
         //SessionId sessId = getSessionIdFromTripple(*tripple_for_new_connection);
@@ -1086,12 +1086,12 @@ void pTcpWRp(
         //NodeId dst_rank = sGetNidRep_TcpTx.read();
 
         NalEventNotif new_ev_not = NalEventNotif(LAST_TX_NID, dst_rank);
-        internal_event_fifo.write_nb(new_ev_not); //TODO: blocking?
+        internal_event_fifo.write(new_ev_not); //TODO: blocking?
         new_ev_not = NalEventNotif(LAST_TX_PORT, dst_port);
-        internal_event_fifo.write_nb(new_ev_not);
+        internal_event_fifo.write(new_ev_not);
         //packet_count_TX++;
         new_ev_not = NalEventNotif(PACKET_TX, 1);
-        internal_event_fifo.write_nb(new_ev_not);
+        internal_event_fifo.write(new_ev_not);
         soTOE_SessId.write(sessId);
         if (DEBUG_LEVEL & TRACE_WRP) {
           printInfo(myName, "Received new session ID #%d from [ROLE].\n",
@@ -1220,7 +1220,7 @@ void pTcpCOn(
   if(!*nts_ready_and_enabled)
   {
     opnFsmState = OPN_IDLE;
-    return; //TODO
+    //return; //TODO
   }
 
   //only if NTS is ready
@@ -1366,7 +1366,7 @@ void pTcpCls(
   if(!*nts_ready_and_enabled)
   {
     clsFsmState_Tcp = CLS_IDLE;
-    return; //TODO
+    //return; //TODO
   }
 
   //only if NTS is ready

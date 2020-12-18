@@ -76,9 +76,9 @@ void axi4liteProcessing(
     stream<Ip4Addr>       &sGetNidReq_UdpRx,
     stream<NodeId>        &sGetNidRep_UdpRx,
     stream<Ip4Addr>       &sGetNidReq_TcpRx,
-    stream<NodeId>        &sGetNidRep_TcpRx,
-    stream<Ip4Addr>       &sGetNidReq_TcpTx,
-    stream<NodeId>        &sGetNidRep_TcpTx
+    stream<NodeId>        &sGetNidRep_TcpRx//,
+    //stream<Ip4Addr>       &sGetNidReq_TcpTx,
+    //stream<NodeId>        &sGetNidRep_TcpTx
 )
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -88,23 +88,28 @@ void axi4liteProcessing(
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
   static uint16_t tableCopyVariable = 0;
   static bool tables_initialized = false;
+  static AxiLiteFsmStates a4lFsm = A4L_COPY_CONFIG;
 
 #pragma HLS reset variable=tableCopyVariable
 #pragma HLS reset variable=tables_initialized
+#pragma HLS reset variable=a4lFsm
 
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
   static ap_uint<32> localMRT[MAX_MRT_SIZE];
   static ap_uint<32> config[NUMBER_CONFIG_WORDS];
   static ap_uint<32> status[NUMBER_STATUS_WORDS];
 
+  static NalConfigUpdate cu = NalConfigUpdate();
+
 
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
 
-  if(*layer_4_enabled == 0)
-  {
-    //also, all sessions should be lost
-    tables_initialized = false;
+  /* if(*layer_4_enabled == 0)
+     {
+  //also, all sessions should be lost
+  tables_initialized = false;
   }
+  */
   // ----- tables init -----
 
   if(!tables_initialized)
@@ -130,9 +135,7 @@ void axi4liteProcessing(
     NalStatusUpdate su = sStatusUpdate.read();
     status[su.status_addr] = su.new_value;
     printf("[A4l] got status update for address %d with value %d\n", (int) su.status_addr, (int) su.new_value);
-  }
-
-  if(!sGetIpReq_UdpTx.empty() && !sGetIpRep_UdpTx.full())
+  } else if(!sGetIpReq_UdpTx.empty() && !sGetIpRep_UdpTx.full())
   {
     NodeId rank = sGetIpReq_UdpTx.read();
     if(rank > MAX_MRT_SIZE)
@@ -144,8 +147,7 @@ void axi4liteProcessing(
       //if request is issued, requester should be ready to read --> "blocking" write
     }
   }
-
-  if(!sGetIpReq_TcpTx.empty() && !sGetIpRep_TcpTx.full())
+  else if(!sGetIpReq_TcpTx.empty() && !sGetIpRep_TcpTx.full())
   {
     NodeId rank = sGetIpReq_TcpTx.read();
     if(rank > MAX_MRT_SIZE)
@@ -155,16 +157,14 @@ void axi4liteProcessing(
     } else {
       sGetIpRep_TcpTx.write(localMRT[rank]);
     }
-  }
-
-  if(!sGetNidReq_UdpRx.empty() && !sGetNidRep_UdpRx.full())
+  } else if(!sGetNidReq_UdpRx.empty() && !sGetNidRep_UdpRx.full())
   {
     ap_uint<32> ipAddr = sGetNidReq_UdpRx.read();
     printf("[HSS-INFO] Searching for Node ID of IP %d.\n", (int) ipAddr);
     NodeId rep = INVALID_MRT_VALUE;
     for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
     {
-#pragma HLS unroll factor=8
+      //#pragma HLS unroll factor=8
       if(localMRT[i] == ipAddr)
       {
         rep = (NodeId) i;
@@ -172,16 +172,14 @@ void axi4liteProcessing(
       }
     }
     sGetNidRep_UdpRx.write(rep);
-  }
-
-  if(!sGetNidReq_TcpRx.empty() && !sGetNidRep_TcpRx.full())
+  } else if(!sGetNidReq_TcpRx.empty() && !sGetNidRep_TcpRx.full())
   {
     ap_uint<32> ipAddr = sGetNidReq_TcpRx.read();
     printf("[HSS-INFO] Searching for Node ID of IP %d.\n", (int) ipAddr);
     NodeId rep = INVALID_MRT_VALUE;
     for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
     {
-#pragma HLS unroll factor=8
+      //#pragma HLS unroll factor=8
       if(localMRT[i] == ipAddr)
       {
         rep = (NodeId) i;
@@ -190,90 +188,157 @@ void axi4liteProcessing(
     }
     sGetNidRep_TcpRx.write(rep);
   }
-
-  if(!sGetNidReq_TcpTx.empty() && !sGetNidRep_TcpTx.full())
-  {
-    ap_uint<32> ipAddr = sGetNidReq_TcpTx.read();
-    printf("[HSS-INFO] Searching for Node ID of IP %d.\n", (int) ipAddr);
-    NodeId rep = INVALID_MRT_VALUE;
-    for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
-    {
-#pragma HLS unroll factor=8
-      if(localMRT[i] == ipAddr)
-      {
-        rep = (NodeId) i;
-        break;
-      }
-    }
-    sGetNidRep_TcpTx.write(rep);
-  }
+  //  else if(!sGetNidReq_TcpTx.empty() && !sGetNidRep_TcpTx.full())
+  //  {
+  //    ap_uint<32> ipAddr = sGetNidReq_TcpTx.read();
+  //    printf("[HSS-INFO] Searching for Node ID of IP %d.\n", (int) ipAddr);
+  //    NodeId rep = INVALID_MRT_VALUE;
+  //    for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
+  //    {
+  ////#pragma HLS unroll factor=8
+  //      if(localMRT[i] == ipAddr)
+  //      {
+  //        rep = (NodeId) i;
+  //        break;
+  //      }
+  //    }
+  //    sGetNidRep_TcpTx.write(rep);
+  //  }
 
 
   // ----- AXI4Lite Processing -----
 
-  //TODO: necessary? Or does this AXI4Lite anyways "in the background"?
-  //or do we need to copy it explicetly, but could do this also every ~2 seconds?
-  if(tableCopyVariable < NUMBER_CONFIG_WORDS)
+  if(!sToTcpAgency.full() && !sToPortLogic.full() && !sToUdpRx.full()
+      && !sToTcpRx.full() && !sToStatusProc.full())
   {
-    ap_uint<16> new_word = ctrlLink[tableCopyVariable];
-    if(new_word != config[tableCopyVariable])
-    {
-      ap_uint<16> configProp = selectConfigUpdatePropagation(tableCopyVariable);
-      NalConfigUpdate cu = NalConfigUpdate(tableCopyVariable, new_word);
-      switch (configProp) {
-        default:
-        case 0:
-          //NOP
-          break;
-        case 1:
-          sToTcpAgency.write(cu);
-          break;
-        case 2:
-          sToPortLogic.write(cu);
-          break;
-        case 3:
-          sToUdpRx.write(cu);
+    switch(a4lFsm) {
+      default:
+      case A4L_COPY_CONFIG:
+        //TODO: necessary? Or does this AXI4Lite anyways "in the background"?
+        //or do we need to copy it explicetly, but could do this also every ~2 seconds?
+        if(tableCopyVariable < NUMBER_CONFIG_WORDS)
+        {
+          if(!sToTcpAgency.full() && !sToPortLogic.full() && !sToUdpRx.full())
+          {
+            ap_uint<16> new_word = ctrlLink[tableCopyVariable];
+            if(new_word != config[tableCopyVariable])
+            {
+              ap_uint<16> configProp = selectConfigUpdatePropagation(tableCopyVariable);
+              cu = NalConfigUpdate(tableCopyVariable, new_word);
+              switch (configProp) {
+                default:
+                case 0:
+                  //NOP
+                  break;
+                case 1:
+                  sToTcpAgency.write(cu);
+                  break;
+                case 2:
+                  sToPortLogic.write(cu);
+                  break;
+                case 3:
+                  sToUdpRx.write(cu);
+                  a4lFsm = A4L_BROADCAST_CONFIG_1;
+                  //sToTcpRx.write(cu);
+                  //sToStatusProc.write(cu);
+                  printf("[A4l] Issued rank update: %d\n", (int) cu.update_value);
+                  break;
+              }
+              config[tableCopyVariable] = new_word;
+            }
+            tableCopyVariable++;
+            if(tableCopyVariable >= NUMBER_CONFIG_WORDS && a4lFsm != A4L_BROADCAST_CONFIG_1)
+            {
+              tableCopyVariable = 0;
+              a4lFsm = A4L_COPY_MRT;
+            }
+          }
+        } else {
+          tableCopyVariable = 0;
+          a4lFsm = A4L_COPY_MRT;
+        }
+        break;
+      case A4L_BROADCAST_CONFIG_1:
+        if(!sToTcpRx.full())
+        {
           sToTcpRx.write(cu);
+          a4lFsm = A4L_BROADCAST_CONFIG_2;
+        }
+        break;
+      case A4L_BROADCAST_CONFIG_2:
+        if(!sToStatusProc.full())
+        {
           sToStatusProc.write(cu);
-          printf("[A4l] Issued rank update: %d\n", (int) cu.update_value);
-          break;
-      }
-      config[tableCopyVariable] = new_word;
+          //continue where interupted
+          a4lFsm = A4L_COPY_CONFIG;
+        }
+        break;
+      case A4L_COPY_MRT:
+        if(tableCopyVariable < MAX_MRT_SIZE)
+        {
+          ap_uint<32> new_ip4node = ctrlLink[tableCopyVariable + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS];
+          if (new_ip4node != localMRT[tableCopyVariable])
+          {
+            //NalMrtUpdate mu = NalMrtUpdate(tableCopyVariable, new_ip4node);
+            //sMrtUpdate.write(mu);
+            localMRT[tableCopyVariable] = new_ip4node;
+          }
+          tableCopyVariable++;
+          if(tableCopyVariable >= MAX_MRT_SIZE)
+          {
+            tableCopyVariable = 0;
+            a4lFsm = A4L_COPY_STATUS;
+          }
+        } else {
+          tableCopyVariable = 0;
+          a4lFsm = A4L_COPY_STATUS;
+        }
+        break;
+      case A4L_COPY_STATUS:
+        if(tableCopyVariable < NUMBER_STATUS_WORDS)
+        {
+          ctrlLink[NUMBER_CONFIG_WORDS + tableCopyVariable] = status[tableCopyVariable];
+          tableCopyVariable++;
+          if(tableCopyVariable >= NUMBER_STATUS_WORDS)
+          {
+            //tableCopyVariable = 0;
+            a4lFsm = A4L_COPY_FINISH;
+          }
+        } else {
+          //tableCopyVariable = 0;
+          a4lFsm = A4L_COPY_FINISH;
+        }
+        break;
+      case A4L_COPY_FINISH:
+        tableCopyVariable = 0;
+        //acknowledge the processed version
+        ap_uint<32> new_mrt_version = config[NAL_CONFIG_MRT_VERSION];
+        printf("\t\t\t[A4L:CtrlLink:Info] Acknowledged MRT version %d.\n", (int) new_mrt_version);
+        *mrt_version_processed = new_mrt_version;
+        a4lFsm = A4L_COPY_CONFIG;
+        break;
     }
-  }
-  if(tableCopyVariable < MAX_MRT_SIZE)
-  {
-    ap_uint<32> new_ip4node = ctrlLink[tableCopyVariable + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS];
-    if (new_ip4node != localMRT[tableCopyVariable])
-    {
-      //NalMrtUpdate mu = NalMrtUpdate(tableCopyVariable, new_ip4node);
-      //sMrtUpdate.write(mu);
-      localMRT[tableCopyVariable] = new_ip4node;
-    }
-  }
 
-  if(tableCopyVariable < NUMBER_STATUS_WORDS)
-  {
-    ctrlLink[NUMBER_CONFIG_WORDS + tableCopyVariable] = status[tableCopyVariable];
-  }
 
-  if(tableCopyVariable >= MAX_MRT_SIZE)
-  {
-    tableCopyVariable = 0;
-    //acknowledge the processed version
-    ap_uint<32> new_mrt_version = config[NAL_CONFIG_MRT_VERSION];
-    // if(new_mrt_version > mrt_version_processed)
-    // {
-    //invalidate cache
-    //cached_udp_rx_ipaddr = 0;
-    //cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
-    //cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
-    //   detected_cache_invalidation = true;
-    //moved to outer process
-    //}
-    *mrt_version_processed = new_mrt_version;
-  }  else {
-    tableCopyVariable++;
+    //
+    //  if(tableCopyVariable >= MAX_MRT_SIZE)
+    //  {
+    //    tableCopyVariable = 0;
+    //    //acknowledge the processed version
+    //    ap_uint<32> new_mrt_version = config[NAL_CONFIG_MRT_VERSION];
+    //    // if(new_mrt_version > mrt_version_processed)
+    //    // {
+    //    //invalidate cache
+    //    //cached_udp_rx_ipaddr = 0;
+    //    //cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
+    //    //cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
+    //    //   detected_cache_invalidation = true;
+    //    //moved to outer process
+    //    //}
+    //    *mrt_version_processed = new_mrt_version;
+    //  }  else {
+    //    tableCopyVariable++;
+    //  }
   }
 
 
@@ -294,14 +359,14 @@ void pPortAndResetLogic(
     stream<TcpPort>     &sTcpPortsToOpen,
     stream<bool>      &sUdpPortsOpenFeedback,
     stream<bool>      &sTcpPortsOpenFeedback,
-	stream<bool>      &sMarkToDel_unpriv,
+    stream<bool>      &sMarkToDel_unpriv,
     bool          *detected_cache_invalidation,
     ap_uint<32>       *status_udp_ports,
     ap_uint<32>       *status_tcp_ports,
     ap_uint<16>       *status_fmc_ports,
     bool          *start_tcp_cls_fsm,
-	const ap_uint<32> 	*mrt_version_processed,
-	ap_uint<32> 	*mrt_version_used
+    const ap_uint<32>   *mrt_version_processed,
+    ap_uint<32>   *mrt_version_used
     )
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -317,6 +382,7 @@ void pPortAndResetLogic(
   static bool wait_for_udp_port_open = false;
   static bool wait_for_tcp_port_open = false;
   static bool need_write_sMarkToDel_unpriv = false;
+  static ap_uint<32> mrt_version_old = 0;
 
 #ifndef __SYNTHESIS__
   static ap_uint<16>  mmio_stabilize_counter = 1;
@@ -334,11 +400,11 @@ void pPortAndResetLogic(
 #pragma HLS reset variable=wait_for_udp_port_open
 #pragma HLS reset variable=wait_for_tcp_port_open
 #pragma HLS reset variable=need_write_sMarkToDel_unpriv
+#pragma HLS reset variable=mrt_version_old
 
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
   static ap_uint<16> new_relative_port_to_req_udp = 0;
   static ap_uint<16> new_relative_port_to_req_tcp = 0;
-  static ap_uint<32> mrt_version_old = 0; //no reset needed
 
 
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
@@ -388,8 +454,8 @@ void pPortAndResetLogic(
 
   //if(*start_tcp_cls_fsm == true)
   //{
-	  *start_tcp_cls_fsm = false;
- // }
+  *start_tcp_cls_fsm = false;
+  // }
 
   //if layer 4 is reset, ports will be closed
   if(*layer_4_enabled == 0)
@@ -410,13 +476,11 @@ void pPortAndResetLogic(
     //cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
     *detected_cache_invalidation = true;
     need_write_sMarkToDel_unpriv = false;
-  }
-
-  if(*layer_7_enabled == 0 || *role_decoupled == 1 )
+  } else if (*layer_7_enabled == 0 || *role_decoupled == 1 )
   {
     if(*layer_4_enabled == 1 && *piNTS_ready == 1)
     {
-      if(udp_rx_ports_processed > 0)
+      if(udp_rx_ports_processed > 0 && !sUdpPortsToClose.full())
       {
 
         //mark all UDP ports as to be deleted
@@ -424,7 +488,8 @@ void pPortAndResetLogic(
         ap_uint<16> newRelativePortToClose = 0;
         ap_uint<16> newAbsolutePortToClose = 0;
         newRelativePortToClose = getRightmostBitPos(udp_rx_ports_processed);
-        while(newRelativePortToClose != 0)
+        //while(newRelativePortToClose != 0 && !sUdpPortsToClose.full())
+        if(newRelativePortToClose != 0 && !sUdpPortsToClose.full())
         {
           newAbsolutePortToClose = NAL_RX_MIN_PORT + newRelativePortToClose;
           sUdpPortsToClose.write(newAbsolutePortToClose);
@@ -442,7 +507,9 @@ void pPortAndResetLogic(
       {
         //mark all TCP ports as to be deleted
         //markCurrentRowsAsToDelete_unprivileged();
-    	  need_write_sMarkToDel_unpriv = true;
+        need_write_sMarkToDel_unpriv = true;
+
+        tcp_rx_ports_processed = 0x0;
         if( *role_decoupled == 0 )
         {//start closing FSM TCP
           //clsFsmState_Tcp = CLS_NEXT;
@@ -452,10 +519,10 @@ void pPortAndResetLogic(
           pr_was_done_flag = true;
         }
       }
+    } else {
+      udp_rx_ports_processed = 0x0;
+      tcp_rx_ports_processed = 0x0;
     }
-    //in all cases
-    udp_rx_ports_processed = 0x0;
-    tcp_rx_ports_processed = 0x0;
     if( *role_decoupled == 0)
     { //invalidate cache
       //cached_udp_rx_ipaddr = 0;
@@ -466,8 +533,7 @@ void pPortAndResetLogic(
       //FMC is using TCP!
       pr_was_done_flag = true;
     }
-  }
-  if(pr_was_done_flag && *role_decoupled == 0)
+  } else if(pr_was_done_flag && *role_decoupled == 0)
   {//so, after the PR was done
     //invalidate cache
     //cached_udp_rx_ipaddr = 0;
@@ -479,10 +545,7 @@ void pPortAndResetLogic(
     *start_tcp_cls_fsm = true;
     //FSM will wait until RDP and WRP are done
     pr_was_done_flag = false;
-  }
-
-  //only if NTS is ready
-  if(*piNTS_ready == 1 && *layer_4_enabled == 1)
+  } else if(*piNTS_ready == 1 && *layer_4_enabled == 1)
   {
     //===========================================================
     //  port requests
@@ -525,7 +588,7 @@ void pPortAndResetLogic(
         && !wait_for_tcp_port_open
         && !sTcpPortsToOpen.full())
     {
-      if(mmio_stabilize_counter == 0)
+      if(mmio_stabilize_counter == 0 && !sTcpPortsToOpen.full())
       {
         fmc_port_opened = false;
         //need_tcp_port_req = true;
@@ -592,8 +655,8 @@ void pPortAndResetLogic(
 
   if(need_write_sMarkToDel_unpriv && !sMarkToDel_unpriv.full())
   {
-	  sMarkToDel_unpriv.write(true);
-	  need_write_sMarkToDel_unpriv = false;
+    sMarkToDel_unpriv.write(true);
+    need_write_sMarkToDel_unpriv = false;
   }
 
   if(mrt_version_old != *mrt_version_processed)
@@ -629,7 +692,7 @@ void pTcpAgency(
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-#pragma HLS pipeline II=1
+  //#pragma HLS pipeline II=1
 
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
   static  TableFsmStates agencyFsm = TAB_FSM_READ;
@@ -716,158 +779,158 @@ void pTcpAgency(
             break;
           }
         }
-          if(!found_smth)
-          {
-            //there is (not yet) a connection TODO
-            printf("[TcpAgency:INFO] Unknown triple requested\n");
-          }
-          sGetSidFromTriple_Rep.write(ret);
-        }
-        agencyFsm = TAB_FSM_WRITE;
-        break;
-        case TAB_FSM_WRITE:
-        if(!sAddNewTriple_TcpRrh.empty() || !sAddNewTriple_TcpCon.empty())
+        if(!found_smth)
         {
-          NalNewTableEntry ne_struct;
-          if(!sAddNewTriple_TcpRrh.empty())
+          //there is (not yet) a connection TODO
+          printf("[TcpAgency:INFO] Unknown triple requested\n");
+        }
+        sGetSidFromTriple_Rep.write(ret);
+      }
+      agencyFsm = TAB_FSM_WRITE;
+      break;
+    case TAB_FSM_WRITE:
+      if(!sAddNewTriple_TcpRrh.empty() || !sAddNewTriple_TcpCon.empty())
+      {
+        NalNewTableEntry ne_struct;
+        if(!sAddNewTriple_TcpRrh.empty())
+        {
+          ne_struct = sAddNewTriple_TcpRrh.read();
+        } else {
+          ne_struct = sAddNewTriple_TcpCon.read();
+        }
+        SessionId sessionID = ne_struct.sessId;
+        NalTriple new_entry = ne_struct.new_triple;
+        printf("new tripple entry: %d |  %llu\n",(int) sessionID, (unsigned long long) new_entry);
+        //first check for duplicates!
+        //ap_uint<64> test_tripple = getTrippleFromSessionId(sessionID);
+        uint32_t i = 0;
+        SessionId ret = UNUSED_SESSION_ENTRY_VALUE;
+        bool found_smth = false;
+        for(i = 0; i < MAX_NAL_SESSIONS; i++)
+        {
+          //#pragma HLS unroll factor=8
+          if(sessionIdList[i] == sessionID && usedRows[i] == 1 && rowsToDelete[i] == 0)
           {
-            ne_struct = sAddNewTriple_TcpRrh.read();
-          } else {
-            ne_struct = sAddNewTriple_TcpCon.read();
+            ret = tripleList[i];
+            printf("found triple entry: %d | %d |  %llu\n",(int) i, (int) sessionID, (unsigned long long) ret);
+            found_smth = true;
+            break;
           }
-          SessionId sessionID = ne_struct.sessId;
-          NalTriple new_entry = ne_struct.new_triple;
-          printf("new tripple entry: %d |  %llu\n",(int) sessionID, (unsigned long long) new_entry);
-          //first check for duplicates!
-          //ap_uint<64> test_tripple = getTrippleFromSessionId(sessionID);
+        }
+        if(found_smth)
+        {
+          printf("session/triple already known, skipping. \n");
+          //break; no break, because other may want to run too
+        } else {
+          bool stored = false;
           uint32_t i = 0;
-          SessionId ret = UNUSED_SESSION_ENTRY_VALUE;
-          bool found_smth = false;
           for(i = 0; i < MAX_NAL_SESSIONS; i++)
           {
             //#pragma HLS unroll factor=8
-            if(sessionIdList[i] == sessionID && usedRows[i] == 1 && rowsToDelete[i] == 0)
+            if(usedRows[i] == 0)
+            {//next free one, tables stay in sync
+              sessionIdList[i] = sessionID;
+              tripleList[i] = new_entry;
+              usedRows[i] = 1;
+              privilegedRows[i] = 0;
+              printf("stored triple entry: %d | %d |  %llu\n",(int) i, (int) sessionID, (unsigned long long) new_entry);
+              stored = true;
+              break;
+            }
+          }
+          if(!stored)
+          {
+            //we run out of sessions... TODO
+            //actually, should not happen, since we have same table size as TOE
+            printf("[TcpAgency:ERROR] no free space left in table!\n");
+          }
+        }
+      }
+      if(!sDeleteEntryBySid.empty())
+      {
+        SessionId sessionID = sDeleteEntryBySid.read();
+        printf("try to delete session: %d\n", (int) sessionID);
+        for(uint32_t i = 0; i < MAX_NAL_SESSIONS; i++)
+        {
+          //#pragma HLS unroll factor=8
+          if(sessionIdList[i] == sessionID && usedRows[i] == 1)
+          {
+            usedRows[i] = 0;
+            privilegedRows[i] = 0;
+            printf("found and deleting session: %d\n", (int) sessionID);
+            //printf("invalidating TCP RX cache\n");
+            //cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
+            break;
+          }
+        }
+        //nothing to delete, nothing to do...
+      }
+      if(!sMarkAsPriv.empty())
+      {
+        SessionId sessionID = sMarkAsPriv.read();
+        printf("mark session as privileged: %d\n", (int) sessionID);
+        for(uint32_t i = 0; i < MAX_NAL_SESSIONS; i++)
+        {
+          //#pragma HLS unroll factor=8
+          if(sessionIdList[i] == sessionID && usedRows[i] == 1)
+          {
+            privilegedRows[i] = 1;
+            rowsToDelete[i] = 0;
+            return;
+          }
+        }
+        //nothing found, nothing to do...
+      }
+      if(!sMarkToDel_unpriv.empty())
+      {
+        if(sMarkToDel_unpriv.read())
+        {
+          for(uint32_t i = 0; i< MAX_NAL_SESSIONS; i++)
+          {
+            //#pragma HLS unroll factor=8
+            if(privilegedRows[i] == 1)
             {
-              ret = tripleList[i];
-              printf("found triple entry: %d | %d |  %llu\n",(int) i, (int) sessionID, (unsigned long long) ret);
+              continue;
+            } else {
+              rowsToDelete[i] = usedRows[i];
+            }
+          }
+        }
+      }
+      if(!sGetNextDelRow_Req.empty() && !sGetNextDelRow_Rep.full())
+      {
+        if(sGetNextDelRow_Req.read())
+        {
+          SessionId ret = UNUSED_SESSION_ENTRY_VALUE;
+          bool found_smth = false;
+          for(uint32_t i = 0; i< MAX_NAL_SESSIONS; i++)
+          {
+            //#pragma HLS unroll factor=8
+            if(rowsToDelete[i] == 1)
+            {
+              ret = sessionIdList[i];
+              //sessionIdList[i] = 0x0; //not necessary
+              //tripleList[i] = 0x0;
+              usedRows[i] = 0;
+              rowsToDelete[i] = 0;
+              //privilegedRows[i] = 0; //not necessary
+              printf("Closing session %d at table row %d.\n",(int) ret, (int) i);
               found_smth = true;
               break;
             }
           }
-          if(found_smth)
+          if(!found_smth)
           {
-            printf("session/triple already known, skipping. \n");
-            //break; no break, because other may want to run too
-          } else {
-            bool stored = false;
-            uint32_t i = 0;
-            for(i = 0; i < MAX_NAL_SESSIONS; i++)
-            {
-              //#pragma HLS unroll factor=8
-              if(usedRows[i] == 0)
-              {//next free one, tables stay in sync
-                sessionIdList[i] = sessionID;
-                tripleList[i] = new_entry;
-                usedRows[i] = 1;
-                privilegedRows[i] = 0;
-                printf("stored triple entry: %d | %d |  %llu\n",(int) i, (int) sessionID, (unsigned long long) new_entry);
-                stored = true;
-                break;
-              }
-            }
-            if(!stored)
-            {
-              //we run out of sessions... TODO
-              //actually, should not happen, since we have same table size as TOE
-              printf("[TcpAgency:ERROR] no free space left in table!\n");
-            }
+            //Tables are empty
+            printf("TCP tables are empty\n");
           }
+          sGetNextDelRow_Rep.write(ret);
         }
-        if(!sDeleteEntryBySid.empty())
-        {
-          SessionId sessionID = sDeleteEntryBySid.read();
-          printf("try to delete session: %d\n", (int) sessionID);
-          for(uint32_t i = 0; i < MAX_NAL_SESSIONS; i++)
-          {
-            //#pragma HLS unroll factor=8
-            if(sessionIdList[i] == sessionID && usedRows[i] == 1)
-            {
-              usedRows[i] = 0;
-              privilegedRows[i] = 0;
-              printf("found and deleting session: %d\n", (int) sessionID);
-              //printf("invalidating TCP RX cache\n");
-              //cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
-              break;
-            }
-          }
-          //nothing to delete, nothing to do...
-        }
-        if(!sMarkAsPriv.empty())
-        {
-          SessionId sessionID = sMarkAsPriv.read();
-          printf("mark session as privileged: %d\n", (int) sessionID);
-          for(uint32_t i = 0; i < MAX_NAL_SESSIONS; i++)
-          {
-            //#pragma HLS unroll factor=8
-            if(sessionIdList[i] == sessionID && usedRows[i] == 1)
-            {
-              privilegedRows[i] = 1;
-              rowsToDelete[i] = 0;
-              return;
-            }
-          }
-          //nothing found, nothing to do...
-        }
-        if(!sMarkToDel_unpriv.empty())
-        {
-          if(sMarkToDel_unpriv.read())
-          {
-            for(uint32_t i = 0; i< MAX_NAL_SESSIONS; i++)
-            {
-              //#pragma HLS unroll factor=8
-              if(privilegedRows[i] == 1)
-              {
-                continue;
-              } else {
-                rowsToDelete[i] = usedRows[i];
-              }
-            }
-          }
-        }
-        if(!sGetNextDelRow_Req.empty() && !sGetNextDelRow_Rep.full())
-        {
-          if(sGetNextDelRow_Req.read())
-          {
-            SessionId ret = UNUSED_SESSION_ENTRY_VALUE;
-            bool found_smth = false;
-            for(uint32_t i = 0; i< MAX_NAL_SESSIONS; i++)
-            {
-              //#pragma HLS unroll factor=8
-              if(rowsToDelete[i] == 1)
-              {
-                ret = sessionIdList[i];
-                //sessionIdList[i] = 0x0; //not necessary
-                //tripleList[i] = 0x0;
-                usedRows[i] = 0;
-                rowsToDelete[i] = 0;
-                //privilegedRows[i] = 0; //not necessary
-                printf("Closing session %d at table row %d.\n",(int) ret, (int) i);
-                found_smth = true;
-                break;
-              }
-            }
-            if(!found_smth)
-            {
-              //Tables are empty
-              printf("TCP tables are empty\n");
-            }
-            sGetNextDelRow_Rep.write(ret);
-          }
-        }
-        agencyFsm = TAB_FSM_READ;
-        break;
       }
-      //}
+      agencyFsm = TAB_FSM_READ;
+      break;
+  }
+  //}
 
 
 }

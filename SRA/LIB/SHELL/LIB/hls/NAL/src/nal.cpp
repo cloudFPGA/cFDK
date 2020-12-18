@@ -352,25 +352,21 @@ TcpPort getLocalPortFromTriple(NalTriple triple)
 //  return (SessionId) UNUSED_SESSION_ENTRY_VALUE;
 //}
 
-void eventStatusHousekeeping(
-    const ap_uint<1>          *layer_4_enabled,
+void pStatusMemory(
+    stream<NalEventNotif>  &internal_event_fifo,
     const ap_uint<1>       *layer_7_enabled,
     const ap_uint<1>       *role_decoupled,
+    const NodeId       *own_rank,
     const ap_uint<32>      *mrt_version_processed,
     const ap_uint<32>    *udp_rx_ports_processed,
     const ap_uint<32>    *tcp_rx_ports_processed,
     const ap_uint<16>    *processed_FMC_listen_port,
-    stream<NalConfigUpdate>   &sConfigUpdate,
-    stream<NalEventNotif>  &internal_event_fifo_0,
-    stream<NalEventNotif>  &internal_event_fifo_1,
-    stream<NalEventNotif>  &internal_event_fifo_2,
-    stream<NalEventNotif>  &internal_event_fifo_3,
     stream<NalStatusUpdate>   &sStatusUpdate
+
     )
-{
-  //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+{  //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-#pragma HLS pipeline II=1
+  //#pragma HLS pipeline II=1
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
   static ap_uint<32> node_id_missmatch_RX_cnt = 0;
   static NodeId last_rx_node_id = 0;
@@ -388,8 +384,8 @@ void eventStatusHousekeeping(
 
   static ap_uint<16> tcp_new_connection_failure_cnt = 0;
 
+
   static bool tables_initialized = false;
-  static NodeId own_rank = 0;
 
 #pragma HLS reset variable=node_id_missmatch_RX_cnt
 #pragma HLS reset variable=node_id_missmatch_TX_cnt
@@ -405,24 +401,13 @@ void eventStatusHousekeeping(
 #pragma HLS reset variable=fmc_tcp_bytes_cnt
 #pragma HLS reset variable=tcp_new_connection_failure_cnt
 #pragma HLS reset variable=tables_initialized
-#pragma HLS reset variable=own_rank
 
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
 
   static ap_uint<32> status[NUMBER_STATUS_WORDS];
   static ap_uint<32> old_status[NUMBER_STATUS_WORDS];
 
-  //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
-  NalEventNotif nevs[4];
-  bool skip_fifo[4];
-
-  if(*layer_4_enabled == 0)
-  {
-    //also, all sessions should be lost
-    tables_initialized = false;
-  }
   // ----- tables init -----
-
   if(!tables_initialized)
   {
     for(int i = 0; i < NUMBER_STATUS_WORDS; i++)
@@ -445,6 +430,218 @@ void eventStatusHousekeeping(
     //return;
   }
 
+  if(!internal_event_fifo.empty())
+  {
+    NalEventNotif nevs = internal_event_fifo.read();
+    //printf("[DEBUG] Process event %d with update value %d\n", \
+    //    (int) nevs.type, (int) nevs.update_value);
+
+    switch(nevs.type)
+    {
+      case NID_MISS_RX:
+        node_id_missmatch_RX_cnt += nevs.update_value;
+        break;
+      case NID_MISS_TX:
+        node_id_missmatch_TX_cnt += nevs.update_value;
+        break;
+      case PCOR_TX:
+        port_corrections_TX_cnt += (ap_uint<16>) nevs.update_value;
+        break;
+      case TCP_CON_FAIL:
+        tcp_new_connection_failure_cnt += (ap_uint<16>) nevs.update_value;
+        break;
+      case LAST_RX_PORT:
+        last_rx_port = (ap_uint<16>) nevs.update_value;
+        break;
+      case LAST_RX_NID:
+        last_rx_node_id = (NodeId) nevs.update_value;
+        break;
+      case LAST_TX_PORT:
+        last_tx_port = (ap_uint<16>) nevs.update_value;
+        break;
+      case LAST_TX_NID:
+        last_tx_node_id = (NodeId)  nevs.update_value;
+        break;
+      case PACKET_RX:
+        packet_count_RX += nevs.update_value;
+        break;
+      case PACKET_TX:
+        packet_count_TX += nevs.update_value;
+        break;
+      case UNAUTH_ACCESS:
+        unauthorized_access_cnt += nevs.update_value;
+        break;
+      case AUTH_ACCESS:
+        authorized_access_cnt += nevs.update_value;
+        break;
+      case FMC_TCP_BYTES:
+        fmc_tcp_bytes_cnt += nevs.update_value;
+        break;
+      default:
+        printf("[ERROR] Internal Event Processing received invalid event %d with update value %d\n", \
+            (int) nevs.type, (int) nevs.update_value);
+        break;
+    }
+
+  }
+
+    //update status entries
+    status[NAL_STATUS_MRT_VERSION] = *mrt_version_processed;
+    status[NAL_STATUS_OPEN_UDP_PORTS] = *udp_rx_ports_processed;
+    status[NAL_STATUS_OPEN_TCP_PORTS] = *tcp_rx_ports_processed;
+    status[NAL_STATUS_FMC_PORT_PROCESSED] = (ap_uint<32>) *processed_FMC_listen_port;
+    status[NAL_STATUS_OWN_RANK] = (ap_uint<32>) *own_rank;
+
+    //udp
+    //status[NAL_STATUS_SEND_STATE] = (ap_uint<32>) fsmStateRX_Udp;
+    //status[NAL_STATUS_RECEIVE_STATE] = (ap_uint<32>) fsmStateTXenq_Udp;
+    //status[NAL_STATUS_GLOBAL_STATE] = (ap_uint<32>) fsmStateTXdeq_Udp;
+
+    //tcp
+    //status[NAL_STATUS_SEND_STATE] = (ap_uint<32>) wrpFsmState;
+    //status[NAL_STATUS_RECEIVE_STATE] = (ap_uint<32>) rdpFsmState;
+    //status[NAL_STATUS_GLOBAL_STATE] = (ap_uint<32>) opnFsmState;
+
+    status[NAL_STATUS_GLOBAL_STATE] = fmc_tcp_bytes_cnt;
+
+    //status[NAL_STATUS_RX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_RX_cnt;
+    status[NAL_STATUS_RX_NODEID_ERROR] = (((ap_uint<32>) port_corrections_TX_cnt) << 16) | ( 0xFFFF & ((ap_uint<16>) node_id_missmatch_RX_cnt));
+    status[NAL_STATUS_LAST_RX_NODE_ID] = (ap_uint<32>) (( (ap_uint<32>) last_rx_port) << 16) | ( (ap_uint<32>) last_rx_node_id);
+    //status[NAL_STATUS_TX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_TX_cnt;
+    status[NAL_STATUS_TX_NODEID_ERROR] = (((ap_uint<32>) tcp_new_connection_failure_cnt) << 16) | ( 0xFFFF & ((ap_uint<16>) node_id_missmatch_TX_cnt));
+    status[NAL_STATUS_LAST_TX_NODE_ID] = (ap_uint<32>) (((ap_uint<32>) last_tx_port) << 16) | ((ap_uint<32>) last_tx_node_id);
+    //status[NAL_STATUS_TX_PORT_CORRECTIONS] = (((ap_uint<32>) tcp_new_connection_failure_cnt) << 16) | ((ap_uint<16>) port_corrections_TX_cnt);
+    status[NAL_STATUS_PACKET_CNT_RX] = (ap_uint<32>) packet_count_RX;
+    status[NAL_STATUS_PACKET_CNT_TX] = (ap_uint<32>) packet_count_TX;
+
+    status[NAL_UNAUTHORIZED_ACCESS] = (ap_uint<32>) unauthorized_access_cnt;
+    status[NAL_AUTHORIZED_ACCESS] = (ap_uint<32>) authorized_access_cnt;
+
+
+  //check for differences
+  if(!sStatusUpdate.full())
+  {
+    for(int i = 0; i < NUMBER_STATUS_WORDS; i++)
+    {
+      if(old_status[i] != status[i])
+      {
+        ap_uint<32> uv = status[i];
+        NalStatusUpdate su = NalStatusUpdate(i, uv);
+        sStatusUpdate.write(su);
+        //if(!sStatusUpdate.write_nb(su))
+        //{
+        //  //we can wait
+        //   break;
+        // } else {
+        old_status[i] = status[i];
+        //printf("[INFO] Internal Event Processing detected status change on address %d with new value %d\n", \
+        //       (int) su.status_addr, (int) su.new_value);
+        //}
+        //one at a time is enough
+        break;
+      }
+    }
+  }
+
+}
+
+void eventStatusHousekeeping(
+    const ap_uint<1>          *layer_4_enabled,
+    const ap_uint<1>       *layer_7_enabled,
+    const ap_uint<1>       *role_decoupled,
+    const ap_uint<32>      *mrt_version_processed,
+    const ap_uint<32>    *udp_rx_ports_processed,
+    const ap_uint<32>    *tcp_rx_ports_processed,
+    const ap_uint<16>    *processed_FMC_listen_port,
+    stream<NalConfigUpdate>   &sConfigUpdate,
+    stream<NalEventNotif>  &internal_event_fifo_0,
+    stream<NalEventNotif>  &internal_event_fifo_1,
+    stream<NalEventNotif>  &internal_event_fifo_2,
+    stream<NalEventNotif>  &internal_event_fifo_3,
+    stream<NalStatusUpdate>   &sStatusUpdate
+    )
+{
+  //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+#pragma HLS INLINE off
+  //#pragma HLS pipeline II=1
+  //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+  //  static ap_uint<32> node_id_missmatch_RX_cnt = 0;
+  //  static NodeId last_rx_node_id = 0;
+  //  static NrcPort last_rx_port = 0;
+  //  static ap_uint<32> node_id_missmatch_TX_cnt = 0;
+  //  static NodeId last_tx_node_id = 0;
+  //  static NrcPort last_tx_port = 0;
+  //  static ap_uint<16> port_corrections_TX_cnt = 0;
+  //  static ap_uint<32> unauthorized_access_cnt = 0;
+  //  static ap_uint<32> authorized_access_cnt = 0;
+  //  static ap_uint<32> fmc_tcp_bytes_cnt = 0;
+  //
+  //  static ap_uint<32> packet_count_RX = 0;
+  //  static ap_uint<32> packet_count_TX = 0;
+  //
+  //  static ap_uint<16> tcp_new_connection_failure_cnt = 0;
+  //
+  //  static bool tables_initialized = false;
+  static NodeId own_rank = 0;
+
+  //#pragma HLS reset variable=node_id_missmatch_RX_cnt
+  //#pragma HLS reset variable=node_id_missmatch_TX_cnt
+  //#pragma HLS reset variable=port_corrections_TX_cnt
+  //#pragma HLS reset variable=packet_count_RX
+  //#pragma HLS reset variable=packet_count_TX
+  //#pragma HLS reset variable=last_rx_node_id
+  //#pragma HLS reset variable=last_rx_port
+  //#pragma HLS reset variable=last_tx_node_id
+  //#pragma HLS reset variable=last_tx_port
+  //#pragma HLS reset variable=unauthorized_access_cnt
+  //#pragma HLS reset variable=authorized_access_cnt
+  //#pragma HLS reset variable=fmc_tcp_bytes_cnt
+  //#pragma HLS reset variable=tcp_new_connection_failure_cnt
+  //#pragma HLS reset variable=tables_initialized
+#pragma HLS reset variable=own_rank
+
+  //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+
+  //static ap_uint<32> status[NUMBER_STATUS_WORDS];
+  //static ap_uint<32> old_status[NUMBER_STATUS_WORDS];
+
+  static stream<NalEventNotif> merged_fifo ("sEvent_Merged_Fifo");
+
+#pragma HLS STREAM variable=merged_fifo depth=128
+
+  //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
+  //NalEventNotif nevs[4];
+  //bool skip_fifo[4];
+
+  //  if(*layer_4_enabled == 0)
+  //  {
+  //    //also, all sessions should be lost
+  //    tables_initialized = false;
+  //  }
+  // ----- tables init -----
+
+  //  if(!tables_initialized)
+  //  {
+  //    for(int i = 0; i < NUMBER_STATUS_WORDS; i++)
+  //    {
+  //      status[i] = 0x0;
+  //      old_status[i] = 0x0;
+  //    }
+  //    tables_initialized = true;
+  //  }
+  //
+  //  if(*layer_7_enabled == 0 || *role_decoupled == 1 )
+  //  {
+  //    //reset counters
+  //    packet_count_TX = 0x0;
+  //    packet_count_RX = 0x0;
+  //    last_rx_port = 0x0;
+  //    last_rx_node_id = 0x0;
+  //    last_tx_port = 0x0;
+  //    last_tx_node_id = 0x0;
+  //    //return;
+  //  }
+
   if(!sConfigUpdate.empty())
   {
     NalConfigUpdate ca = sConfigUpdate.read();
@@ -454,172 +651,222 @@ void eventStatusHousekeeping(
     }
   }
 
-  if(!internal_event_fifo_0.empty())
+  //  if(!internal_event_fifo_0.empty())
+  //  {
+  //    NalEventNotif tmp = internal_event_fifo_0.read();
+  //    nevs[0].type = tmp.type;
+  //    nevs[0].update_value = tmp.update_value;
+  //    printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_0\n", \
+  //        (int) tmp.type, (int) tmp.update_value);
+  //    skip_fifo[0] = false;
+  //  } else {
+  //    skip_fifo[0] = true;
+  //  }
+  //  if(!internal_event_fifo_1.empty())
+  //  {
+  //    NalEventNotif tmp = internal_event_fifo_1.read();
+  //    nevs[1].type = tmp.type;
+  //    nevs[1].update_value = tmp.update_value;
+  //    printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_1\n", \
+  //        (int) tmp.type, (int) tmp.update_value);
+  //    skip_fifo[1] = false;
+  //  } else {
+  //    skip_fifo[1] = true;
+  //  }
+  //  if(!internal_event_fifo_2.empty())
+  //  {
+  //    NalEventNotif tmp = internal_event_fifo_2.read();
+  //    nevs[2].type = tmp.type;
+  //    nevs[2].update_value = tmp.update_value;
+  //    printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_2\n", \
+  //        (int) tmp.type, (int) tmp.update_value);
+  //    skip_fifo[2] = false;
+  //  } else {
+  //    skip_fifo[2] = true;
+  //  }
+  //  if(!internal_event_fifo_3.empty())
+  //  {
+  //    NalEventNotif tmp = internal_event_fifo_3.read();
+  //    nevs[3].type = tmp.type;
+  //    nevs[3].update_value = tmp.update_value;
+  //    printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_3\n", \
+  //        (int) tmp.type, (int) tmp.update_value);
+  //    skip_fifo[3] = false;
+  //  } else {
+  //    skip_fifo[3] = true;
+  //  }
+
+  //  for(int i = 0; i<4; i++)
+  //  {
+  ////#pragma HLS unroll
+  //    //remove dependencies (yes, risking race conditions,
+  //    //but they should be very unlikely and are only affecting statistics data)
+  ////#pragma HLS dependence variable=node_id_missmatch_RX_cnt  inter false
+  ////#pragma HLS dependence variable=node_id_missmatch_TX_cnt  inter false
+  ////#pragma HLS dependence variable=port_corrections_TX_cnt   inter false
+  ////#pragma HLS dependence variable=packet_count_RX           inter false
+  ////#pragma HLS dependence variable=packet_count_TX           inter false
+  ////#pragma HLS dependence variable=last_rx_node_id           inter false
+  ////#pragma HLS dependence variable=last_rx_port              inter false
+  ////#pragma HLS dependence variable=last_tx_node_id           inter false
+  ////#pragma HLS dependence variable=last_tx_port              inter false
+  ////#pragma HLS dependence variable=unauthorized_access_cnt   inter false
+  ////#pragma HLS dependence variable=authorized_access_cnt     inter false
+  ////#pragma HLS dependence variable=fmc_tcp_bytes_cnt         inter false
+  ////#pragma HLS dependence variable=tcp_new_connection_failure_cnt inter false
+  //
+  //    if(skip_fifo[i] == true)
+  //    {
+  //      continue;
+  //    }
+  //
+  //    switch(nevs[i].type)
+  //    {
+  //      case NID_MISS_RX:
+  //        node_id_missmatch_RX_cnt += nevs[i].update_value;
+  //        break;
+  //      case NID_MISS_TX:
+  //        node_id_missmatch_TX_cnt += nevs[i].update_value;
+  //        break;
+  //      case PCOR_TX:
+  //        port_corrections_TX_cnt += (ap_uint<16>) nevs[i].update_value;
+  //        break;
+  //      case TCP_CON_FAIL:
+  //        tcp_new_connection_failure_cnt += (ap_uint<16>) nevs[i].update_value;
+  //        break;
+  //      case LAST_RX_PORT:
+  //        last_rx_port = (ap_uint<16>) nevs[i].update_value;
+  //        break;
+  //      case LAST_RX_NID:
+  //        last_rx_node_id = (NodeId) nevs[i].update_value;
+  //        break;
+  //      case LAST_TX_PORT:
+  //        last_tx_port = (ap_uint<16>) nevs[i].update_value;
+  //        break;
+  //      case LAST_TX_NID:
+  //        last_tx_node_id = (NodeId)  nevs[i].update_value;
+  //        break;
+  //      case PACKET_RX:
+  //        packet_count_RX += nevs[i].update_value;
+  //        break;
+  //      case PACKET_TX:
+  //        packet_count_TX += nevs[i].update_value;
+  //        break;
+  //      case UNAUTH_ACCESS:
+  //        unauthorized_access_cnt += nevs[i].update_value;
+  //        break;
+  //      case AUTH_ACCESS:
+  //        authorized_access_cnt += nevs[i].update_value;
+  //        break;
+  //      case FMC_TCP_BYTES:
+  //        fmc_tcp_bytes_cnt += nevs[i].update_value;
+  //        break;
+  //      default:
+  //        printf("[ERROR] Internal Event Processing received invalid event %d with update value %d\n", \
+  //            (int) nevs[i].type, (int) nevs[i].update_value);
+  //        break;
+  //    }
+  //
+  //  }
+  //
+  //
+  //  //update status entries
+  //  status[NAL_STATUS_MRT_VERSION] = *mrt_version_processed;
+  //  status[NAL_STATUS_OPEN_UDP_PORTS] = *udp_rx_ports_processed;
+  //  status[NAL_STATUS_OPEN_TCP_PORTS] = *tcp_rx_ports_processed;
+  //  status[NAL_STATUS_FMC_PORT_PROCESSED] = (ap_uint<32>) *processed_FMC_listen_port;
+  //  status[NAL_STATUS_OWN_RANK] = (ap_uint<32>) own_rank;
+  //
+  //  //udp
+  //  //status[NAL_STATUS_SEND_STATE] = (ap_uint<32>) fsmStateRX_Udp;
+  //  //status[NAL_STATUS_RECEIVE_STATE] = (ap_uint<32>) fsmStateTXenq_Udp;
+  //  //status[NAL_STATUS_GLOBAL_STATE] = (ap_uint<32>) fsmStateTXdeq_Udp;
+  //
+  //  //tcp
+  //  //status[NAL_STATUS_SEND_STATE] = (ap_uint<32>) wrpFsmState;
+  //  //status[NAL_STATUS_RECEIVE_STATE] = (ap_uint<32>) rdpFsmState;
+  //  //status[NAL_STATUS_GLOBAL_STATE] = (ap_uint<32>) opnFsmState;
+  //
+  //  status[NAL_STATUS_GLOBAL_STATE] = fmc_tcp_bytes_cnt;
+  //
+  //  //status[NAL_STATUS_RX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_RX_cnt;
+  //  status[NAL_STATUS_RX_NODEID_ERROR] = (((ap_uint<32>) port_corrections_TX_cnt) << 16) | ( 0xFFFF & ((ap_uint<16>) node_id_missmatch_RX_cnt));
+  //  status[NAL_STATUS_LAST_RX_NODE_ID] = (ap_uint<32>) (( (ap_uint<32>) last_rx_port) << 16) | ( (ap_uint<32>) last_rx_node_id);
+  //  //status[NAL_STATUS_TX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_TX_cnt;
+  //  status[NAL_STATUS_TX_NODEID_ERROR] = (((ap_uint<32>) tcp_new_connection_failure_cnt) << 16) | ( 0xFFFF & ((ap_uint<16>) node_id_missmatch_TX_cnt));
+  //  status[NAL_STATUS_LAST_TX_NODE_ID] = (ap_uint<32>) (((ap_uint<32>) last_tx_port) << 16) | ((ap_uint<32>) last_tx_node_id);
+  //  //status[NAL_STATUS_TX_PORT_CORRECTIONS] = (((ap_uint<32>) tcp_new_connection_failure_cnt) << 16) | ((ap_uint<16>) port_corrections_TX_cnt);
+  //  status[NAL_STATUS_PACKET_CNT_RX] = (ap_uint<32>) packet_count_RX;
+  //  status[NAL_STATUS_PACKET_CNT_TX] = (ap_uint<32>) packet_count_TX;
+  //
+  //  status[NAL_UNAUTHORIZED_ACCESS] = (ap_uint<32>) unauthorized_access_cnt;
+  //  status[NAL_AUTHORIZED_ACCESS] = (ap_uint<32>) authorized_access_cnt;
+
+  //  //check for differences
+  //  if(!sStatusUpdate.full())
+  //  {
+  //  for(int i = 0; i < NUMBER_STATUS_WORDS; i++)
+  //  {
+  //    if(old_status[i] != status[i])
+  //    {
+  //      ap_uint<32> uv = status[i];
+  //      NalStatusUpdate su = NalStatusUpdate(i, uv);
+  //      sStatusUpdate.write(su);
+  //      //if(!sStatusUpdate.write_nb(su))
+  //      //{
+  //      //  //we can wait
+  //     //   break;
+  //     // } else {
+  //        old_status[i] = status[i];
+  //      //}
+  //        //one at a time is enough
+  //        break;
+  //    }
+  //  }
+  //  }
+
+  // bool there_was_something = false;
+
+  if(!internal_event_fifo_0.empty() && !merged_fifo.full() )
   {
     NalEventNotif tmp = internal_event_fifo_0.read();
-    nevs[0].type = tmp.type;
-    nevs[0].update_value = tmp.update_value;
     printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_0\n", \
         (int) tmp.type, (int) tmp.update_value);
-    skip_fifo[0] = false;
-  } else {
-    skip_fifo[0] = true;
+    // there_was_something = true;
+    merged_fifo.write(tmp);
   }
-  if(!internal_event_fifo_1.empty())
+
+  if(!internal_event_fifo_1.empty() && !merged_fifo.full() )
   {
     NalEventNotif tmp = internal_event_fifo_1.read();
-    nevs[1].type = tmp.type;
-    nevs[1].update_value = tmp.update_value;
     printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_1\n", \
         (int) tmp.type, (int) tmp.update_value);
-    skip_fifo[1] = false;
-  } else {
-    skip_fifo[1] = true;
+    //there_was_something = true;
+    merged_fifo.write(tmp);
   }
-  if(!internal_event_fifo_2.empty())
+
+  if(!internal_event_fifo_2.empty() && !merged_fifo.full() )
   {
     NalEventNotif tmp = internal_event_fifo_2.read();
-    nevs[2].type = tmp.type;
-    nevs[2].update_value = tmp.update_value;
     printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_2\n", \
         (int) tmp.type, (int) tmp.update_value);
-    skip_fifo[2] = false;
-  } else {
-    skip_fifo[2] = true;
+    //  there_was_something = true;
+    merged_fifo.write(tmp);
   }
-  if(!internal_event_fifo_3.empty())
+  if(!internal_event_fifo_3.empty() && !merged_fifo.full() )
   {
     NalEventNotif tmp = internal_event_fifo_3.read();
-    nevs[3].type = tmp.type;
-    nevs[3].update_value = tmp.update_value;
     printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_3\n", \
         (int) tmp.type, (int) tmp.update_value);
-    skip_fifo[3] = false;
-  } else {
-    skip_fifo[3] = true;
+    //there_was_something = true;
+    merged_fifo.write(tmp);
   }
 
-  for(int i = 0; i<4; i++)
-  {
-#pragma HLS unroll
-    //remove dependencies (yes, risking race conditions,
-    //but they should be very unlikely and are only affecting statistics data)
-#pragma HLS dependence variable=node_id_missmatch_RX_cnt  inter false
-#pragma HLS dependence variable=node_id_missmatch_TX_cnt  inter false
-#pragma HLS dependence variable=port_corrections_TX_cnt   inter false
-#pragma HLS dependence variable=packet_count_RX           inter false
-#pragma HLS dependence variable=packet_count_TX           inter false
-#pragma HLS dependence variable=last_rx_node_id           inter false
-#pragma HLS dependence variable=last_rx_port              inter false
-#pragma HLS dependence variable=last_tx_node_id           inter false
-#pragma HLS dependence variable=last_tx_port              inter false
-#pragma HLS dependence variable=unauthorized_access_cnt   inter false
-#pragma HLS dependence variable=authorized_access_cnt     inter false
-#pragma HLS dependence variable=fmc_tcp_bytes_cnt         inter false
-#pragma HLS dependence variable=tcp_new_connection_failure_cnt inter false
-
-    if(skip_fifo[i] == true)
-    {
-      continue;
-    }
-
-    switch(nevs[i].type)
-    {
-      case NID_MISS_RX:
-        node_id_missmatch_RX_cnt += nevs[i].update_value;
-        break;
-      case NID_MISS_TX:
-        node_id_missmatch_TX_cnt += nevs[i].update_value;
-        break;
-      case PCOR_TX:
-        port_corrections_TX_cnt += nevs[i].update_value;
-        break;
-      case TCP_CON_FAIL:
-        tcp_new_connection_failure_cnt += nevs[i].update_value;
-        break;
-      case LAST_RX_PORT:
-        last_rx_port = nevs[i].update_value;
-        break;
-      case LAST_RX_NID:
-        last_rx_node_id = nevs[i].update_value;
-        break;
-      case LAST_TX_PORT:
-        last_tx_port = nevs[i].update_value;
-        break;
-      case LAST_TX_NID:
-        last_tx_node_id = nevs[i].update_value;
-        break;
-      case PACKET_RX:
-        packet_count_RX += nevs[i].update_value;
-        break;
-      case PACKET_TX:
-        packet_count_TX += nevs[i].update_value;
-        break;
-      case UNAUTH_ACCESS:
-        unauthorized_access_cnt += nevs[i].update_value;
-        break;
-      case AUTH_ACCESS:
-        authorized_access_cnt += nevs[i].update_value;
-        break;
-      case FMC_TCP_BYTES:
-        fmc_tcp_bytes_cnt += nevs[i].update_value;
-        break;
-      default:
-        printf("[ERROR] Internal Event Processing received invalid event %d with update value %d\n", \
-            (int) nevs[i].type, (int) nevs[i].update_value);
-        break;
-    }
-
-  }
-
-
-  //update status entries
-  status[NAL_STATUS_MRT_VERSION] = *mrt_version_processed;
-  status[NAL_STATUS_OPEN_UDP_PORTS] = *udp_rx_ports_processed;
-  status[NAL_STATUS_OPEN_TCP_PORTS] = *tcp_rx_ports_processed;
-  status[NAL_STATUS_FMC_PORT_PROCESSED] = (ap_uint<32>) *processed_FMC_listen_port;
-  status[NAL_STATUS_OWN_RANK] = own_rank;
-
-  //udp
-  //status[NAL_STATUS_SEND_STATE] = (ap_uint<32>) fsmStateRX_Udp;
-  //status[NAL_STATUS_RECEIVE_STATE] = (ap_uint<32>) fsmStateTXenq_Udp;
-  //status[NAL_STATUS_GLOBAL_STATE] = (ap_uint<32>) fsmStateTXdeq_Udp;
-
-  //tcp
-  //status[NAL_STATUS_SEND_STATE] = (ap_uint<32>) wrpFsmState;
-  //status[NAL_STATUS_RECEIVE_STATE] = (ap_uint<32>) rdpFsmState;
-  //status[NAL_STATUS_GLOBAL_STATE] = (ap_uint<32>) opnFsmState;
-
-  status[NAL_STATUS_GLOBAL_STATE] = fmc_tcp_bytes_cnt;
-
-  //status[NAL_STATUS_RX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_RX_cnt;
-  status[NAL_STATUS_RX_NODEID_ERROR] = (((ap_uint<32>) port_corrections_TX_cnt) << 16) | ( 0xFFFF & ((ap_uint<16>) node_id_missmatch_RX_cnt));
-  status[NAL_STATUS_LAST_RX_NODE_ID] = (ap_uint<32>) (( (ap_uint<32>) last_rx_port) << 16) | ( (ap_uint<32>) last_rx_node_id);
-  //status[NAL_STATUS_TX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_TX_cnt;
-  status[NAL_STATUS_TX_NODEID_ERROR] = (((ap_uint<32>) tcp_new_connection_failure_cnt) << 16) | ( 0xFFFF & ((ap_uint<16>) node_id_missmatch_TX_cnt));
-  status[NAL_STATUS_LAST_TX_NODE_ID] = (ap_uint<32>) (((ap_uint<32>) last_tx_port) << 16) | ((ap_uint<32>) last_tx_node_id);
-  //status[NAL_STATUS_TX_PORT_CORRECTIONS] = (((ap_uint<32>) tcp_new_connection_failure_cnt) << 16) | ((ap_uint<16>) port_corrections_TX_cnt);
-  status[NAL_STATUS_PACKET_CNT_RX] = (ap_uint<32>) packet_count_RX;
-  status[NAL_STATUS_PACKET_CNT_TX] = (ap_uint<32>) packet_count_TX;
-
-  status[NAL_UNAUTHORIZED_ACCESS] = (ap_uint<32>) unauthorized_access_cnt;
-  status[NAL_AUTHORIZED_ACCESS] = (ap_uint<32>) authorized_access_cnt;
-
-  //check for differences
-  for(int i = 0; i < NUMBER_STATUS_WORDS; i++)
-  {
-    if(old_status[i] != status[i])
-    {
-      NalStatusUpdate su = NalStatusUpdate(i, status[i]);
-      if(!sStatusUpdate.write_nb(su))
-      {
-        //we can wait
-        break;
-      } else {
-        old_status[i] = status[i];
-      }
-    }
-  }
+  // if(there_was_something)
+  // {
+  pStatusMemory(merged_fifo, layer_7_enabled, role_decoupled, &own_rank, mrt_version_processed,
+      udp_rx_ports_processed, tcp_rx_ports_processed, processed_FMC_listen_port, sStatusUpdate);
+  // }
 
 }
 
@@ -635,7 +882,7 @@ void pRoleTcpDeq(
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-#pragma HLS pipeline II=1
+  //#pragma HLS pipeline II=1
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
   static DeqFsmStates deqFsmState = DEQ_WAIT_META;
 #pragma HLS RESET variable=deqFsmState
@@ -900,11 +1147,11 @@ void nal_main(
   //=================================================================================================
   // Variable Pragmas
 
-//#pragma HLS ARRAY_PARTITION variable=tripleList cyclic factor=4 dim=1
-//#pragma HLS ARRAY_PARTITION variable=sessionIdList cyclic factor=4 dim=1
-//#pragma HLS ARRAY_PARTITION variable=usedRows cyclic factor=4 dim=1
-//#pragma HLS ARRAY_PARTITION variable=privilegedRows cyclic factor=4 dim=1
-//#pragma HLS ARRAY_PARTITION variable=rowsToDelete cyclic factor=4 dim=1
+  //#pragma HLS ARRAY_PARTITION variable=tripleList cyclic factor=4 dim=1
+  //#pragma HLS ARRAY_PARTITION variable=sessionIdList cyclic factor=4 dim=1
+  //#pragma HLS ARRAY_PARTITION variable=usedRows cyclic factor=4 dim=1
+  //#pragma HLS ARRAY_PARTITION variable=privilegedRows cyclic factor=4 dim=1
+  //#pragma HLS ARRAY_PARTITION variable=rowsToDelete cyclic factor=4 dim=1
   //#pragma HLS ARRAY_PARTITION variable=localMRT complete dim=1
 
   //#pragma HLS ARRAY_PARTITION variable=status cyclic factor=4 dim=1
@@ -985,10 +1232,10 @@ void nal_main(
   static stream<NalNewTcpConRep>    sNewTcpCon_Rep           ("sNewTcpConRep");
 
 
-#pragma HLS STREAM variable=internal_event_fifo_0 depth=16
-#pragma HLS STREAM variable=internal_event_fifo_1 depth=16
-#pragma HLS STREAM variable=internal_event_fifo_2 depth=16
-#pragma HLS STREAM variable=internal_event_fifo_3 depth=16
+#pragma HLS STREAM variable=internal_event_fifo_0 depth=32
+#pragma HLS STREAM variable=internal_event_fifo_1 depth=32
+#pragma HLS STREAM variable=internal_event_fifo_2 depth=32
+#pragma HLS STREAM variable=internal_event_fifo_3 depth=32
 
 #pragma HLS STREAM variable=sA4lToTcpAgency  depth=16
 #pragma HLS STREAM variable=sA4lToPortLogic  depth=16
@@ -1033,80 +1280,80 @@ void nal_main(
 #pragma HLS STREAM variable=sNewTcpCon_Rep       depth=16
 
 
-    //=================================================================================================
-    // Reset global variables
+  //=================================================================================================
+  // Reset global variables
 
-    //#pragma HLS reset variable=fsmStateRX_Udp
-    //#pragma HLS reset variable=fsmStateTX_Udp
-    //#pragma HLS reset variable=openPortWaitTime
-    //#pragma HLS reset variable=mmio_stabilize_counter
-    //#pragma HLS reset variable=udp_lsn_watchDogTimer
+  //#pragma HLS reset variable=fsmStateRX_Udp
+  //#pragma HLS reset variable=fsmStateTX_Udp
+  //#pragma HLS reset variable=openPortWaitTime
+  //#pragma HLS reset variable=mmio_stabilize_counter
+  //#pragma HLS reset variable=udp_lsn_watchDogTimer
 #pragma HLS reset variable=mrt_version_processed
-    //#pragma HLS reset variable=udp_rx_ports_processed
-    //#pragma HLS reset variable=udp_rx_ports_to_close
-    //#pragma HLS reset variable=need_udp_port_req
-    //#pragma HLS reset variable=new_relative_port_to_req_udp
-    //#pragma HLS reset variable=clsFsmState_Udp
-    //#pragma HLS reset variable=newRelativePortToClose
-    //#pragma HLS reset variable=newAbsolutePortToClose
-    //#pragma HLS reset variable=node_id_missmatch_RX_cnt
-    //#pragma HLS reset variable=node_id_missmatch_TX_cnt
-    //#pragma HLS reset variable=port_corrections_TX_cnt
-    //#pragma HLS reset variable=packet_count_RX
-    //#pragma HLS reset variable=packet_count_TX
-    //#pragma HLS reset variable=last_rx_node_id
-    //#pragma HLS reset variable=last_rx_port
-    //#pragma HLS reset variable=last_tx_node_id
-    //#pragma HLS reset variable=last_tx_port
-    ////#pragma HLS reset variable=out_meta_udp
-    ////#pragma HLS reset variable=in_meta_udp
-    ////#pragma HLS reset variable=udpTX_packet_length
-    ////#pragma HLS reset variable=udpTX_current_packet_length
-    //#pragma HLS reset variable=unauthorized_access_cnt
-    //#pragma HLS reset variable=authorized_access_cnt
-    //#pragma HLS reset variable=fmc_tcp_bytes_cnt
+  //#pragma HLS reset variable=udp_rx_ports_processed
+  //#pragma HLS reset variable=udp_rx_ports_to_close
+  //#pragma HLS reset variable=need_udp_port_req
+  //#pragma HLS reset variable=new_relative_port_to_req_udp
+  //#pragma HLS reset variable=clsFsmState_Udp
+  //#pragma HLS reset variable=newRelativePortToClose
+  //#pragma HLS reset variable=newAbsolutePortToClose
+  //#pragma HLS reset variable=node_id_missmatch_RX_cnt
+  //#pragma HLS reset variable=node_id_missmatch_TX_cnt
+  //#pragma HLS reset variable=port_corrections_TX_cnt
+  //#pragma HLS reset variable=packet_count_RX
+  //#pragma HLS reset variable=packet_count_TX
+  //#pragma HLS reset variable=last_rx_node_id
+  //#pragma HLS reset variable=last_rx_port
+  //#pragma HLS reset variable=last_tx_node_id
+  //#pragma HLS reset variable=last_tx_port
+  ////#pragma HLS reset variable=out_meta_udp
+  ////#pragma HLS reset variable=in_meta_udp
+  ////#pragma HLS reset variable=udpTX_packet_length
+  ////#pragma HLS reset variable=udpTX_current_packet_length
+  //#pragma HLS reset variable=unauthorized_access_cnt
+  //#pragma HLS reset variable=authorized_access_cnt
+  //#pragma HLS reset variable=fmc_tcp_bytes_cnt
 
-    //#pragma HLS reset variable=startupDelay
-    //#pragma HLS reset variable=opnFsmState
-    //#pragma HLS reset variable=clsFsmState_Tcp
-    //#pragma HLS reset variable=lsnFsmState
-    //#pragma HLS reset variable=rrhFsmState
-    //#pragma HLS reset variable=rdpFsmState
-    //#pragma HLS reset variable=wrpFsmState
-    //#pragma HLS reset variable=tcp_rx_ports_processed
-    //#pragma HLS reset variable=need_tcp_port_req
-    //#pragma HLS reset variable=new_relative_port_to_req_tcp
-    //#pragma HLS reset variable=processed_FMC_listen_port
-    //#pragma HLS reset variable=fmc_port_opened
-//#pragma HLS reset variable=tables_initalized
-    //#pragma HLS reset variable=out_meta_tcp
-    //#pragma HLS reset variable=in_meta_tcp
-    //#pragma HLS reset variable=session_toFMC
-    //#pragma HLS reset variable=session_fromFMC
-    //#pragma HLS reset variable=Tcp_RX_metaWritten
-    //#pragma HLS reset variable=tcpTX_packet_length
-    //#pragma HLS reset variable=tcpTX_current_packet_length
-//#pragma HLS reset variable=tripple_for_new_connection
-//#pragma HLS reset variable=tcp_need_new_connection_request
-//#pragma HLS reset variable=tcp_new_connection_failure
+  //#pragma HLS reset variable=startupDelay
+  //#pragma HLS reset variable=opnFsmState
+  //#pragma HLS reset variable=clsFsmState_Tcp
+  //#pragma HLS reset variable=lsnFsmState
+  //#pragma HLS reset variable=rrhFsmState
+  //#pragma HLS reset variable=rdpFsmState
+  //#pragma HLS reset variable=wrpFsmState
+  //#pragma HLS reset variable=tcp_rx_ports_processed
+  //#pragma HLS reset variable=need_tcp_port_req
+  //#pragma HLS reset variable=new_relative_port_to_req_tcp
+  //#pragma HLS reset variable=processed_FMC_listen_port
+  //#pragma HLS reset variable=fmc_port_opened
+  //#pragma HLS reset variable=tables_initalized
+  //#pragma HLS reset variable=out_meta_tcp
+  //#pragma HLS reset variable=in_meta_tcp
+  //#pragma HLS reset variable=session_toFMC
+  //#pragma HLS reset variable=session_fromFMC
+  //#pragma HLS reset variable=Tcp_RX_metaWritten
+  //#pragma HLS reset variable=tcpTX_packet_length
+  //#pragma HLS reset variable=tcpTX_current_packet_length
+  //#pragma HLS reset variable=tripple_for_new_connection
+  //#pragma HLS reset variable=tcp_need_new_connection_request
+  //#pragma HLS reset variable=tcp_new_connection_failure
 
 #pragma HLS reset variable=expect_FMC_response
 #pragma HLS reset variable=start_tcp_cls_fsm
-    //#pragma HLS reset variable=cached_udp_rx_id
-    //#pragma HLS reset variable=cached_udp_rx_ipaddr
-    //#pragma HLS reset variable=cached_tcp_rx_session_id
-    //#pragma HLS reset variable=cached_tcp_rx_tripple
-    //#pragma HLS reset variable=cached_tcp_tx_session_id
-    //#pragma HLS reset variable=cached_tcp_tx_tripple
-    //#pragma HLS reset variable=pr_was_done_flag
+  //#pragma HLS reset variable=cached_udp_rx_id
+  //#pragma HLS reset variable=cached_udp_rx_ipaddr
+  //#pragma HLS reset variable=cached_tcp_rx_session_id
+  //#pragma HLS reset variable=cached_tcp_rx_tripple
+  //#pragma HLS reset variable=cached_tcp_tx_session_id
+  //#pragma HLS reset variable=cached_tcp_tx_tripple
+  //#pragma HLS reset variable=pr_was_done_flag
 
 
 
 
-    //===========================================================
-    //  core wide variables (for one iteration)
+  //===========================================================
+  //  core wide variables (for one iteration)
 
-    ap_uint<32> ipAddrBE = *myIpAddress;
+  ap_uint<32> ipAddrBE = *myIpAddress;
   bool nts_ready_and_enabled = (*piNTS_ready == 1 && *layer_4_enabled == 1);
   bool detected_cache_invalidation = false;
   //bool start_udp_cls_fsm = false;
@@ -1203,7 +1450,7 @@ void nal_main(
   //TODO: add disable signal? (NTS_ready, layer4 enabled)
   //TODO: add cache invalidate mechanism
   pTcpRRh(siTOE_Notif, soTOE_DReq, sAddNewTriple_TcpRrh, sDeleteEntryBySid, piFMC_Tcp_data_FIFO_prog_full,
-		  piFMC_Tcp_sessid_FIFO_prog_full, &role_fifo_empty, &nts_ready_and_enabled);
+      piFMC_Tcp_sessid_FIFO_prog_full, &role_fifo_empty, &nts_ready_and_enabled);
 
   //=================================================================================================
   // TCP Read Path
@@ -1221,8 +1468,9 @@ void nal_main(
   //=================================================================================================
   // TCP Write Path
   pTcpWRp(siFMC_Tcp_data, siFMC_Tcp_SessId, siTcp_data, siTcp_meta, soTOE_Data, soTOE_SessId, \
-      sGetIpReq_TcpTx, sGetIpRep_TcpTx, sGetNidReq_TcpTx, sGetNidRep_TcpTx,\
-	  sGetSidFromTriple_Req, sGetSidFromTriple_Rep, sNewTcpCon_Req, sNewTcpCon_Rep, \
+      sGetIpReq_TcpTx, sGetIpRep_TcpTx,
+      //sGetNidReq_TcpTx, sGetNidRep_TcpTx,
+      sGetSidFromTriple_Req, sGetSidFromTriple_Rep, sNewTcpCon_Req, sNewTcpCon_Rep, \
       &expect_FMC_response, &nts_ready_and_enabled, \
       &detected_cache_invalidation, internal_event_fifo_3);
 
@@ -1242,8 +1490,8 @@ void nal_main(
   // TCP Table Management
 
   pTcpAgency(sGetTripleFromSid_Req, sGetTripleFromSid_Rep, sGetSidFromTriple_Req, sGetSidFromTriple_Rep,
-		  sAddNewTriple_TcpRrh, sAddNewTriple_TcpCon, sDeleteEntryBySid, sMarkAsPriv, sMarkToDel_unpriv,
-		  sGetNextDelRow_Req, sGetNextDelRow_Rep, &nts_ready_and_enabled);
+      sAddNewTriple_TcpRrh, sAddNewTriple_TcpCon, sDeleteEntryBySid, sMarkAsPriv, sMarkToDel_unpriv,
+      sGetNextDelRow_Req, sGetNextDelRow_Rep, &nts_ready_and_enabled);
 
 
   eventStatusHousekeeping(layer_4_enabled, layer_7_enabled, role_decoupled, &mrt_version_used, &status_udp_ports, &status_tcp_ports, \
@@ -1252,7 +1500,8 @@ void nal_main(
   axi4liteProcessing(layer_4_enabled, ctrlLink, &mrt_version_processed, sA4lToTcpAgency, sA4lToPortLogic, sA4lToUdpRx, \
       sA4lToTcpRx, sA4lToStatusProc, sStatusUpdate,\
       sGetIpReq_UdpTx, sGetIpRep_UdpTx, sGetIpReq_TcpTx, sGetIpRep_TcpTx, sGetNidReq_UdpRx, sGetNidRep_UdpRx,
-      sGetNidReq_TcpRx, sGetNidRep_TcpRx, sGetNidReq_TcpTx, sGetNidRep_TcpTx);
+      sGetNidReq_TcpRx, sGetNidRep_TcpRx);
+  //sGetNidReq_TcpTx, sGetNidRep_TcpTx);
 
 
   //    if( fsmStateTX_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC &&

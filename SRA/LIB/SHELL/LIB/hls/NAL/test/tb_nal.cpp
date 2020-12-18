@@ -148,7 +148,7 @@ unsigned int    gSimCycCnt    = 0;
 bool            gTraceEvent   = false;
 bool            gFatalError   = false;
 //unsigned int    gMaxSimCycles = 0x8000 + 200;
-unsigned int    gMaxSimCycles = 320;
+unsigned int    gMaxSimCycles = 350;
 
 //------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
@@ -1060,6 +1060,7 @@ int main() {
     }
 
     ctrlLink[0] = 1; //own rank 
+    ctrlLink[NAL_CONFIG_MRT_VERSION] = 1;
     ctrlLink[NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS + 0] = 0x0a0b0c01; //10.11.12.1
     ctrlLink[NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS + 1] = 0x0a0b0c0d; //10.11.12.13
     ctrlLink[NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS + 2] = 0x0a0b0c0e; //10.11.12.14
@@ -1068,7 +1069,8 @@ int main() {
     //-- STEP-1 : OPEN PORT REQUEST
     //------------------------------------------------------
     printf("========================= BEGIN UDP Port Opening =========================\n");
-    for (int i=0; i<15; ++i) {
+    for (int i=0; i<32; ++i) {
+    	//we need ~18 cycles to copy all configs, and then a few more to copy the MRT
         stepDut();
         if ( !sNRC_UOE_LsnReq.empty() ) {
             sNRC_UOE_LsnReq.read();
@@ -1201,7 +1203,7 @@ int main() {
             printf("-- [@%4.4d] -----------------------------\n", gSimCycCnt);
             gTraceEvent = false;
         }
-        if(simCnt == 160)
+        if(simCnt == 180)
         {
         //now test ROLE
         sessionId   = DEFAULT_SESSION_ID + 1;
@@ -1210,11 +1212,11 @@ int main() {
         fpgaLsnPort = 2718;
         rxpState = RXP_SEND_NOTIF;
         }
-        if(simCnt == 190)
+        if(simCnt == 210)
         {
           s_tcp_rx_ports = 0b101;
         }
-        if(simCnt == 203)
+        if(simCnt == 223)
         {
           sessionId   = DEFAULT_SESSION_ID + 2;
           sessionId_reply   = DEFAULT_SESSION_ID + 3;
@@ -1228,7 +1230,7 @@ int main() {
         //{
         //  s_tcp_rx_ports = 0b1101;
         //}
-        if(simCnt == 249)
+        if(simCnt == 269)
         { //test again, but this time with connection timeout
           sessionId   = DEFAULT_SESSION_ID + 4;
           sessionId_reply   = DEFAULT_SESSION_ID + 5;
@@ -1242,7 +1244,7 @@ int main() {
           tcp_timout_packet_drop = 3;
         }
 
-        if(simCnt >= 249 && tcp_timout_packet_drop > 0 && !sNRC_Toe_OpnReq.empty())
+        if(simCnt >= 269 && tcp_timout_packet_drop > 0 && !sNRC_Toe_OpnReq.empty())
         {
           //drain OpnReq stream
           tcp_timout_packet_drop--;
@@ -1271,6 +1273,13 @@ int main() {
       printf("\tSummary: Send %d TCP packets, Received %d TCP packets (Expected Timout packets %d).\n",tcp_packets_send, tcp_packets_recv, tcp_packets_expected_timeout);
     }
     printf("############################################################################\n\n");
+
+    if(ctrlLink[NUMBER_CONFIG_WORDS + NAL_STATUS_MRT_VERSION] != 1)
+    {
+    	//A4L needs >161 steps to acknowledge it.
+    	 printf("ERROR: NAL status is reporting the wrong MRT version (%d)!\n", (int) ctrlLink[NUMBER_CONFIG_WORDS + NAL_STATUS_MRT_VERSION]);
+    	 nrErr++;
+    }
 
     //-------------------------------------------------------
     //-- STEP-4 : DRAIN AND WRITE OUTPUT FILE STREAMS

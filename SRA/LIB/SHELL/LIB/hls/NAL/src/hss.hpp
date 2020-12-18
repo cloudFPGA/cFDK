@@ -84,9 +84,9 @@ void axi4liteProcessing(
 		stream<Ip4Addr>				&sGetNidReq_UdpRx,
 		stream<NodeId>				&sGetNidRep_UdpRx,
 		stream<Ip4Addr>				&sGetNidReq_TcpRx,
-		stream<NodeId>				&sGetNidRep_TcpRx,
-		stream<Ip4Addr>				&sGetNidReq_TcpTx,
-		stream<NodeId>				&sGetNidRep_TcpTx
+		stream<NodeId>				&sGetNidRep_TcpRx//,
+		//stream<Ip4Addr>				&sGetNidReq_TcpTx,
+		//stream<NodeId>				&sGetNidRep_TcpTx
     );
 
 void pPortAndResetLogic(

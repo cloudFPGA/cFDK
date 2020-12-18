@@ -49,7 +49,7 @@ void pUdpTX(
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-#pragma HLS pipeline II=1
+//#pragma HLS pipeline II=1
 
   char   *myName  = concat3(THIS_NAME, "/", "Udp_TX");
 
@@ -179,7 +179,8 @@ void pUdpTX(
     case FSM_FIRST_ACC:
       if (!soUOE_Meta.full() &&
           !soUOE_Data.full() &&
-          !soUOE_DLen.full()  )
+          !soUOE_DLen.full()  &&
+		  !internal_event_fifo.full())
       {
         if(dst_ip_addr == 0)
         {
@@ -200,7 +201,7 @@ void pUdpTX(
         }
         //last_tx_node_id = dst_rank;
         NalEventNotif new_ev_not = NalEventNotif(LAST_TX_NID, dst_rank);
-        internal_event_fifo.write_nb(new_ev_not); //TODO: blocking?
+        internal_event_fifo.write(new_ev_not); //TODO: blocking?
         NrcPort src_port = udp_meta_in.tdata.src_port;
         if (src_port == 0)
         {
@@ -218,7 +219,7 @@ void pUdpTX(
         }
         //last_tx_port = dst_port;
         new_ev_not = NalEventNotif(LAST_TX_PORT, dst_port);
-        internal_event_fifo.write_nb(new_ev_not); //TODO: blocking?
+        internal_event_fifo.write(new_ev_not); //TODO: blocking?
         // {{SrcPort, SrcAdd}, {DstPort, DstAdd}}
         //UdpMeta txMeta = {{src_port, ipAddrBE}, {dst_port, dst_ip_addr}};
         UdpMeta txMeta = SocketPair(SockAddr(*ipAddrBE, src_port), SockAddr(dst_ip_addr, dst_port));
@@ -229,7 +230,7 @@ void pUdpTX(
         soUOE_DLen.write(udpTX_packet_length);
         //packet_count_TX++;
         new_ev_not = NalEventNotif(PACKET_TX, 1);
-        internal_event_fifo.write_nb(new_ev_not); //TODO: blocking?
+        internal_event_fifo.write(new_ev_not); //TODO: blocking?
 
 
         soUOE_Data.write(first_word);
@@ -302,7 +303,7 @@ void pUdpRx(
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-#pragma HLS pipeline II=1
+//#pragma HLS pipeline II=1
 
   char   *myName  = concat3(THIS_NAME, "/", "Udp_RX");
 
@@ -488,7 +489,7 @@ void pUdpRx(
       //NO break;
 
     case FSM_FIRST_ACC:
-      if(!soUdp_data.full() && !soUdp_meta.full())
+      if(!soUdp_data.full() && !soUdp_meta.full() && !internal_event_fifo.full())
       {
         if(src_id == INVALID_MRT_VALUE)
         {
@@ -506,10 +507,10 @@ void pUdpRx(
         //status
         //last_rx_node_id = src_id;
         NalEventNotif new_ev_not = NalEventNotif(LAST_RX_NID, src_id);
-        internal_event_fifo.write_nb(new_ev_not);
+        internal_event_fifo.write(new_ev_not);
         //last_rx_port = udpRxMeta.dst.port;
         new_ev_not = NalEventNotif(LAST_RX_PORT, udpRxMeta.dst.port);
-        internal_event_fifo.write_nb(new_ev_not);
+        internal_event_fifo.write(new_ev_not);
         NetworkMeta tmp_meta = NetworkMeta(own_rank, udpRxMeta.dst.port, src_id, udpRxMeta.src.port, 0);
         //FIXME: add length here as soon as available from the UOE
         in_meta_udp = NetworkMetaStream(tmp_meta);
@@ -517,7 +518,7 @@ void pUdpRx(
         soUdp_meta.write(in_meta_udp);
         //packet_count_RX++;
         new_ev_not = NalEventNotif(PACKET_RX, 1);
-        internal_event_fifo.write_nb(new_ev_not);
+        internal_event_fifo.write(new_ev_not);
         // Forward data chunk to ROLE
         //UdpAppData    udpWord = siUOE_Data.read();
 
