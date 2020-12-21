@@ -62,7 +62,7 @@ void axi4liteProcessing(
     ap_uint<1>          *layer_4_enabled,
     ap_uint<32>   ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
     ap_uint<32>   *mrt_version_processed,
-    stream<NalConfigUpdate>   &sToTcpAgency,
+    //stream<NalConfigUpdate>   &sToTcpAgency, //(currently not used)
     stream<NalConfigUpdate>   &sToPortLogic,
     stream<NalConfigUpdate>   &sToUdpRx,
     stream<NalConfigUpdate>   &sToTcpRx,
@@ -334,11 +334,12 @@ void axi4liteProcessing(
     		              }
     		break;
     		case CB_1:
-    			if(!sToTcpAgency.full())
-    			{
-	                  sToTcpAgency.write(cu_toCB);
+    			//(currently not used)
+    			//if(!sToTcpAgency.full())
+    			//{
+	            //      sToTcpAgency.write(cu_toCB);
 	                  cbFsm = CB_WAIT;
-    			}
+    			//}
     			break;
     		case CB_2:
     			if(!sToPortLogic.full())
@@ -401,7 +402,7 @@ void pPortAndResetLogic(
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-  //#pragma HLS pipeline II=1
+//#pragma HLS pipeline II=1
 
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
   static ap_uint<16> processed_FMC_listen_port = 0;
@@ -722,7 +723,7 @@ void pTcpAgency(
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-  //#pragma HLS pipeline II=1
+//#pragma HLS pipeline II=1
 
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
   static  TableFsmStates agencyFsm = TAB_FSM_READ;

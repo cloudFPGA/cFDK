@@ -49,7 +49,7 @@ void pUdpTX(
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-//#pragma HLS pipeline II=1
+#pragma HLS pipeline II=1
 
   char   *myName  = concat3(THIS_NAME, "/", "Udp_TX");
 
@@ -87,6 +87,12 @@ void pUdpTX(
     cached_nodeid_udp_tx = UNUSED_SESSION_ENTRY_VALUE;
     cached_ip4addr_udp_tx = 0;
     cache_init = false;
+  }
+
+
+  if(*detected_cache_invalidation || !*nts_ready_and_enabled)
+  {// do nothing "below"
+	  return;
   }
 
   //if(*piNTS_ready == 1 && *layer_4_enabled == 1)
@@ -303,7 +309,7 @@ void pUdpRx(
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-//#pragma HLS pipeline II=1
+#pragma HLS pipeline II=1
 
   char   *myName  = concat3(THIS_NAME, "/", "Udp_RX");
 
@@ -355,6 +361,12 @@ void pUdpRx(
       own_rank = ca.update_value;
       cache_init = false;
     }
+  }
+
+
+  if(*detected_cache_invalidation || !*nts_ready_and_enabled)
+  {// do nothing "below"
+	  return;
   }
 
   //only if NTS is ready
@@ -574,7 +586,7 @@ void pUdpCls(
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-  //#pragma HLS pipeline II=1
+ //#pragma HLS pipeline II=1
 
   char *myName  = concat3(THIS_NAME, "/", "Udp_Cls");
 
@@ -590,6 +602,7 @@ void pUdpCls(
   if(!*nts_ready_and_enabled)
   {
     clsFsmState_Udp = CLS_IDLE;
+    return;
   }
 
   //only if NTS is ready

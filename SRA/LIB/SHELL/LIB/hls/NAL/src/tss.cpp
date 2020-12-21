@@ -56,7 +56,7 @@ void pTcpLsn(
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-  //#pragma HLS pipeline II=1
+#pragma HLS pipeline II=1
 
   char* myName  = concat3(THIS_NAME, "/", "Tcp_LSn");
 
@@ -78,6 +78,7 @@ void pTcpLsn(
   if(!*nts_ready_and_enabled)
   {
     lsnFsmState = LSN_IDLE;
+    return;
   }
 
 
@@ -236,6 +237,9 @@ void pTcpRRh(
   static uint8_t waitingConnections = 0;
   static uint32_t next_search_start_point = 0;
 
+  static stream<TcpAppNotif>       notif_buffer;
+#pragma HLS STREAM variable=notif_buffer depth=128
+
   //  static stream<TcpAppNotif> notifBuffer  ("pTcpRRh_NotifBuffer");
   //#pragma HLS STREAM variable=notifBuffer depth=2048
 
@@ -244,12 +248,21 @@ void pTcpRRh(
     rrhFsmState = RRH_WAIT_NOTIF;
     notif_pRrh = TcpAppNotif();
     table_initialized = false;
+    //drain buffer
+    if(!notif_buffer.empty())
+    {
+    	notif_buffer.read();
+    }
+
+    //do nothing "below"
+    return;
   }
 
   if(!table_initialized)
   {
     for(uint32_t i = 0; i < MAX_NAL_SESSIONS; i++)
     {
+//#pragma HLS unroll factor=4
       waitingSessIds[i] = UNUSED_SESSION_ENTRY_VALUE;
       waitingBytes[i] = 0;
     }
@@ -262,11 +275,18 @@ void pTcpRRh(
     table_initialized = true;
   }
 
+  if(!siTOE_Notif.empty() && !notif_buffer.full())
+  {
+	  notif_buffer.write(siTOE_Notif.read());
+  }
+
   switch(rrhFsmState) {
     case RRH_WAIT_NOTIF:
-      if(!siTOE_Notif.empty() && !sAddNewTripple_TcpRrh.full() && !sDeleteEntryBySid.full() )
+      //if(!siTOE_Notif.empty() && !sAddNewTripple_TcpRrh.full() && !sDeleteEntryBySid.full() )
+      if(!notif_buffer.empty() && !sAddNewTripple_TcpRrh.full() && !sDeleteEntryBySid.full() )
       {
-        siTOE_Notif.read(notif_pRrh);
+        //siTOE_Notif.read(notif_pRrh);
+        notif_buffer.read(notif_pRrh);
         if (notif_pRrh.tcpDatLen != 0) {
           // Always request the data segment to be received
           // rrhFsmState = RRH_SEND_DREQ;
@@ -282,7 +302,7 @@ void pTcpRRh(
           bool found_slot = false;
           for(uint32_t i = 0; i < MAX_NAL_SESSIONS; i++)
           {
-//#pragma HLS unroll
+//#pragma HLS unroll factor=8
             if(waitingSessIds[i] == notif_pRrh.sessionID)
             {
               waitingBytes[i] += notif_pRrh.tcpDatLen;
@@ -342,7 +362,7 @@ void pTcpRRh(
         TcpDatLen found_length_max = 0;
         for(uint32_t i = 0; i < MAX_NAL_SESSIONS; i++)
         {
-//#pragma HLS unroll
+//#pragma HLS unroll factor=8
           if(i < next_search_start_point)
           {
             continue;
@@ -464,7 +484,7 @@ void pTcpRDp(
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-//#pragma HLS pipeline II=1
+#pragma HLS pipeline II=1
 
 
   char* myName  = concat3(THIS_NAME, "/", "Tcp_RDp");
@@ -530,6 +550,12 @@ void pTcpRDp(
     {
       own_rank = ca.update_value;
     }
+  }
+
+
+  if(*detected_cache_invalidation || !*nts_ready_and_enabled)
+  {// do nothing "below"
+	  return;
   }
 
   //default actions
@@ -826,7 +852,7 @@ void pTcpWRp(
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-//#pragma HLS pipeline II=1
+#pragma HLS pipeline II=1
 
 
   char* myName  = concat3(THIS_NAME, "/", "Tcp_WRp");
@@ -883,6 +909,12 @@ void pTcpWRp(
     cached_dst_rank = INVALID_MRT_VALUE;
     cached_dst_ip_addr = 0x0;
     cache_init = false;
+    //return;
+  }
+
+  if(*detected_cache_invalidation || !*nts_ready_and_enabled)
+  {// do nothing "below"
+	  return;
   }
 
 
@@ -1189,7 +1221,7 @@ void pTcpCOn(
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-  //#pragma HLS pipeline II=1
+#pragma HLS pipeline II=1
 
 
   char *myName  = concat3(THIS_NAME, "/", "Tcp_COn");
@@ -1220,7 +1252,7 @@ void pTcpCOn(
   if(!*nts_ready_and_enabled)
   {
     opnFsmState = OPN_IDLE;
-    //return; //TODO
+    return;
   }
 
   //only if NTS is ready
@@ -1366,7 +1398,7 @@ void pTcpCls(
   if(!*nts_ready_and_enabled)
   {
     clsFsmState_Tcp = CLS_IDLE;
-    //return; //TODO
+    return;
   }
 
   //only if NTS is ready

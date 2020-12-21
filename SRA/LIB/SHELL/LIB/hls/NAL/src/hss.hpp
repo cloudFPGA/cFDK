@@ -70,7 +70,7 @@ void axi4liteProcessing(
 		ap_uint<1> 					*layer_4_enabled,
 	    ap_uint<32>   ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
 	    ap_uint<32>   *mrt_version_processed,
-		stream<NalConfigUpdate> 	&sToTcpAgency,
+		//stream<NalConfigUpdate> 	&sToTcpAgency, //(currently not used)
 		stream<NalConfigUpdate> 	&sToPortLogic,
 		stream<NalConfigUpdate>		&sToUdpRx,
 		stream<NalConfigUpdate>		&sToTcpRx,

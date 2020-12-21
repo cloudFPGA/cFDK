@@ -366,7 +366,7 @@ void pStatusMemory(
     )
 {  //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-  //#pragma HLS pipeline II=1
+//#pragma HLS pipeline II=1
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
   static ap_uint<32> node_id_missmatch_RX_cnt = 0;
   static NodeId last_rx_node_id = 0;
@@ -563,7 +563,7 @@ void eventStatusHousekeeping(
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-  //#pragma HLS pipeline II=1
+//#pragma HLS pipeline II=1
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
   //  static ap_uint<32> node_id_missmatch_RX_cnt = 0;
   //  static NodeId last_rx_node_id = 0;
@@ -882,7 +882,7 @@ void pRoleTcpDeq(
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-  //#pragma HLS pipeline II=1
+#pragma HLS pipeline II=1
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
   static DeqFsmStates deqFsmState = DEQ_WAIT_META;
 #pragma HLS RESET variable=deqFsmState
@@ -1188,7 +1188,7 @@ void nal_main(
   static stream<NalEventNotif> internal_event_fifo_1 ("internal_event_fifo_1");
   static stream<NalEventNotif> internal_event_fifo_2 ("internal_event_fifo_2");
   static stream<NalEventNotif> internal_event_fifo_3 ("internal_event_fifo_3");
-  static stream<NalConfigUpdate>   sA4lToTcpAgency    ("sA4lToTcpAgency");
+  //static stream<NalConfigUpdate>   sA4lToTcpAgency    ("sA4lToTcpAgency"); //(currently not used)
   static stream<NalConfigUpdate>   sA4lToPortLogic    ("sA4lToPortLogic");
   static stream<NalConfigUpdate>   sA4lToUdpRx        ("sA4lToUdpRx");
   static stream<NalConfigUpdate>   sA4lToTcpRx        ("sA4lToTcpRx");
@@ -1237,7 +1237,7 @@ void nal_main(
 #pragma HLS STREAM variable=internal_event_fifo_2 depth=32
 #pragma HLS STREAM variable=internal_event_fifo_3 depth=32
 
-#pragma HLS STREAM variable=sA4lToTcpAgency  depth=16
+//#pragma HLS STREAM variable=sA4lToTcpAgency  depth=16 //(currently not used)
 #pragma HLS STREAM variable=sA4lToPortLogic  depth=16
 #pragma HLS STREAM variable=sA4lToUdpRx      depth=16
 #pragma HLS STREAM variable=sA4lToTcpRx      depth=16
@@ -1497,7 +1497,9 @@ void nal_main(
   eventStatusHousekeeping(layer_4_enabled, layer_7_enabled, role_decoupled, &mrt_version_used, &status_udp_ports, &status_tcp_ports, \
       &status_fmc_ports, sA4lToStatusProc, internal_event_fifo_0, internal_event_fifo_1, internal_event_fifo_2, internal_event_fifo_3, sStatusUpdate);
 
-  axi4liteProcessing(layer_4_enabled, ctrlLink, &mrt_version_processed, sA4lToTcpAgency, sA4lToPortLogic, sA4lToUdpRx, \
+  axi4liteProcessing(layer_4_enabled, ctrlLink, &mrt_version_processed,\
+		  //sA4lToTcpAgency, //(currently not used)
+		  sA4lToPortLogic, sA4lToUdpRx, \
       sA4lToTcpRx, sA4lToStatusProc, sStatusUpdate,\
       sGetIpReq_UdpTx, sGetIpRep_UdpTx, sGetIpReq_TcpTx, sGetIpRep_TcpTx, sGetNidReq_UdpRx, sGetNidRep_UdpRx,
       sGetNidReq_TcpRx, sGetNidRep_TcpRx);
