@@ -145,8 +145,6 @@ using namespace hls;
 //MAX CLUSTER/MAX RANK
 #define MAX_CLUSTER_SIZE 128 //only one limit is enough, there is no rank > clusterSize...
 
-//TODO: multiple ctrlLinks?
-//#include "../../NRC/src/nrc.hpp" //is dependent on MAX_CLUSTER_SIZE, so must be after it... 
 #include "../../NAL/src/nal.hpp" //is dependent on MAX_CLUSTER_SIZE, so must be after it... 
 
 #define MIN_ROUTING_TABLE_LINE (1+1+4+1) //1: rank, 1: space, 4: IPv4-Address, 1: \n 
@@ -320,10 +318,10 @@ void fmc(
     //NRC 
     ap_uint<32> nrcCtrl[NAL_CTRL_LINK_SIZE],
     ap_uint<1> *disable_ctrl_link,
-    stream<TcpWord>             &siNRC_Tcp_data,
-    stream<AppMeta>           &siNRC_Tcp_SessId,
-    stream<TcpWord>             &soNRC_Tcp_data,
-    stream<AppMeta>           &soNRC_Tcp_SessId,
+    stream<TcpWord>           &siNAL_Tcp_data,
+    stream<AppMeta>           &siNAL_Tcp_SessId,
+    stream<TcpWord>           &soNAL_Tcp_data,
+    stream<AppMeta>           &soNAL_Tcp_SessId,
 #ifdef INCLUDE_PYROLINK
     //Pyrolink
     stream<Axis<8> >  &soPYROLINK,

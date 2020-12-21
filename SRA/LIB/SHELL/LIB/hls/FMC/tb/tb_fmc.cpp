@@ -40,7 +40,7 @@
 #include "../src/fmc.hpp"
 #include "../../../../../hls/cfdk.hpp"
 #include "../../../../../hls/network.hpp"
-#include "../../NRC/src/nrc.hpp" //AFTER fmc.hpp
+#include "../../NAL/src/nal.hpp" //AFTER fmc.hpp
 
 #include <stdint.h>
 
@@ -78,15 +78,15 @@ ap_uint<32> HWICAP[512];
 uint8_t HWICAP_seq_IN[HWICAP_SEQ_SIZE*4];
 ap_uint<32> HWICAP_seq_OUT[HWICAP_SEQ_SIZE];
 ap_uint<32> xmem[XMEM_SIZE];
-ap_uint<32> nrcCtrl[NRC_CTRL_LINK_SIZE];
+ap_uint<32> nalCtrl[NAL_CTRL_LINK_SIZE];
 ap_uint<1>  disable_ctrl_link = 0b0;
 ap_uint<1>  disable_pyro_link = 0b0;
 stream<Axis<8> >  FMC_Debug_Pyrolink    ("FMC_Debug_Pyrolink"); //soPYROLINK
 stream<Axis<8> >  Debug_FMC_Pyrolink    ("Debug_FMC_Pyrolink"); //siPYROLINK
-stream<TcpWord>   sFMC_NRC_Tcp_data   ("sFMC_Nrc_Tcp_data");
-stream<AppMeta>   sFMC_NRC_Tcp_sessId ("sFMC_Nrc_Tcp_sessId");
-stream<TcpWord>   sNRC_FMC_Tcp_data   ("sNRC_FMC_Tcp_data");
-stream<AppMeta>   sNRC_FMC_Tcp_sessId ("sNRC_FMC_Tcp_sessId");
+stream<TcpWord>   sFMC_NAL_Tcp_data   ("sFMC_Nal_Tcp_data");
+stream<AppMeta>   sFMC_NAL_Tcp_sessId ("sFMC_Nal_Tcp_sessId");
+stream<TcpWord>   sNAL_FMC_Tcp_data   ("sNAL_FMC_Tcp_data");
+stream<AppMeta>   sNAL_FMC_Tcp_sessId ("sNAL_FMC_Tcp_sessId");
 
 ap_uint<32> reverse_byte_order(ap_uint<32> input)
 {
@@ -116,9 +116,9 @@ void stepDut() {
         &role_mmio,
         used_hwicap_buffer, decoupStatus, &decoupActive,
         &softReset, xmem,
-        nrcCtrl, &disable_ctrl_link, 
-        sNRC_FMC_Tcp_data, sNRC_FMC_Tcp_sessId,
-        sFMC_NRC_Tcp_data, sFMC_NRC_Tcp_sessId,
+        nalCtrl, &disable_ctrl_link, 
+        sNAL_FMC_Tcp_data, sNAL_FMC_Tcp_sessId,
+        sFMC_NAL_Tcp_data, sFMC_NAL_Tcp_sessId,
 #ifdef INCLUDE_PYROLINK
         FMC_Debug_Pyrolink, Debug_FMC_Pyrolink, &disable_pyro_link,
 #endif
@@ -1036,9 +1036,9 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
 #endif
 
 //===========================================================
-//Test NRC
+//Test NAL
  
-  printf("===== NRC =====\n");
+  printf("===== NAL =====\n");
   layer_6_enabled = 0b1;
   sim_fpga_time_seconds = 2;
 
@@ -1107,11 +1107,11 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   stepDut(); //255 //for coping MRT
   stepDut();
   stepDut(); //257
-  assert(nrcCtrl[NRC_CTRL_LINK_MRT_START_ADDR + 0] == 0x0a0b0c01);
-  assert(nrcCtrl[NRC_CTRL_LINK_MRT_START_ADDR + 1] == 0x0a0b0c02);
-  assert(nrcCtrl[NRC_CTRL_LINK_MRT_START_ADDR + 2] == 0x0a0b0c05);
+  assert(nalCtrl[NAL_CTRL_LINK_MRT_START_ADDR + 0] == 0x0a0b0c01);
+  assert(nalCtrl[NAL_CTRL_LINK_MRT_START_ADDR + 1] == 0x0a0b0c02);
+  assert(nalCtrl[NAL_CTRL_LINK_MRT_START_ADDR + 2] == 0x0a0b0c05);
 
-  printf("== NRC Test passed == \n");
+  printf("== NAL Test passed == \n");
 //===========================================================
 //Test TCP
  
@@ -1128,12 +1128,12 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
 
   getStatus = "GET /status HTTP/1.1\r\nHost: localhost:8080\r\nUser-Agent: curl/7.47.0\r\nAccept: */*\r\n\r\n";
   strcpy(&httpBuffer[0],getStatus);
-  copyBufferToStream(httpBuffer,sNRC_FMC_Tcp_data,strlen(getStatus));
+  copyBufferToStream(httpBuffer,sNAL_FMC_Tcp_data,strlen(getStatus));
 
   Axis<16> sessId = Axis<16>(43);
-  sessId.tlast = 1;
-  //sNRC_FMC_Tcp_sessId.write(sessId);
-  sNRC_FMC_Tcp_sessId.write(sessId.tdata);
+  sessId.setTLast(1);
+  //sNAL_FMC_Tcp_sessId.write(sessId);
+  sNAL_FMC_Tcp_sessId.write(sessId.getTData());
 
   MMIO_in = 0x3 << DSEL_SHIFT | ( 1 << ENABLE_TCP_MODE_SHIFT) | ( 1 << PARSE_HTTP_SHIFT);
 
@@ -1145,10 +1145,10 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   printBuffer(bufferIn, "Valid HTTP GET: BufferIn:",2);
   printBuffer(bufferOut, "Valid HTTP GET: BufferOut:",4);
 
-  Axis<16> sessId_back = sFMC_NRC_Tcp_sessId.read();
-  assert(sessId.tdata == sessId_back.tdata);
-  drainStream(sFMC_NRC_Tcp_data);
-  assert(sFMC_NRC_Tcp_data.empty());
+  Axis<16> sessId_back = sFMC_NAL_Tcp_sessId.read();
+  assert(sessId.getTData() == sessId_back.getTData());
+  drainStream(sFMC_NAL_Tcp_data);
+  assert(sFMC_NAL_Tcp_data.empty());
   
   //"self reset"
   stepDut();
@@ -1161,11 +1161,11 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   printf("%s\n",getStatus);
 
   strcpy(&httpBuffer[0],getStatus);
-  copyBufferToStream(httpBuffer,sNRC_FMC_Tcp_data,strlen(getStatus));
+  copyBufferToStream(httpBuffer,sNAL_FMC_Tcp_data,strlen(getStatus));
 
   sessId = Axis<16>(45);
-  sessId.tlast = 1;
-  sNRC_FMC_Tcp_sessId.write(sessId.tdata);
+  sessId.setTLast(1);
+  sNAL_FMC_Tcp_sessId.write(sessId.getTData());
 
   HWICAP[WFV_OFFSET] = 0x3FF;
   HWICAP[WF_OFFSET] = 0x42;
@@ -1184,7 +1184,7 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   printf("%s\n",getStatus);
 
   strcpy(&httpBuffer[0],getStatus);
-  copyBufferToStream(httpBuffer,sNRC_FMC_Tcp_data,strlen(getStatus));
+  copyBufferToStream(httpBuffer,sNAL_FMC_Tcp_data,strlen(getStatus));
 
   //check telomere (should NOT be used)
   assert(bufferInPtrNextRead > 0);
@@ -1215,11 +1215,11 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   assert(decoupActive == 0);
   assert(HWICAP[CR_OFFSET] == 0);
   
-  sessId_back = sFMC_NRC_Tcp_sessId.read();
-  assert(sessId.tdata == sessId_back.tdata);
-  drainStream(sFMC_NRC_Tcp_data);
-  assert(sFMC_NRC_Tcp_data.empty());
-  assert(sFMC_NRC_Tcp_sessId.empty());
+  sessId_back = sFMC_NAL_Tcp_sessId.read();
+  assert(sessId.getTData() == sessId_back.getTData());
+  drainStream(sFMC_NAL_Tcp_data);
+  assert(sFMC_NAL_Tcp_data.empty());
+  assert(sFMC_NAL_Tcp_sessId.empty());
   
   //"self reset"
   stepDut(); //272
@@ -1244,15 +1244,15 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
       j++;
     }
   }
-  copyBufferToStream(httpBuffer,sNRC_FMC_Tcp_data,strlen(getStatus) + 25);
+  copyBufferToStream(httpBuffer,sNAL_FMC_Tcp_data,strlen(getStatus) + 25);
   
-  nrcCtrl[NRC_CTRL_LINK_MRT_START_ADDR + 0] = 0x0;
-  nrcCtrl[NRC_CTRL_LINK_MRT_START_ADDR + 1] = 0x0;
-  nrcCtrl[NRC_CTRL_LINK_MRT_START_ADDR + 2] = 0x0;
+  nalCtrl[NAL_CTRL_LINK_MRT_START_ADDR + 0] = 0x0;
+  nalCtrl[NAL_CTRL_LINK_MRT_START_ADDR + 1] = 0x0;
+  nalCtrl[NAL_CTRL_LINK_MRT_START_ADDR + 2] = 0x0;
 
   sessId = Axis<16>(46);
-  sessId.tlast = 1;
-  sNRC_FMC_Tcp_sessId.write(sessId.tdata);
+  sessId.setTLast(1);
+  sNAL_FMC_Tcp_sessId.write(sessId.getTData());
 
   stepDut(); //three step only for TCP
   stepDut(); //275
@@ -1262,10 +1262,10 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   
   printBuffer(bufferIn, "bufferIn after TCP HTTP POST /routing", 2);
   
-  sessId_back = sFMC_NRC_Tcp_sessId.read();
-  assert(sessId.tdata == sessId_back.tdata);
-  drainStream(sFMC_NRC_Tcp_data);
-  assert(sFMC_NRC_Tcp_data.empty());
+  sessId_back = sFMC_NAL_Tcp_sessId.read();
+  assert(sessId.getTData() == sessId_back.getTData());
+  drainStream(sFMC_NAL_Tcp_data);
+  assert(sFMC_NAL_Tcp_data.empty());
   assert(decoupActive == 0);
   
   //some for updating MRT
@@ -1274,9 +1274,9 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
     stepDut();
   }
  
-  assert(nrcCtrl[NRC_CTRL_LINK_MRT_START_ADDR + 0] == 0x0a0b0c01);
-  assert(nrcCtrl[NRC_CTRL_LINK_MRT_START_ADDR + 1] == 0x0a0b0c02);
-  assert(nrcCtrl[NRC_CTRL_LINK_MRT_START_ADDR + 2] == 0x0a0b0c05);
+  assert(nalCtrl[NAL_CTRL_LINK_MRT_START_ADDR + 0] == 0x0a0b0c01);
+  assert(nalCtrl[NAL_CTRL_LINK_MRT_START_ADDR + 1] == 0x0a0b0c02);
+  assert(nalCtrl[NAL_CTRL_LINK_MRT_START_ADDR + 2] == 0x0a0b0c05);
   
   //"self reset"
   stepDut(); //279
@@ -1301,15 +1301,15 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
       j++;
     }
   }
-  copyBufferToStream(httpBuffer,sNRC_FMC_Tcp_data,strlen(getStatus) + 25 + 3);
+  copyBufferToStream(httpBuffer,sNAL_FMC_Tcp_data,strlen(getStatus) + 25 + 3);
   
-  nrcCtrl[NRC_CTRL_LINK_MRT_START_ADDR + 0] = 0x0;
-  nrcCtrl[NRC_CTRL_LINK_MRT_START_ADDR + 1] = 0x0;
-  nrcCtrl[NRC_CTRL_LINK_MRT_START_ADDR + 2] = 0x0;
+  nalCtrl[NAL_CTRL_LINK_MRT_START_ADDR + 0] = 0x0;
+  nalCtrl[NAL_CTRL_LINK_MRT_START_ADDR + 1] = 0x0;
+  nalCtrl[NAL_CTRL_LINK_MRT_START_ADDR + 2] = 0x0;
 
   sessId = Axis<16>(47);
-  sessId.tlast = 1;
-  sNRC_FMC_Tcp_sessId.write(sessId.tdata);
+  sessId.setTLast(1);
+  sNAL_FMC_Tcp_sessId.write(sessId.getTData());
 
   stepDut(); //three step only for TCP
   stepDut();
@@ -1317,26 +1317,26 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   
   //printBuffer(bufferIn, "bufferIn after TCP HTTP POST /routing", 2);
   
-  sessId_back = sFMC_NRC_Tcp_sessId.read();
-  assert(sessId.tdata == sessId_back.tdata);
+  sessId_back = sFMC_NAL_Tcp_sessId.read();
+  assert(sessId.getTData() == sessId_back.getTData());
   
   //check 422
   printf("Check stream:\n0x312e312f50545448\n0x706e552032323420\n0x6261737365636f72\n0x7469746e4520656c\n0x65686361430a0d79\n");
-  assert(sFMC_NRC_Tcp_data.read().tdata == 0x312e312f50545448);
-  assert(sFMC_NRC_Tcp_data.read().tdata == 0x706e552032323420);
-  assert(sFMC_NRC_Tcp_data.read().tdata == 0x6261737365636f72);
-  assert(sFMC_NRC_Tcp_data.read().tdata == 0x7469746e4520656c);
-  assert(sFMC_NRC_Tcp_data.read().tdata == 0x65686361430a0d79);
+  assert(sFMC_NAL_Tcp_data.read().tdata == 0x312e312f50545448);
+  assert(sFMC_NAL_Tcp_data.read().tdata == 0x706e552032323420);
+  assert(sFMC_NAL_Tcp_data.read().tdata == 0x6261737365636f72);
+  assert(sFMC_NAL_Tcp_data.read().tdata == 0x7469746e4520656c);
+  assert(sFMC_NAL_Tcp_data.read().tdata == 0x65686361430a0d79);
   //drain remaining
   printf("Partial ");
-  drainStream(sFMC_NRC_Tcp_data);
-  assert(sFMC_NRC_Tcp_data.empty());
+  drainStream(sFMC_NAL_Tcp_data);
+  assert(sFMC_NAL_Tcp_data.empty());
   
   //nothing should have happened
   assert(decoupActive == 0);
-  assert(nrcCtrl[NRC_CTRL_LINK_MRT_START_ADDR + 0] == 0x0);
-  assert(nrcCtrl[NRC_CTRL_LINK_MRT_START_ADDR + 1] == 0x0);
-  assert(nrcCtrl[NRC_CTRL_LINK_MRT_START_ADDR + 2] == 0x0);
+  assert(nalCtrl[NAL_CTRL_LINK_MRT_START_ADDR + 0] == 0x0);
+  assert(nalCtrl[NAL_CTRL_LINK_MRT_START_ADDR + 1] == 0x0);
+  assert(nalCtrl[NAL_CTRL_LINK_MRT_START_ADDR + 2] == 0x0);
   
   //"self reset"
   stepDut();
@@ -1357,12 +1357,12 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   printf("\t....with large payload\n\n");
 
   strcpy(&httpBuffer[0],getStatus);
-  copyBufferToStream(httpBuffer,sNRC_FMC_Tcp_data,strlen(getStatus));
+  copyBufferToStream(httpBuffer,sNAL_FMC_Tcp_data,strlen(getStatus));
   int message_size = strlen(getStatus);
 
   sessId = Axis<16>(73);
-  sessId.tlast = 1;
-  sNRC_FMC_Tcp_sessId.write(sessId.tdata);
+  sessId.setTLast(1);
+  sNAL_FMC_Tcp_sessId.write(sessId.getTData());
 
   HWICAP_seq_OUT[SR_OFFSET] = SR;
   HWICAP_seq_OUT[WF_OFFSET] = 0x42;
@@ -1384,7 +1384,7 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   strcpy(&httpBuffer[0],getStatus);
   strcpy((char*) &HWICAP_seq_IN[hwicap_in_address],getStatus);
   hwicap_in_address += strlen(getStatus);
-  copyBufferToStream(httpBuffer,sNRC_FMC_Tcp_data,strlen(getStatus));
+  copyBufferToStream(httpBuffer,sNAL_FMC_Tcp_data,strlen(getStatus));
   message_size += strlen(getStatus);
 
   stepDut();
@@ -1420,7 +1420,7 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
     hwicap_in_address += strlen(getStatus);
 
     strcpy(&httpBuffer[0],getStatus);
-    copyBufferToStream(httpBuffer,sNRC_FMC_Tcp_data,strlen(getStatus));
+    copyBufferToStream(httpBuffer,sNAL_FMC_Tcp_data,strlen(getStatus));
     message_size += strlen(getStatus);
     //printf("------- message size %d ------------\n", (int) message_size);
 
@@ -1453,7 +1453,7 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   hwicap_in_address += strlen(getStatus);
 
   strcpy(&httpBuffer[0],getStatus);
-  copyBufferToStream(httpBuffer,sNRC_FMC_Tcp_data,strlen(getStatus));
+  copyBufferToStream(httpBuffer,sNAL_FMC_Tcp_data,strlen(getStatus));
   message_size += strlen(getStatus);
 
   stepDut();
@@ -1481,7 +1481,7 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
     hwicap_in_address += strlen(getStatus);
 
     strcpy(&httpBuffer[0],getStatus);
-    copyBufferToStream(httpBuffer,sNRC_FMC_Tcp_data,strlen(getStatus));
+    copyBufferToStream(httpBuffer,sNAL_FMC_Tcp_data,strlen(getStatus));
     message_size += strlen(getStatus);
     //printf("------- message size %d ------------\n", (int) message_size);
 
@@ -1584,7 +1584,7 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
     hwicap_in_address += strlen(stringBuffer);
 
     strcpy(&httpBuffer[0],stringBuffer);
-    copyBufferToStream(httpBuffer,sNRC_FMC_Tcp_data,strlen(stringBuffer));
+    copyBufferToStream(httpBuffer,sNAL_FMC_Tcp_data,strlen(stringBuffer));
     message_size += strlen(stringBuffer);
     //printf("------- message size %d ------------\n", (int) message_size);
 
@@ -1616,7 +1616,7 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   hwicap_in_address += strlen(getStatus);
 
   strcpy(&httpBuffer[0],getStatus);
-  copyBufferToStream(httpBuffer,sNRC_FMC_Tcp_data,strlen(getStatus));
+  copyBufferToStream(httpBuffer,sNAL_FMC_Tcp_data,strlen(getStatus));
 
   stepDut();
   stepDut();
@@ -1638,15 +1638,15 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   assert(decoupActive == 0);
   assert(HWICAP_seq_OUT[CR_OFFSET] == 0);
 
-  sessId_back = sFMC_NRC_Tcp_sessId.read();
-  assert(sessId.tdata == sessId_back.tdata);
+  sessId_back = sFMC_NAL_Tcp_sessId.read();
+  assert(sessId.getTData() == sessId_back.getTData());
   printf("Check stream:\n0x312e312f50545448\n0x0d4b4f2030303220\n");
-  assert(sFMC_NRC_Tcp_data.read().tdata == 0x312e312f50545448);
-  assert(sFMC_NRC_Tcp_data.read().tdata == 0x0d4b4f2030303220);
+  assert(sFMC_NAL_Tcp_data.read().tdata == 0x312e312f50545448);
+  assert(sFMC_NAL_Tcp_data.read().tdata == 0x0d4b4f2030303220);
   //drain remaining
   printf("Partial ");
-  drainStream(sFMC_NRC_Tcp_data);
-  assert(sFMC_NRC_Tcp_data.empty());
+  drainStream(sFMC_NAL_Tcp_data);
+  assert(sFMC_NAL_Tcp_data.empty());
 
   //TODO: test if FMC stays operational after a failed request
 

@@ -80,38 +80,38 @@ using namespace hls;
      Axis(ap_uint<D> single_data) : tdata((ap_uint<D>)single_data), tkeep(~(((ap_uint<D>) single_data) & 0)), tlast(1) {}
      Axis(ap_uint<D> new_data, ap_uint<(D+7/8)> new_keep, ap_uint<1> new_last) : tdata(new_data), tkeep(new_keep), tlast(new_last) {}
      ap_uint<D> getTData() {
-    	 return tdata;
+       return tdata;
      }
      ap_uint<(D+7)/8> getTKeep() {
-    	 return tkeep;
+       return tkeep;
      }
      ap_uint<1> getTLast() {
-    	 return tlast;
+       return tlast;
      }
      void setTData(ap_uint<D> new_data) {
-    	 tdata = new_data;
+       tdata = new_data;
      }
      void setTKeep(ap_uint<(D+7)/8> new_keep) {
-    	 tkeep = new_keep;
+       tkeep = new_keep;
      }
      void setTLast(ap_uint<1> new_last) {
-    	 tlast = new_last;
+       tlast = new_last;
      }
      Axis<64>& operator= (const NetworkWord& nw) {
-    	 this->tdata = nw.tdata;
-    	 this->tkeep = nw.tkeep;
-    	 this->tlast = nw.tlast;
-    	 return *this;
+       this->tdata = nw.tdata;
+       this->tkeep = nw.tkeep;
+       this->tlast = nw.tlast;
+       return *this;
      }
      operator NetworkWord() {
-    	 return NetworkWord(this->tdata, this->tkeep, this->tlast);
+       return NetworkWord(this->tdata, this->tkeep, this->tlast);
      }
      Axis(NetworkWord nw) : tdata((ap_uint<D>) nw.tdata), tkeep((ap_uint<(D+7/8)>) nw.tkeep), tlast(nw.tlast) {}
    };
 
-typedef Axis<64> 	UdpAppData;
+typedef Axis<64>  UdpAppData;
 
-typedef Axis<64>	TcpAppData;
+typedef Axis<64>  TcpAppData;
 
 #endif
 

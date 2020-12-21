@@ -43,60 +43,40 @@
 #include "ap_int.h"
 #include <stdint.h>
 
-/* AXI4Lite Register MAP 
- * =============================
- * piFMC_NAL_ctrlLink_AXI
- * 0x0000 : Control signals
- *          bit 0  - ap_start (Read/Write/COH)
- *          bit 1  - ap_done (Read/COR)
- *          bit 2  - ap_idle (Read)
- *          bit 3  - ap_ready (Read)
- *          bit 7  - auto_restart (Read/Write)
- *          others - reserved
- * 0x0004 : Global Interrupt Enable Register
- *          bit 0  - Global Interrupt Enable (Read/Write)
- *          others - reserved
- * 0x0008 : IP Interrupt Enable Register (Read/Write)
- *          bit 0  - Channel 0 (ap_done)
- *          bit 1  - Channel 1 (ap_ready)
- *          others - reserved
- * 0x000c : IP Interrupt Status Register (Read/TOW)
- *          bit 0  - Channel 0 (ap_done)
- *          bit 1  - Channel 1 (ap_ready)
- *          others - reserved
- * 0x2000 ~
- * 0x3fff : Memory 'ctrlLink_V' (1044 * 32b)
- *          Word n : bit [31:0] - ctrlLink_V[n]
- * (SC = Self Clear, COR = Clear on Read, TOW = Toggle on Write, COH = Clear on Handshake)
- * 
- * #define XNAL_PISMC_NAL_CTRLLINK_AXI_ADDR_AP_CTRL         0x0000
- * #define XNAL_PISMC_NAL_CTRLLINK_AXI_ADDR_GIE             0x0004
- * #define XNAL_PISMC_NAL_CTRLLINK_AXI_ADDR_IER             0x0008
- * #define XNAL_PISMC_NAL_CTRLLINK_AXI_ADDR_ISR             0x000c
- * #define XNAL_PISMC_NAL_CTRLLINK_AXI_ADDR_CTRLLINK_V_BASE 0x2000
- * #define XNAL_PISMC_NAL_CTRLLINK_AXI_ADDR_CTRLLINK_V_HIGH 0x3fff
- * #define XNAL_PISMC_NAL_CTRLLINK_AXI_WIDTH_CTRLLINK_V     32
- * #define XNAL_PISMC_NAL_CTRLLINK_AXI_DEPTH_CTRLLINK_V     1044
- *
- *
- *
- * HLS DEFINITONS
- * ==============================
- */
 
-#define NAL_AXI_CTRL_REGISTER 0
-#define XNAL_PIFMC_NAL_CTRLLINK_AXI_ADDR_CTRLLINK_V_BASE 0x2000
-#define XNAL_PIFMC_NAL_CTRLLINK_AXI_ADDR_CTRLLINK_V_HIGH 0x3fff
+// CTRL LINK DEFINITONS
+// =====================
+
+//#define NAL_AXI_CTRL_REGISTER 0
+
+// MRT size 1024
+//#define XNAL_PIFMC_NAL_CTRLLINK_AXI_ADDR_CTRLLINK_V_BASE 0x2000
+//#define XNAL_PIFMC_NAL_CTRLLINK_AXI_ADDR_CTRLLINK_V_HIGH 0x3fff
+//#define NAL_CTRL_LINK_SIZE (XNAL_PIFMC_NAL_CTRLLINK_AXI_ADDR_CTRLLINK_V_HIGH/4)
+//#define NAL_CTRL_LINK_CONFIG_START_ADDR (0x2000/4)
+//#define NAL_CTRL_LINK_CONFIG_END_ADDR (0x203F/4)
+//#define NAL_CTRL_LINK_STATUS_START_ADDR (0x2040/4)
+//#define NAL_CTRL_LINK_STATUS_END_ADDR (0x207F/4)
+//#define NAL_CTRL_LINK_MRT_START_ADDR (0x2080/4)
+//#define NAL_CTRL_LINK_MRT_END_ADDR (0x307F/4)
+
+
+// MRT size 128
+#define XNAL_PIFMC_NAL_CTRLLINK_AXI_ADDR_CTRLLINK_V_BASE 0x400
+#define XNAL_PIFMC_NAL_CTRLLINK_AXI_ADDR_CTRLLINK_V_HIGH 0x7ff
+#define XNAL_PIFMC_NAL_CTRLLINK_AXI_WIDTH_CTRLLINK_V     32
+#define XNAL_PIFMC_NAL_CTRLLINK_AXI_DEPTH_CTRLLINK_V     160
 
 #define NAL_CTRL_LINK_SIZE (XNAL_PIFMC_NAL_CTRLLINK_AXI_ADDR_CTRLLINK_V_HIGH/4)
-#define NAL_CTRL_LINK_CONFIG_START_ADDR (0x2000/4)
-#define NAL_CTRL_LINK_CONFIG_END_ADDR (0x203F/4)
-#define NAL_CTRL_LINK_STATUS_START_ADDR (0x2040/4)
-#define NAL_CTRL_LINK_STATUS_END_ADDR (0x207F/4)
-#define NAL_CTRL_LINK_MRT_START_ADDR (0x2080/4)
-#define NAL_CTRL_LINK_MRT_END_ADDR (0x307F/4)
+#define NAL_CTRL_LINK_CONFIG_START_ADDR (0x400/4)
+#define NAL_CTRL_LINK_CONFIG_END_ADDR (0x43F/4)
+#define NAL_CTRL_LINK_STATUS_START_ADDR (0x440/4)
+#define NAL_CTRL_LINK_STATUS_END_ADDR (0x47F/4)
+#define NAL_CTRL_LINK_MRT_START_ADDR (0x480/4)
+#define NAL_CTRL_LINK_MRT_END_ADDR (0x67F/4)
 
-//HLS DEFINITONS END
+// (CtrlLink definitions end)
+
 
 #include "../../FMC/src/fmc.hpp"
 
@@ -230,16 +210,13 @@ enum ConfigBcastStates {CB_WAIT = 0, CB_START, CB_1, CB_2, CB_3_0, CB_3_1, CB_3_
 
  /*
   * ctrlLINK Structure:
-  * 1.         0 --            NUMBER_CONFIG_WORDS -1 :  possible configuration from SMC to NRC
-  * 2. NUMBER_CONFIG_WORDS --  NUMBER_STATUS_WORDS -1 :  possible status from NRC to SMC
-  * 3. NUMBER_STATUS_WORDS --  MAX_MRT_SIZE +
+  * 1.         0 --            NUMBER_CONFIG_WORDS -1 :  possible configuration from FMC to NAL
+  * 2. NUMBER_CONFIG_WORDS --  NUMBER_STATUS_WORDS -1 :  possible status from NAL to FMC
+  * 3. NUMBER_STATUS_WORDS 
+  *     + NUMBER_STATUS_WORDS --  MAX_MRT_SIZE +
   *                              NUMBER_CONFIG_WORDS +
-  *                              NUMBER_STATUS_WORDS    : Message Routing Table (MRT) 
+  *                              NUMBER_STATUS_WORDS    : Message Routing Table (MRT)
   *
-  *
-  * CONFIG[0] = own rank 
-  *
-  * STATUS[5] = WRITE_ERROR_CNT
   */
 #define NAL_CONFIG_OWN_RANK 0
 #define NAL_CONFIG_MRT_VERSION 1

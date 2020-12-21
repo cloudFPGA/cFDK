@@ -80,20 +80,17 @@ void pUdpTX(
     cached_nodeid_udp_tx = UNUSED_SESSION_ENTRY_VALUE;
     cached_ip4addr_udp_tx = 0;
     cache_init = false;
-  }
-
-  if(*detected_cache_invalidation)
+  } else if(*detected_cache_invalidation)
   {
     cached_nodeid_udp_tx = UNUSED_SESSION_ENTRY_VALUE;
     cached_ip4addr_udp_tx = 0;
     cache_init = false;
-  }
+  } else {
 
-
-  if(*detected_cache_invalidation || !*nts_ready_and_enabled)
-  {// do nothing "below"
-	  return;
-  }
+//  if(*detected_cache_invalidation || !*nts_ready_and_enabled)
+//  {// do nothing "below"
+//	  return;
+//  }
 
   //if(*piNTS_ready == 1 && *layer_4_enabled == 1)
   //  {
@@ -288,6 +285,7 @@ void pUdpTX(
   }
   //    }
   // }
+  }
 }
 
 void pUdpRx(
@@ -344,14 +342,13 @@ void pUdpRx(
     cached_udp_rx_id = 0;
     cached_udp_rx_ipaddr = 0;
     cache_init = false;
-  }
-
-  if(*detected_cache_invalidation)
+  } else if(*detected_cache_invalidation)
   {
     cached_udp_rx_id = 0;
     cached_udp_rx_ipaddr = 0;
     cache_init = false;
-  }
+  } else
+  {
 
   if(!sConfigUpdate.empty())
   {
@@ -364,10 +361,10 @@ void pUdpRx(
   }
 
 
-  if(*detected_cache_invalidation || !*nts_ready_and_enabled)
-  {// do nothing "below"
-	  return;
-  }
+//  if(*detected_cache_invalidation || !*nts_ready_and_enabled)
+//  {// do nothing "below"
+//	  return;
+//  }
 
   //only if NTS is ready
   //we DO NOT need to check for layer_7_enabled or role_decoupled, because then Ports should be closed
@@ -574,7 +571,7 @@ void pUdpRx(
   }
   //  }
   //  }
-
+  }
 }
 
 void pUdpCls(
@@ -602,8 +599,8 @@ void pUdpCls(
   if(!*nts_ready_and_enabled)
   {
     clsFsmState_Udp = CLS_IDLE;
-    return;
-  }
+    //return;
+  } else {
 
   //only if NTS is ready
   //and if we have valid tables
@@ -665,6 +662,7 @@ void pUdpCls(
   }
   //  }
   //  }
+  }
 }
 
 

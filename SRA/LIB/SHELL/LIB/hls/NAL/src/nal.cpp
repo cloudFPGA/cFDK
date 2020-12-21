@@ -416,9 +416,7 @@ void pStatusMemory(
       old_status[i] = 0x0;
     }
     tables_initialized = true;
-  }
-
-  if(*layer_7_enabled == 0 || *role_decoupled == 1 )
+  } else if(*layer_7_enabled == 0 || *role_decoupled == 1 )
   {
     //reset counters
     packet_count_TX = 0x0;
@@ -428,7 +426,8 @@ void pStatusMemory(
     last_tx_port = 0x0;
     last_tx_node_id = 0x0;
     //return;
-  }
+  } else
+  {
 
   if(!internal_event_fifo.empty())
   {
@@ -541,6 +540,7 @@ void pStatusMemory(
         break;
       }
     }
+  }
   }
 
 }

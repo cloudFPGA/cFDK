@@ -78,8 +78,8 @@ void pTcpLsn(
   if(!*nts_ready_and_enabled)
   {
     lsnFsmState = LSN_IDLE;
-    return;
-  }
+    //return;
+  } else {
 
 
   //only if NTS is ready
@@ -194,7 +194,7 @@ void pTcpLsn(
   }
   //  }
   // }
-
+  }
 }
 
 /*****************************************************************************
@@ -255,8 +255,8 @@ void pTcpRRh(
     }
 
     //do nothing "below"
-    return;
-  }
+    //return;
+  } else {
 
   if(!table_initialized)
   {
@@ -273,7 +273,7 @@ void pTcpRRh(
     waitingConnections = 0;
     next_search_start_point = 0;
     table_initialized = true;
-  }
+  } else {
 
   if(!siTOE_Notif.empty() && !notif_buffer.full())
   {
@@ -445,7 +445,8 @@ void pTcpRRh(
   //}
   //    }
   //  }
-
+  }
+  }
 }
 
 /*****************************************************************************
@@ -533,15 +534,14 @@ void pTcpRDp(
     cached_tcp_rx_triple = UNUSED_TABLE_ENTRY_VALUE;
     cached_src_id = INVALID_MRT_VALUE;
     cache_init = false;
-  }
-
-  if(*detected_cache_invalidation)
+  } else if(*detected_cache_invalidation)
   {
     cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
     cached_tcp_rx_triple = UNUSED_TABLE_ENTRY_VALUE;
     cached_src_id = INVALID_MRT_VALUE;
     cache_init = false;
-  }
+  } else
+  {
 
   if(!sConfigUpdate.empty())
   {
@@ -553,10 +553,10 @@ void pTcpRDp(
   }
 
 
-  if(*detected_cache_invalidation || !*nts_ready_and_enabled)
-  {// do nothing "below"
-	  return;
-  }
+//  if(*detected_cache_invalidation || !*nts_ready_and_enabled)
+//  {// do nothing "below"
+//	  return;
+//  }
 
   //default actions
   *expect_FMC_response = false;
@@ -813,7 +813,7 @@ void pTcpRDp(
   }
   //    }
   // }
-
+  }
 
 }
 
@@ -900,9 +900,7 @@ void pTcpWRp(
     cache_init = false;
     cached_dst_ip_addr = 0x0;
     //return;
-  }
-
-  if(*detected_cache_invalidation)
+  } else if(*detected_cache_invalidation)
   {
     cached_tcp_tx_session_id = UNUSED_SESSION_ENTRY_VALUE;
     cached_tcp_tx_triple = UNUSED_TABLE_ENTRY_VALUE;
@@ -910,12 +908,13 @@ void pTcpWRp(
     cached_dst_ip_addr = 0x0;
     cache_init = false;
     //return;
-  }
+  } else
+  {
 
-  if(*detected_cache_invalidation || !*nts_ready_and_enabled)
-  {// do nothing "below"
-	  return;
-  }
+//  if(*detected_cache_invalidation || !*nts_ready_and_enabled)
+//  {// do nothing "below"
+//	  return;
+//  }
 
 
   //only if NTS is ready
@@ -1197,6 +1196,7 @@ void pTcpWRp(
   //     }
   //   }
 
+	}
 
 }
 
@@ -1252,8 +1252,9 @@ void pTcpCOn(
   if(!*nts_ready_and_enabled)
   {
     opnFsmState = OPN_IDLE;
-    return;
-  }
+    //return;
+  } else
+  {
 
   //only if NTS is ready
   //and if we have valid tables
@@ -1363,7 +1364,7 @@ void pTcpCOn(
   }
   //   }
   //  }
-
+  }
 }
 
 /*****************************************************************************
@@ -1398,8 +1399,8 @@ void pTcpCls(
   if(!*nts_ready_and_enabled)
   {
     clsFsmState_Tcp = CLS_IDLE;
-    return;
-  }
+    //return;
+  } else {
 
   //only if NTS is ready
   //and if we have valid tables
@@ -1444,6 +1445,7 @@ void pTcpCls(
   }
   //    }
   //    }
+  }
 }
 
 
