@@ -92,20 +92,13 @@ extern uint32_t      packetCounter;  // [FIXME] Remove
 extern uint32_t      idleCycCnt;     // [FIXME] Remove
 extern unsigned int  gSimCycCnt;     // [FIXME] Remove
 
-#define OOO_N 4     // number of OOO blocks accepted
-#define OOO_W 4288  // window {max(offset + length)} of sequence numbers beyond recvd accepted
+//OBSOLETE_20210104 #define OOO_N 4     // number of OOO blocks accepted
+//OBSOLETE_20210104 #define OOO_W 4288  // window {max(offset + length)} of sequence numbers beyond recvd accepted
+//OBSOLETE_20210104 static const int OOO_N_BITS = 3;        // bits required to represent OOO_N+1, need 0 to show no OOO blocks are valid
+//OBSOLETE_20210104 static const int OOO_W_BITS = 13;       // bits required to represent OOO_W
+//OBSOLETE_20210104 static const int OOO_L_BITS = 13;       // max length in bits of OOO blocks allowed
 
-// OOO Parameters [FIXME-Remove]
-//static const int OOO_N = 4;       // number of OOO blocks accepted
-//static const int OOO_W = 4288;    // window {max(offset + length)} of sequence numbers beyond recvd accepted
-static const int OOO_N_BITS = 3;        // bits required to represent OOO_N+1, need 0 to show no OOO blocks are valid
-static const int OOO_W_BITS = 13;       // bits required to represent OOO_W
-static const int OOO_L_BITS = 13;       // max length in bits of OOO blocks allowed
-
-//static const int OOO_N_BITS = ceil(log10(OOO_N+1)/log10(2));      // (3) bits required to represent OOO_N
-//static const int OOO_W_BITS = ceil(log10(OOO_W)  /log10(2));      // (13) bits required to represent OOO_W
-
-static const ap_uint<32> SEQ_mid = 2147483648; // used in Modulo Arithmetic Comparison 2^(32-1) of sequence numbers etc.
+//OBSOLETE_20210104 static const ap_uint<32> SEQ_mid = 2147483648; // used in Modulo Arithmetic Comparison 2^(32-1) of sequence numbers etc.
 
 #ifndef __SYNTHESIS__
   // HowTo - You should adjust the value of 'TIME_1s' such that the testbench
@@ -167,9 +160,7 @@ static const ap_uint<32> SEQ_mid = 2147483648; // used in Modulo Arithmetic Comp
   static const ap_uint<32> TIME_120s      = (120.0/0.0000000064/TOE_MAX_SESSIONS) + 1;
 #endif
 
-#define BROADCASTCHANNELS 2
-
-
+  //OBSOLETE_20210104 #define BROADCASTCHANNELS 2
 
 
 /*******************************************************************************

@@ -2,7 +2,7 @@
 # @file  : siIPRX_TcpDuplicate.dat
 # @brief : One IPv4 packet of 168 bytes transmitted twice to emulate a duplicated TCP
 #           segment. The RXe is expected to discard this segment and to continue with
-#           thenext one.
+#           the next one.
 #
 #  @info : Such a '.dat' file can also contain global testbench parameters,
 #          testbench commands and comments.
@@ -110,5 +110,13 @@ FFFFFFFFFFFFFFFF 1 FF
 
 > IDLE 10
 
-# == STEP-4: TODO --> Folow-on TCP segment ================
-
+# == STEP-4: EXPECTED SECOND TCP SEGMENT (TCP Data Length = 32) =====
+0000000048000045 0 FF
+0A0A0A0A8ed506FF 0 FF
+5700890001C80C0A 0 FF
+00000000CEFF0000 0 FF
+000026dc00041050 0 FF
+0000cafecafe0000 0 FF
+0000cafecafe0000 0 FF
+0000cafecafe0000 0 FF
+00000c0fefe00000 1 FF
