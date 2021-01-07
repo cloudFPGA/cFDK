@@ -343,9 +343,10 @@ void pProbeTimer(
             }
         }
 
-        if (PROBE_TIMER_TABLE[sessIdToProcess].active && !soEmx_Event.full()) {
-            if (PROBE_TIMER_TABLE[sessIdToProcess].time == 0 || fastResume) {
+        if (PROBE_TIMER_TABLE[sessIdToProcess].active and !soEmx_Event.full()) {
+            if (PROBE_TIMER_TABLE[sessIdToProcess].time == 0 or fastResume) {
                 //-- Clear (de-activate) the current session-ID
+                PROBE_TIMER_TABLE[sessIdToProcess].time = 0;
                 PROBE_TIMER_TABLE[sessIdToProcess].active = false;
                 #if !(TCP_NODELAY)
                     soEmx_Event.write(Event(TX_EVENT, sessIdToProcess));
