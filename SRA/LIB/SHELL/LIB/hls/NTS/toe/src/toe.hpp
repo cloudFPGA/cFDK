@@ -395,15 +395,15 @@ class RXeTxSarQuery {
 //=========================================================
 class RXeTxSarReply {
   public:
-    TxAckNum        prevAck;
-    TxAckNum        nextByte;
+    TxAckNum        prevAckd;  // Bytes TX'ed and ACK'ed
+    TxAckNum        prevUnak;  // Bytes TX'ed but not ACK'ed
     TcpWindow       cong_window;
-    ap_uint<16>     slowstart_threshold;
+    TcpWindow       slowstart_threshold;
     ap_uint<2>      count;
     CmdBool         fastRetransmitted;
     RXeTxSarReply() {}
-    RXeTxSarReply(TxAckNum ack, TxAckNum next, TcpWindow cong_win, ap_uint<16> sstresh, ap_uint<2> count, CmdBool fastRetransmitted) :
-        prevAck(ack), nextByte(next), cong_window(cong_win), slowstart_threshold(sstresh), count(count), fastRetransmitted(fastRetransmitted) {}
+    RXeTxSarReply(TxAckNum ackd, TxAckNum unak, TcpWindow cong_win, TcpWindow sstresh, ap_uint<2> count, CmdBool fastRetransmitted) :
+        prevAckd(ackd), prevUnak(unak), cong_window(cong_win), slowstart_threshold(sstresh), count(count), fastRetransmitted(fastRetransmitted) {}
 };
 
 //=========================================================

@@ -1334,8 +1334,8 @@ void pFiniteStateMachine(
         break;
     case FSM_TRANSITION:
         // Check if transition to FSM_LOAD occurs
-        if (!siSTt_StateRep.empty() && !siRSt_RxSarRep.empty() &&
-            !(fsm_txSarRequest && siTSt_TxSarRep.empty())) {
+        if (!siSTt_StateRep.empty() and !siRSt_RxSarRep.empty() and
+            !(fsm_txSarRequest and siTSt_TxSarRep.empty())) {
             fsm_fsmState = FSM_LOAD;
             fsm_txSarRequest = false;
         }
@@ -1353,14 +1353,14 @@ void pFiniteStateMachine(
                 siSTt_StateRep.read(tcpState);
                 siRSt_RxSarRep.read(rxSar);
                 siTSt_TxSarRep.read(txSar);
-                TimerCmd timerCmd = (fsm_Meta.meta.ackNumb == txSar.nextByte) ? STOP_TIMER : LOAD_TIMER;
+                TimerCmd timerCmd = (fsm_Meta.meta.ackNumb == txSar.prevUnak) ? STOP_TIMER : LOAD_TIMER;
                 soTIm_ReTxTimerCmd.write(RXeReTransTimerCmd(fsm_Meta.sessionId, timerCmd));
                 if ( (tcpState == ESTABLISHED) || (tcpState == SYN_RECEIVED) ||
                      (tcpState == FIN_WAIT_1)  || (tcpState == CLOSING)      ||
                      (tcpState == LAST_ACK) ) {
                     // Check if new ACK arrived
-                    if ( (fsm_Meta.meta.ackNumb == txSar.prevAck) &&
-                         (txSar.prevAck != txSar.nextByte) ) {
+                    if ( (fsm_Meta.meta.ackNumb == txSar.prevAckd) and
+                         (txSar.prevAckd != txSar.prevUnak) ) {
                         // Not new ACK; increase counter but only if it does not contain data
                         if (fsm_Meta.meta.length == 0) {
                             txSar.count++;
@@ -1381,9 +1381,9 @@ void pFiniteStateMachine(
                     }
                     // Update TxSarTable (only if count or retransmit)
                     //  [FIXME - 'txSar.count' must be compared to a DEFINE constant]
-                    if ( (  (txSar.prevAck <= fsm_Meta.meta.ackNumb) && (fsm_Meta.meta.ackNumb <= txSar.nextByte) ) ||
-                         ( ((txSar.prevAck <= fsm_Meta.meta.ackNumb) || (fsm_Meta.meta.ackNumb <= txSar.nextByte) ) &&
-                            (txSar.nextByte < txSar.prevAck) ) ) {
+                    if ( (  (txSar.prevAckd <= fsm_Meta.meta.ackNumb) && (fsm_Meta.meta.ackNumb <= txSar.prevUnak) ) ||
+                         ( ((txSar.prevAckd <= fsm_Meta.meta.ackNumb) || (fsm_Meta.meta.ackNumb <= txSar.prevUnak) ) &&
+                            (txSar.prevUnak < txSar.prevAckd) ) ) {
                         soTSt_TxSarQry.write((RXeTxSarQuery(fsm_Meta.sessionId,
                                                             fsm_Meta.meta.ackNumb,
                                                             fsm_Meta.meta.winSize,
@@ -1441,7 +1441,7 @@ void pFiniteStateMachine(
                         soEVe_Event.write(Event(ACK_EVENT, fsm_Meta.sessionId));
                     }
                     // Reset Retransmit Timer
-                    if (fsm_Meta.meta.ackNumb == txSar.nextByte) {
+                    if (fsm_Meta.meta.ackNumb == txSar.prevUnak) {
                         switch (tcpState) {
                         case SYN_RECEIVED:
                             soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, ESTABLISHED, QUERY_WR));
@@ -1529,9 +1529,9 @@ void pFiniteStateMachine(
                 siSTt_StateRep.read(tcpState);
                 siRSt_RxSarRep.read(rxSar);
                 siTSt_TxSarRep.read(txSar);
-                TimerCmd timerCmd = (fsm_Meta.meta.ackNumb == txSar.nextByte) ? STOP_TIMER : LOAD_TIMER;
+                TimerCmd timerCmd = (fsm_Meta.meta.ackNumb == txSar.prevUnak) ? STOP_TIMER : LOAD_TIMER;
                 soTIm_ReTxTimerCmd.write(RXeReTransTimerCmd(fsm_Meta.sessionId, timerCmd));
-                if ( (tcpState == SYN_SENT) && (fsm_Meta.meta.ackNumb == txSar.nextByte) ) { // && !mh_lup.created)
+                if ( (tcpState == SYN_SENT) && (fsm_Meta.meta.ackNumb == txSar.prevUnak) ) { // && !mh_lup.created)
                     // Initialize rx_sar, SEQ + phantom byte, last '1' for appd init
                     soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId,
                                                        fsm_Meta.meta.seqNumb + 1, QUERY_WR, QUERY_INIT));
@@ -1567,7 +1567,7 @@ void pFiniteStateMachine(
                 siSTt_StateRep.read(tcpState);
                 siRSt_RxSarRep.read(rxSar);
                 siTSt_TxSarRep.read(txSar);
-                TimerCmd timerCmd = (fsm_Meta.meta.ackNumb == txSar.nextByte) ? STOP_TIMER : LOAD_TIMER;
+                TimerCmd timerCmd = (fsm_Meta.meta.ackNumb == txSar.prevUnak) ? STOP_TIMER : LOAD_TIMER;
                 soTIm_ReTxTimerCmd.write(RXeReTransTimerCmd(fsm_Meta.sessionId, timerCmd));
                 // Check state and if FIN in order, Current out of order FINs are not accepted
                 if ( (tcpState == ESTABLISHED || tcpState == FIN_WAIT_1 ||
@@ -1607,7 +1607,7 @@ void pFiniteStateMachine(
                         soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, LAST_ACK, QUERY_WR));
                     }
                     else { //FIN_WAIT_1 || FIN_WAIT_2
-                        if (fsm_Meta.meta.ackNumb == txSar.nextByte) {
+                        if (fsm_Meta.meta.ackNumb == txSar.prevUnak) {
                             // Check if final FIN is ACK'd -> LAST_ACK
                             soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, TIME_WAIT, QUERY_WR));
                             soTIm_CloseTimer.write(fsm_Meta.sessionId);
@@ -1644,7 +1644,7 @@ void pFiniteStateMachine(
                     if (tcpState == SYN_SENT) {
                         // [TODO this would be a RST,ACK i think]
                         // Check if matching SYN
-                        if (fsm_Meta.meta.ackNumb == txSar.nextByte) {
+                        if (fsm_Meta.meta.ackNumb == txSar.prevUnak) {
                             // The connection culd not be established
                             soTAi_SessOpnSts.write(SessState(fsm_Meta.sessionId, CLOSED));
                             soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, CLOSED, QUERY_WR));
