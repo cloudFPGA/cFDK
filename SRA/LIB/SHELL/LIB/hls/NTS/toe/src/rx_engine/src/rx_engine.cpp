@@ -1373,17 +1373,15 @@ void pFiniteStateMachine(
                         if (txSar.cong_window <= (txSar.slowstart_threshold-ZYC2_MSS)) {
                             txSar.cong_window += ZYC2_MSS;
                         }
-                        else if (txSar.cong_window <= 0xF7FF) {
+                        else if (txSar.cong_window <= TOE_MAX_CONGESTION_WINDOW) { // 0xF7FF
                             txSar.cong_window += 365; //TODO replace by approx. of (MSS x MSS) / cong_window
                         }
                         txSar.count = 0;
                         txSar.fastRetransmitted = false;
                     }
                     // Update TxSarTable (only if count or retransmit)
-                    //  [FIXME - 'txSar.count' must be compared to a DEFINE constant]
-                    if ( (  (txSar.prevAckd <= fsm_Meta.meta.ackNumb) && (fsm_Meta.meta.ackNumb <= txSar.prevUnak) ) ||
-                         ( ((txSar.prevAckd <= fsm_Meta.meta.ackNumb) || (fsm_Meta.meta.ackNumb <= txSar.prevUnak) ) &&
-                            (txSar.prevUnak < txSar.prevAckd) ) ) {
+                    if ( (  (fsm_Meta.meta.ackNumb >= txSar.prevAckd) and (fsm_Meta.meta.ackNumb <= txSar.prevUnak)) or
+                          (((fsm_Meta.meta.ackNumb >= txSar.prevAckd) or  (fsm_Meta.meta.ackNumb <= txSar.prevUnak)) and (txSar.prevUnak < txSar.prevAckd))) {
                         soTSt_TxSarQry.write((RXeTxSarQuery(fsm_Meta.sessionId,
                                                             fsm_Meta.meta.ackNumb,
                                                             fsm_Meta.meta.winSize,
