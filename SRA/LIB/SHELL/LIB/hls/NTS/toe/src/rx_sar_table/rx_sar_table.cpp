@@ -110,8 +110,10 @@ void rx_sar_table(
         SessionId sessId;
         // Read only access from the Tx Engine
         siTXe_RxSarReq.read(sessId);
-        soTxe_RxSarRep.write(RxSarReply(RX_SAR_TABLE[sessId].rcvd,
-                                        RX_SAR_TABLE[sessId].appd));
+        soTxe_RxSarRep.write(RxSarReply(RX_SAR_TABLE[sessId].appd,
+                                        RX_SAR_TABLE[sessId].rcvd,
+                                        RX_SAR_TABLE[sessId].gap,
+                                        RX_SAR_TABLE[sessId].oooHead));
     }
     else if(!siRAi_RxSarQry.empty()) {
         RAiRxSarQuery RAiQry;
@@ -136,8 +138,10 @@ void rx_sar_table(
             }
         }
         else {
-            soRXe_RxSarRep.write(RxSarReply(RX_SAR_TABLE[RXeQry.sessionID].rcvd,
-                                            RX_SAR_TABLE[RXeQry.sessionID].appd));
+            soRXe_RxSarRep.write(RxSarReply(RX_SAR_TABLE[RXeQry.sessionID].appd,
+                                            RX_SAR_TABLE[RXeQry.sessionID].rcvd,
+                                            RX_SAR_TABLE[RXeQry.sessionID].gap,
+                                            RX_SAR_TABLE[RXeQry.sessionID].oooHead));
         }
     }
 }

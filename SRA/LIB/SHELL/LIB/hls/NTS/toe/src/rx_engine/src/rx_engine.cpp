@@ -65,7 +65,7 @@ using namespace hls;
 #define TRACE_RAN 1 << 10
 #define TRACE_ALL  0xFFFF
 
-#define DEBUG_LEVEL (TRACE_OFF)
+#define DEBUG_LEVEL (TRACE_FSM)
 
 
 /*******************************************************************************
@@ -1389,6 +1389,8 @@ void pFiniteStateMachine(
                                                             txSar.count,
                                                           ((txSar.count == 3) || txSar.fastRetransmitted))));
                     }
+
+/*** OBSOLETE_20200108 *********************************
                     // Check if packet contains payload
                     if (fsm_Meta.meta.length != 0) {
                         RxSeqNum newRcvd = fsm_Meta.meta.seqNumb + fsm_Meta.meta.length;
@@ -1427,6 +1429,53 @@ void pFiniteStateMachine(
                             }
                         }
                     }
+*** OBSOLETE_20200108 *********************************/
+
+#if !(RX_DDR_BYPASS)
+                    // Always, compute free space to ensure that 'appd' pointer is not overtaken
+                    RxBufPtr free_space = ((rxSar.appd - rxSar.oooHead(TOE_WINDOW_BITS-1, 0)) - 1);
+                    free_space = ((rxSar.appd - rxSar.rcvd(TOE_WINDOW_BITS-1, 0)) - 1);
+
+                    // If packet contains payload
+                    //  We must handle Out-Of-Order delivered segments
+                    if (fsm_Meta.meta.length != 0) {
+
+                        // Build a DDR memory address for this segment
+                        //  FYI - The TCP Rx buffers use up to 1GB (16Kx64KB).
+                        RxMemPtr memSegAddr = TOE_RX_MEMORY_BASE;
+                        memSegAddr(29, TOE_WINDOW_BITS) = fsm_Meta.sessionId(13, 0);
+                        memSegAddr(TOE_WINDOW_BITS-1, 0) = fsm_Meta.meta.seqNumb.range(TOE_WINDOW_BITS-1, 0);
+
+                        // ### No gap and the received segment is in correct sequence order
+                        if (!rxSar.gap and (fsm_Meta.meta.seqNumb == rxSar.rcvd) and (free_space > fsm_Meta.meta.length)) {
+                            if (DEBUG_LEVEL & TRACE_FSM) { printInfo(myName, "The received segment is in order.\n"); }
+                        }
+
+                        RxSeqNum newRcvd = fsm_Meta.meta.seqNumb + fsm_Meta.meta.length;
+
+                        // Check if segment in order and if enough free space is available
+                        if ( (fsm_Meta.meta.seqNumb == rxSar.rcvd) &&
+                             (free_space > fsm_Meta.meta.length) ) {
+                            soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId, newRcvd, QUERY_WR));
+                            soMwr_WrCmd.write(DmCmd(memSegAddr, fsm_Meta.meta.length));
+                            // Only notify about new data available
+                            soRan_RxNotif.write(TcpAppNotif(fsm_Meta.sessionId,  fsm_Meta.meta.length, fsm_Meta.ip4SrcAddr,
+                                                         fsm_Meta.tcpSrcPort, fsm_Meta.tcpDstPort));
+                            soTsd_DropCmd.write(CMD_KEEP);
+                        }
+                        else {
+                            soTsd_DropCmd.write(CMD_DROP);
+                            if (fsm_Meta.meta.seqNumb != rxSar.rcvd) {
+                                printFatal(myName, "The received sequence number (%d) is not the expected one (%d).\n",
+                                        fsm_Meta.meta.seqNumb.to_uint(), rxSar.rcvd.to_uint());
+                            }
+                            else if (free_space < fsm_Meta.meta.length) {
+                                printFatal(myName, "There is not enough space left to store the received segment in the Rx ring buffer.\n");
+                            }
+                        }
+                    }
+#endif
+
 
 # if FAST_RETRANSMIT
                     if (txSar.count == 3 && !txSar.fastRetransmitted) {  // [FIXME - Use a constant here]

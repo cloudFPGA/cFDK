@@ -56,9 +56,9 @@ using namespace hls;
  *   - 'appd' holds a pointer to the next byte ready to be read (.i.e, consumed)
  *            by the application layer.
  *
- *               appd                                    rcvd
- *                |                                       |
- *               \|/                                     \|/
+ *               appd        rcvd                               oooHead
+ *                |           |                                   |
+ *               \|/         \|/                                 \|/
  *        --+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+--
  *          |269|270|271|272|273|274|275|276|277|278|279|280|281|282|283|284|
  *        --+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+--
@@ -66,8 +66,10 @@ using namespace hls;
  *******************************************************************************/
 class RxSarEntry {
   public:
-    RxSeqNum    rcvd;  // Bytes RCV'ed and ACK'ed (same as Receive Next)
-    RxBufPtr    appd;  // Bytes READ (.i.e consumed) by the application
+    RxBufPtr    appd;    // Bytes READ (.i.e consumed) by the application
+    RxSeqNum    rcvd;    // Bytes RCV'ed and ACK'ed (same as Receive Next)
+    StsBool     gap;
+    RxSeqNum    oooHead; // Head of the out-of-order received bytes
     RxSarEntry() {}
 };
 

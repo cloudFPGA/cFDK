@@ -244,11 +244,11 @@ typedef TcpAckNum   TxAckNum;   // An acknowledge number transmitted to the netw
 typedef TcpWindow   RcvWinSize; // A received window size
 typedef TcpWindow   SndWinSize; // A sending  window size
 
-typedef ap_uint<32> RxMemPtr;  // A pointer to RxMemBuff ( 4GB)  [FIXME <33>]
-typedef ap_uint<32> TxMemPtr;  // A pointer to TxMemBuff ( 4GB)  [FIXME <33>]
-typedef ap_uint<16> TcpBufAdr; // A TCP buffer address   (64KB)
-typedef TcpBufAdr   RxBufPtr;  // A pointer to RxSessBuf (64KB)
-typedef TcpBufAdr   TxBufPtr;  // A pointer to TxSessBuf (64KB)
+typedef ap_uint<32>              RxMemPtr;  // A pointer to RxMemBuff ( 4GB)  [FIXME <33>]
+typedef ap_uint<32>              TxMemPtr;  // A pointer to TxMemBuff ( 4GB)  [FIXME <33>]
+typedef ap_uint<TOE_WINDOW_BITS> TcpBufAdr; // A TCP buffer address   (64KB)
+typedef TcpBufAdr                RxBufPtr;  // A pointer to RxSessBuf (64KB)
+typedef TcpBufAdr                TxBufPtr;  // A pointer to TxSessBuf (64KB)
 
 //---------------------------------------------------------
 //--  SOCKET ADDRESS (alias ipTuple)
@@ -315,11 +315,14 @@ class StateQuery {
 //=========================================================
 class RxSarReply {
   public:
-    RxSeqNum    rcvd;
     RxBufPtr    appd;
+    RxSeqNum    rcvd;
+    RxSeqNum    oooHead;
+
+    StsBool     gap;
     RxSarReply() {}
-    RxSarReply(RxSeqNum rcvd, RxBufPtr appd) :
-        rcvd(rcvd), appd(appd) {}
+    RxSarReply(RxBufPtr appd, RxSeqNum rcvd, StsBool gap, RxSeqNum oooHead) :
+        appd(appd), rcvd(rcvd), gap(gap), oooHead(oooHead) {}
 };
 
 //=========================================================
