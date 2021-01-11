@@ -988,6 +988,23 @@ void pTcpWRp(
           break;
         }
 
+        src_port = out_meta_tcp.tdata.src_port;
+        if (src_port == 0)
+        {
+          src_port = DEFAULT_RX_PORT;
+        }
+        dst_port = out_meta_tcp.tdata.dst_port;
+        if (dst_port == 0)
+        {
+          dst_port = DEFAULT_RX_PORT;
+          //port_corrections_TX_cnt++;
+          new_ev_not = NalEventNotif(PCOR_TX, 1);
+          //internal_event_fifo.write(new_ev_not);
+          //events_to_send[evs_arr_offset + 2] =  NalEventNotif(PCOR_TX, 1);
+      	//evs2snd_valid[evs_arr_offset + 0] = true;
+      	evsStreams[2].write(new_ev_not);
+        }
+
         if(cache_init && dst_rank == cached_dst_rank)
         {
           dst_ip_addr = cached_dst_ip_addr;
@@ -1010,7 +1027,7 @@ void pTcpWRp(
     case WRP_W8FORREQS_1:
       if(!cache_init)
       {
-        if(true && !sGetIpRep_TcpTx.empty())
+        if(!sGetIpRep_TcpTx.empty())
         {
           dst_ip_addr = sGetIpRep_TcpTx.read();
         } else {
@@ -1036,22 +1053,6 @@ void pTcpWRp(
           printf("NRC drops the packet...\n");
           break;
         }
-        src_port = out_meta_tcp.tdata.src_port;
-        if (src_port == 0)
-        {
-          src_port = DEFAULT_RX_PORT;
-        }
-        dst_port = out_meta_tcp.tdata.dst_port;
-        if (dst_port == 0)
-        {
-          dst_port = DEFAULT_RX_PORT;
-          //port_corrections_TX_cnt++;
-          new_ev_not = NalEventNotif(PCOR_TX, 1);
-          //internal_event_fifo.write(new_ev_not);
-          //events_to_send[evs_arr_offset + 2] =  NalEventNotif(PCOR_TX, 1);
-      	//evs2snd_valid[evs_arr_offset + 0] = true;
-      	evsStreams[2].write(new_ev_not);
-        }
 
         //check if session is present
         new_triple = newTriple(dst_ip_addr, dst_port, src_port);
@@ -1065,12 +1066,14 @@ void pTcpWRp(
           //need request
         	sGetSidFromTriple_Req.write(new_triple);
           cache_init = false;
+          wrpFsmState = WRP_W8FORREQS_2;
           break;
         }
-      } else {
+      } //else {
         break;
-      }
-      //NO break;
+        // we need a break in order to meet timing
+     // }
+     // //NO break;
     case WRP_W8FORREQS_2:
       if(!cache_init )
       {
