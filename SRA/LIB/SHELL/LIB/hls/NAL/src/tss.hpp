@@ -95,6 +95,7 @@ void pTcpWRp(
 	    stream<NetworkMetaStream>   &siTcp_meta,
 	    stream<TcpAppData>        &soTOE_Data,
 	    stream<TcpAppMeta>        &soTOE_SessId,
+		stream<TcpDatLen>		  &soTOE_len,
 	    stream<NodeId>        &sGetIpReq_TcpTx,
 	    stream<Ip4Addr>       &sGetIpRep_TcpTx,
 	    //stream<Ip4Addr>       &sGetNidReq_TcpTx,
@@ -108,6 +109,17 @@ void pTcpWRp(
 	    const bool          *detected_cache_invalidation,
 	    stream<NalEventNotif>     &internal_event_fifo
 		);
+
+
+void pTcpWBu(
+    stream<TcpAppData>        &siWrp_Data,
+    stream<TcpAppMeta>        &siWrp_SessId,
+    stream<TcpDatLen>     &siWrp_len,
+    stream<TcpAppData>      &soTOE_Data,
+    stream<TcpAppSndReq>    &soTOE_SndReq,
+    stream<TcpAppSndRep>    &siTOE_SndRep,
+    const bool            *nts_ready_and_enabled
+    );
 
 void pTcpCOn(stream<TcpAppOpnReq>        &soTOE_OpnReq,
 	    stream<TcpAppOpnRep>      &siTOE_OpnRep,

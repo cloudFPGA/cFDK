@@ -173,7 +173,7 @@ enum RdpFsmStates {RDP_WAIT_META = 0, RDP_W8FORREQS_1, RDP_W8FORREQS_2, RDP_FILT
 enum WrpFsmStates {WRP_WAIT_META = 0, WRP_STREAM_FMC, WRP_W8FORREQS_1, WRP_W8FORREQS_2, WRP_WAIT_CONNECTION, \
 	               WRP_STREAM_ROLE, WRP_DROP_PACKET};
 
-//enum WrpDataSrc {UNKNOWN = 0, FMC, ROLE};
+enum WbuFsmStates {WBU_WAIT_META = 0, WBU_SND_REQ, WBU_WAIT_REP, WBU_STREAM, WBU_FILL_BUFFER, WBU_DROP};
 
 
 //#define ClsFsmStates uint8_t
@@ -374,8 +374,9 @@ void nal_main(
 	stream<TcpAppLsnReq>   &soTOE_LsnReq,
 	stream<TcpAppLsnRep>   &siTOE_LsnRep,
 	//-- TOE / Tx Data Interfaces
-	stream<TcpAppData>     &soTOE_Data,
-	stream<TcpAppMeta>     &soTOE_SessId,
+    stream<TcpAppData>      &soTOE_Data,
+    stream<TcpAppSndReq>    &soTOE_SndReq,
+    stream<TcpAppSndRep>    &siTOE_SndRep,
 	//stream<AppWrSts>    &siTOE_DSts,
 	//-- TOE / Open Interfaces
 	stream<TcpAppOpnReq>      &soTOE_OpnReq,

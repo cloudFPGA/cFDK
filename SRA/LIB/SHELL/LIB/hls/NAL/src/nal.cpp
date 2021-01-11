@@ -493,8 +493,9 @@ void nal_main(
     stream<TcpAppLsnReq>   &soTOE_LsnReq,
     stream<TcpAppLsnRep>   &siTOE_LsnRep,
     //-- TOE / Tx Data Interfaces
-    stream<TcpAppData>     &soTOE_Data,
-    stream<TcpAppMeta>     &soTOE_SessId,
+    stream<TcpAppData>      &soTOE_Data,
+    stream<TcpAppSndReq>    &soTOE_SndReq,
+    stream<TcpAppSndRep>    &siTOE_SndRep,
     //stream<AppWrSts>    &siTOE_DSts,
     //-- TOE / Open Interfaces
     stream<TcpAppOpnReq>      &soTOE_OpnReq,
@@ -597,8 +598,10 @@ void nal_main(
 #pragma HLS INTERFACE axis register both port=siTOE_LsnRep
 
 #pragma HLS INTERFACE axis register both port=soTOE_Data
-#pragma HLS INTERFACE axis register both port=soTOE_SessId
-  //#pragma HLS INTERFACE axis register both port=siTOE_DSts
+#pragma HLS INTERFACE axis register both port=soTOE_SndReq
+#pragma HLS DATA_PACK		         variable=soTOE_SndReq
+#pragma HLS INTERFACe axis register both port=siTOE_SndRep
+#pragma HLS DATA_PACK				 variable=siTOE_SndRep
 
 #pragma HLS INTERFACE axis register both port=soTOE_OpnReq
 #pragma HLS DATA_PACK                variable=soTOE_OpnReq
@@ -690,6 +693,9 @@ void nal_main(
 
   static stream<NetworkWord>        sRoleTcpDataRx_buffer ("sRoleTcpDataRx_buffer");
   static stream<NetworkMetaStream>    sRoleTcpMetaRx_buffer ("sRoleTcpMetaRx_buffer");
+  static stream<TcpAppData>			sTcpWrp2Wbu_data  ("sTcpWrp2Wbu_data");
+  static stream<TcpAppMeta>			sTcpWrp2Wbu_sessId ("sTcpWrp2Wbu_sessId");
+  static stream<TcpDatLen>			sTcpWrp2Wbu_len  ("sTcpWrp2Wbu_len");
 
   static stream<SessionId>          sGetTripleFromSid_Req    ("sGetTripleFromSid_Req");
   static stream<NalTriple>          sGetTripleFromSid_Rep    ("sGetTripleFromSid_Rep");
@@ -738,6 +744,11 @@ void nal_main(
 
 #pragma HLS STREAM variable=sRoleTcpDataRx_buffer depth=252 //NAL_MAX_FIFO_DEPTS_BYTES/8 (+2)
 #pragma HLS STREAM variable=sRoleTcpMetaRx_buffer depth=252 //TODO: maybe smaller?
+
+#pragma HLS STREAM variable=sTcpWrp2Wbu_data      depth=16 //not real buffer, just for connecting the processes
+#pragma HLS STREAM variable=sTcpWrp2Wbu_sessId    depth=16 //not real buffer, just for connecting the processes
+#pragma HLS STREAM variable=sTcpWrp2Wbu_len       depth=16 //not real buffer, just for connecting the processes
+
 
 #pragma HLS STREAM variable=sGetTripleFromSid_Req    depth=16
 #pragma HLS STREAM variable=sGetTripleFromSid_Rep    depth=16
@@ -840,12 +851,16 @@ void nal_main(
 
   //=================================================================================================
   // TCP Write Path
-  pTcpWRp(siFMC_Tcp_data, siFMC_Tcp_SessId, siTcp_data, siTcp_meta, soTOE_Data, soTOE_SessId, \
+  pTcpWRp(siFMC_Tcp_data, siFMC_Tcp_SessId, siTcp_data, siTcp_meta,
+		  sTcpWrp2Wbu_data, sTcpWrp2Wbu_sessId, sTcpWrp2Wbu_len,
       sGetIpReq_TcpTx, sGetIpRep_TcpTx,
       //sGetNidReq_TcpTx, sGetNidRep_TcpTx,
-      sGetSidFromTriple_Req, sGetSidFromTriple_Rep, sNewTcpCon_Req, sNewTcpCon_Rep, \
-      &expect_FMC_response, &nts_ready_and_enabled, \
+      sGetSidFromTriple_Req, sGetSidFromTriple_Rep, sNewTcpCon_Req, sNewTcpCon_Rep,
+      &expect_FMC_response, &nts_ready_and_enabled,
       &detected_cache_invalidation, internal_event_fifo_3);
+
+  pTcpWBu(sTcpWrp2Wbu_data, sTcpWrp2Wbu_sessId, sTcpWrp2Wbu_len,
+		  soTOE_Data, soTOE_SndReq, siTOE_SndRep, &nts_ready_and_enabled);
 
   //=================================================================================================
   // TCP start remote connection

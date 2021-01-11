@@ -67,7 +67,7 @@ typedef ap_uint<8>      NodeId;  // Cluster Node Id
 #define NAL_RX_MIN_PORT 2718
 #define NAL_RX_MAX_PORT 2749
 
-typedef ap_uint<32>    NetworkDataLength;
+typedef ap_uint<16>    NetworkDataLength;
 
 struct NetworkMeta {
   NodeId  dst_rank; //ATTENTION: don't use 'id' in a struct...will be ignored by axis directive and lead to segfaults...

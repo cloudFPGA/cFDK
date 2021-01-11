@@ -75,6 +75,8 @@ using namespace std;
 #define DEFAULT_SESSION_ID      42
 #define DEFAULT_SESSION_LEN     32
 
+//#define DEFAULT_TCP_LEN_REP     1000 //less than ZYC2_MSS
+#define DEFAULT_TCP_LEN_REP     16 //to test pWBu?
 
 
 //------------------------------------------------------
@@ -119,7 +121,8 @@ stream<TcpAppMeta>          sTOE_Nrc_SessId ("sTOE_Nrc_SessId");
 stream<TcpAppLsnReq>        sNRC_Toe_LsnReq ("sNRC_TOE_LsnReq");
 stream<TcpAppLsnRep>        sTOE_Nrc_LsnAck ("sTOE_Nrc_LsnAck");
 stream<TcpAppData>          sNRC_Toe_Data   ("sNRC_TOE_Data");
-stream<TcpAppMeta>          sNRC_Toe_SessId ("sNRC_TOE_SessId");
+stream<TcpAppSndReq>      sNRC_Toe_SndReq   ("sNRC_TOE_SndReq");
+stream<TcpAppSndRep>      sTOE_Nrc_SndRep   ("sTOE_NRC_SndRep");
 //stream<AppWrSts>            sTOE_Nrc_DSts   ("sTOE_Nrc_DSts");
 stream<TcpAppOpnReq>        sNRC_Toe_OpnReq ("sNRC_Toe_OpnReq");
 stream<TcpAppOpnRep>        sTOE_Nrc_OpnRep ("sTOE_NRC_OpenRep");
@@ -157,6 +160,7 @@ unsigned int         simCnt;
 
 int tcp_packets_send = 0;
 int tcp_packets_recv = 0;
+int tcp_recv_frag_cnt = 0;
 int tcp_packets_expected_timeout = 0;
 int tcp_timout_packet_drop = 0;
 
@@ -188,8 +192,8 @@ void stepDut() {
         sNRC_UOE_Data, sNRC_UOE_Meta, sNRC_UOE_DLen,
         sTOE_Nrc_Notif, sNRC_Toe_DReq, sTOE_Nrc_Data, sTOE_Nrc_SessId,
         sNRC_Toe_LsnReq, sTOE_Nrc_LsnAck,
-        sNRC_Toe_Data, sNRC_Toe_SessId,
-		//sTOE_Nrc_DSts,
+        sNRC_Toe_Data, sNRC_Toe_SndReq, sTOE_Nrc_SndRep,
+    //sTOE_Nrc_DSts,
         sNRC_Toe_OpnReq, sTOE_Nrc_OpnRep,
         sNRC_Toe_ClsReq
         );
@@ -226,7 +230,7 @@ bool setInputDataStream(stream<UdpAppData> &sDataStream, const string dataStream
             getline(inpFileStream, strLine);
             if (strLine.empty())
             {
-            	continue;
+              continue;
             }
             uint64_t newd = 0x0;
             uint32_t newk = 0; //sscanf expects 32bit
@@ -281,7 +285,7 @@ bool setInputDataStream(stream<NetworkWord> &sDataStream, const string dataStrea
             getline(inpFileStream, strLine);
             if (strLine.empty())
             {
-            	continue;
+              continue;
             }
             uint64_t newd = 0x0;
             uint32_t newk = 0; //sscanf expects 32bit
@@ -572,7 +576,7 @@ bool getOutputDataStream(stream<NetworkWord> &sDataStream,
 
     //-- STEP-2 : EMPTY STREAM AND DUMP DATA TO FILE
     while (!sDataStream.empty()) {
-    	sDataStream.read(udpWord);
+      sDataStream.read(udpWord);
             // Print DUT/Data to console
             printf("[%4.4d] TB is draining output stream [%s] - Data read = {D=0x%16.16llX, K=0x%2.2X, L=%d} \n",
                     simCnt, dataStreamName.c_str(),
@@ -805,7 +809,7 @@ int     loop        = 1;
 enum LsnStates { LSN_WAIT_REQ,   LSN_SEND_ACK}  lsnState = LSN_WAIT_REQ;
 enum OpnStates { OPN_WAIT_REQ,   OPN_SEND_REP, OPN_TIMEOUT}  opnState = OPN_WAIT_REQ;
 enum RxpStates { RXP_SEND_NOTIF, RXP_WAIT_DREQ, RXP_SEND_META, RXP_SEND_DATA, RXP_DONE} rxpState = RXP_SEND_NOTIF;
-enum TxpStates { TXP_WAIT_META,  TXP_RECV_DATA} txpState = TXP_WAIT_META;
+enum TxpStates { TXP_WAIT_REQ, TXP_WAIT_DATA,  TXP_RECV_DATA} txpState = TXP_WAIT_REQ;
 
 int opnStartupDelay =  0;
 //int rxpStartupDelay =  0x8000 + 100;
@@ -838,7 +842,8 @@ void pTOE(
         stream<TcpAppLsnRep>   &soTRIF_LsnAck,
         //-- TOE / Rx Data Interfaces
         stream<TcpAppData>     &siTRIF_Data,
-        stream<TcpAppMeta>     &siTRIF_SessId,
+      stream<TcpAppSndReq>   &siTRIF_SndReq,
+      stream<TcpAppSndRep>   &soTRIF_SndRep,
         //stream<AppWrSts>    &soTRIF_DSts,
         //-- TOE / Open Interfaces
         stream<TcpAppOpnReq>    &siTRIF_OpnReq,
@@ -996,22 +1001,51 @@ void pTOE(
     //-- FSM #4 - TX DATA PATH
     //--    (Always drain the data coming from [TRIF])
     //------------------------------------------------------
+    static TcpSessId curr_sessId;
     if (!txpStartupDelay) {
         switch (txpState) {
-        case TXP_WAIT_META:
-            if (!siTRIF_SessId.empty() && !siTRIF_Data.empty()) {
+        case TXP_WAIT_REQ:
+            if (!siTRIF_SndReq.empty() && !soTRIF_SndRep.full()) {
+                TcpAppSndReq     app_req;
+                siTRIF_SndReq.read(app_req);
+                curr_sessId = app_req.sessId;
+                TcpDatLen len = app_req.length;
+                if (DEBUG_LEVEL & TRACE_TOE) {
+                    printInfo(myTxpName, "Receiving TX Request for session #%d with length %d; \t Approve up to length %d\n",
+                        curr_sessId.to_int(), len.to_int(), DEFAULT_TCP_LEN_REP);
+                }
+                TcpAppSndErr err_rep = NO_ERROR;
+                if(len > DEFAULT_TCP_LEN_REP)
+                {
+                  err_rep = NO_SPACE;
+                  tcp_recv_frag_cnt++;
+                }
+                TcpAppSndRep app_rep = TcpAppSndRep(curr_sessId, len, DEFAULT_TCP_LEN_REP, err_rep);
+                soTRIF_SndRep.write(app_rep);
+                txpState = TXP_WAIT_DATA;
+            }
+            break;
+        case TXP_WAIT_DATA:
+          //TODO: acturally, there must not come data after a request, there could also be another request
+          //but the current pTcpWBu is not using this flexibility
+          if(  !siTRIF_Data.empty())
+          {
                 TcpAppData appData;
-                AppMeta     sessId;
-                siTRIF_SessId.read(sessId);
                 siTRIF_Data.read(appData);
                 if (DEBUG_LEVEL & TRACE_TOE) {
-                    printInfo(myTxpName, "Receiving data for session #%d\n", sessId.to_int());
+                    printInfo(myTxpName, "Receiving data for session #%d\n", curr_sessId.to_int());
                     printAxiWord(myTxpName, appData);
                 }
                 if (!appData.getTLast() == 1)
-                    txpState = TXP_RECV_DATA;
-            }
-            break;
+                {
+                  txpState = TXP_RECV_DATA;
+                } else {
+                  txpState = TXP_WAIT_REQ;
+                  tcp_packets_recv++;
+                }
+
+          }
+          break;
         case TXP_RECV_DATA:
             if (!siTRIF_Data.empty()) {
                 TcpAppData appData;
@@ -1019,7 +1053,7 @@ void pTOE(
                 if (DEBUG_LEVEL & TRACE_TOE)
                     printAxiWord(myTxpName, appData);
                 if (appData.getTLast() == 1) {
-                    txpState = TXP_WAIT_META;
+                    txpState = TXP_WAIT_REQ;
                     tcp_packets_recv++;
                 }
             }
@@ -1070,7 +1104,7 @@ int main() {
     //------------------------------------------------------
     printf("========================= BEGIN UDP Port Opening =========================\n");
     for (int i=0; i<32; ++i) {
-    	//we need ~18 cycles to copy all configs, and then a few more to copy the MRT
+      //we need ~18 cycles to copy all configs, and then a few more to copy the MRT
         stepDut();
         if ( !sNRC_UOE_LsnReq.empty() ) {
             sNRC_UOE_LsnReq.read();
@@ -1153,7 +1187,8 @@ int main() {
             sTOE_Nrc_LsnAck,
             //-- TOE / Tx Data Interfaces
             sNRC_Toe_Data,
-            sNRC_Toe_SessId,
+            sNRC_Toe_SndReq,
+      sTOE_Nrc_SndRep,
             //sTOE_Nrc_DSts,
             //-- TOE / Open Interfaces
             sNRC_Toe_OpnReq,
@@ -1265,20 +1300,20 @@ int main() {
     printf("############################################################################\n");
     printf("## TESTBENCH 'tb_nrc' ENDS HERE                                           ##\n");
 
-    nrErr += (tcp_packets_send - (tcp_packets_recv+ tcp_packets_expected_timeout));
+    nrErr += (tcp_packets_send - (tcp_packets_recv - tcp_recv_frag_cnt + tcp_packets_expected_timeout));
     if(tcp_packets_send != (tcp_packets_recv + tcp_packets_expected_timeout))
     {
-      printf("\tERROR: some packets are lost: send %d TCP packets, received %d (expected timeout for packets %d)!\n", tcp_packets_send, tcp_packets_recv, tcp_packets_expected_timeout);
+      printf("\tERROR: some packets are lost: send %d TCP packets, received %d (fragmented parts %d, expected timeout for packets %d)!\n", tcp_packets_send, tcp_packets_recv-tcp_recv_frag_cnt, tcp_recv_frag_cnt, tcp_packets_expected_timeout);
     } else {
-      printf("\tSummary: Send %d TCP packets, Received %d TCP packets (Expected Timout packets %d).\n",tcp_packets_send, tcp_packets_recv, tcp_packets_expected_timeout);
+      printf("\tSummary: Send %d TCP packets, Received %d TCP packets (fragmented parts %d, expected Timout packets %d).\n",tcp_packets_send, tcp_packets_recv-tcp_recv_frag_cnt, tcp_recv_frag_cnt, tcp_packets_expected_timeout);
     }
     printf("############################################################################\n\n");
 
     if(ctrlLink[NUMBER_CONFIG_WORDS + NAL_STATUS_MRT_VERSION] != 1)
     {
-    	//A4L needs >161 steps to acknowledge it.
-    	 printf("ERROR: NAL status is reporting the wrong MRT version (%d)!\n", (int) ctrlLink[NUMBER_CONFIG_WORDS + NAL_STATUS_MRT_VERSION]);
-    	 nrErr++;
+      //A4L needs >161 steps to acknowledge it.
+       printf("ERROR: NAL status is reporting the wrong MRT version (%d)!\n", (int) ctrlLink[NUMBER_CONFIG_WORDS + NAL_STATUS_MRT_VERSION]);
+       nrErr++;
     }
 
     //-------------------------------------------------------
