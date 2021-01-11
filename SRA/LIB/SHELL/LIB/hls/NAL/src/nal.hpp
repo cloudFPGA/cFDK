@@ -173,6 +173,10 @@ enum RdpFsmStates {RDP_WAIT_META = 0, RDP_W8FORREQS_1, RDP_W8FORREQS_2, RDP_FILT
 enum WrpFsmStates {WRP_WAIT_META = 0, WRP_STREAM_FMC, WRP_W8FORREQS_1, WRP_W8FORREQS_2, WRP_WAIT_CONNECTION, \
 	               WRP_STREAM_ROLE, WRP_DROP_PACKET};
 
+
+enum WrpDataSrc {UNKNOWN = 0, FMC, ROLE};
+
+
 //#define ClsFsmStates uint8_t
 //#define CLS_IDLE 0
 //#define CLS_NEXT 1

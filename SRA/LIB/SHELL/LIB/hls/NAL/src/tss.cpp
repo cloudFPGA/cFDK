@@ -866,12 +866,18 @@ void pTcpWRp(
   static Ip4Addr cached_dst_ip_addr = 0x0;
   static bool cache_init = false;
 
+  //static uint8_t evs2snd_watermark = 0;
+  static uint8_t evs_loop_i = 0;
+
 #pragma HLS RESET variable=wrpFsmState
 #pragma HLS RESET variable=cached_tcp_tx_session_id
 #pragma HLS RESET variable=cached_tcp_tx_triple
 #pragma HLS RESET variable=cached_dst_rank
 #pragma HLS RESET variable=cache_init
 #pragma HLS RESET variable=cached_dst_ip_addr
+//#pragma HLS RESET variable=evs2snd_watermark
+#pragma HLS RESET variable=evs_loop_i
+
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
   static NetworkMetaStream out_meta_tcp = NetworkMetaStream(); //DON'T FORGET to initilize!
   static NetworkDataLength tcpTX_packet_length = 0;
@@ -884,11 +890,20 @@ void pTcpWRp(
   static ap_uint<64> new_triple = UNUSED_TABLE_ENTRY_VALUE;
   static SessionId sessId = UNUSED_SESSION_ENTRY_VALUE;
 
+  static stream<NalEventNotif> evsStreams[10];
+
+//#pragma HLS dependence variable=events_to_send intra false
+//#pragma HLS dependence variable=evs2snd_valid intra false
+//#pragma HLS ARRAY_PARTITION variable=evs2snd_valid complete dim=1
+//#pragma HLS ARRAY_PARTITION variable=events_to_send complete dim=1
+//#pragma HLS RESOURCE variable=evs2snd_valid core=RAM_S2P_LUTRAM
+
+
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
   NetworkWord  currWordIn;
   //TcpAppData   currWordOut;
   NalEventNotif new_ev_not;
-
+  //bool skip_events_read = false;
 
 
   if(!*nts_ready_and_enabled)
@@ -899,6 +914,12 @@ void pTcpWRp(
     cached_dst_rank = INVALID_MRT_VALUE;
     cache_init = false;
     cached_dst_ip_addr = 0x0;
+
+//	  for(uint8_t i = 0; i < 11; i++)
+//	  {
+//#pragma HLS pipeline off
+//		  evs2snd_valid[i] = false;
+//	  }
     //return;
   } else if(*detected_cache_invalidation)
   {
@@ -957,7 +978,10 @@ void pTcpWRp(
         {
           //node_id_missmatch_TX_cnt++;
           new_ev_not = NalEventNotif(NID_MISS_TX, 1);
-          internal_event_fifo.write(new_ev_not);
+          //internal_event_fifo.write(new_ev_not);
+        	//events_to_send[evs_arr_offset + 0] = NalEventNotif(NID_MISS_TX, 1);
+        	//evs2snd_valid[evs_arr_offset + 0] = true;
+        	evsStreams[0].write(new_ev_not);
           //SINK packet
           wrpFsmState = WRP_DROP_PACKET;
           printf("NRC drops the packet...\n");
@@ -1003,7 +1027,10 @@ void pTcpWRp(
         {
           //node_id_missmatch_TX_cnt++;
           new_ev_not = NalEventNotif(NID_MISS_TX, 1);
-          internal_event_fifo.write(new_ev_not);
+          //internal_event_fifo.write(new_ev_not);
+          //events_to_send[evs_arr_offset + 1] = NalEventNotif(NID_MISS_TX, 1);
+      	//evs2snd_valid[evs_arr_offset + 1] = true;
+    	evsStreams[1].write(new_ev_not);
           //SINK packet
           wrpFsmState = WRP_DROP_PACKET;
           printf("NRC drops the packet...\n");
@@ -1020,7 +1047,10 @@ void pTcpWRp(
           dst_port = DEFAULT_RX_PORT;
           //port_corrections_TX_cnt++;
           new_ev_not = NalEventNotif(PCOR_TX, 1);
-          internal_event_fifo.write(new_ev_not);
+          //internal_event_fifo.write(new_ev_not);
+          //events_to_send[evs_arr_offset + 2] =  NalEventNotif(PCOR_TX, 1);
+      	//evs2snd_valid[evs_arr_offset + 0] = true;
+      	evsStreams[2].write(new_ev_not);
         }
 
         //check if session is present
@@ -1057,7 +1087,7 @@ void pTcpWRp(
           break;
         }
       }
-      if(!soTOE_SessId.full() && !sNewTcpCon_Req.full() && !internal_event_fifo.full())
+      if(!soTOE_SessId.full() && !sNewTcpCon_Req.full())
       {
       //both cases
       //"final" preprocessing
@@ -1075,13 +1105,19 @@ void pTcpWRp(
       }
       //last_tx_port = dst_port;
       //last_tx_node_id = dst_rank;
-      new_ev_not = NalEventNotif(LAST_TX_NID, dst_rank);
-      internal_event_fifo.write(new_ev_not); //TODO: blocking?
-      new_ev_not = NalEventNotif(LAST_TX_PORT, dst_port);
-      internal_event_fifo.write(new_ev_not);
+      //events_to_send[evs_arr_offset + 3]
+		new_ev_not = NalEventNotif(LAST_TX_NID, dst_rank);
+  	//evs2snd_valid[evs_arr_offset + 3] = true;
+		evsStreams[3].write(new_ev_not);
+      //events_to_send[evs_arr_offset + 4]
+	new_ev_not = NalEventNotif(LAST_TX_PORT, dst_port);
+  	//evs2snd_valid[evs_arr_offset + 4] = true;
+	evsStreams[4].write(new_ev_not);
       //packet_count_TX++;
-      new_ev_not = NalEventNotif(PACKET_TX, 1);
-      internal_event_fifo.write(new_ev_not);
+      //events_to_send[evs_arr_offset + 5]
+	new_ev_not = NalEventNotif(PACKET_TX, 1);
+  	//evs2snd_valid[evs_arr_offset + 5] = true;
+	evsStreams[5].write(new_ev_not);
 
       soTOE_SessId.write(sessId);
       if (DEBUG_LEVEL & TRACE_WRP) {
@@ -1093,15 +1129,18 @@ void pTcpWRp(
       break;
 
     case WRP_WAIT_CONNECTION:
-      if( !soTOE_SessId.full() && !sNewTcpCon_Rep.empty() && !internal_event_fifo.full())
+      if( !soTOE_SessId.full() && !sNewTcpCon_Rep.empty() )
       {
     	  //new_triple = *tripple_for_new_connection;
         //SessionId sessId = getSessionIdFromTripple(*tripple_for_new_connection);
     	  NalNewTcpConRep con_rep = sNewTcpCon_Rep.read();
     	  if(con_rep.failure == true)
     	  {
-    		  NalEventNotif new_ev_not = NalEventNotif(TCP_CON_FAIL, 1);
-    		        internal_event_fifo.write(new_ev_not);
+    		  //NalEventNotif new_ev_not = NalEventNotif(TCP_CON_FAIL, 1);
+    		        //internal_event_fifo.write(new_ev_not);
+    		  //events_to_send[evs_arr_offset + 6] = NalEventNotif(TCP_CON_FAIL, 1);
+          	//evs2snd_valid[evs_arr_offset + 6] = true;
+        	evsStreams[6].write(new_ev_not);
     		        // we sink the packet, because otherwise the design will hang
     		        // and the user is notified with the flight recorder status
     		        wrpFsmState = WRP_DROP_PACKET;
@@ -1116,13 +1155,24 @@ void pTcpWRp(
         //sGetNidReq_TcpTx.write(getRemoteIpAddrFromTripple(*tripple_for_new_connection));
         //NodeId dst_rank = sGetNidRep_TcpTx.read();
 
-        NalEventNotif new_ev_not = NalEventNotif(LAST_TX_NID, dst_rank);
-        internal_event_fifo.write(new_ev_not); //TODO: blocking?
+        new_ev_not = NalEventNotif(LAST_TX_NID, dst_rank);
+        //internal_event_fifo.write(new_ev_not); //TODO: blocking?
+        //events_to_send[evs_arr_offset + 7] = NalEventNotif(LAST_TX_NID, dst_rank);
+    	//evs2snd_valid[evs_arr_offset + 7] = true;
+    	evsStreams[7].write(new_ev_not);
         new_ev_not = NalEventNotif(LAST_TX_PORT, dst_port);
-        internal_event_fifo.write(new_ev_not);
+        //internal_event_fifo.write(new_ev_not);
+        //events_to_send[evs_arr_offset + 8] =  NalEventNotif(LAST_TX_NID, dst_rank);
+    	//evs2snd_valid[evs_arr_offset + 8] = true;
+    	evsStreams[8].write(new_ev_not);
         //packet_count_TX++;
         new_ev_not = NalEventNotif(PACKET_TX, 1);
-        internal_event_fifo.write(new_ev_not);
+        //internal_event_fifo.write(new_ev_not);
+        //events_to_send[evs_arr_offset + 9] =  NalEventNotif(LAST_TX_NID, dst_rank);
+    	//evs2snd_valid[evs_arr_offset + 9] = true;
+    	evsStreams[9].write(new_ev_not);
+    	//skip_events_read = true;
+
         soTOE_SessId.write(sessId);
         if (DEBUG_LEVEL & TRACE_WRP) {
           printInfo(myName, "Received new session ID #%d from [ROLE].\n",
@@ -1190,11 +1240,58 @@ void pTcpWRp(
   }
 
   //-- ALWAYS -----------------------
-  // if (!siTOE_DSts.empty()) {
-  //   siTOE_DSts.read();  // [TODO] Checking.
-  // }
-  //     }
-  //   }
+  if(!internal_event_fifo.full()
+	//&& wrpFsmState != WRP_WAIT_CONNECTION && wrpFsmState!= WRP_W8FORREQS_2
+	//&& !skip_events_read
+    )
+  {
+//	  uint8_t read_offset = 11;
+//	  if(evs_arr_offset == 11)
+//	  {
+//		  read_offset = 0;
+//	  }
+	 // for(uint8_t i = 0; i < 11; i++)
+	//  {
+//#pragma HLS pipeline off
+
+//		  if(evs2snd_valid[read_offset + evs_loop_i])
+//		  {
+//			  internal_event_fifo.write(events_to_send[read_offset + evs_loop_i]);
+//			  evs2snd_valid[read_offset + evs_loop_i] = false;
+//			  //break; //one at a time
+//		  }
+//		  evs_loop_i++;
+//		  if(evs_loop_i >= 11)
+//		  {
+//			  evs_loop_i = 0;
+//			  if(evs_arr_offset == 0)
+//			  {
+//				  evs_arr_offset = 11;
+//			  } else {
+//				  evs_arr_offset = 0;
+//			  }
+////			  for(uint8_t i = 0; i < 11; i++)
+////			  {
+////				  evs2snd_valid[i] = false;
+////			  }
+//		  }
+	  if(!evsStreams[evs_loop_i].empty())
+	  {
+		  internal_event_fifo.write(evsStreams[evs_loop_i].read());
+	  }
+	  evs_loop_i++;
+	 		  if(evs_loop_i >= 10)
+	 		  {
+	 			  evs_loop_i = 0;
+	 		  }
+	 // }
+  }
+//  if(evs2snd_watermark >= 6)
+//  {//a huge backlog of events, should actually not happen
+//   //(there are 3 events per packet)
+//   //better to delete all
+//	  evs2snd_watermark = 0;
+//  }
 
 	}
 
