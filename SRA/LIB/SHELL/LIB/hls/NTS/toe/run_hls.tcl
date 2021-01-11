@@ -74,7 +74,6 @@ add_files     ${srcDir}/tx_sar_table/tx_sar_table.cpp
 # Add testbench files
 #-------------------------------------------------
 add_files -tb ${currDir}/test/test_${projectName}.cpp -cflags "-fstack-check"
-add_files -tb ${currDir}/test/test_${projectName}_utils.cpp
 add_files -tb ${currDir}/test/dummy_memory/dummy_memory.cpp
 
 # Create a solution

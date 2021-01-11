@@ -265,7 +265,6 @@ struct ipTuple // [TODO] - Replace w/ SockAddr
 
 typedef bool HitState;
 enum         HitStates { SESSION_UNKNOWN = false, SESSION_EXISTS = true};
-//OBSOLETE_20200703 typedef SessionId   TcpSessId;  // TCP Session ID
 
 //=========================================================
 //== SLc - Session Lookup Query
@@ -304,25 +303,29 @@ class StateQuery {
     TcpState        state;
     RdWrBit         write;
     StateQuery() {}
+    // Read queries
     StateQuery(SessionId id) :
         sessionID(id), state(CLOSED), write(QUERY_RD) {}
+    StateQuery(SessionId id, RdWrBit wrBit) :
+        sessionID(id), state(CLOSED), write(QUERY_RD) {}
+    // Write query
     StateQuery(SessionId id, TcpState state, RdWrBit write) :
-        sessionID(id), state(state), write(write) {}
+        sessionID(id), state(state), write(QUERY_WR) {}
 };
 
 //=========================================================
-//== RSt / Generic Reply
+//== RSt / Generic Reply (Same as RxSarEntry)
 //=========================================================
 class RxSarReply {
   public:
     RxBufPtr    appd;
     RxSeqNum    rcvd;
+    FlagBool    ooo;
     RxSeqNum    oooHead;
-
-    StsBool     gap;
+    RxSeqNum    oooTail;
     RxSarReply() {}
-    RxSarReply(RxBufPtr appd, RxSeqNum rcvd, StsBool gap, RxSeqNum oooHead) :
-        appd(appd), rcvd(rcvd), gap(gap), oooHead(oooHead) {}
+    RxSarReply(RxBufPtr appd, RxSeqNum rcvd, StsBool ooo, RxSeqNum oooHead, RxSeqNum oooTail) :
+        appd(appd), rcvd(rcvd), ooo(ooo), oooHead(oooHead), oooTail(oooTail) {}
 };
 
 //=========================================================
@@ -330,17 +333,28 @@ class RxSarReply {
 //=========================================================
 class RXeRxSarQuery {
   public:
-    SessionId       sessionID;
-    RxSeqNum        rcvd;  // Expected SeqNum of the next byte from remote device.
-    RdWrBit         write;
-    CmdBit          init;
+    SessionId   sessionID;
+    RxSeqNum    rcvd;
+    FlagBool    ooo;
+    RxSeqNum    oooHead;
+    RxSeqNum    oooTail;
+    RdWrBit     write;
+    CmdBit      init;
     RXeRxSarQuery() {}
-    RXeRxSarQuery(SessionId id) : // Read query
-        sessionID(id), rcvd(0),     write(0),     init(0) {}
-    RXeRxSarQuery(SessionId id, RxSeqNum recvd, RdWrBit write) :
-        sessionID(id), rcvd(recvd), write(write), init(0) {}
-    RXeRxSarQuery(SessionId id, RxSeqNum recvd, RdWrBit write, CmdBit init) :
-        sessionID(id), rcvd(recvd), write(write), init(init) {}
+    // Read queries
+    RXeRxSarQuery(SessionId id) :
+        sessionID(id), rcvd(0),    ooo(false), oooHead(0), oooTail(0), write(QUERY_RD), init(0) {}
+    RXeRxSarQuery(SessionId id, RdWrBit wrBit) :
+        sessionID(id), rcvd(0),    ooo(false), oooHead(0), oooTail(0), write(QUERY_RD), init(0) {}
+    // Write query - In order received
+    RXeRxSarQuery(SessionId id, RxSeqNum rcvd, RdWrBit wrBit) :
+        sessionID(id), rcvd(rcvd), ooo(false), oooHead(0), oooTail(0), write(QUERY_WR), init(0) {}
+    // Write query - Out of order received
+    RXeRxSarQuery(SessionId id, RxSeqNum rcvd, FlagBool ooo, RxSeqNum oooHead, RxSeqNum oooTail, RdWrBit wrBit) :
+        sessionID(id), rcvd(rcvd), ooo(true), oooHead(oooHead), oooTail(oooTail), write(QUERY_WR), init(0) {}
+    // Init query
+    RXeRxSarQuery(SessionId id, RxSeqNum rcvd, RdWrBit wrBit, CmdBit iniBit) :
+        sessionID(id), rcvd(rcvd), ooo(false), oooHead(0), oooTail(0), write(QUERY_WR), init(CMD_INIT) {}
 };
 
 //=========================================================

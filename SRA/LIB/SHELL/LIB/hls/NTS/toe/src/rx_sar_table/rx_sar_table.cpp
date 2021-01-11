@@ -112,36 +112,42 @@ void rx_sar_table(
         siTXe_RxSarReq.read(sessId);
         soTxe_RxSarRep.write(RxSarReply(RX_SAR_TABLE[sessId].appd,
                                         RX_SAR_TABLE[sessId].rcvd,
-                                        RX_SAR_TABLE[sessId].gap,
-                                        RX_SAR_TABLE[sessId].oooHead));
+                                        RX_SAR_TABLE[sessId].ooo,
+                                        RX_SAR_TABLE[sessId].oooHead,
+                                        RX_SAR_TABLE[sessId].oooTail));
     }
     else if(!siRAi_RxSarQry.empty()) {
-        RAiRxSarQuery RAiQry;
+        RAiRxSarQuery raiQry;
         // Read or write access from [TAi] to update the application pointer
-        siRAi_RxSarQry.read(RAiQry);
-        if(RAiQry.write) {
-            RX_SAR_TABLE[RAiQry.sessionID].appd = RAiQry.appd;
+        siRAi_RxSarQry.read(raiQry);
+        if(raiQry.write) {
+            RX_SAR_TABLE[raiQry.sessionID].appd = raiQry.appd;
         }
         else {
-            soRAi_RxSarRep.write(RAiRxSarReply(RAiQry.sessionID,
-                                               RX_SAR_TABLE[RAiQry.sessionID].appd));
+            soRAi_RxSarRep.write(RAiRxSarReply(raiQry.sessionID,
+                                               RX_SAR_TABLE[raiQry.sessionID].appd));
         }
     }
     else if(!siRXe_RxSarQry.empty()) {
-        RXeRxSarQuery RXeQry;
-        // Read or write access from the [RXe]  to update the received pointer
-        siRXe_RxSarQry.read(RXeQry);
-        if (RXeQry.write) {
-            RX_SAR_TABLE[RXeQry.sessionID].rcvd = RXeQry.rcvd;
-            if (RXeQry.init) {
-                RX_SAR_TABLE[RXeQry.sessionID].appd = RXeQry.rcvd;
+        RXeRxSarQuery rxeQry = siRXe_RxSarQry.read();
+        if (rxeQry.write) {
+            // Write access from [RXe]
+            RX_SAR_TABLE[rxeQry.sessionID].rcvd    = rxeQry.rcvd;
+            RX_SAR_TABLE[rxeQry.sessionID].ooo     = rxeQry.ooo;
+            RX_SAR_TABLE[rxeQry.sessionID].oooHead = rxeQry.oooHead;
+            RX_SAR_TABLE[rxeQry.sessionID].oooTail = rxeQry.oooTail;
+
+            if (rxeQry.init) {
+                RX_SAR_TABLE[rxeQry.sessionID].appd = rxeQry.rcvd;
             }
         }
         else {
-            soRXe_RxSarRep.write(RxSarReply(RX_SAR_TABLE[RXeQry.sessionID].appd,
-                                            RX_SAR_TABLE[RXeQry.sessionID].rcvd,
-                                            RX_SAR_TABLE[RXeQry.sessionID].gap,
-                                            RX_SAR_TABLE[RXeQry.sessionID].oooHead));
+            // Read access from [RXe]
+            soRXe_RxSarRep.write(RxSarReply(RX_SAR_TABLE[rxeQry.sessionID].appd,
+                                            RX_SAR_TABLE[rxeQry.sessionID].rcvd,
+                                            RX_SAR_TABLE[rxeQry.sessionID].ooo,
+                                            RX_SAR_TABLE[rxeQry.sessionID].oooHead,
+                                            RX_SAR_TABLE[rxeQry.sessionID].oooTail));
         }
     }
 }

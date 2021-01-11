@@ -1096,7 +1096,7 @@ void pRxAppNotifier(
                 }
             }
         }
-        else if (!siFsm_Notif.empty() && !ssRxNotifFifo.full()) {
+        else if (!siFsm_Notif.empty() and !ssRxNotifFifo.full()) {
             siFsm_Notif.read(ran_appNotification);
             if (ran_appNotification.tcpDatLen != 0) {
                 ssRxNotifFifo.write(ran_appNotification);
@@ -1321,9 +1321,9 @@ void pFiniteStateMachine(
         if (!siMdh_FsmMeta.empty()) {
             siMdh_FsmMeta.read(fsm_Meta);
             // Request the current state of this session
-            soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId));
+            soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, QUERY_RD));
             // Always request the RxSarTable, even though not required for SYN-ACK
-            soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId));
+            soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId, QUERY_RD));
             if (fsm_Meta.meta.ack) {
                 // Only request the txSar when (ACK+ANYTHING); not for SYN
                 soTSt_TxSarQry.write(RXeTxSarQuery(fsm_Meta.sessionId));
@@ -1446,33 +1446,45 @@ void pFiniteStateMachine(
                         memSegAddr(29, TOE_WINDOW_BITS) = fsm_Meta.sessionId(13, 0);
                         memSegAddr(TOE_WINDOW_BITS-1, 0) = fsm_Meta.meta.seqNumb.range(TOE_WINDOW_BITS-1, 0);
 
-                        // ### No gap and the received segment is in correct sequence order
-                        if (!rxSar.gap and (fsm_Meta.meta.seqNumb == rxSar.rcvd) and (free_space > fsm_Meta.meta.length)) {
-                            if (DEBUG_LEVEL & TRACE_FSM) { printInfo(myName, "The received segment is in order.\n"); }
-                        }
+                        RxSeqNum    newRcvd    = 0;
+                        RxSeqNum    newOooHead = 0;
+                        RxSeqNum    newOooTail = 0;
 
-                        RxSeqNum newRcvd = fsm_Meta.meta.seqNumb + fsm_Meta.meta.length;
-
-                        // Check if segment in order and if enough free space is available
-                        if ( (fsm_Meta.meta.seqNumb == rxSar.rcvd) &&
-                             (free_space > fsm_Meta.meta.length) ) {
+                        // ### The received segment is in expected sequence order
+                        if (!rxSar.ooo and (fsm_Meta.meta.seqNumb == rxSar.rcvd) and (free_space > fsm_Meta.meta.length)) {
+                            if (DEBUG_LEVEL & TRACE_FSM) { printInfo(myName, "The received segment is in correct order.\n"); }
+                            // Generate new received pointer
+                            newRcvd = fsm_Meta.meta.seqNumb + fsm_Meta.meta.length;
+                            // Update RxSar pointers
                             soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId, newRcvd, QUERY_WR));
+                            // Send memory write command
                             soMwr_WrCmd.write(DmCmd(memSegAddr, fsm_Meta.meta.length));
-                            // Only notify about new data available
-                            soRan_RxNotif.write(TcpAppNotif(fsm_Meta.sessionId,  fsm_Meta.meta.length, fsm_Meta.ip4SrcAddr,
-                                                         fsm_Meta.tcpSrcPort, fsm_Meta.tcpDstPort));
+                            // Send Rx data notify to [APP]
+                            soRan_RxNotif.write(TcpAppNotif(fsm_Meta.sessionId,  fsm_Meta.meta.length,
+                                                            fsm_Meta.ip4SrcAddr, fsm_Meta.tcpSrcPort,
+                                                            fsm_Meta.tcpDstPort));
+                            // Send keep command
                             soTsd_DropCmd.write(CMD_KEEP);
                         }
-                        else {
-                            soTsd_DropCmd.write(CMD_DROP);
-                            if (fsm_Meta.meta.seqNumb != rxSar.rcvd) {
-                                printFatal(myName, "The received sequence number (%d) is not the expected one (%d).\n",
-                                        fsm_Meta.meta.seqNumb.to_uint(), rxSar.rcvd.to_uint());
-                            }
-                            else if (free_space < fsm_Meta.meta.length) {
-                                printFatal(myName, "There is not enough space left to store the received segment in the Rx ring buffer.\n");
-                            }
+                        // ### The received segment is out-of-order
+                        else if (!rxSar.ooo and (fsm_Meta.meta.seqNumb > rxSar.rcvd) and (free_space > (fsm_Meta.meta.seqNumb+fsm_Meta.meta.length-rxSar.oooHead(TOE_WINDOW_BITS-1, 0)))) {
+                            if (DEBUG_LEVEL & TRACE_FSM) { printInfo(myName, "The received segment is out-of-order.\n"); }
+                            // Generate new oooHead and oooTail pointers
+                            newOooHead = fsm_Meta.meta.seqNumb + fsm_Meta.meta.length;
+                            newOooTail = fsm_Meta.meta.seqNumb;
+                            // Update RxSar pointers
+                            soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId, rxSar.rcvd, FLAG_OOO, newOooHead, newOooTail, QUERY_WR));
+                            // Send memory write command
+                            soMwr_WrCmd.write(DmCmd(memSegAddr, fsm_Meta.meta.length));
+                            // Send Rx data notify to [APP] but set LENGTH=0 !!!
+                            soRan_RxNotif.write(TcpAppNotif(fsm_Meta.sessionId,  0,
+                                                            fsm_Meta.ip4SrcAddr, fsm_Meta.tcpSrcPort,
+                                                            fsm_Meta.tcpDstPort));
+                            // Send keep command
+                            soTsd_DropCmd.write(CMD_KEEP);
                         }
+
+
                     }
 #endif
 
