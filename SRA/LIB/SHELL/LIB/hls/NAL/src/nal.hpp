@@ -313,7 +313,7 @@ uint8_t extractByteCnt(Axis<64> currWord);
 #include "uss.hpp"
 #include "tss.hpp"
 #include "hss.hpp"
-
+#include "cam8.hpp"
 
 void nal_main(
     // ----- link to FMC -----
