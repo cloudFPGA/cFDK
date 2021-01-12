@@ -400,70 +400,6 @@ void eventStatusHousekeeping(
 }
 
 
-void pRoleTcpRxDeq(
-    ap_uint<1>          *layer_7_enabled,
-    ap_uint<1>          *role_decoupled,
-    stream<NetworkWord>       &sRoleTcpDataRx_buffer,
-    stream<NetworkMetaStream>   &sRoleTcpMetaRx_buffer,
-    stream<NetworkWord>         &soTcp_data,
-    stream<NetworkMetaStream>   &soTcp_meta
-    )
-{
-  //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-#pragma HLS INLINE off
-#pragma HLS pipeline II=1
-  //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-  static DeqFsmStates deqFsmState = DEQ_WAIT_META;
-#pragma HLS RESET variable=deqFsmState
-  //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-  //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
-  NetworkWord cur_word = NetworkWord();
-  NetworkMetaStream cur_meta = NetworkMetaStream();
-  bool role_disabled = (*layer_7_enabled == 0 && *role_decoupled == 1);
-
-  switch(deqFsmState)
-  {
-    case DEQ_WAIT_META:
-      if(!sRoleTcpDataRx_buffer.empty() && !sRoleTcpMetaRx_buffer.empty()
-          && ( (!soTcp_data.full() && !soTcp_meta.full()) ||  //user can read
-            (role_disabled) //role is disabled -> drain FIFOs
-            )
-        )
-      {
-        cur_word = sRoleTcpDataRx_buffer.read();
-        cur_meta = sRoleTcpMetaRx_buffer.read();
-        if(!role_disabled)
-        {
-          soTcp_data.write(cur_word);
-          soTcp_meta.write(cur_meta);
-        }
-        if(cur_word.tlast == 0)
-        {
-          deqFsmState = DEQ_STREAM_DATA;
-        }
-      }
-      break;
-    case DEQ_STREAM_DATA:
-      if(!sRoleTcpDataRx_buffer.empty()
-          && (!soTcp_data.full() || role_disabled)
-        )
-      {
-        cur_word = sRoleTcpDataRx_buffer.read();
-        if(!role_disabled)
-        {
-          soTcp_data.write(cur_word);
-        }
-        if(cur_word.tlast == 1)
-        {
-          deqFsmState = DEQ_WAIT_META;
-        }
-      }
-      break;
-  }
-
-}
-
-
 /*****************************************************************************
  * @brief   Main process of the UDP Role Interface
  *
@@ -748,6 +684,7 @@ void nal_main(
 
   static stream<NalTriple>      sNewTcpCon_Req       ("sNewTcpCon_Req");
   static stream<NalNewTcpConRep>    sNewTcpCon_Rep           ("sNewTcpConRep");
+  static stream<TcpAppNotif>       sTcpNotif_buffer 	("sTcpNotif_buffer");
 
 
 #pragma HLS STREAM variable=internal_event_fifo_0 depth=32
@@ -803,6 +740,7 @@ void nal_main(
 #pragma HLS STREAM variable=sNewTcpCon_Req       depth=16
 #pragma HLS STREAM variable=sNewTcpCon_Rep       depth=16
 
+#pragma HLS STREAM variable=sTcpNotif_buffer     depth=128
 
   //=================================================================================================
   // Reset static variables
@@ -839,18 +777,12 @@ void nal_main(
   //=================================================================================================
   // TX UDP
 
-  //only if NTS is ready
-  //TODO: remove unused global variables
-  //TODO: add disable signal? (NTS_ready, layer4 enabled)
   pUdpTX(siUdp_data, siUdp_meta, soUOE_Data, soUOE_Meta, soUOE_DLen,
       sGetIpReq_UdpTx, sGetIpRep_UdpTx,
       &ipAddrBE, &nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo_0);
 
   //=================================================================================================
   // RX UDP
-  //TODO: remove unused global variables
-  //TODO: add disable signal? (NTS_ready, layer4 enabled)
-  //TODO: add cache invalidate mechanism
   pUdpRx(soUOE_LsnReq, siUOE_LsnRep, soUdp_data, soUdp_meta, siUOE_Data, siUOE_Meta,
       sA4lToUdpRx, sGetNidReq_UdpRx, sGetNidRep_UdpRx,
       sUdpPortsToOpen, sUdpPortsOpenFeedback,
@@ -868,10 +800,9 @@ void nal_main(
   //=================================================================================================
   // TCP Read Request Handler
 
-  //TODO: remove unused global variables
-  //TODO: add disable signal? (NTS_ready, layer4 enabled)
-  //TODO: add cache invalidate mechanism
-  pTcpRRh(siTOE_Notif, soTOE_DReq, sAddNewTriple_TcpRrh, sDeleteEntryBySid,  sRDp_ReqNotif,
+  pTcpRxNotifEnq(siTOE_Notif, sTcpNotif_buffer, &nts_ready_and_enabled);
+
+  pTcpRRh(sTcpNotif_buffer, soTOE_DReq, sAddNewTriple_TcpRrh, sDeleteEntryBySid,  sRDp_ReqNotif,
 		  piFMC_Tcp_data_FIFO_prog_full, piFMC_Tcp_sessid_FIFO_prog_full, &role_fifo_empty, &nts_ready_and_enabled);
 
   //=================================================================================================

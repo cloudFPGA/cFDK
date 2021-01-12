@@ -53,6 +53,13 @@ void pTcpLsn(
 	    const bool          *nts_ready_and_enabled
 		);
 
+
+void pTcpRxNotifEnq(
+	    stream<TcpAppNotif>       &siTOE_Notif,
+		stream<TcpAppNotif>		  &sTcpNotif_buffer,
+	    const bool                *nts_ready_and_enabled
+		);
+
 void pTcpRRh(
 	    stream<TcpAppNotif>       &siTOE_Notif,
 	    stream<TcpAppRdReq>       &soTOE_DReq,
@@ -88,6 +95,15 @@ void pTcpRDp(
 	    const bool          *nts_ready_and_enabled,
 	    const bool          *detected_cache_invalidation,
 	    stream<NalEventNotif>     &internal_event_fifo
+    );
+
+void pRoleTcpRxDeq(
+    ap_uint<1>          *layer_7_enabled,
+    ap_uint<1>          *role_decoupled,
+    stream<NetworkWord>       &sRoleTcpDataRx_buffer,
+    stream<NetworkMetaStream>   &sRoleTcpMetaRx_buffer,
+    stream<NetworkWord>         &soTcp_data,
+    stream<NetworkMetaStream>   &soTcp_meta
     );
 
 void pTcpWRp(

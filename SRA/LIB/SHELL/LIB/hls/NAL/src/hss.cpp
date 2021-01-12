@@ -402,7 +402,7 @@ void pPortAndResetLogic(
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-#pragma HLS pipeline II=1
+//FIXME: synthesis crashes #pragma HLS pipeline II=1
 
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
   static ap_uint<16> processed_FMC_listen_port = 0;
@@ -723,7 +723,7 @@ void pTcpAgency(
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-#pragma HLS pipeline II=1
+//FIXME: synthesis crashes #pragma HLS pipeline II=1
 
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
   static  TableFsmStates agencyFsm = TAB_FSM_READ;

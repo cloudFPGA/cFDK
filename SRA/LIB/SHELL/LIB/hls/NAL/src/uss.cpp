@@ -568,10 +568,8 @@ void pUdpRx(
         }
       }
       break;
-  }
-  //  }
-  //  }
-  }
+  } //switch
+  } // else
 }
 
 void pUdpCls(

@@ -197,6 +197,30 @@ void pTcpLsn(
   }
 }
 
+void pTcpRxNotifEnq(
+	    stream<TcpAppNotif>       &siTOE_Notif,
+		stream<TcpAppNotif>		  &sTcpNotif_buffer,
+	    const bool                *nts_ready_and_enabled
+		)
+{
+	  //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+	#pragma HLS INLINE off
+	#pragma HLS pipeline II=1
+	  //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+	  //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+	  //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
+
+
+	if(*nts_ready_and_enabled)
+	{
+		if(!siTOE_Notif.empty() && !sTcpNotif_buffer.full())
+		{
+			sTcpNotif_buffer.write(siTOE_Notif.read());
+		}
+	}
+
+}
+
 /*****************************************************************************
  * @brief ReadRequestHandler (RRh).
  *  Waits for a notification indicating the availability of new data for
@@ -238,8 +262,13 @@ void pTcpRRh(
   static uint8_t waitingConnections = 0;
   static uint32_t next_search_start_point = 0;
 
-  static stream<TcpAppNotif>       notif_buffer;
-#pragma HLS STREAM variable=notif_buffer depth=128
+#ifndef __SYNTHESIS__
+      if(MAX_NAL_SESSIONS != 8)
+      {
+    	  printf("\n\t\tERROR: pTcpRRh is only currently configured to support only 8 parallel sessions! Abort.\n");
+    	  exit(-1);
+      }
+#endif
 
   //  static stream<TcpAppNotif> notifBuffer  ("pTcpRRh_NotifBuffer");
   //#pragma HLS STREAM variable=notifBuffer depth=2048
@@ -249,12 +278,6 @@ void pTcpRRh(
     rrhFsmState = RRH_WAIT_NOTIF;
     notif_pRrh = TcpAppNotif();
     table_initialized = false;
-    //drain buffer
-    if(!notif_buffer.empty())
-    {
-      notif_buffer.read();
-    }
-
     //do nothing "below"
     //return;
   } else {
@@ -276,18 +299,13 @@ void pTcpRRh(
       table_initialized = true;
     } else {
 
-      if(!siTOE_Notif.empty() && !notif_buffer.full())
-      {
-        notif_buffer.write(siTOE_Notif.read());
-      }
-
-      switch(rrhFsmState) {
+       switch(rrhFsmState) {
         case RRH_WAIT_NOTIF:
           //if(!siTOE_Notif.empty() && !sAddNewTripple_TcpRrh.full() && !sDeleteEntryBySid.full() )
-          if(!notif_buffer.empty() && !sAddNewTripple_TcpRrh.full() && !sDeleteEntryBySid.full() )
+          if(!siTOE_Notif.empty() && !sAddNewTripple_TcpRrh.full() && !sDeleteEntryBySid.full() )
           {
             //siTOE_Notif.read(notif_pRrh);
-            notif_buffer.read(notif_pRrh);
+        	  siTOE_Notif.read(notif_pRrh);
             if (notif_pRrh.tcpDatLen != 0) {
               // Always request the data segment to be received
               // rrhFsmState = RRH_SEND_DREQ;
@@ -531,7 +549,7 @@ void pTcpRDp(
   static  AppMeta     sessId = 0x0;
   static NetworkDataLength current_length = 0;
 
-  static stream<NalEventNotif> evsStreams[5];
+  static stream<NalEventNotif> evsStreams[7];
 
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
   TcpAppData currWord;
@@ -679,7 +697,7 @@ void pTcpRDp(
         		//node_id_missmatch_RX_cnt++;
         		//new_ev_not = NalEventNotif(NID_MISS_RX, 1);
         		//internal_event_fifo.write(new_ev_not);
-        		//evsStreams[5].write(new_ev_not);
+        		//evsStreams[9].write(new_ev_not);
         		rdpFsmState = RDP_DROP_PACKET;
         		printf("NRC drops the packet...\n");
         		cache_init = false;
@@ -775,8 +793,9 @@ void pTcpRDp(
         {
           soTcp_meta.write(in_meta_tcp);
           //packet_count_RX++;
-          NalEventNotif new_ev_not = NalEventNotif(PACKET_RX, 1);
-          internal_event_fifo.write(new_ev_not);
+          new_ev_not = NalEventNotif(PACKET_RX, 1);
+          //internal_event_fifo.write(new_ev_not);
+          evsStreams[5].write(new_ev_not);
           Tcp_RX_metaWritten = true;
         }
         break;
@@ -823,8 +842,9 @@ void pTcpRDp(
           //              break;
           //          }
           fmc_tcp_bytes_cnt = extractByteCnt(currWord);
-          NalEventNotif new_ev_not = NalEventNotif(FMC_TCP_BYTES, fmc_tcp_bytes_cnt);
-          internal_event_fifo.write(new_ev_not);
+          new_ev_not = NalEventNotif(FMC_TCP_BYTES, fmc_tcp_bytes_cnt);
+          //internal_event_fifo.write(new_ev_not);
+          evsStreams[6].write(new_ev_not);
         }
         // NO break;
       case RDP_WRITE_META_FMC:
@@ -858,7 +878,7 @@ void pTcpRDp(
         internal_event_fifo.write(evsStreams[evs_loop_i].read());
       }
       evs_loop_i++;
-      if(evs_loop_i >= 5)
+      if(evs_loop_i >= 7)
       {
         evs_loop_i = 0;
       }
@@ -866,6 +886,72 @@ void pTcpRDp(
   } //else
 
 }
+
+
+void pRoleTcpRxDeq(
+    ap_uint<1>          *layer_7_enabled,
+    ap_uint<1>          *role_decoupled,
+    stream<NetworkWord>       &sRoleTcpDataRx_buffer,
+    stream<NetworkMetaStream>   &sRoleTcpMetaRx_buffer,
+    stream<NetworkWord>         &soTcp_data,
+    stream<NetworkMetaStream>   &soTcp_meta
+    )
+{
+  //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+#pragma HLS INLINE off
+#pragma HLS pipeline II=1
+  //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+  static DeqFsmStates deqFsmState = DEQ_WAIT_META;
+#pragma HLS RESET variable=deqFsmState
+  //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+  //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
+  NetworkWord cur_word = NetworkWord();
+  NetworkMetaStream cur_meta = NetworkMetaStream();
+  bool role_disabled = (*layer_7_enabled == 0 && *role_decoupled == 1);
+
+  switch(deqFsmState)
+  {
+    case DEQ_WAIT_META:
+      if(!sRoleTcpDataRx_buffer.empty() && !sRoleTcpMetaRx_buffer.empty()
+          && ( (!soTcp_data.full() && !soTcp_meta.full()) ||  //user can read
+            (role_disabled) //role is disabled -> drain FIFOs
+            )
+        )
+      {
+        cur_word = sRoleTcpDataRx_buffer.read();
+        cur_meta = sRoleTcpMetaRx_buffer.read();
+        if(!role_disabled)
+        {
+          soTcp_data.write(cur_word);
+          soTcp_meta.write(cur_meta);
+        }
+        if(cur_word.tlast == 0)
+        {
+          deqFsmState = DEQ_STREAM_DATA;
+        }
+      }
+      break;
+    case DEQ_STREAM_DATA:
+      if(!sRoleTcpDataRx_buffer.empty()
+          && (!soTcp_data.full() || role_disabled)
+        )
+      {
+        cur_word = sRoleTcpDataRx_buffer.read();
+        if(!role_disabled)
+        {
+          soTcp_data.write(cur_word);
+        }
+        if(cur_word.tlast == 1)
+        {
+          deqFsmState = DEQ_WAIT_META;
+        }
+      }
+      break;
+  }
+
+}
+
+
 
 
 /*****************************************************************************
