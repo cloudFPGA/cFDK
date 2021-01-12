@@ -71,6 +71,9 @@ using namespace hls;
 #define FLAG_OFF    0
 #define FLAG_ON     1
 
+#define FLAG_OOO    true
+#define FLAG_INO    false
+
 #define LKP_HIT     true
 #define LKP_NO_HIT  false
 
