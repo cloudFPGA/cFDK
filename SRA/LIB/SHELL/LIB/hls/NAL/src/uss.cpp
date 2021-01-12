@@ -583,7 +583,7 @@ void pUdpCls(
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
- //#pragma HLS pipeline II=1
+#pragma HLS pipeline II=1
 
   char *myName  = concat3(THIS_NAME, "/", "Udp_Cls");
 

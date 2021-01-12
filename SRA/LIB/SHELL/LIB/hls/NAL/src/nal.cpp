@@ -744,6 +744,7 @@ void nal_main(
   static stream<bool>               sMarkToDel_unpriv        ("sMarkToDel_unpriv");
   static stream<bool>               sGetNextDelRow_Req       ("sGetNextDelRow_Req");
   static stream<SessionId>          sGetNextDelRow_Rep       ("sGetNextDelRow_Rep");
+  static stream<TcpAppRdReq>       	sRDp_ReqNotif			 ("sRDp_ReqNotif");
 
   static stream<NalTriple>      sNewTcpCon_Req       ("sNewTcpCon_Req");
   static stream<NalNewTcpConRep>    sNewTcpCon_Rep           ("sNewTcpConRep");
@@ -797,6 +798,7 @@ void nal_main(
 #pragma HLS STREAM variable=sMarkToDel_unpriv        depth=16
 #pragma HLS STREAM variable=sGetNextDelRow_Req       depth=16
 #pragma HLS STREAM variable=sGetNextDelRow_Rep       depth=16
+#pragma HLS STREAM variable=sRDp_ReqNotif            depth=16
 
 #pragma HLS STREAM variable=sNewTcpCon_Req       depth=16
 #pragma HLS STREAM variable=sNewTcpCon_Rep       depth=16
@@ -840,8 +842,8 @@ void nal_main(
   //only if NTS is ready
   //TODO: remove unused global variables
   //TODO: add disable signal? (NTS_ready, layer4 enabled)
-  pUdpTX(siUdp_data, siUdp_meta, soUOE_Data, soUOE_Meta, soUOE_DLen, \
-      sGetIpReq_UdpTx, sGetIpRep_UdpTx, \
+  pUdpTX(siUdp_data, siUdp_meta, soUOE_Data, soUOE_Meta, soUOE_DLen,
+      sGetIpReq_UdpTx, sGetIpRep_UdpTx,
       &ipAddrBE, &nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo_0);
 
   //=================================================================================================
@@ -849,9 +851,9 @@ void nal_main(
   //TODO: remove unused global variables
   //TODO: add disable signal? (NTS_ready, layer4 enabled)
   //TODO: add cache invalidate mechanism
-  pUdpRx(soUOE_LsnReq, siUOE_LsnRep, soUdp_data, soUdp_meta, siUOE_Data, siUOE_Meta, \
-      sA4lToUdpRx, sGetNidReq_UdpRx, sGetNidRep_UdpRx, \
-      sUdpPortsToOpen, sUdpPortsOpenFeedback, \
+  pUdpRx(soUOE_LsnReq, siUOE_LsnRep, soUdp_data, soUdp_meta, siUOE_Data, siUOE_Meta,
+      sA4lToUdpRx, sGetNidReq_UdpRx, sGetNidRep_UdpRx,
+      sUdpPortsToOpen, sUdpPortsOpenFeedback,
       &nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo_1);
 
   //=================================================================================================
@@ -869,17 +871,17 @@ void nal_main(
   //TODO: remove unused global variables
   //TODO: add disable signal? (NTS_ready, layer4 enabled)
   //TODO: add cache invalidate mechanism
-  pTcpRRh(siTOE_Notif, soTOE_DReq, sAddNewTriple_TcpRrh, sDeleteEntryBySid, piFMC_Tcp_data_FIFO_prog_full,
-      piFMC_Tcp_sessid_FIFO_prog_full, &role_fifo_empty, &nts_ready_and_enabled);
+  pTcpRRh(siTOE_Notif, soTOE_DReq, sAddNewTriple_TcpRrh, sDeleteEntryBySid,  sRDp_ReqNotif,
+		  piFMC_Tcp_data_FIFO_prog_full, piFMC_Tcp_sessid_FIFO_prog_full, &role_fifo_empty, &nts_ready_and_enabled);
 
   //=================================================================================================
   // TCP Read Path
-  pTcpRDp(siTOE_Data, siTOE_SessId, soFMC_Tcp_data, soFMC_Tcp_SessId,
+  pTcpRDp(sRDp_ReqNotif, siTOE_Data, siTOE_SessId, soFMC_Tcp_data, soFMC_Tcp_SessId,
       //soTcp_data, soTcp_meta,
-      sRoleTcpDataRx_buffer, sRoleTcpMetaRx_buffer, \
-      sA4lToTcpRx, sGetNidReq_TcpRx, sGetNidRep_TcpRx, sGetTripleFromSid_Req, sGetTripleFromSid_Rep, \
-      sMarkAsPriv, piMMIO_CfrmIp4Addr, \
-      &status_fmc_ports, layer_7_enabled, role_decoupled, &expect_FMC_response, \
+      sRoleTcpDataRx_buffer, sRoleTcpMetaRx_buffer,
+      sA4lToTcpRx, sGetNidReq_TcpRx, sGetNidRep_TcpRx, sGetTripleFromSid_Req, sGetTripleFromSid_Rep,
+      sMarkAsPriv, piMMIO_CfrmIp4Addr,
+      &status_fmc_ports, layer_7_enabled, role_decoupled, &expect_FMC_response,
       &nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo_2);
 
 
@@ -900,7 +902,7 @@ void nal_main(
 
   //=================================================================================================
   // TCP start remote connection
-  pTcpCOn(soTOE_OpnReq, siTOE_OpnRep, sAddNewTriple_TcpCon, sNewTcpCon_Req, sNewTcpCon_Rep, \
+  pTcpCOn(soTOE_OpnReq, siTOE_OpnRep, sAddNewTriple_TcpCon, sNewTcpCon_Req, sNewTcpCon_Rep,
       &nts_ready_and_enabled);
 
   //=================================================================================================
@@ -918,13 +920,13 @@ void nal_main(
       sGetNextDelRow_Req, sGetNextDelRow_Rep, &nts_ready_and_enabled);
 
 
-  eventStatusHousekeeping(layer_4_enabled, layer_7_enabled, role_decoupled, &mrt_version_used, &status_udp_ports, &status_tcp_ports, \
+  eventStatusHousekeeping(layer_4_enabled, layer_7_enabled, role_decoupled, &mrt_version_used, &status_udp_ports, &status_tcp_ports,
       &status_fmc_ports, sA4lToStatusProc, internal_event_fifo_0, internal_event_fifo_1, internal_event_fifo_2, internal_event_fifo_3, sStatusUpdate);
 
-  axi4liteProcessing(layer_4_enabled, ctrlLink, &mrt_version_processed,\
+  axi4liteProcessing(layer_4_enabled, ctrlLink, &mrt_version_processed,
 		  //sA4lToTcpAgency, //(currently not used)
-		  sA4lToPortLogic, sA4lToUdpRx, \
-      sA4lToTcpRx, sA4lToStatusProc, sStatusUpdate,\
+		  sA4lToPortLogic, sA4lToUdpRx,
+      sA4lToTcpRx, sA4lToStatusProc, sStatusUpdate,
       sGetIpReq_UdpTx, sGetIpRep_UdpTx, sGetIpReq_TcpTx, sGetIpRep_TcpTx, sGetNidReq_UdpRx, sGetNidRep_UdpRx,
       sGetNidReq_TcpRx, sGetNidRep_TcpRx);
   //sGetNidReq_TcpTx, sGetNidRep_TcpTx);

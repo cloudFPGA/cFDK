@@ -766,7 +766,12 @@ void pROLE(
             meta_stream_out.tdata.dst_rank = meta_stream_in.tdata.src_rank;
             meta_stream_out.tdata.dst_port = meta_stream_in.tdata.src_port;
             meta_stream_out.tdata.src_port = NAL_RX_MIN_PORT;
-            meta_stream_out.tdata.len = meta_stream_in.tdata.len;
+            if(meta_stream_in.tdata.dst_port == 2718)
+            {
+            	meta_stream_out.tdata.len = meta_stream_in.tdata.len;
+            } else {
+            	meta_stream_out.tdata.len = 0; //test streaming mode
+            }
             printf("ROLE received stream from Node %d:%d (recv. port %d, length %d)\n", (int) meta_stream_in.tdata.src_rank, (int) meta_stream_in.tdata.src_port, (int) meta_stream_in.tdata.dst_port, (int) meta_stream_in.tdata.len);
             soTRIF_meta.write(meta_stream_out);
             roleFsmState  = ROLE_STREAM;
@@ -950,7 +955,6 @@ void pTOE(
         case RXP_SEND_DATA: // FORWARD DATA AND METADATA TO [TRIF]
             // Note: We always assume 'tcpSegLen' is multiple of 8B.
             keep = 0xFF;
-            last = (byteCnt==tcpSegLen) ? 1 : 0;
             if (byteCnt == 0) {
                 //if (!soTRIF_SessId.full() && !soTRIF_Data.full()) {
                 if (!soTRIF_Data.full()) {
@@ -965,12 +969,13 @@ void pTOE(
                   break;
                 }
             }
-            else if (byteCnt <= (tcpSegLen)) {
+            else if (byteCnt < tcpSegLen) {
                 if (!soTRIF_Data.full()) {
+                    byteCnt += 8;
+                    last = (byteCnt>=(tcpSegLen-1)) ? 1 : 0;
                     soTRIF_Data.write(TcpAppData(data, keep, last));
                     if (DEBUG_LEVEL & TRACE_TOE)
                         printAxiWord(myRxpName, NetworkWord(data, keep, last));
-                    byteCnt += 8;
                     data += 8;
                 }
             }
@@ -1246,6 +1251,7 @@ int main() {
         hostIp4Addr = ctrlLink[NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS + 0];
         fpgaLsnPort = 2718;
         rxpState = RXP_SEND_NOTIF;
+        //i.e. three segments (nrSegToSend)
         }
         if(simCnt == 210)
         {
@@ -1259,6 +1265,7 @@ int main() {
           hostIp4Addr = ctrlLink[NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS + 2];
           fpgaLsnPort = 2720;
           rxpState = RXP_SEND_NOTIF;
+          //i.e. three segments (nrSegToSend)
         }
         
         //if(simCnt == 243)

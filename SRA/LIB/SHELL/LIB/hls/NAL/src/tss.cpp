@@ -212,6 +212,7 @@ void pTcpRRh(
     stream<TcpAppRdReq>       &soTOE_DReq,
     stream<NalNewTableEntry>  &sAddNewTripple_TcpRrh,
     stream<SessionId>     &sDeleteEntryBySid,
+    stream<TcpAppRdReq>       &sRDp_ReqNotif,
     ap_uint<1>                *piFMC_Tcp_data_FIFO_prog_full,
     ap_uint<1>                *piFMC_Tcp_sessid_FIFO_prog_full,
     const bool          *role_fifo_empty,
@@ -220,7 +221,7 @@ void pTcpRRh(
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-  //#pragma HLS pipeline II=1
+#pragma HLS pipeline II=1
 
   char* myName  = concat3(THIS_NAME, "/", "Tcp_RRh");
 
@@ -354,7 +355,7 @@ void pTcpRRh(
         case RRH_SEND_DREQ:
           if((*piFMC_Tcp_data_FIFO_prog_full == 0 && *piFMC_Tcp_sessid_FIFO_prog_full == 0 )
               && *role_fifo_empty
-              && !soTOE_DReq.full()
+              && !soTOE_DReq.full() && !sRDp_ReqNotif.full()
             )
           {
             bool found_smth = false;
@@ -391,11 +392,15 @@ void pTcpRRh(
               {
                 next_search_start_point = 0;
               }
-              soTOE_DReq.write(TcpAppRdReq(found_ID, found_length_max));
+              TcpAppRdReq new_req = TcpAppRdReq(found_ID, found_length_max);
+              soTOE_DReq.write(new_req);
+              sRDp_ReqNotif.write(new_req);
             }
           }
           //always
           rrhFsmState = RRH_WAIT_NOTIF;
+          //TODO add delay cnt to not request sessions after sessions...
+          //(i.e. wait nearly as long as the length in words is?)
           break;
       }
 
@@ -460,6 +465,7 @@ void pTcpRRh(
  *
  *****************************************************************************/
 void pTcpRDp(
+	stream<TcpAppRdReq>       &sRDp_ReqNotif,
     stream<TcpAppData>        &siTOE_Data,
     stream<TcpAppMeta>        &siTOE_SessId,
     stream<TcpAppData>          &soFMC_Tcp_data,
@@ -499,6 +505,8 @@ void pTcpRDp(
   static NodeId own_rank = 0;
   static NodeId cached_src_id = INVALID_MRT_VALUE;
   static bool cache_init = false;
+  static uint8_t evs_loop_i = 0;
+
 
 #pragma HLS RESET variable=rdpFsmState
 #pragma HLS RESET variable=cached_tcp_rx_triple
@@ -507,6 +515,8 @@ void pTcpRDp(
 #pragma HLS RESET variable=cached_src_id
 #pragma HLS RESET variable=cache_init
 #pragma HLS RESET variable=own_rank
+#pragma HLS RESET variable=evs_loop_i
+
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
   static SessionId session_toFMC = 0;
   static NetworkMetaStream in_meta_tcp = NetworkMetaStream(); //ATTENTION: don't forget to initialize...
@@ -519,6 +529,9 @@ void pTcpRDp(
   static TcpPort srcPort = 0x0;
   static bool found_in_cache = false;
   static  AppMeta     sessId = 0x0;
+  static NetworkDataLength current_length = 0;
+
+  static stream<NalEventNotif> evsStreams[5];
 
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
   TcpAppData currWord;
@@ -573,11 +586,15 @@ void pTcpRDp(
 
       default:
       case RDP_WAIT_META:
-        if (!siTOE_SessId.empty()
+        if (!sRDp_ReqNotif.empty()
+        		//!siTOE_SessId.empty()
             && !sGetNidReq_TcpRx.full() && !sGetTripleFromSid_Req.full() && !sMarkAsPriv.full()
            )
         {
-          siTOE_SessId.read(sessId);
+          //siTOE_SessId.read(sessId);
+        	TcpAppRdReq new_req = sRDp_ReqNotif.read();
+        	sessId = new_req.sessionID;
+        	current_length = new_req.length;
 
           triple_in = UNUSED_TABLE_ENTRY_VALUE;
           found_in_cache = false;
@@ -652,8 +669,23 @@ void pTcpRDp(
         }
         //NO break;
       case RDP_FILTER_META:
-        if(!sMarkAsPriv.full() && !internal_event_fifo.full())
+        if(!sMarkAsPriv.full() && !internal_event_fifo.full() && !siTOE_SessId.empty())
         {
+        	TcpAppMeta controll_id = siTOE_SessId.read();
+        	if(controll_id != sessId)
+        	{//actually, should not happen
+        		printf("[TCP-RDp:PANIC] We received data that we didn't expect...\n");
+        		//SINK packet
+        		//node_id_missmatch_RX_cnt++;
+        		//new_ev_not = NalEventNotif(NID_MISS_RX, 1);
+        		//internal_event_fifo.write(new_ev_not);
+        		//evsStreams[5].write(new_ev_not);
+        		rdpFsmState = RDP_DROP_PACKET;
+        		printf("NRC drops the packet...\n");
+        		cache_init = false;
+        		break;
+        	}
+
           printf("tripple_in: %llu\n",(unsigned long long) triple_in);
           //since we requested the session, we should know it -> no error handling
           dstPort = getLocalPortFromTriple(triple_in);
@@ -671,7 +703,8 @@ void pTcpRDp(
               rdpFsmState = RDP_STREAM_FMC;
               //authorized_access_cnt++;
               new_ev_not = NalEventNotif(AUTH_ACCESS, 1);
-              internal_event_fifo.write(new_ev_not);
+              //internal_event_fifo.write(new_ev_not);
+              evsStreams[0].write(new_ev_not);
               if(!found_in_cache)
               {
                 //markSessionAsPrivileged(sessId);
@@ -681,7 +714,8 @@ void pTcpRDp(
             } else {
               //unauthorized_access_cnt++;
               new_ev_not = NalEventNotif(UNAUTH_ACCESS, 1);
-              internal_event_fifo.write(new_ev_not);
+              //internal_event_fifo.write(new_ev_not);
+              evsStreams[1].write(new_ev_not);
               printf("unauthorized access to FMC!\n");
               rdpFsmState = RDP_DROP_PACKET;
               printf("NRC drops the packet...\n");
@@ -698,7 +732,8 @@ void pTcpRDp(
             //SINK packet
             //node_id_missmatch_RX_cnt++;
             new_ev_not = NalEventNotif(NID_MISS_RX, 1);
-            internal_event_fifo.write(new_ev_not);
+            //internal_event_fifo.write(new_ev_not);
+            evsStreams[2].write(new_ev_not);
             rdpFsmState = RDP_DROP_PACKET;
             printf("NRC drops the packet...\n");
             cache_init = false;
@@ -706,11 +741,13 @@ void pTcpRDp(
           }
           //last_rx_node_id = src_id;
           new_ev_not = NalEventNotif(LAST_RX_NID, src_id);
-          internal_event_fifo.write(new_ev_not);
+          //internal_event_fifo.write(new_ev_not);
+          evsStreams[3].write(new_ev_not);
           //last_rx_port = dstPort;
           new_ev_not = NalEventNotif(LAST_RX_PORT, dstPort);
-          internal_event_fifo.write(new_ev_not);
-          tmp_meta = NetworkMeta(own_rank, dstPort, src_id, srcPort, 0);
+          //internal_event_fifo.write(new_ev_not);
+          evsStreams[4].write(new_ev_not);
+          tmp_meta = NetworkMeta(own_rank, dstPort, src_id, srcPort, current_length);
           in_meta_tcp = NetworkMetaStream(tmp_meta);
           Tcp_RX_metaWritten = false;
           rdpFsmState  = RDP_STREAM_ROLE;
@@ -811,10 +848,22 @@ void pTcpRDp(
           }
         }
         break;
+    } // switch case
+
+    //-- ALWAYS -----------------------
+    if(!internal_event_fifo.full())
+    {
+      if(!evsStreams[evs_loop_i].empty())
+      {
+        internal_event_fifo.write(evsStreams[evs_loop_i].read());
+      }
+      evs_loop_i++;
+      if(evs_loop_i >= 5)
+      {
+        evs_loop_i = 0;
+      }
     }
-    //    }
-    // }
-  }
+  } //else
 
 }
 
@@ -1127,8 +1176,8 @@ void pTcpWRp(
             soTOE_len.write(tcpTX_packet_length);
           }
           if (DEBUG_LEVEL & TRACE_WRP) {
-            printInfo(myName, "Received new session ID #%d from [ROLE].\n",
-                sessId.to_uint());
+            printInfo(myName, "Received new session ID #%d from [ROLE] with length %d.\n",
+                sessId.to_uint(), tcpTX_packet_length.to_uint());
           }
           wrpFsmState = WRP_STREAM_ROLE;
         }
@@ -1232,8 +1281,12 @@ void pTcpWRp(
           //if (DEBUG_LEVEL & TRACE_WRP) {
           //     printAxiWord(myName, currWordIn);
           //}
+          if(!streaming_mode)
+          {
+        	  currWordIn.tlast = 0; // we ignore users tlast if the length is known
+          }
           printf("streaming from ROLE to TOE: tcpTX_packet_length: %d, tcpTX_current_packet_length: %d \n", (int) tcpTX_packet_length, (int) tcpTX_current_packet_length);
-          if(tcpTX_packet_length > 0 && tcpTX_current_packet_length >= tcpTX_packet_length)
+          if(!streaming_mode && tcpTX_packet_length > 0 && tcpTX_current_packet_length >= tcpTX_packet_length)
           {
             currWordIn.tlast = 1;
           }
@@ -1366,12 +1419,10 @@ void pTcpWBu(
   static WbuFsmStates wbuState = WBU_WAIT_META;
   static uint16_t dequeue_cnt = 0; //in BYTES!!
   static TcpDatLen original_requested_length = 0;
-  static bool tlast_detected = false;
 
 #pragma HLS RESET variable=wbuState
 #pragma HLS RESET variable=dequeue_cnt
 #pragma HLS RESET variable=original_requested_length
-#pragma HLS RESET variable=tlast_detected
 
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
   static TcpAppMeta current_sessId;
@@ -1414,7 +1465,6 @@ void pTcpWBu(
           TcpDatLen new_len = siWrp_len.read();
           current_sessId = siWrp_SessId.read();
           original_requested_length = new_len;
-          tlast_detected = false;
 
           current_requested_length = new_len;
           wbuState = WBU_SND_REQ;
@@ -1491,7 +1541,11 @@ void pTcpWBu(
         	  } else {
                   //done
                   wbuState = WBU_WAIT_META;
+                  printInfo(myName, "Done with packet (#%d, %d)\n",
+                		  current_sessId.to_uint(), original_requested_length.to_uint());
         	  }
+          } else {
+        	  tmp.setTLast(0); //to be sure
           }
           //TODO necessary?
           //else if (!need_to_request_again && tmp.getTLast() == 1)
@@ -2057,7 +2111,7 @@ void pTcpCls(
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-  //#pragma HLS pipeline II=1
+#pragma HLS pipeline II=1
 
 
   char *myName  = concat3(THIS_NAME, "/", "Tcp_Cls");
