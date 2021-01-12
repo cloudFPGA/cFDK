@@ -83,7 +83,7 @@ struct NetworkMeta {
     dst_rank(d_id), dst_port(d_port), src_rank(s_id), src_port(s_port), len(length) {}
  };
 
-//ATTENTION: split between NetworkMeta and NetworkMetaStream is necessary, due to flaws in Vivados hls::stream library
+//ATTENTION: split between NetworkMeta and NetworkMetaStream is necessary, since "DATA_PACK" wasn't working reliably...
 struct NetworkMetaStream {
   NetworkMeta tdata; 
   //ap_uint<(sizeof(NetworkMeta)+7)/8> tkeep; TODO: sizeof seems not to work?

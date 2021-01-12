@@ -134,7 +134,7 @@ void pUdpTX(
 
         //read first word
         first_word = siUdp_data.read();
-        udpTX_current_packet_length++;
+        udpTX_current_packet_length += extractByteCnt(first_word);
         if(udpTX_packet_length > 0 && udpTX_current_packet_length >= udpTX_packet_length)
         {//we need to set tlast manually
           first_word.setTLast(1);
@@ -252,7 +252,7 @@ void pUdpTX(
       {
         // Forward data chunk
         UdpAppData    aWord = siUdp_data.read();
-        udpTX_current_packet_length++;
+        udpTX_current_packet_length += extractByteCnt(aWord);
         if(udpTX_packet_length > 0 && udpTX_current_packet_length >= udpTX_packet_length)
         {//we need to set tlast manually
           aWord.setTLast(1);
@@ -270,7 +270,7 @@ void pUdpTX(
     case FSM_DROP_PACKET:
       if ( !siUdp_data.empty() ) {
         UdpAppData    aWord = siUdp_data.read();
-        udpTX_current_packet_length++;
+        udpTX_current_packet_length += extractByteCnt(aWord);
         if(udpTX_packet_length > 0 && udpTX_current_packet_length >= udpTX_packet_length)
         {//we need to set tlast manually
           aWord.setTLast(1);

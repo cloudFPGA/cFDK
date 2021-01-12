@@ -766,8 +766,8 @@ void pROLE(
             meta_stream_out.tdata.dst_rank = meta_stream_in.tdata.src_rank;
             meta_stream_out.tdata.dst_port = meta_stream_in.tdata.src_port;
             meta_stream_out.tdata.src_port = NAL_RX_MIN_PORT;
-            meta_stream_out.tdata.len = 0;
-            printf("ROLE received stream from Node %d:%d (recv. port %d)\n", (int) meta_stream_in.tdata.src_rank, (int) meta_stream_in.tdata.src_port, (int) meta_stream_in.tdata.dst_port);
+            meta_stream_out.tdata.len = meta_stream_in.tdata.len;
+            printf("ROLE received stream from Node %d:%d (recv. port %d, length %d)\n", (int) meta_stream_in.tdata.src_rank, (int) meta_stream_in.tdata.src_port, (int) meta_stream_in.tdata.dst_port, (int) meta_stream_in.tdata.len);
             soTRIF_meta.write(meta_stream_out);
             roleFsmState  = ROLE_STREAM;
         }
@@ -1301,7 +1301,7 @@ int main() {
     printf("## TESTBENCH 'tb_nrc' ENDS HERE                                           ##\n");
 
     nrErr += (tcp_packets_send - (tcp_packets_recv - tcp_recv_frag_cnt + tcp_packets_expected_timeout));
-    if(tcp_packets_send != (tcp_packets_recv + tcp_packets_expected_timeout))
+    if(tcp_packets_send != (tcp_packets_recv - tcp_recv_frag_cnt + tcp_packets_expected_timeout))
     {
       printf("\tERROR: some packets are lost: send %d TCP packets, received %d (fragmented parts %d, expected timeout for packets %d)!\n", tcp_packets_send, tcp_packets_recv-tcp_recv_frag_cnt, tcp_recv_frag_cnt, tcp_packets_expected_timeout);
     } else {

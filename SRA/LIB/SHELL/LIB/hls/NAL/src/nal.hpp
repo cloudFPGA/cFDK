@@ -170,10 +170,10 @@ enum RdpFsmStates {RDP_WAIT_META = 0, RDP_W8FORREQS_1, RDP_W8FORREQS_2, RDP_FILT
 //#define WRP_WAIT_CONNECTION 2
 //#define WRP_STREAM_ROLE 3
 //#define WRP_DROP_PACKET 4
-enum WrpFsmStates {WRP_WAIT_META = 0, WRP_STREAM_FMC, WRP_W8FORREQS_1, WRP_W8FORREQS_2, WRP_WAIT_CONNECTION, \
+enum WrpFsmStates {WRP_WAIT_META = 0, WRP_STREAM_FMC, WRP_W8FORREQS_1,  WRP_W8FORREQS_11, WRP_W8FORREQS_2, WRP_WAIT_CONNECTION, \
 	               WRP_STREAM_ROLE, WRP_DROP_PACKET};
 
-enum WbuFsmStates {WBU_WAIT_META = 0, WBU_SND_REQ, WBU_WAIT_REP, WBU_STREAM, WBU_FILL_BUFFER, WBU_DROP};
+enum WbuFsmStates {WBU_WAIT_META = 0, WBU_SND_REQ, WBU_WAIT_REP, WBU_STREAM, WBU_DROP};
 
 
 //#define ClsFsmStates uint8_t
@@ -194,6 +194,8 @@ enum ConfigBcastStates {CB_WAIT = 0, CB_START, CB_1, CB_2, CB_3_0, CB_3_1, CB_3_
 
 
 #define MAX_NAL_SESSIONS (TOE_MAX_SESSIONS)
+#define NAL_STREAMING_SPLIT_TCP (ZYC2_MSS)
+//#define NAL_STREAMING_SPLIT_TCP (ZYC2_MSS - 8)
 
 //#define MAX_MRT_SIZE 1024
 #define MAX_MRT_SIZE 128
@@ -306,7 +308,7 @@ NalTriple newTriple(Ip4Addr ipRemoteAddres, TcpPort tcpRemotePort, TcpPort tcpLo
 Ip4Addr getRemoteIpAddrFromTriple(NalTriple triple);
 TcpPort getRemotePortFromTriple(NalTriple triple);
 TcpPort getLocalPortFromTriple(NalTriple triple);
-
+uint8_t extractByteCnt(Axis<64> currWord);
 
 #include "uss.hpp"
 #include "tss.hpp"

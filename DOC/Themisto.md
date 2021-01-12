@@ -39,22 +39,22 @@ Respectively, the following definitons for the *Meta streams* are important:
 ```C
 typedef ap_uint<16>     NrcPort; // UDP/TCP Port Number
 typedef ap_uint<8>      NodeId;  // Cluster Node Id
-typedef ap_uint<32>     NetworkDataLength;
+typedef ap_uint<16>     NetworkDataLength;
 
 struct NetworkMeta {
   NodeId  dst_rank;   // The node-id where the data goest to (the FPGA itself if receiving)
   NrcPort dst_port;   // The receiving port
   NodeId  src_rank;   // The origin node-id (the FPGA itself if sending)
   NrcPort src_port;   // The origin port
-  NetworkDataLength len;    // The length of this data Chunk/packet (optional)
+  NetworkDataLength len;    // The length of this data Chunk/packet in bytes (optional)
 
   NetworkMeta() {}
 
-  NetworkMeta(NodeId d_id, NrcPort d_port, NodeId s_id, NrcPort s_port, ap_uint<32> lenght) :
+  NetworkMeta(NodeId d_id, NrcPort d_port, NodeId s_id, NrcPort s_port, ap_uint<16> lenght) :
     dst_rank(d_id), dst_port(d_port), src_rank(s_id), src_port(s_port), len(lenght) {}
  };
 
-//ATTENTION: split between NetworkMeta and NetworkMetaStream is necessary, due to bugs in Vivados hls::stream library
+//ATTENTION: split between NetworkMeta and NetworkMetaStream is necessary, since "DATA_PACK" wasn't working reliably
 struct NetworkMetaStream {
   NetworkMeta tdata;
   ap_uint<6> tkeep;

@@ -83,6 +83,42 @@ TcpPort getLocalPortFromTriple(NalTriple triple)
 }
 
 
+uint8_t extractByteCnt(Axis<64> currWord)
+{
+#pragma HLS INLINE
+
+	uint8_t ret = 0;
+
+    switch (currWord.getTKeep()) {
+      case 0b11111111:
+        ret = 8;
+        break;
+      case 0b01111111:
+        ret = 7;
+        break;
+      case 0b00111111:
+        ret = 6;
+        break;
+      case 0b00011111:
+        ret = 5;
+        break;
+      case 0b00001111:
+        ret = 4;
+        break;
+      case 0b00000111:
+        ret = 3;
+        break;
+      case 0b00000011:
+        ret = 2;
+        break;
+      default:
+      case 0b00000001:
+        ret = 1;
+        break;
+    }
+    return ret;
+}
+
 void pStatusMemory(
     stream<NalEventNotif>  &internal_event_fifo,
     const ap_uint<1>       *layer_7_enabled,
@@ -743,11 +779,11 @@ void nal_main(
 
 
 #pragma HLS STREAM variable=sRoleTcpDataRx_buffer depth=252 //NAL_MAX_FIFO_DEPTS_BYTES/8 (+2)
-#pragma HLS STREAM variable=sRoleTcpMetaRx_buffer depth=252 //TODO: maybe smaller?
+#pragma HLS STREAM variable=sRoleTcpMetaRx_buffer depth=32
 
-#pragma HLS STREAM variable=sTcpWrp2Wbu_data      depth=16 //not real buffer, just for connecting the processes
-#pragma HLS STREAM variable=sTcpWrp2Wbu_sessId    depth=16 //not real buffer, just for connecting the processes
-#pragma HLS STREAM variable=sTcpWrp2Wbu_len       depth=16 //not real buffer, just for connecting the processes
+#pragma HLS STREAM variable=sTcpWrp2Wbu_data      depth=252 //NAL_MAX_FIFO_DEPTS_BYTES/8 (+2)
+#pragma HLS STREAM variable=sTcpWrp2Wbu_sessId    depth=32
+#pragma HLS STREAM variable=sTcpWrp2Wbu_len       depth=32
 
 
 #pragma HLS STREAM variable=sGetTripleFromSid_Req    depth=16

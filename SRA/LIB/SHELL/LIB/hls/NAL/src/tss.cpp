@@ -758,33 +758,34 @@ void pTcpRDp(
             *expect_FMC_response = true;
             rdpFsmState  = RDP_WAIT_META;
           }
-          switch (currWord.getTKeep()) {
-            case 0b11111111:
-              fmc_tcp_bytes_cnt = 8;
-              break;
-            case 0b01111111:
-              fmc_tcp_bytes_cnt = 7;
-              break;
-            case 0b00111111:
-              fmc_tcp_bytes_cnt = 6;
-              break;
-            case 0b00011111:
-              fmc_tcp_bytes_cnt = 5;
-              break;
-            case 0b00001111:
-              fmc_tcp_bytes_cnt = 4;
-              break;
-            case 0b00000111:
-              fmc_tcp_bytes_cnt = 3;
-              break;
-            case 0b00000011:
-              fmc_tcp_bytes_cnt = 2;
-              break;
-            default:
-            case 0b00000001:
-              fmc_tcp_bytes_cnt = 1;
-              break;
-          }
+          //          switch (currWord.getTKeep()) {
+          //            case 0b11111111:
+          //              fmc_tcp_bytes_cnt = 8;
+          //              break;
+          //            case 0b01111111:
+          //              fmc_tcp_bytes_cnt = 7;
+          //              break;
+          //            case 0b00111111:
+          //              fmc_tcp_bytes_cnt = 6;
+          //              break;
+          //            case 0b00011111:
+          //              fmc_tcp_bytes_cnt = 5;
+          //              break;
+          //            case 0b00001111:
+          //              fmc_tcp_bytes_cnt = 4;
+          //              break;
+          //            case 0b00000111:
+          //              fmc_tcp_bytes_cnt = 3;
+          //              break;
+          //            case 0b00000011:
+          //              fmc_tcp_bytes_cnt = 2;
+          //              break;
+          //            default:
+          //            case 0b00000001:
+          //              fmc_tcp_bytes_cnt = 1;
+          //              break;
+          //          }
+          fmc_tcp_bytes_cnt = extractByteCnt(currWord);
           NalEventNotif new_ev_not = NalEventNotif(FMC_TCP_BYTES, fmc_tcp_bytes_cnt);
           internal_event_fifo.write(new_ev_not);
         }
@@ -890,6 +891,7 @@ void pTcpWRp(
   static NrcPort dst_port = 0x0;
   static ap_uint<64> new_triple = UNUSED_TABLE_ENTRY_VALUE;
   static SessionId sessId = UNUSED_SESSION_ENTRY_VALUE;
+  static bool streaming_mode = false;
 
   static stream<NalEventNotif> evsStreams[10];
 
@@ -940,7 +942,9 @@ void pTcpWRp(
         {
           tcpSessId = (AppMeta) siFMC_Tcp_SessId.read();
           soTOE_SessId.write(tcpSessId);
-          soTOE_len.write(0); //always streaming mode
+          //soTOE_len.write(0); //always streaming mode
+          streaming_mode = true;
+          tcpTX_current_packet_length = 0;
           //delete the session id, we don't need it any longer
           // (this expects an HTTP mode of request-response)
           //TODO
@@ -1019,11 +1023,13 @@ void pTcpWRp(
           if(!sGetIpRep_TcpTx.empty())
           {
             dst_ip_addr = sGetIpRep_TcpTx.read();
-          } else {
-            break;
+            wrpFsmState = WRP_W8FORREQS_11;
           }
+          break; //to meet timing
 
         }
+        // NO break;
+      case WRP_W8FORREQS_11:
         //both cases
         if(cache_init || !sGetSidFromTriple_Req.full())
         {
@@ -1112,7 +1118,14 @@ void pTcpWRp(
           evsStreams[5].write(new_ev_not);
 
           soTOE_SessId.write(sessId);
-          soTOE_len.write(tcpTX_packet_length);
+          tcpTX_current_packet_length = 0;
+          if(tcpTX_packet_length == 0)
+          {
+            streaming_mode = true;
+          } else {
+            streaming_mode = false;
+            soTOE_len.write(tcpTX_packet_length);
+          }
           if (DEBUG_LEVEL & TRACE_WRP) {
             printInfo(myName, "Received new session ID #%d from [ROLE].\n",
                 sessId.to_uint());
@@ -1122,7 +1135,7 @@ void pTcpWRp(
         break;
 
       case WRP_WAIT_CONNECTION:
-        if( !soTOE_SessId.full() && !sNewTcpCon_Rep.empty() )
+        if( !soTOE_SessId.full() && !sNewTcpCon_Rep.empty() && !soTOE_len.full() )
         {
           //new_triple = *tripple_for_new_connection;
           //SessionId sessId = getSessionIdFromTripple(*tripple_for_new_connection);
@@ -1167,7 +1180,14 @@ void pTcpWRp(
           //skip_events_read = true;
 
           soTOE_SessId.write(sessId);
-          soTOE_len.write(tcpTX_packet_length);
+          tcpTX_current_packet_length = 0;
+          if(tcpTX_packet_length == 0)
+          {
+            streaming_mode = true;
+          } else {
+            streaming_mode = false;
+            soTOE_len.write(tcpTX_packet_length);
+          }
           if (DEBUG_LEVEL & TRACE_WRP) {
             printInfo(myName, "Received new session ID #%d from [ROLE].\n",
                 sessId.to_uint());
@@ -1183,22 +1203,32 @@ void pTcpWRp(
         break;
 
       case WRP_STREAM_FMC:
-        if (!siFMC_Tcp_data.empty() && !soTOE_Data.full()) {
+        if (!siFMC_Tcp_data.empty() && !soTOE_Data.full() && !soTOE_len.full() )
+        {
           TcpAppData tcpWord = siFMC_Tcp_data.read();
+          tcpTX_current_packet_length += extractByteCnt(tcpWord);
           //if (DEBUG_LEVEL & TRACE_WRP) {
           //     printAxiWord(myName, currWordIn);
           //}
           soTOE_Data.write(tcpWord);
           if(tcpWord.getTLast() == 1) {
             wrpFsmState = WRP_WAIT_META;
+            soTOE_len.write(tcpTX_current_packet_length);
+          } else {
+            //always streaming
+            if(tcpTX_current_packet_length >= NAL_STREAMING_SPLIT_TCP)
+            {
+              soTOE_len.write(tcpTX_current_packet_length);
+              tcpTX_current_packet_length = 0;
+            }
           }
         }
         break;
 
       case WRP_STREAM_ROLE:
-        if (!siTcp_data.empty() && !soTOE_Data.full()) {
+        if (!siTcp_data.empty() && !soTOE_Data.full()  && !soTOE_len.full() ) {
           siTcp_data.read(currWordIn);
-          tcpTX_current_packet_length++;
+          tcpTX_current_packet_length += extractByteCnt(currWordIn);
           //if (DEBUG_LEVEL & TRACE_WRP) {
           //     printAxiWord(myName, currWordIn);
           //}
@@ -1208,8 +1238,20 @@ void pTcpWRp(
             currWordIn.tlast = 1;
           }
           soTOE_Data.write((TcpAppData) currWordIn);
-          if(currWordIn.tlast == 1) {
+          if(currWordIn.tlast == 1)
+          {
             wrpFsmState = WRP_WAIT_META;
+            if(streaming_mode)
+            {
+              soTOE_len.write(tcpTX_current_packet_length);
+            }
+          } else if (streaming_mode)
+          {
+            if(tcpTX_current_packet_length >= NAL_STREAMING_SPLIT_TCP)
+            {
+              soTOE_len.write(tcpTX_current_packet_length);
+              tcpTX_current_packet_length = 0;
+            }
           }
         } else {
           printf("ERROR: can't stream to TOE!\n");
@@ -1220,14 +1262,13 @@ void pTcpWRp(
         if( !siTcp_data.empty())
         {
           siTcp_data.read(currWordIn);
-          tcpTX_current_packet_length++;
+          tcpTX_current_packet_length += extractByteCnt(currWordIn);
           //until Tlast or length
-          if(tcpTX_packet_length > 0 && tcpTX_current_packet_length >= tcpTX_packet_length)
+          if( (tcpTX_packet_length > 0 && tcpTX_current_packet_length >= tcpTX_packet_length)
+        	  || (currWordIn.tlast == 1)
+             )
           {
-            currWordIn.tlast = 1;
-          }
-          if(currWordIn.tlast == 1) {
-            wrpFsmState = WRP_WAIT_META;
+              wrpFsmState = WRP_WAIT_META;
           }
         }
         break;
@@ -1291,42 +1332,20 @@ void pTcpWRp(
 
 }
 
-uint8_t extractByteCnt(Axis<64> currWord)
-{
-#pragma HLS INLINE
 
-	uint8_t ret = 0;
-
-    switch (currWord.getTKeep()) {
-      case 0b11111111:
-        ret = 8;
-        break;
-      case 0b01111111:
-        ret = 7;
-        break;
-      case 0b00111111:
-        ret = 6;
-        break;
-      case 0b00011111:
-        ret = 5;
-        break;
-      case 0b00001111:
-        ret = 4;
-        break;
-      case 0b00000111:
-        ret = 3;
-        break;
-      case 0b00000011:
-        ret = 2;
-        break;
-      default:
-      case 0b00000001:
-        ret = 1;
-        break;
-    }
-    return ret;
-}
-
+/*****************************************************************************
+ * @brief Write Buffer (WBu) - From WRp to TOE.
+ *  Process to synchronize with TOE's TX buffer (and it's available space).
+ *  In case of streaming mode (i.e. ROLE's length was 0), WRp takes care of
+ *  splitting the data and writing the right len.
+ *
+ * @param[in]  siWrp_Data,   Tx data from [Wrp].
+ * @param[in]  siWrp_SessId, the session Id from [Wrp].
+ * @param[in]  siWrp_len,    the length of the current chunk (is *never* 0) from [Wrp].
+ * @param[out]
+ * @param[in]
+ *
+ ******************************************************************************/
 void pTcpWBu(
     stream<TcpAppData>        &siWrp_Data,
     stream<TcpAppMeta>        &siWrp_SessId,
@@ -1345,29 +1364,21 @@ void pTcpWBu(
 
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
   static WbuFsmStates wbuState = WBU_WAIT_META;
-  static uint16_t enqueue_cnt = 0; //in BYTES!!
   static uint16_t dequeue_cnt = 0; //in BYTES!!
-  static uint16_t fifo_fillstand = 0; //in BYTES!!
-  static bool streaming_mode = false;
   static TcpDatLen original_requested_length = 0;
   static bool tlast_detected = false;
 
 #pragma HLS RESET variable=wbuState
-#pragma HLS RESET variable=enqueue_cnt
 #pragma HLS RESET variable=dequeue_cnt
-#pragma HLS RESET variable=fifo_fillstand
-#pragma HLS RESET variable=streaming_mode
 #pragma HLS RESET variable=original_requested_length
-#pragma HLS RESET variable=tlast_deteced
+#pragma HLS RESET variable=tlast_detected
 
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-  static stream<TcpAppData> data_buffer ("sTcpWbu_data_buffer");
   static TcpAppMeta current_sessId;
   static TcpDatLen current_requested_length = 0;
   static TcpDatLen current_approved_length = 0;
   static bool need_to_request_again = false;
 
-#pragma HLS STREAM variable=data_buffer depth=252 //NAL_MAX_FIFO_DEPTS_BYTES/8 (+2)
 
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
   TcpAppSndReq toe_sendReq;
@@ -1375,11 +1386,8 @@ void pTcpWBu(
 
   if(!*nts_ready_and_enabled)
   {
-    enqueue_cnt = 0;
     dequeue_cnt = 0;
-    fifo_fillstand = 0;
     wbuState = WBU_WAIT_META;
-    streaming_mode = false;
     //drain all streams
     if(!siWrp_Data.empty())
     {
@@ -1393,10 +1401,6 @@ void pTcpWBu(
     {
       siWrp_len.read();
     }
-    if(!data_buffer.empty())
-    {
-      data_buffer.read();
-    }
   } else
   {
     switch(wbuState) {
@@ -1404,8 +1408,6 @@ void pTcpWBu(
       case WBU_WAIT_META:
         //reset remaining variables
         dequeue_cnt = 0;
-        fifo_fillstand = 0;
-        enqueue_cnt = 0;
         //wait for meta
         if(!siWrp_SessId.empty() && !siWrp_len.empty())
         {
@@ -1414,15 +1416,8 @@ void pTcpWBu(
           original_requested_length = new_len;
           tlast_detected = false;
 
-          if(new_len == 0)
-          {
-            streaming_mode = true;
-            wbuState = WBU_FILL_BUFFER;
-          } else {
-            current_requested_length = new_len;
-            wbuState = WBU_SND_REQ;
-            streaming_mode = false;
-          }
+          current_requested_length = new_len;
+          wbuState = WBU_SND_REQ;
         }
         break;
       case WBU_SND_REQ:
@@ -1432,30 +1427,11 @@ void pTcpWBu(
           toe_sendReq.length = current_requested_length;
           soTOE_SndReq.write(toe_sendReq);
           if (DEBUG_LEVEL & TRACE_WRP) {
-            printInfo(myName, "Received a data forward request from [NAL/WRP] for sessId=%d and nrBytes=%d (streaming mode %d).\n",
-                toe_sendReq.sessId.to_uint(), toe_sendReq.length.to_uint(), (int) streaming_mode);
+            printInfo(myName, "Received a data forward request from [NAL/WRP] for sessId=%d and nrBytes=%d (repeating request %d).\n",
+                toe_sendReq.sessId.to_uint(), toe_sendReq.length.to_uint(), (int) need_to_request_again);
           }
           wbuState = WBU_WAIT_REP;
 
-        }
-        //enqueue data (with fifo_fillstand)
-        if(!siWrp_Data.empty() && !data_buffer.full() && !tlast_detected)
-        {
-          TcpAppData tmp = siWrp_Data.read();
-          data_buffer.write(tmp);
-          enqueue_cnt += extractByteCnt(tmp);
-          if(streaming_mode)
-          {
-            if(tmp.getTLast() == 1)
-            {
-              tlast_detected = true;
-            }
-          } else {
-            if(enqueue_cnt + fifo_fillstand >= original_requested_length)
-            {
-              tlast_detected = true;
-            }
-          }
         }
         break;
       case WBU_WAIT_REP:
@@ -1467,10 +1443,8 @@ void pTcpWBu(
             case NO_ERROR:
               //fifo_fillstand = enqueue_cnt;
               wbuState = WBU_STREAM;
-              current_approved_length = appSndRep.length;
+              current_approved_length = appSndRep.spaceLeft;
               need_to_request_again = false;
-              fifo_fillstand += enqueue_cnt;
-              enqueue_cnt = 0;
               dequeue_cnt = 0;
               break;
             case NO_SPACE:
@@ -1478,13 +1452,8 @@ void pTcpWBu(
                   appSndRep.length.to_uint(), appSndRep.sessId.to_uint(), appSndRep.spaceLeft.to_uint());
 
               dequeue_cnt = 0;
-              fifo_fillstand += enqueue_cnt;
-              enqueue_cnt = 0;
-              current_approved_length = appSndRep.spaceLeft;
-
-              //only relevant for non-streaming mode
+              current_approved_length = appSndRep.spaceLeft - 7; //with "security margin"
               need_to_request_again = true;
-              current_requested_length -= current_approved_length;
 
               wbuState = WBU_STREAM;
               break;
@@ -1492,185 +1461,418 @@ void pTcpWBu(
               printWarn(myName, "Attempt to write data for a session that is not established.\n");
               //since this is after the WRP, this should never happen
               wbuState = WBU_DROP;
-              fifo_fillstand = enqueue_cnt;
-              dequeue_cnt = current_requested_length - enqueue_cnt;
+              dequeue_cnt = current_requested_length;
+              //TODO: write internal event?
+              //TODO: or ignore it, because WRP ensures this should not happen?
               break;
             default:
               printWarn(myName, "Received unknown TCP request to send reply from [TOE].\n");
               wbuState = WBU_DROP;
-              fifo_fillstand = enqueue_cnt;
-              dequeue_cnt = current_requested_length - enqueue_cnt;
+              dequeue_cnt = current_requested_length;
+              //TODO: write internal event?
+              //TODO: or ignore it, because WRP ensures this should not happen?
               break;
-          }
-
-        } else {
-          //if we get a reply, we need to have consistent data --> no fill
-          //enqueue data (with fifo_fillstand)
-          if(!siWrp_Data.empty() && !data_buffer.full() && !tlast_detected)
-          {
-            TcpAppData tmp = siWrp_Data.read();
-            data_buffer.write(tmp);
-            enqueue_cnt += extractByteCnt(tmp);
-            if(streaming_mode)
-            {
-              if(tmp.getTLast() == 1)
-              {
-                tlast_detected = true;
-              }
-            } else {
-              if(enqueue_cnt + fifo_fillstand >= original_requested_length)
-              {
-                tlast_detected = true;
-              }
-            }
           }
         }
         break;
       case WBU_STREAM:
         //dequeue data
-        if(!soTOE_Data.full() && !data_buffer.empty())
+        if(!soTOE_Data.full() && !siWrp_Data.empty() )
         {
-          TcpAppData tmp = data_buffer.read();
+          TcpAppData tmp = siWrp_Data.read();
           dequeue_cnt += extractByteCnt(tmp);
-          if(streaming_mode)
+          if(dequeue_cnt >= current_approved_length)
           {
-            if(tmp.getTLast() == 1)
-            {
-              //done
-              wbuState = WBU_WAIT_META;
-            }
-            if(dequeue_cnt >= current_approved_length)
-            {
-              tmp.setTLast(1); //may be required by TOE (we are at end of current space)
-              current_requested_length = (enqueue_cnt + fifo_fillstand) - dequeue_cnt;
-              if(current_requested_length >= ZYC2_MSS)
-              {
-                current_requested_length = ZYC2_MSS;
-              }
-              //that way, we shouldn't run into overflow problems...
-              fifo_fillstand -= dequeue_cnt;
-              printInfo(myName, "Streaming mode, need to request %d in order to continue. (fifo: %d, enq %d, deq %d)\n",
-                      (int) current_requested_length, (int) fifo_fillstand, (int) enqueue_cnt, (int) dequeue_cnt);
-              if(current_requested_length == 0)
-              {
-            	  if(tlast_detected)
-            	  {
-            	  //done
-            	  wbuState = WBU_WAIT_META;
-            	  } else {
-            		  wbuState = WBU_FILL_BUFFER;
-            	  }
-              } else {
-              wbuState = WBU_SND_REQ;
-              }
-            }
-          } else {
-            if(dequeue_cnt >= current_approved_length)
-            {
-              tmp.setTLast(1); //to be sure
-              if(!need_to_request_again)
-              {
-                //done
-                wbuState = WBU_WAIT_META;
-              } else {
-                //that way, we shouldn't run into overflow problems...
-                fifo_fillstand -= dequeue_cnt;
-                wbuState = WBU_SND_REQ;
-              }
-            } else {
-              tmp.setTLast(0); //to be sure
-            }
+    		  tmp.setTLast(1); //to be sure
+        	  if(need_to_request_again)
+        	  {
+        		  current_requested_length -= dequeue_cnt;
+        		  wbuState = WBU_SND_REQ;
+        	  } else {
+                  //done
+                  wbuState = WBU_WAIT_META;
+        	  }
           }
+          //TODO necessary?
+          //else if (!need_to_request_again && tmp.getTLast() == 1)
+          //{
+          //    //done
+          //    wbuState = WBU_WAIT_META;
+          //}
           soTOE_Data.write(tmp);
         }
-        //enqueue data (with fifo_fillstand)
-        if(!siWrp_Data.empty() && !data_buffer.full() && !tlast_detected)
-        {
-          TcpAppData tmp = siWrp_Data.read();
-          data_buffer.write(tmp);
-          enqueue_cnt += extractByteCnt(tmp);
-          if(streaming_mode)
-          {
-            if(tmp.getTLast() == 1)
-            {
-              tlast_detected = true;
-            }
-          } else {
-            if(enqueue_cnt + fifo_fillstand >= original_requested_length)
-            {
-              tlast_detected = true;
-            }
-          }
-        }
         break;
-        //        case WBU_FINISH:
-        //          //dequeue last data
-        //            if(!soTOE_Data.full() && !data_buffer.empty())
-        //            {
-        //              TcpAppData tmp = data_buffer.read();
-        //              soTOE_Data.write(tmp);
-        //              dequeue_cnt++;
-        //              if(dequeue_cnt >= enqueue_cnt || tmp.getTLast() == 1)
-        //              {
-        //                enqueue_cnt = 0;
-        //                //dequeue in wait
-        //                fifo_fillstand = 0;
-        //                streaming_mode = false;
-        //                wbuState = WBU_WAIT_META;
-        //                break;
-        //              }
-        //            }
-        //            break;
       case WBU_DROP:
         //TODO: delete, because WRP ensures this should not happen?
-        if(!siWrp_Data.empty() && !data_buffer.full() && dequeue_cnt > 0)
+        if(!siWrp_Data.empty())
         {
           TcpAppData tmp = siWrp_Data.read();
-          if(streaming_mode)
-          {
-            if(tmp.getTLast() == 1)
-            {
-              dequeue_cnt = 0;
-              enqueue_cnt = 0;
-            }
-          } else {
-            dequeue_cnt -= extractByteCnt(tmp);
-          }
-        }
-        if(!data_buffer.empty() && fifo_fillstand > 0)
-        {
-          TcpAppData tmp = data_buffer.read();
-          fifo_fillstand -= extractByteCnt(tmp);
-        }
-        if(fifo_fillstand == 0 && dequeue_cnt == 0)
-        {
-          wbuState = WBU_WAIT_META;
-        }
-        break;
-      case WBU_FILL_BUFFER:
-        //happens only for streaming mode
-        if(!siWrp_Data.empty() && !data_buffer.full())
-        {
-          TcpAppData tmp = siWrp_Data.read();
-          data_buffer.write(tmp);
-          enqueue_cnt += extractByteCnt(tmp);
           if(tmp.getTLast() == 1)
           {
-            tlast_detected = true;  //this means, we are not longer in streaming mode...
-            current_requested_length = enqueue_cnt;
-            wbuState = WBU_SND_REQ;
-          }
-          if(enqueue_cnt >= ZYC2_MSS)
-          {
-            current_requested_length = enqueue_cnt;
-            wbuState = WBU_SND_REQ;
+            //dequeue_cnt = 0;
+            wbuState = WBU_WAIT_META;
+          } else {
+            dequeue_cnt -= extractByteCnt(tmp);
+            if(dequeue_cnt == 0)
+            {
+                wbuState = WBU_WAIT_META;
+            }
           }
         }
         break;
-    }
-
-  }
+    } //switch
+  } //else
 }
+
+
+
+//
+//void pTcpWBu(
+//    stream<TcpAppData>        &siWrp_Data,
+//    stream<TcpAppMeta>        &siWrp_SessId,
+//    stream<TcpDatLen>     &siWrp_len,
+//    stream<TcpAppData>      &soTOE_Data,
+//    stream<TcpAppSndReq>    &soTOE_SndReq,
+//    stream<TcpAppSndRep>    &siTOE_SndRep,
+//    const bool            *nts_ready_and_enabled
+//    )
+//{
+//  //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+//#pragma HLS INLINE off
+//#pragma HLS pipeline II=1
+//  char *myName  = concat3(THIS_NAME, "/", "Tcp_WBu");
+//
+//
+//  //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+//  static WbuFsmStates wbuState = WBU_WAIT_META;
+//  static uint16_t enqueue_cnt = 0; //in BYTES!!
+//  static uint16_t dequeue_cnt = 0; //in BYTES!!
+//  static uint16_t fifo_fillstand = 0; //in BYTES!!
+//  static bool streaming_mode = false;
+//  static TcpDatLen original_requested_length = 0;
+//  static bool tlast_detected = false;
+//
+//#pragma HLS RESET variable=wbuState
+//#pragma HLS RESET variable=enqueue_cnt
+//#pragma HLS RESET variable=dequeue_cnt
+//#pragma HLS RESET variable=fifo_fillstand
+//#pragma HLS RESET variable=streaming_mode
+//#pragma HLS RESET variable=original_requested_length
+//#pragma HLS RESET variable=tlast_detected
+//
+//  //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+//  static stream<TcpAppData> data_buffer ("sTcpWbu_data_buffer");
+//  static TcpAppMeta current_sessId;
+//  static TcpDatLen current_requested_length = 0;
+//  static TcpDatLen current_approved_length = 0;
+//  static bool need_to_request_again = false;
+//
+//#pragma HLS STREAM variable=data_buffer depth=252 //NAL_MAX_FIFO_DEPTS_BYTES/8 (+2)
+//
+//  //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
+//  TcpAppSndReq toe_sendReq;
+//
+//
+//  if(!*nts_ready_and_enabled)
+//  {
+//    enqueue_cnt = 0;
+//    dequeue_cnt = 0;
+//    fifo_fillstand = 0;
+//    wbuState = WBU_WAIT_META;
+//    streaming_mode = false;
+//    //drain all streams
+//    if(!siWrp_Data.empty())
+//    {
+//      siWrp_Data.read();
+//    }
+//    if(!siWrp_SessId.empty())
+//    {
+//      siWrp_SessId.read();
+//    }
+//    if(!siWrp_len.empty())
+//    {
+//      siWrp_len.read();
+//    }
+//    if(!data_buffer.empty())
+//    {
+//      data_buffer.read();
+//    }
+//  } else
+//  {
+//    switch(wbuState) {
+//      default:
+//      case WBU_WAIT_META:
+//        //reset remaining variables
+//        dequeue_cnt = 0;
+//        fifo_fillstand = 0;
+//        enqueue_cnt = 0;
+//        //wait for meta
+//        if(!siWrp_SessId.empty() && !siWrp_len.empty())
+//        {
+//          TcpDatLen new_len = siWrp_len.read();
+//          current_sessId = siWrp_SessId.read();
+//          original_requested_length = new_len;
+//          tlast_detected = false;
+//
+//          if(new_len == 0)
+//          {
+//            streaming_mode = true;
+//            wbuState = WBU_FILL_BUFFER;
+//          } else {
+//            current_requested_length = new_len;
+//            wbuState = WBU_SND_REQ;
+//            streaming_mode = false;
+//          }
+//        }
+//        break;
+//      case WBU_SND_REQ:
+//        if(!soTOE_SndReq.full())
+//        {
+//          toe_sendReq.sessId = current_sessId;
+//          toe_sendReq.length = current_requested_length;
+//          soTOE_SndReq.write(toe_sendReq);
+//          if (DEBUG_LEVEL & TRACE_WRP) {
+//            printInfo(myName, "Received a data forward request from [NAL/WRP] for sessId=%d and nrBytes=%d (streaming mode %d).\n",
+//                toe_sendReq.sessId.to_uint(), toe_sendReq.length.to_uint(), (int) streaming_mode);
+//          }
+//          wbuState = WBU_WAIT_REP;
+//
+//        }
+//        //enqueue data (with fifo_fillstand)
+//        if(!siWrp_Data.empty() && !data_buffer.full() && !tlast_detected)
+//        {
+//          TcpAppData tmp = siWrp_Data.read();
+//          data_buffer.write(tmp);
+//          enqueue_cnt += extractByteCnt(tmp);
+//          if(streaming_mode)
+//          {
+//            if(tmp.getTLast() == 1)
+//            {
+//              tlast_detected = true;
+//            }
+//          } else {
+//            if(enqueue_cnt + fifo_fillstand >= original_requested_length)
+//            {
+//              tlast_detected = true;
+//            }
+//          }
+//        }
+//        break;
+//      case WBU_WAIT_REP:
+//        if(!siTOE_SndRep.empty())
+//        {
+//          //-- Read the request-to-send reply and continue accordingly
+//          TcpAppSndRep appSndRep = siTOE_SndRep.read();
+//          switch (appSndRep.error) {
+//            case NO_ERROR:
+//              //fifo_fillstand = enqueue_cnt;
+//              wbuState = WBU_STREAM;
+//              current_approved_length = appSndRep.length;
+//              need_to_request_again = false;
+//              fifo_fillstand += enqueue_cnt;
+//              enqueue_cnt = 0;
+//              dequeue_cnt = 0;
+//              break;
+//            case NO_SPACE:
+//              printWarn(myName, "Not enough space for writing %d bytes in the Tx buffer of session #%d. Available space is %d bytes.\n",
+//                  appSndRep.length.to_uint(), appSndRep.sessId.to_uint(), appSndRep.spaceLeft.to_uint());
+//
+//              dequeue_cnt = 0;
+//              fifo_fillstand += enqueue_cnt;
+//              enqueue_cnt = 0;
+//              current_approved_length = appSndRep.spaceLeft;
+//
+//              //only relevant for non-streaming mode
+//              need_to_request_again = true;
+//              current_requested_length -= current_approved_length;
+//
+//              wbuState = WBU_STREAM;
+//              break;
+//            case NO_CONNECTION:
+//              printWarn(myName, "Attempt to write data for a session that is not established.\n");
+//              //since this is after the WRP, this should never happen
+//              wbuState = WBU_DROP;
+//              fifo_fillstand = enqueue_cnt;
+//              dequeue_cnt = current_requested_length - enqueue_cnt;
+//              break;
+//            default:
+//              printWarn(myName, "Received unknown TCP request to send reply from [TOE].\n");
+//              wbuState = WBU_DROP;
+//              fifo_fillstand = enqueue_cnt;
+//              dequeue_cnt = current_requested_length - enqueue_cnt;
+//              break;
+//          }
+//
+//        } else {
+//          //if we get a reply, we need to have consistent data --> no fill
+//          //enqueue data (with fifo_fillstand)
+//          if(!siWrp_Data.empty() && !data_buffer.full() && !tlast_detected)
+//          {
+//            TcpAppData tmp = siWrp_Data.read();
+//            data_buffer.write(tmp);
+//            enqueue_cnt += extractByteCnt(tmp);
+//            if(streaming_mode)
+//            {
+//              if(tmp.getTLast() == 1)
+//              {
+//                tlast_detected = true;
+//              }
+//            } else {
+//              if(enqueue_cnt + fifo_fillstand >= original_requested_length)
+//              {
+//                tlast_detected = true;
+//              }
+//            }
+//          }
+//        }
+//        break;
+//      case WBU_STREAM:
+//        //dequeue data
+//        if(!soTOE_Data.full()
+//           //&& !data_buffer.empty() we know it is not empty
+//       )
+//        {
+//          TcpAppData tmp = data_buffer.read();
+//          dequeue_cnt += extractByteCnt(tmp);
+//          if(streaming_mode)
+//          {
+//            if(tmp.getTLast() == 1)
+//            {
+//              //done
+//              wbuState = WBU_WAIT_META;
+//            }
+//            if(dequeue_cnt >= current_approved_length)
+//            {
+//              tmp.setTLast(1); //may be required by TOE (we are at end of current space)
+//              current_requested_length = (enqueue_cnt + fifo_fillstand) - dequeue_cnt;
+//              if(current_requested_length >= ZYC2_MSS)
+//              {
+//                current_requested_length = ZYC2_MSS;
+//              }
+//              //that way, we shouldn't run into overflow problems...
+//              fifo_fillstand -= dequeue_cnt;
+//              printInfo(myName, "Streaming mode, need to request %d in order to continue. (fifo: %d, enq %d, deq %d)\n",
+//                      (int) current_requested_length, (int) fifo_fillstand, (int) enqueue_cnt, (int) dequeue_cnt);
+//              if(current_requested_length == 0)
+//              {
+//                if(tlast_detected)
+//                {
+//                //done
+//                wbuState = WBU_WAIT_META;
+//                } else {
+//                  wbuState = WBU_FILL_BUFFER;
+//                }
+//              } else {
+//              wbuState = WBU_SND_REQ;
+//              }
+//            }
+//          } else {
+//            if(dequeue_cnt >= current_approved_length)
+//            {
+//              tmp.setTLast(1); //to be sure
+//              if(!need_to_request_again)
+//              {
+//                //done
+//                wbuState = WBU_WAIT_META;
+//              } else {
+//                //that way, we shouldn't run into overflow problems...
+//                fifo_fillstand -= dequeue_cnt;
+//                wbuState = WBU_SND_REQ;
+//              }
+//            } else {
+//              tmp.setTLast(0); //to be sure
+//            }
+//          }
+//          soTOE_Data.write(tmp);
+//        }
+//        //enqueue data (with fifo_fillstand)
+//        if(!siWrp_Data.empty() && !data_buffer.full() && !tlast_detected)
+//        {
+//          TcpAppData tmp = siWrp_Data.read();
+//          data_buffer.write(tmp);
+//          enqueue_cnt += extractByteCnt(tmp);
+//          if(streaming_mode)
+//          {
+//            if(tmp.getTLast() == 1)
+//            {
+//              tlast_detected = true;
+//            }
+//          } else {
+//            if(enqueue_cnt + fifo_fillstand >= original_requested_length)
+//            {
+//              tlast_detected = true;
+//            }
+//          }
+//        }
+//        break;
+//        //        case WBU_FINISH:
+//        //          //dequeue last data
+//        //            if(!soTOE_Data.full() && !data_buffer.empty())
+//        //            {
+//        //              TcpAppData tmp = data_buffer.read();
+//        //              soTOE_Data.write(tmp);
+//        //              dequeue_cnt++;
+//        //              if(dequeue_cnt >= enqueue_cnt || tmp.getTLast() == 1)
+//        //              {
+//        //                enqueue_cnt = 0;
+//        //                //dequeue in wait
+//        //                fifo_fillstand = 0;
+//        //                streaming_mode = false;
+//        //                wbuState = WBU_WAIT_META;
+//        //                break;
+//        //              }
+//        //            }
+//        //            break;
+//      case WBU_DROP:
+//        //TODO: delete, because WRP ensures this should not happen?
+//        if(!siWrp_Data.empty() && !data_buffer.full() && dequeue_cnt > 0)
+//        {
+//          TcpAppData tmp = siWrp_Data.read();
+//          if(streaming_mode)
+//          {
+//            if(tmp.getTLast() == 1)
+//            {
+//              dequeue_cnt = 0;
+//              enqueue_cnt = 0;
+//            }
+//          } else {
+//            dequeue_cnt -= extractByteCnt(tmp);
+//          }
+//        }
+//        if(!data_buffer.empty() && fifo_fillstand > 0)
+//        {
+//          TcpAppData tmp = data_buffer.read();
+//          fifo_fillstand -= extractByteCnt(tmp);
+//        }
+//        if(fifo_fillstand == 0 && dequeue_cnt == 0)
+//        {
+//          wbuState = WBU_WAIT_META;
+//        }
+//        break;
+//      case WBU_FILL_BUFFER:
+//        //happens only for streaming mode
+//        if(!siWrp_Data.empty() && !data_buffer.full())
+//        {
+//          TcpAppData tmp = siWrp_Data.read();
+//          data_buffer.write(tmp);
+//          enqueue_cnt += extractByteCnt(tmp);
+//          if(tmp.getTLast() == 1)
+//          {
+//            tlast_detected = true;  //this means, we are not longer in streaming mode...
+//            current_requested_length = enqueue_cnt;
+//            wbuState = WBU_SND_REQ;
+//          }
+//          if(enqueue_cnt >= ZYC2_MSS)
+//          {
+//            current_requested_length = enqueue_cnt;
+//            wbuState = WBU_SND_REQ;
+//          }
+//        }
+//        break;
+//    }
+//
+//  }
+//}
 
 
 /*****************************************************************************
