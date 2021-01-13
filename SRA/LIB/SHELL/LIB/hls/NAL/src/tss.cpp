@@ -1138,11 +1138,10 @@ void pTcpRDp(
                   wrpFsmState = WRP_W8FORREQS_2;
                   break;
                 }
-              } //else {
+              } else {
               break;
-              // we need a break in order to meet timing
-              // }
-              // //NO break;
+               }
+             //NO break;
             case WRP_W8FORREQS_2:
               if(!cache_init )
               {
