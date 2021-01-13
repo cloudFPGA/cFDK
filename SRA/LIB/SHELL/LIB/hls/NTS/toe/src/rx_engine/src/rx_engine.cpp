@@ -1103,7 +1103,7 @@ void pRxAppNotifier(
             }
             else {
                 // Do not send forward the notification to [APP]
-                printInfo(myName, "Received an RxNotif with LENGTH=0.");
+                printInfo(myName, "Received an RxNotif with LENGTH=0.\n");
                 //OBSOLETE_20210112 soRAi_RxNotif.write(ran_appNotification);
             }
         }

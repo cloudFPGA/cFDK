@@ -16,11 +16,20 @@
 #    G PARAM FpgaLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the FPGA side.
 #    G PARAM HostIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the HOST.
 #    G PARAM HostLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the HOST side.
-#    # This is a comment
-#    > SET   HostIp4Addr  <ADDR>  --> Request to add a new destination HOST IPv4 address. 
-#    > SET   HostLsnPort  <PORT>  --> Request to add a new listen port on the HOST side.
-#    > SET   HostServerSocket <ADDR> <PORT> --> Request to add a new HOST socket.
+#    #                            --> This is a comment
 #    > IDLE  <NUM>                --> Request to idle for <NUM> cycles.
+#    > SET   HostIp4Addr <ADDR>  --> Request to add a new destination HOST IPv4 address. 
+#    > SET   HostLsnPort <PORT>  --> Request to add a new listen port on the HOST side.
+#    > SET   HostServerSocket <ADDR> <PORT> --> Request to add a new HOST socket.
+#    > TEST  RcvdIp4Packet  <true|false> --> Request to enable/disable testing of received IPv4 packets.
+#    > TEST  RcvdIp4TotLen  <true|false> --> Request to enable/disable testing of received IPv4-Total-Length field.
+#    > TEST  RcvdIp4HdrCsum <true|false> --> Request to enable/disable testing of received IPv4-Header-Ckecksum field.
+#    > TEST  RcvdUdpLen     <true|false> --> Request to enable/disable testing of received UDP-Length field.
+#    > TEST  RcvdLy4Csum    <true|false> --> Request to enable/disable testing of received TCP|UDP-Checksum field. 
+#    > TEST  SentIp4TotLen  <true|false> --> Request to enable/disable testing of transmitted IPv4-Total-Length field.
+#    > TEST  SentIp4HdrCsum <true|false> --> Request to enable/disable testing of transmitted IPv4-Header-Ckecksum field.
+#    > TEST  SentUdpLen     <true|false> --> Request to enable/disable testing of transmitted UDP-Length field.
+#    > TEST  SentLy4Csum    <true|false> --> Request to enable/disable testing of transmitted TCP|UDP-Checksum field.
 # 
 # ######################################################################################## 
 #
@@ -86,6 +95,7 @@ FFFFFFFFFFFFFFFF 1 FF
 > IDLE 500
 
 # == STEP-3: DUPLICATE IP FRAME WITH SAME TCP SEGMENT (TCP Data Length = 128) =====
+> TEST  RcvdIp4Packet false
 00000000A8000045 0 FF
 0A0A0A0A2ed506FF 0 FF
 5700890001C80C0A 0 FF
@@ -107,6 +117,7 @@ CCCCCCCCCCCCCCCC 0 FF
 DDDDDDDDDDDDDDDD 0 FF
 EEEEEEEEEEEEEEEE 0 FF
 FFFFFFFFFFFFFFFF 1 FF
+> TEST  RcvdIp4Packet true
 
 > IDLE 10
 
@@ -114,8 +125,8 @@ FFFFFFFFFFFFFFFF 1 FF
 0000000048000045 0 FF
 0A0A0A0A8ed506FF 0 FF
 5700890001C80C0A 0 FF
-0000000008100000 0 FF
-0000edcb00041050 0 FF
+0000000081000000 0 FF
+000074db00041050 0 FF
 0000cafecafe0000 0 FF
 0000cafecafe0000 0 FF
 0000cafecafe0000 0 FF

@@ -736,14 +736,25 @@ void cmdSetCommandParser(const char *callerName, vector<string> stringVector) {
  *  a character '>' at the first position of a '.dat' file's line, followed by
  *  a space character and the string 'TEST'.
  *  Examples:
- *    > TEST Ip4HdrCsum false
+ *    > TEST Ip4HdrCsum    false
+ *    > TEST RcvdIp4Packet false
  *
- *  Warning: This function does not return any thing but may set a specific
- *   global variable.
+ *  Warning: This function returns nothing but may set a specific global
+ *   variable.
  *******************************************************************************/
 void cmdTestCommandParser(const char *callerName, vector<string> stringVector) {
     //-- RECEIVE CHECKERS -------------
-    if (stringVector[2] == "RcvdIp4TotLen") {
+    if (stringVector[2] == "RcvdIp4Packet") {
+        if (stringVector[3] == "false") {
+            gTest_RcvdIp4Packet = false;
+            printInfo(callerName, "Disabling receive IPv4 checker.\n");
+        }
+        else {
+            gTest_RcvdIp4Packet = true;
+            printInfo(callerName, "Enabling  receive IPv4 checker.\n");
+        }
+    }
+    else if (stringVector[2] == "RcvdIp4TotLen") {
         if (stringVector[3] == "false") {
             gTest_RcvdIp4TotLen = false;
             printInfo(callerName, "Disabling receive IPv4-Total-Length checker.\n");
@@ -1164,7 +1175,9 @@ void pIPRX(
                 // Count the number of data bytes contained in the TCP payload
                 tcpBytCntr_IPRX_TOE += ipRxPacket.sizeOfTcpData();
                 // Write to the Application Tx Gold file
-                ipRxPacket.writeTcpDataToDatFile(ofTAIF_Gold);
+                if (gTest_RcvdIp4Packet) {
+                    ipRxPacket.writeTcpDataToDatFile(ofTAIF_Gold);
+                }
                 // Push that packet into the packetizer queue and feed the TOE
                 ipRxPacketizer.push_back(ipRxPacket);
                 pIPRX_FeedTOE(ipRxPacketizer, ipRxPktCounter, soTOE_Data, sessAckList);
@@ -1599,7 +1612,7 @@ bool pTcpAppConnect(
                 // Add this port # to the set of opened ports
                 tac_dynamicPorts.insert(aSocketPair.src.port);
                 // Check maximum number of opened sessions
-                if (tac_ephemeralPortCounter-0x8000 >= TOE_MAX_SESSIONS) {
+                if (tac_ephemeralPortCounter-0x8000 > TOE_MAX_SESSIONS) {
                     printError(myName, "Trying to open too many FPGA client sessions. Max. is %d.\n", TOE_MAX_SESSIONS);
                     nrError += 1;
                 }
@@ -2788,14 +2801,14 @@ int main(int argc, char *argv[]) {
         if (mode != ECHO_MODE) {
             printInfo(THIS_NAME, "This testbench was executed in mode \'%c\' with siIPRX file = %s.\n", mode, argv[2]);
         }
-        if (tcpBytCntr_IPRX_TOE != tcpBytCnt_TOE_APP) {
-            printError(THIS_NAME, "The number of TCP bytes received by TOE on its IP interface (%d) does not match the number TCP bytes forwarded by TOE to the application over its TAIF interface (%d). \n", tcpBytCntr_IPRX_TOE, tcpBytCnt_TOE_APP);
-            nrErr++;
-        }
         int appTxCompare = system(("diff --brief -w " + std::string(ofTAIF_DataName) + " " + std::string(ofTAIF_GoldName) + " ").c_str());
         if (appTxCompare != 0) {
             printError(THIS_NAME, "File \"%s\" differs from file \"%s\" \n", ofTAIF_DataName, ofTAIF_GoldName);
             nrErr++;
+            if (tcpBytCntr_IPRX_TOE != tcpBytCnt_TOE_APP) {
+                printError(THIS_NAME, "The number of TCP bytes received by TOE on its IP interface (%d) does not match the number TCP bytes forwarded by TOE to the application over its TAIF interface (%d). \n", tcpBytCntr_IPRX_TOE, tcpBytCnt_TOE_APP);
+                nrErr++;
+            }
         }
         if ((opnSessionCount == 0) && (pktCounter_IPRX_TOE > 0)) {
             printWarn(THIS_NAME, "No session was opened by the TOE during this run. Please double check!!!\n");
