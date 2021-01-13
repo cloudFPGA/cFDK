@@ -396,7 +396,7 @@ void pTcpRRh(
 //            read_request_watchDogTimer = 100;
 //#endif
               //we need this delay so that the FIFO fillstands can be updated...
-              read_request_watchDogTimer = (requested_length/2) + 1;
+              read_request_watchDogTimer = (requested_length/(8*2)) + 1; //8 -> bytes/word, 2 -> by then, the fillstands should be up-to-date
 
           }
         } else if(read_request_watchDogTimer > 0)

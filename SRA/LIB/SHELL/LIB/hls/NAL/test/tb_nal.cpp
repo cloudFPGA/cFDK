@@ -60,7 +60,7 @@ using namespace std;
 //------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
 //------------------------------------------------------
-#define MAX_SIM_CYCLES   375
+#define MAX_SIM_CYCLES   350
 //---------------------------------------------------------
 //-- DEFAULT LOCAL FPGA AND FOREIGN HOST SOCKETS
 //--  By default, the following sockets will be used by the
@@ -1263,7 +1263,7 @@ int main() {
         {
           s_tcp_rx_ports = 0b101;
         }
-        if(simCnt == 243)
+        if(simCnt == 223)
         {
         	if(rxpState != RXP_DONE)
         	{
@@ -1279,11 +1279,11 @@ int main() {
           //i.e. three segments (nrSegToSend)
         }
         
-        //if(simCnt == 263)
+        //if(simCnt == 243)
         //{
         //  s_tcp_rx_ports = 0b1101;
         //}
-        if(simCnt == 289)
+        if(simCnt == 269)
         {
         	if(rxpState != RXP_DONE)
         	{
