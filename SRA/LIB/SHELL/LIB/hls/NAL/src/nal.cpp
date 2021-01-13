@@ -740,7 +740,7 @@ void nal_main(
 #pragma HLS STREAM variable=sNewTcpCon_Req       depth=16
 #pragma HLS STREAM variable=sNewTcpCon_Rep       depth=16
 
-#pragma HLS STREAM variable=sTcpNotif_buffer     depth=128
+#pragma HLS STREAM variable=sTcpNotif_buffer     depth=1024
 
   //=================================================================================================
   // Reset static variables

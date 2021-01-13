@@ -60,7 +60,7 @@ using namespace std;
 //------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
 //------------------------------------------------------
-#define MAX_SIM_CYCLES   500
+#define MAX_SIM_CYCLES   375
 //---------------------------------------------------------
 //-- DEFAULT LOCAL FPGA AND FOREIGN HOST SOCKETS
 //--  By default, the following sockets will be used by the
@@ -151,7 +151,6 @@ unsigned int    gSimCycCnt    = 0;
 bool            gTraceEvent   = false;
 bool            gFatalError   = false;
 //unsigned int    gMaxSimCycles = 0x8000 + 200;
-unsigned int    gMaxSimCycles = 350;
 
 //------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
@@ -965,7 +964,7 @@ void pTOE(
                     data += 8;
                 }
                 else {
-                  printf("NRC not ready to receive TCP data.\n");
+                  printf("[TB-INFO-2] NRC not ready to receive TCP data.\n");
                   break;
                 }
             }
@@ -977,15 +976,16 @@ void pTOE(
                     if (DEBUG_LEVEL & TRACE_TOE)
                         printAxiWord(myRxpName, NetworkWord(data, keep, last));
                     data += 8;
-                }
-            }
-            else {
-                segCnt++;
-                tcp_packets_send++;
-                if (segCnt >= nrSegToSend) {
-                    rxpState = RXP_DONE;
-                } else {
-                    rxpState = RXP_SEND_NOTIF;
+                    if(last == 1)
+                    {
+                    	segCnt++;
+                    	tcp_packets_send++;
+                    	if (segCnt >= nrSegToSend) {
+                    	    rxpState = RXP_DONE;
+                    	} else {
+                    	    rxpState = RXP_SEND_NOTIF;
+                    	}
+                    }
                 }
             }
             break;
@@ -994,6 +994,7 @@ void pTOE(
             // Reset for next run
             byteCnt = 0;
             segCnt = 0;
+            //wait here
             break;
         }  // End-of: switch())
     }
@@ -1175,7 +1176,7 @@ int main() {
     while (!nrErr) {
 
         //if (simCnt < 42)
-        if (gSimCycCnt < gMaxSimCycles)
+        if (gSimCycCnt < MAX_SIM_CYCLES)
         {
         //-------------------------------------------------
         //-- EMULATE TOE
@@ -1245,6 +1246,11 @@ int main() {
         }
         if(simCnt == 180)
         {
+        	if(rxpState != RXP_DONE)
+        	{
+        		nrErr++;
+        		printf("[TB-ERROR] RXP engine is not in expected state!\n");
+        	}
         //now test ROLE
         sessionId   = DEFAULT_SESSION_ID + 1;
         tcpSegLen   = DEFAULT_SESSION_LEN;
@@ -1257,8 +1263,13 @@ int main() {
         {
           s_tcp_rx_ports = 0b101;
         }
-        if(simCnt == 223)
+        if(simCnt == 243)
         {
+        	if(rxpState != RXP_DONE)
+        	{
+        		nrErr++;
+        		printf("[TB-ERROR] RXP engine is not in expected state!\n");
+        	}
           sessionId   = DEFAULT_SESSION_ID + 2;
           sessionId_reply   = DEFAULT_SESSION_ID + 3;
           tcpSegLen   = DEFAULT_SESSION_LEN;
@@ -1268,12 +1279,18 @@ int main() {
           //i.e. three segments (nrSegToSend)
         }
         
-        //if(simCnt == 243)
+        //if(simCnt == 263)
         //{
         //  s_tcp_rx_ports = 0b1101;
         //}
-        if(simCnt == 269)
-        { //test again, but this time with connection timeout
+        if(simCnt == 289)
+        {
+        	if(rxpState != RXP_DONE)
+        	{
+        		nrErr++;
+        		printf("[TB-ERROR] RXP engine is not in expected state!\n");
+        	}
+        	//test again, but this time with connection timeout
           sessionId   = DEFAULT_SESSION_ID + 4;
           sessionId_reply   = DEFAULT_SESSION_ID + 5;
           tcpSegLen   = DEFAULT_SESSION_LEN;
@@ -1305,7 +1322,7 @@ int main() {
     }  // End: while()
     printf("-- [@%4.4d] -----------------------------\n", gSimCycCnt);
     printf("############################################################################\n");
-    printf("## TESTBENCH 'tb_nrc' ENDS HERE                                           ##\n");
+    printf("## TESTBENCH 'tb_nal' ENDS HERE                                           ##\n");
 
     nrErr += (tcp_packets_send - (tcp_packets_recv - tcp_recv_frag_cnt + tcp_packets_expected_timeout));
     if(tcp_packets_send != (tcp_packets_recv - tcp_recv_frag_cnt + tcp_packets_expected_timeout))

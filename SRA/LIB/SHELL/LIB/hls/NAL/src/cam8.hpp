@@ -48,10 +48,12 @@ struct KeyValuePair {
     V   value;
     bool      valid;
     KeyValuePair() {
-    	key = 0x0;
-    	value = 0x0;
-    	valid = false;
+      key = 0x0;
+      value = 0x0;
+      valid = false;
     }
+    KeyValuePair(K key, V value) :
+      key(key), value(value), valid(true) {}
     KeyValuePair(K key, V value, bool valid) :
       key(key), value(value), valid(valid) {}
 };
@@ -79,53 +81,54 @@ struct Cam8 {
       CamArray6.valid = false;
       CamArray7.valid = false;
     }
-      /*******************************************************************************
-       * @brief Search the CAM array for a key.
-       *
-       * @param[in]  key   The key to lookup.
-       * @param[out] value The value corresponding to that key.
-       *
-       * @return true if the the key was found.
-       *******************************************************************************/
-      bool lookup(K key, V &value)
-      {
+    /*******************************************************************************
+     * @brief Search the CAM array for a key.
+     *
+     * @param[in]  key   The key to lookup.
+     * @param[out] value The value corresponding to that key.
+     *
+     * @return true if the the key was found.
+     *******************************************************************************/
+    bool lookup(K key, V &value)
+    {
 #pragma HLS pipeline II=1
-        if ((CamArray0.key == key) && (CamArray0.valid == true)) {
-          value = CamArray0.value;
-          return true;
-        }
-        else if ((CamArray1.key == key) && (CamArray1.valid == true)) {
-          value = CamArray1.value;
-          return true;
-        }
-        else if ((CamArray2.key == key) && (CamArray2.valid == true)) {
-          value = CamArray2.value;
-          return true;
-        }
-        else if ((CamArray3.key == key) && (CamArray3.valid == true)) {
-          value = CamArray3.value;
-          return true;
-        }
-        else if ((CamArray4.key == key) && (CamArray4.valid == true)) {
-          value = CamArray4.value;
-          return true;
-        }
-        else if ((CamArray5.key == key) && (CamArray5.valid == true)) {
-          value = CamArray5.value;
-          return true;
-        }
-        else if ((CamArray6.key == key) && (CamArray6.valid == true)) {
-          value = CamArray6.value;
-          return true;
-        }
-        else if ((CamArray7.key == key) && (CamArray7.valid == true)) {
-          value = CamArray7.value;
-          return true;
-        }
-        else {
-          return false;
-        }
+#pragma HLS INLINE
+      if ((CamArray0.key == key) && (CamArray0.valid == true)) {
+        value = CamArray0.value;
+        return true;
       }
+      else if ((CamArray1.key == key) && (CamArray1.valid == true)) {
+        value = CamArray1.value;
+        return true;
+      }
+      else if ((CamArray2.key == key) && (CamArray2.valid == true)) {
+        value = CamArray2.value;
+        return true;
+      }
+      else if ((CamArray3.key == key) && (CamArray3.valid == true)) {
+        value = CamArray3.value;
+        return true;
+      }
+      else if ((CamArray4.key == key) && (CamArray4.valid == true)) {
+        value = CamArray4.value;
+        return true;
+      }
+      else if ((CamArray5.key == key) && (CamArray5.valid == true)) {
+        value = CamArray5.value;
+        return true;
+      }
+      else if ((CamArray6.key == key) && (CamArray6.valid == true)) {
+        value = CamArray6.value;
+        return true;
+      }
+      else if ((CamArray7.key == key) && (CamArray7.valid == true)) {
+        value = CamArray7.value;
+        return true;
+      }
+      else {
+        return false;
+      }
+    }
 
     /*******************************************************************************
      * @brief Insert a new key-value pair in the CAM array.
@@ -137,6 +140,7 @@ struct Cam8 {
     bool insert(KeyValuePair<K,V> kVP)
     {
 #pragma HLS pipeline II=1
+#pragma HLS INLINE
 
       if (CamArray0.valid == false) {
         CamArray0 = kVP;
@@ -175,6 +179,67 @@ struct Cam8 {
       }
     }
 
+    bool insert(K key, V value)
+    {
+#pragma HLS INLINE
+    	return insert(KeyValuePair<K,V>(key,value,true));
+    }
+
+    /*******************************************************************************
+     * @brief Search the CAM array for a key and updates the corresponding value.
+     *
+     * @param[in]  key   The key to lookup.
+     * @param[out] value The new value for that key
+     *
+     * @return true if the the key was found and updated
+     *******************************************************************************/
+    bool update(K key, V value)
+    {
+#pragma HLS pipeline II=1
+#pragma HLS INLINE
+      if ((CamArray0.key == key) && (CamArray0.valid == true)) {
+        CamArray0.value = value;
+        return true;
+      }
+      else if ((CamArray1.key == key) && (CamArray1.valid == true)) {
+        CamArray1.value = value;
+        return true;
+      }
+      else if ((CamArray2.key == key) && (CamArray2.valid == true)) {
+        CamArray2.value = value;
+        return true;
+      }
+      else if ((CamArray3.key == key) && (CamArray3.valid == true)) {
+        CamArray3.value = value;
+        return true;
+      }
+      else if ((CamArray4.key == key) && (CamArray4.valid == true)) {
+        CamArray4.value = value;
+        return true;
+      }
+      else if ((CamArray5.key == key) && (CamArray5.valid == true)) {
+        CamArray5.value = value;
+        return true;
+      }
+      else if ((CamArray6.key == key) && (CamArray6.valid == true)) {
+        CamArray6.value = value;
+        return true;
+      }
+      else if ((CamArray7.key == key) && (CamArray7.valid == true)) {
+        CamArray7.value = value;
+        return true;
+      }
+      else {
+        return false;
+      }
+    }
+
+    bool update(KeyValuePair<K,V> kVP)
+    {
+#pragma HLS INLINE
+      return update(kVP.key, kVP.value);
+    }
+
     /*******************************************************************************
      * @brief Remove a key-value pair from the CAM array.
      *
@@ -182,9 +247,10 @@ struct Cam8 {
      *
      * @return true if the the key was deleted.
      ******************************************************************************/
-    bool deleteKey(K key)
+    bool deleteEntry(K key)
     {
 #pragma HLS pipeline II=1
+#pragma HLS INLINE
 
       if ((CamArray0.key == key) && (CamArray0.valid == true)) {
         CamArray0.valid = false;
@@ -230,6 +296,8 @@ struct Cam8 {
     void reset()
     {
 #pragma HLS pipeline II=1
+#pragma HLS INLINE
+
       CamArray0.valid = false;
       CamArray1.valid = false;
       CamArray2.valid = false;
