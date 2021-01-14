@@ -16,7 +16,7 @@
 
 /*****************************************************************************
  * @file       : cam8.hpp
- * @brief      : A Content Address Memory (CAM) for 8 entries.
+ * @brief      : A Content Address Memory (CAM) for 16 entries.
  *
  * System:     : cloudFPGA
  * Component   : Shell, Network Abstraction Layer (NAL)
@@ -28,12 +28,13 @@
  *****************************************************************************/
 
 
-#ifndef _NAL_CAM8_H_
-#define _NAL_CAM8_H_
+#ifndef _NAL_CAM16_H_
+#define _NAL_CAM16_H_
 
 #include <stdio.h>
 #include <string>
 #include <stdint.h>
+
 
 #ifndef _NAL_KVP_DEF_
 #define _NAL_KVP_DEF_
@@ -55,8 +56,9 @@ struct KeyValuePair {
 };
 #endif
 
+
 template<typename K, typename V>
-struct Cam8 {
+struct Cam16 {
   protected:
     KeyValuePair<K,V> CamArray0;
     KeyValuePair<K,V> CamArray1;
@@ -66,8 +68,16 @@ struct Cam8 {
     KeyValuePair<K,V> CamArray5;
     KeyValuePair<K,V> CamArray6;
     KeyValuePair<K,V> CamArray7;
+    KeyValuePair<K,V> CamArray8;
+    KeyValuePair<K,V> CamArray9;
+    KeyValuePair<K,V> CamArray10;
+    KeyValuePair<K,V> CamArray11;
+    KeyValuePair<K,V> CamArray12;
+    KeyValuePair<K,V> CamArray13;
+    KeyValuePair<K,V> CamArray14;
+    KeyValuePair<K,V> CamArray15;
   public:
-    Cam8() {
+    Cam16() {
 #pragma HLS pipeline II=1
       CamArray0.valid = false;
       CamArray1.valid = false;
@@ -77,6 +87,14 @@ struct Cam8 {
       CamArray5.valid = false;
       CamArray6.valid = false;
       CamArray7.valid = false;
+      CamArray8.valid = false;
+      CamArray9.valid = false;
+      CamArray10.valid = false;
+      CamArray11.valid = false;
+      CamArray12.valid = false;
+      CamArray13.valid = false;
+      CamArray14.valid = false;
+      CamArray15.valid = false;
     }
     /*******************************************************************************
      * @brief Search the CAM array for a key.
@@ -120,6 +138,119 @@ struct Cam8 {
       }
       else if ((CamArray7.key == key) && (CamArray7.valid == true)) {
         value = CamArray7.value;
+        return true;
+      }
+      else if ((CamArray8.key == key) && (CamArray8.valid == true)) {
+        value = CamArray8.value;
+        return true;
+      }
+      else if ((CamArray9.key == key) && (CamArray9.valid == true)) {
+        value = CamArray9.value;
+        return true;
+      }
+      else if ((CamArray10.key == key) && (CamArray10.valid == true)) {
+        value = CamArray10.value;
+        return true;
+      }
+      else if ((CamArray11.key == key) && (CamArray11.valid == true)) {
+        value = CamArray11.value;
+        return true;
+      }
+      else if ((CamArray12.key == key) && (CamArray12.valid == true)) {
+        value = CamArray12.value;
+        return true;
+      }
+      else if ((CamArray13.key == key) && (CamArray13.valid == true)) {
+        value = CamArray13.value;
+        return true;
+      }
+      else if ((CamArray14.key == key) && (CamArray14.valid == true)) {
+        value = CamArray14.value;
+        return true;
+      }
+      else if ((CamArray15.key == key) && (CamArray15.valid == true)) {
+        value = CamArray15.value;
+        return true;
+      }
+      else {
+        return false;
+      }
+    }
+    
+    /*******************************************************************************
+     * @brief Reverse-search the CAM array for a key to a value.
+     *
+     * @param[in]  value   The value to lookup.
+     * @param[out] key     The key corresponding to that value (or the first match).
+     *
+     * @return true if the the key was found.
+     *******************************************************************************/
+    bool reverse_lookup(V value, K &key)
+    {
+#pragma HLS pipeline II=1
+#pragma HLS INLINE
+      if ((CamArray0.value == value) && (CamArray0.valid == true)) {
+        key = CamArray0.key;
+        return true;
+      }
+      else if ((CamArray1.value == value) && (CamArray1.valid == true)) {
+        key = CamArray1.key;
+        return true;
+      }
+      else if ((CamArray2.value == value) && (CamArray2.valid == true)) {
+        key = CamArray2.key;
+        return true;
+      }
+      else if ((CamArray3.value == value) && (CamArray3.valid == true)) {
+        key = CamArray3.key;
+        return true;
+      }
+      else if ((CamArray4.value == value) && (CamArray4.valid == true)) {
+        key = CamArray4.key;
+        return true;
+      }
+      else if ((CamArray5.value == value) && (CamArray5.valid == true)) {
+        key = CamArray5.key;
+        return true;
+      }
+      else if ((CamArray6.value == value) && (CamArray6.valid == true)) {
+        key = CamArray6.key;
+        return true;
+      }
+      else if ((CamArray7.value == value) && (CamArray7.valid == true)) {
+        key = CamArray7.key;
+        return true;
+      }
+      else if ((CamArray8.value == value) && (CamArray8.valid == true)) {
+        key = CamArray8.key;
+        return true;
+      }
+      else if ((CamArray9.value == value) && (CamArray9.valid == true)) {
+        key = CamArray9.key;
+        return true;
+      }
+      else if ((CamArray10.value == value) && (CamArray10.valid == true)) {
+        key = CamArray10.key;
+        return true;
+      }
+      else if ((CamArray11.value == value) && (CamArray11.valid == true)) {
+        key = CamArray11.key;
+        return true;
+      }
+      else if ((CamArray12.value == value) && (CamArray12.valid == true)) {
+        key = CamArray12.key;
+        return true;
+      }
+      else if ((CamArray13.value == value) && (CamArray13.valid == true)) {
+        key = CamArray13.key;
+        return true;
+      }
+      else if ((CamArray14.value == value) && (CamArray14.valid == true)) {
+        key = CamArray14.key;
+        return true;
+      }
+      else if ((CamArray15.value == value) && (CamArray15.valid == true)) {
+        key = CamArray15.key;
         return true;
       }
       else {
@@ -171,6 +302,38 @@ struct Cam8 {
         CamArray7 = kVP;
         return true;
       }
+      else if (CamArray8.valid == false) {
+        CamArray8 = kVP;
+        return true;
+      }
+      else if (CamArray9.valid == false) {
+        CamArray9 = kVP;
+        return true;
+      }
+      else if (CamArray10.valid == false) {
+        CamArray10 = kVP;
+        return true;
+      }
+      else if (CamArray11.valid == false) {
+        CamArray11 = kVP;
+        return true;
+      }
+      else if (CamArray12.valid == false) {
+        CamArray12 = kVP;
+        return true;
+      }
+      else if (CamArray13.valid == false) {
+        CamArray13 = kVP;
+        return true;
+      }
+      else if (CamArray14.valid == false) {
+        CamArray14 = kVP;
+        return true;
+      }
+      else if (CamArray15.valid == false) {
+        CamArray15 = kVP;
+        return true;
+      }
       else {
         return false;
       }
@@ -179,7 +342,7 @@ struct Cam8 {
     bool insert(K key, V value)
     {
 #pragma HLS INLINE
-    	return insert(KeyValuePair<K,V>(key,value,true));
+      return insert(KeyValuePair<K,V>(key,value,true));
     }
 
     /*******************************************************************************
@@ -224,6 +387,38 @@ struct Cam8 {
       }
       else if ((CamArray7.key == key) && (CamArray7.valid == true)) {
         CamArray7.value = value;
+        return true;
+      }
+      else if ((CamArray8.key == key) && (CamArray8.valid == true)) {
+        CamArray8.value = value;
+        return true;
+      }
+      else if ((CamArray9.key == key) && (CamArray9.valid == true)) {
+        CamArray9.value = value;
+        return true;
+      }
+      else if ((CamArray10.key == key) && (CamArray10.valid == true)) {
+        CamArray10.value = value;
+        return true;
+      }
+      else if ((CamArray11.key == key) && (CamArray11.valid == true)) {
+        CamArray11.value = value;
+        return true;
+      }
+      else if ((CamArray12.key == key) && (CamArray12.valid == true)) {
+        CamArray12.value = value;
+        return true;
+      }
+      else if ((CamArray13.key == key) && (CamArray13.valid == true)) {
+        CamArray13.value = value;
+        return true;
+      }
+      else if ((CamArray14.key == key) && (CamArray14.valid == true)) {
+        CamArray14.value = value;
+        return true;
+      }
+      else if ((CamArray15.key == key) && (CamArray15.valid == true)) {
+        CamArray15.value = value;
         return true;
       }
       else {
@@ -281,6 +476,38 @@ struct Cam8 {
         CamArray7.valid = false;
         return true;
       }
+      else if ((CamArray8.key == key) && (CamArray8.valid == true)) {
+        CamArray8.valid = false;
+        return true;
+      }
+      else if ((CamArray9.key == key) && (CamArray9.valid == true)) {
+        CamArray9.valid = false;
+        return true;
+      }
+      else if ((CamArray10.key == key) && (CamArray10.valid == true)) {
+        CamArray10.valid = false;
+        return true;
+      }
+      else if ((CamArray11.key == key) && (CamArray11.valid == true)) {
+        CamArray11.valid = false;
+        return true;
+      }
+      else if ((CamArray12.key == key) && (CamArray12.valid == true)) {
+        CamArray12.valid = false;
+        return true;
+      }
+      else if ((CamArray13.key == key) && (CamArray13.valid == true)) {
+        CamArray13.valid = false;
+        return true;
+      }
+      else if ((CamArray14.key == key) && (CamArray14.valid == true)) {
+        CamArray14.valid = false;
+        return true;
+      }
+      else if ((CamArray15.key == key) && (CamArray15.valid == true)) {
+        CamArray15.valid = false;
+        return true;
+      }
       else {
         return false;
       }
@@ -303,6 +530,14 @@ struct Cam8 {
       CamArray5.valid = false;
       CamArray6.valid = false;
       CamArray7.valid = false;
+      CamArray8.valid = false;
+      CamArray9.valid = false;
+      CamArray10.valid = false;
+      CamArray11.valid = false;
+      CamArray12.valid = false;
+      CamArray13.valid = false;
+      CamArray14.valid = false;
+      CamArray15.valid = false;
     }
 };
 

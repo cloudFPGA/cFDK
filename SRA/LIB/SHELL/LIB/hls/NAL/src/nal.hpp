@@ -175,6 +175,8 @@ enum WrpFsmStates {WRP_WAIT_META = 0, WRP_STREAM_FMC, WRP_W8FORREQS_1,  WRP_W8FO
 
 enum WbuFsmStates {WBU_WAIT_META = 0, WBU_SND_REQ, WBU_WAIT_REP, WBU_STREAM, WBU_DROP};
 
+enum FiveStateFsm {FSM_STATE_0 = 0, FSM_STATE_1, FSM_STATE_2, FSM_STATE_3, FSM_STATE_4};
+
 
 //#define ClsFsmStates uint8_t
 //#define CLS_IDLE 0
@@ -314,6 +316,7 @@ uint8_t extractByteCnt(Axis<64> currWord);
 #include "tss.hpp"
 #include "hss.hpp"
 #include "cam8.hpp"
+#include "cam16.hpp"
 
 void nal_main(
     // ----- link to FMC -----

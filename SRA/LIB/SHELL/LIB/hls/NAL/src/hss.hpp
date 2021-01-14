@@ -52,11 +52,12 @@ struct NalConfigUpdate {
 	NalConfigUpdate(ap_uint<16> ca, ap_uint<32> uv): config_addr(ca), update_value(uv) {}
 };
 
-//struct NalMrtUpdate {
-//	NodeId 		nid;
-//	Ip4Addr 	ip4a;
-//	NalMrtUpdate(NodeId node, Ip4Addr addr): nid(node), ip4a(addr) {}
-//};
+struct NalMrtUpdate {
+	NodeId 		nid;
+	Ip4Addr 	ip4a;
+	NalMrtUpdate() {}
+	NalMrtUpdate(NodeId node, Ip4Addr addr): nid(node), ip4a(addr) {}
+};
 
 struct NalStatusUpdate {
 	ap_uint<16>   status_addr;
@@ -67,27 +68,32 @@ struct NalStatusUpdate {
 
 
 void axi4liteProcessing(
-		ap_uint<1> 					*layer_4_enabled,
+	    ap_uint<1>          *layer_4_enabled,
 	    ap_uint<32>   ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
 	    ap_uint<32>   *mrt_version_processed,
-		//stream<NalConfigUpdate> 	&sToTcpAgency, //(currently not used)
-		stream<NalConfigUpdate> 	&sToPortLogic,
-		stream<NalConfigUpdate>		&sToUdpRx,
-		stream<NalConfigUpdate>		&sToTcpRx,
-		stream<NalConfigUpdate>		&sToStatusProc,
-		//stream<NalMrtUpdate>		&sMrtUpdate,
-		stream<NalStatusUpdate> 	&sStatusUpdate,
-		stream<NodeId> 				&sGetIpReq_UdpTx,
-		stream<Ip4Addr> 			&sGetIpRep_UdpTx,
-		stream<NodeId> 				&sGetIpReq_TcpTx,
-		stream<Ip4Addr> 			&sGetIpRep_TcpTx,
-		stream<Ip4Addr>				&sGetNidReq_UdpRx,
-		stream<NodeId>				&sGetNidRep_UdpRx,
-		stream<Ip4Addr>				&sGetNidReq_TcpRx,
-		stream<NodeId>				&sGetNidRep_TcpRx//,
-		//stream<Ip4Addr>				&sGetNidReq_TcpTx,
-		//stream<NodeId>				&sGetNidRep_TcpTx
+	    //stream<NalConfigUpdate>   &sToTcpAgency, //(currently not used)
+	    stream<NalConfigUpdate>   &sToPortLogic,
+	    stream<NalConfigUpdate>   &sToUdpRx,
+	    stream<NalConfigUpdate>   &sToTcpRx,
+	    stream<NalConfigUpdate>   &sToStatusProc,
+	    stream<NalMrtUpdate>    &sMrtUpdate,
+	    stream<NalStatusUpdate>   &sStatusUpdate
     );
+
+
+void pMrtAgency(
+		stream<NalMrtUpdate> &sMrtUpdate,
+	    stream<NodeId>        &sGetIpReq_UdpTx,
+	    stream<Ip4Addr>       &sGetIpRep_UdpTx,
+	    stream<NodeId>        &sGetIpReq_TcpTx,
+	    stream<Ip4Addr>       &sGetIpRep_TcpTx,
+	    stream<Ip4Addr>       &sGetNidReq_UdpRx,
+	    stream<NodeId>        &sGetNidRep_UdpRx,
+	    stream<Ip4Addr>       &sGetNidReq_TcpRx,
+	    stream<NodeId>        &sGetNidRep_TcpRx//,
+	    //stream<Ip4Addr>       &sGetNidReq_TcpTx,
+	    //stream<NodeId>        &sGetNidRep_TcpTx
+		);
 
 void pPortAndResetLogic(
 	    ap_uint<1>        *layer_4_enabled,

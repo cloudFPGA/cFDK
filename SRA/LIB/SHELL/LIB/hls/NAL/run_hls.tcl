@@ -67,6 +67,7 @@ add_files     ${srcDir}/tss.hpp
 add_files     ${srcDir}/hss.cpp
 add_files     ${srcDir}/hss.hpp
 add_files     ${srcDir}/cam8.hpp
+add_files     ${srcDir}/cam16.hpp
 add_files     ${srcDir}/../../../../../hls/network.hpp
 add_files     ${srcDir}/../../network_utils.hpp
 add_files     ${srcDir}/../../network_utils.cpp

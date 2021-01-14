@@ -57,7 +57,6 @@ uint8_t selectConfigUpdatePropagation(uint16_t config_addr)
   }
 }
 
-
 void axi4liteProcessing(
     ap_uint<1>          *layer_4_enabled,
     ap_uint<32>   ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
@@ -67,23 +66,13 @@ void axi4liteProcessing(
     stream<NalConfigUpdate>   &sToUdpRx,
     stream<NalConfigUpdate>   &sToTcpRx,
     stream<NalConfigUpdate>   &sToStatusProc,
-    //stream<NalMrtUpdate>    &sMrtUpdate,
-    stream<NalStatusUpdate>   &sStatusUpdate,
-    stream<NodeId>        &sGetIpReq_UdpTx,
-    stream<Ip4Addr>       &sGetIpRep_UdpTx,
-    stream<NodeId>        &sGetIpReq_TcpTx,
-    stream<Ip4Addr>       &sGetIpRep_TcpTx,
-    stream<Ip4Addr>       &sGetNidReq_UdpRx,
-    stream<NodeId>        &sGetNidRep_UdpRx,
-    stream<Ip4Addr>       &sGetNidReq_TcpRx,
-    stream<NodeId>        &sGetNidRep_TcpRx//,
-    //stream<Ip4Addr>       &sGetNidReq_TcpTx,
-    //stream<NodeId>        &sGetNidRep_TcpTx
+    stream<NalMrtUpdate>    &sMrtUpdate,
+    stream<NalStatusUpdate>   &sStatusUpdate
 )
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-  //#pragma HLS pipeline II=1
+	//no pipeline, isn't compatible to AXI4Lite bus
 
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
   static uint16_t tableCopyVariable = 0;
@@ -139,76 +128,7 @@ void axi4liteProcessing(
     NalStatusUpdate su = sStatusUpdate.read();
     status[su.status_addr] = su.new_value;
     printf("[A4l] got status update for address %d with value %d\n", (int) su.status_addr, (int) su.new_value);
-  } else if(!sGetIpReq_UdpTx.empty() && !sGetIpRep_UdpTx.full())
-  {
-    NodeId rank = sGetIpReq_UdpTx.read();
-    if(rank > MAX_MRT_SIZE)
-    {
-      //return zero on failure
-      sGetIpRep_UdpTx.write(0);
-    } else {
-      sGetIpRep_UdpTx.write(localMRT[rank]);
-      //if request is issued, requester should be ready to read --> "blocking" write
-    }
   }
-  else if(!sGetIpReq_TcpTx.empty() && !sGetIpRep_TcpTx.full())
-  {
-    NodeId rank = sGetIpReq_TcpTx.read();
-    if(rank > MAX_MRT_SIZE)
-    {
-      //return zero on failure
-      sGetIpRep_TcpTx.write(0);
-    } else {
-      sGetIpRep_TcpTx.write(localMRT[rank]);
-    }
-  } else if(!sGetNidReq_UdpRx.empty() && !sGetNidRep_UdpRx.full())
-  {
-    ap_uint<32> ipAddr = sGetNidReq_UdpRx.read();
-    printf("[HSS-INFO] Searching for Node ID of IP %d.\n", (int) ipAddr);
-    NodeId rep = INVALID_MRT_VALUE;
-    for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
-    {
-      //#pragma HLS unroll factor=8
-      if(localMRT[i] == ipAddr)
-      {
-        rep = (NodeId) i;
-        break;
-      }
-    }
-    sGetNidRep_UdpRx.write(rep);
-  } else if(!sGetNidReq_TcpRx.empty() && !sGetNidRep_TcpRx.full())
-  {
-    ap_uint<32> ipAddr = sGetNidReq_TcpRx.read();
-    printf("[HSS-INFO] Searching for Node ID of IP %d.\n", (int) ipAddr);
-    NodeId rep = INVALID_MRT_VALUE;
-    for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
-    {
-      //#pragma HLS unroll factor=8
-      if(localMRT[i] == ipAddr)
-      {
-        rep = (NodeId) i;
-        break;
-      }
-    }
-    sGetNidRep_TcpRx.write(rep);
-  }
-  //  else if(!sGetNidReq_TcpTx.empty() && !sGetNidRep_TcpTx.full())
-  //  {
-  //    ap_uint<32> ipAddr = sGetNidReq_TcpTx.read();
-  //    printf("[HSS-INFO] Searching for Node ID of IP %d.\n", (int) ipAddr);
-  //    NodeId rep = INVALID_MRT_VALUE;
-  //    for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
-  //    {
-  ////#pragma HLS unroll factor=8
-  //      if(localMRT[i] == ipAddr)
-  //      {
-  //        rep = (NodeId) i;
-  //        break;
-  //      }
-  //    }
-  //    sGetNidRep_TcpTx.write(rep);
-  //  }
-
 
   // ----- AXI4Lite Processing -----
 
@@ -241,6 +161,8 @@ void axi4liteProcessing(
         }
         break;
       case A4L_COPY_MRT:
+    	  if(!sMrtUpdate.full())
+    	  {
         if(tableCopyVariable < MAX_MRT_SIZE)
         {
           ap_uint<32> new_ip4node = ctrlLink[tableCopyVariable + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS];
@@ -249,6 +171,8 @@ void axi4liteProcessing(
             //NalMrtUpdate mu = NalMrtUpdate(tableCopyVariable, new_ip4node);
             //sMrtUpdate.write(mu);
             localMRT[tableCopyVariable] = new_ip4node;
+            NalMrtUpdate mrt_update = NalMrtUpdate(tableCopyVariable, new_ip4node);
+            sMrtUpdate.write(mrt_update);
           }
           tableCopyVariable++;
           if(tableCopyVariable >= MAX_MRT_SIZE)
@@ -260,6 +184,7 @@ void axi4liteProcessing(
           tableCopyVariable = 0;
           a4lFsm = A4L_COPY_STATUS;
         }
+    	  }
         break;
       case A4L_COPY_STATUS:
         if(tableCopyVariable < NUMBER_STATUS_WORDS)
@@ -376,6 +301,196 @@ void axi4liteProcessing(
 }
 
 
+void pMrtAgency(
+		stream<NalMrtUpdate> &sMrtUpdate,
+	    stream<NodeId>        &sGetIpReq_UdpTx,
+	    stream<Ip4Addr>       &sGetIpRep_UdpTx,
+	    stream<NodeId>        &sGetIpReq_TcpTx,
+	    stream<Ip4Addr>       &sGetIpRep_TcpTx,
+	    stream<Ip4Addr>       &sGetNidReq_UdpRx,
+	    stream<NodeId>        &sGetNidRep_UdpRx,
+	    stream<Ip4Addr>       &sGetNidReq_TcpRx,
+	    stream<NodeId>        &sGetNidRep_TcpRx//,
+	    //stream<Ip4Addr>       &sGetNidReq_TcpTx,
+	    //stream<NodeId>        &sGetNidRep_TcpTx
+		)
+{
+	//-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+#pragma HLS INLINE off
+//#pragma HLS pipeline II=1
+
+  //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+  static bool tables_initialized = false;
+
+#pragma HLS reset variable=tables_initialized
+
+  //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+  //static ap_uint<32> localMRT[MAX_MRT_SIZE];
+  //static Cam16<NodeId,Ip4Addr> mrt_p0 = Cam16<NodeId,Ip4Addr>();
+
+#define CAM_SIZE 16
+#define CAM_NUM 8
+  static Cam16<NodeId,Ip4Addr> mrt_cam16_array[CAM_NUM];
+#ifndef __SYNTHESIS__
+  if(MAX_MRT_SIZE != 128)
+  {
+    printf("\n\t\tERROR: pMrtAgency is currently configured to support only a MRT size up to 128! Abort.\n(Currently, the use of \'mrt_cam16_array\' must be updated accordingly by hand.)\n");
+    exit(-1);
+  }
+#endif
+
+
+  //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
+
+  if(!tables_initialized)
+   {
+//     for(int i = 0; i < MAX_MRT_SIZE; i++)
+//     {
+//#pragma HLS unroll factor=8
+//       localMRT[i] = (NodeId) INVALID_MRT_VALUE;
+//     }
+	  for(int i = 0; i < CAM_NUM; i++)
+	  {
+		  mrt_cam16_array[i].reset();
+	  }
+     tables_initialized = true;
+   } else if(!sMrtUpdate.empty())
+   {
+	   NalMrtUpdate mrt_update = sMrtUpdate.read();
+	   uint8_t cam_select = mrt_update.nid / CAM_SIZE;
+	   if(mrt_update.nid < MAX_MRT_SIZE && cam_select < CAM_NUM)
+	   {
+		   //localMRT[mrt_update.nid] = mrt_update.ip4a;
+		   Ip4Addr old_addr = 0;
+		   if(mrt_cam16_array[cam_select].lookup(mrt_update.nid, old_addr))
+		   {
+			   mrt_cam16_array[cam_select].update(mrt_update.nid, mrt_update.ip4a);
+		   } else {
+			   mrt_cam16_array[cam_select].insert(mrt_update.nid, mrt_update.ip4a);
+		   }
+		   printf("[pMrtAgency] got status update for node %d with address %d (on CAM #%d)\n",
+				   (int) mrt_update.nid, (int) mrt_update.ip4a, cam_select);
+	   }
+   } else {
+	   if( (!sGetIpReq_UdpTx.empty() || !sGetIpReq_TcpTx.empty())
+			   && !sGetIpRep_TcpTx.full() && !sGetIpRep_UdpTx.full())
+	     {
+		   bool answer_udp = false;
+		   NodeId rank;
+		   if(!sGetIpReq_UdpTx.empty())
+		   {
+		      rank = sGetIpReq_UdpTx.read();
+		      answer_udp = true;
+		   } else {
+			   rank = sGetIpReq_TcpTx.read();
+		   }
+		   uint8_t cam_select = rank / CAM_SIZE;
+		   Ip4Addr rep = 0;  //return zero on failure
+		   if(rank < MAX_MRT_SIZE && cam_select < CAM_NUM)
+		   {
+			   mrt_cam16_array[cam_select].lookup(rank, rep);
+		   }
+		   if(answer_udp)
+		   {
+			   sGetIpRep_UdpTx.write(rep);
+		   } else {
+			   sGetIpRep_TcpTx.write(rep);
+		   }
+//	       if(rank > MAX_MRT_SIZE || cam_select > CAM_NUM)
+//	       {
+//	         //return zero on failure
+//	         sGetIpRep_UdpTx.write(0);
+//	       } else {
+//	         sGetIpRep_UdpTx.write(localMRT[rank]);
+//	         //if request is issued, requester should be ready to read --> "blocking" write
+//	       }
+	     }
+//	     else if(!sGetIpReq_TcpTx.empty() && !sGetIpRep_TcpTx.full())
+//	     {
+//	       NodeId rank = sGetIpReq_TcpTx.read();
+//	       if(rank > MAX_MRT_SIZE)
+//	       {
+//	         //return zero on failure
+//	         sGetIpRep_TcpTx.write(0);
+//	       } else {
+//	         sGetIpRep_TcpTx.write(localMRT[rank]);
+//	       }
+//	     }
+	     else if( (!sGetNidReq_UdpRx.empty() || !sGetNidReq_TcpRx.empty() )
+	    		 && !sGetNidRep_TcpRx.full()&& !sGetNidRep_UdpRx.full())
+	     {
+	    	 bool answer_udp = false;
+	       ap_uint<32> ipAddr;
+	       if(!sGetNidReq_UdpRx.empty())
+	       {
+	    	   ipAddr =  sGetNidReq_UdpRx.read();
+	    	   answer_udp = true;
+	       } else {
+	    	   ipAddr = sGetNidReq_TcpRx.read();
+	       }
+	       printf("[HSS-INFO] Searching for Node ID of IP %d.\n", (int) ipAddr);
+	       NodeId rep = INVALID_MRT_VALUE;
+//	       for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
+//	       {
+//	         //#pragma HLS unroll factor=8
+//	         if(localMRT[i] == ipAddr)
+//	         {
+//	           rep = (NodeId) i;
+//	           break;
+//	         }
+//	       }
+	       for(int i = 0; i < CAM_NUM; i++)
+	       {
+	       		  if(mrt_cam16_array[i].reverse_lookup(ipAddr, rep))
+	       		  {
+	       			  break;
+	       		  }
+	       }
+	       if(answer_udp)
+	       {
+	    	   sGetNidRep_UdpRx.write(rep);
+	       } else {
+	    	   sGetNidRep_TcpRx.write(rep);
+	       }
+	     }
+//	     else if(!sGetNidReq_TcpRx.empty() && !sGetNidRep_TcpRx.full())
+//	     {
+//	       ap_uint<32> ipAddr = sGetNidReq_TcpRx.read();
+//	       printf("[HSS-INFO] Searching for Node ID of IP %d.\n", (int) ipAddr);
+//	       NodeId rep = INVALID_MRT_VALUE;
+//	       for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
+//	       {
+//	         //#pragma HLS unroll factor=8
+//	         if(localMRT[i] == ipAddr)
+//	         {
+//	           rep = (NodeId) i;
+//	           break;
+//	         }
+//	       }
+//	       sGetNidRep_TcpRx.write(rep);
+//	     }
+	     //  else if(!sGetNidReq_TcpTx.empty() && !sGetNidRep_TcpTx.full())
+	     //  {
+	     //    ap_uint<32> ipAddr = sGetNidReq_TcpTx.read();
+	     //    printf("[HSS-INFO] Searching for Node ID of IP %d.\n", (int) ipAddr);
+	     //    NodeId rep = INVALID_MRT_VALUE;
+	     //    for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
+	     //    {
+	     ////#pragma HLS unroll factor=8
+	     //      if(localMRT[i] == ipAddr)
+	     //      {
+	     //        rep = (NodeId) i;
+	     //        break;
+	     //      }
+	     //    }
+	     //    sGetNidRep_TcpTx.write(rep);
+	     //  }
+
+   } //else
+}
+
+
+
 void pPortAndResetLogic(
     ap_uint<1>        *layer_4_enabled,
     ap_uint<1>        *layer_7_enabled,
@@ -402,7 +517,7 @@ void pPortAndResetLogic(
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-//FIXME: synthesis crashes #pragma HLS pipeline II=1
+#pragma HLS pipeline II=1
 
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
   static ap_uint<16> processed_FMC_listen_port = 0;
@@ -442,6 +557,8 @@ void pPortAndResetLogic(
   //===========================================================
   // restore saved states
 
+  *start_tcp_cls_fsm = false;
+
   if(!sConfigUpdate.empty())
   {
     NalConfigUpdate ca = sConfigUpdate.read();
@@ -461,36 +578,9 @@ void pPortAndResetLogic(
         break;
     }
 
-  }
-
-  //   // > to avoid loop at 0
-  //      if(config[NAL_CONFIG_SAVED_FMC_PORTS] > processed_FMC_listen_port)
-  //      {
-  //        processed_FMC_listen_port = (ap_uint<16>) config[NAL_CONFIG_SAVED_FMC_PORTS];
-  //      }
-  //
-  //      if(*layer_7_enabled == 1 && *role_decoupled == 0)
-  //      { // looks like only we were reset
-  //        // since the user cannot close ports (up to now), the > should work...
-  //        if(config[NAL_CONFIG_SAVED_UDP_PORTS] > udp_rx_ports_processed)
-  //        {
-  //          udp_rx_ports_processed = config[NAL_CONFIG_SAVED_UDP_PORTS];
-  //        }
-  //
-  //        if(config[NAL_CONFIG_SAVED_TCP_PORTS] > tcp_rx_ports_processed)
-  //        {
-  //          tcp_rx_ports_processed = config[NAL_CONFIG_SAVED_TCP_PORTS];
-  //        }
-  //      }
-
-  //if(*start_tcp_cls_fsm == true)
-  //{
-  *start_tcp_cls_fsm = false;
-  // }
-
-  //if layer 4 is reset, ports will be closed
-  if(*layer_4_enabled == 0)
+  } else if(*layer_4_enabled == 0)
   {
+	  //if layer 4 is reset, ports will be closed
     processed_FMC_listen_port = 0x0;
     udp_rx_ports_processed = 0x0;
     tcp_rx_ports_processed = 0x0;
@@ -509,6 +599,7 @@ void pPortAndResetLogic(
     need_write_sMarkToDel_unpriv = false;
   } else if (*layer_7_enabled == 0 || *role_decoupled == 1 )
   {
+
     if(*layer_4_enabled == 1 && *piNTS_ready == 1)
     {
       if(udp_rx_ports_processed > 0 && !sUdpPortsToClose.full())
@@ -527,14 +618,12 @@ void pPortAndResetLogic(
           ap_uint<32> one_cold_closed_port = ~(((ap_uint<32>) 1) << (newRelativePortToClose));
           udp_rx_ports_processed &= one_cold_closed_port;
           printf("new UDP port ports to close: %#04x\n",(unsigned int) udp_rx_ports_processed);
-          newRelativePortToClose = getRightmostBitPos(udp_rx_ports_processed);
+          //newRelativePortToClose = getRightmostBitPos(udp_rx_ports_processed);
         }
         //start closing FSM UDP
         //clsFsmState_Udp = CLS_NEXT;
         //start_udp_cls_fsm = true;
-      }
-
-      if(tcp_rx_ports_processed > 0)
+      } else if(tcp_rx_ports_processed > 0)
       {
         //mark all TCP ports as to be deleted
         //markCurrentRowsAsToDelete_unprivileged();
@@ -554,6 +643,7 @@ void pPortAndResetLogic(
       udp_rx_ports_processed = 0x0;
       tcp_rx_ports_processed = 0x0;
     }
+
     if( *role_decoupled == 0)
     { //invalidate cache
       //cached_udp_rx_ipaddr = 0;
@@ -595,10 +685,10 @@ void pPortAndResetLogic(
       {//we have to open new ports, one after another
         //new_relative_port_to_req_udp = getRightmostBitPos(diff);
         //need_udp_port_req = true;
-        UdpPort new_port_to_open = NAL_RX_MIN_PORT + getRightmostBitPos(diff);
+        new_relative_port_to_req_udp = getRightmostBitPos(diff);
+        UdpPort new_port_to_open = NAL_RX_MIN_PORT + new_relative_port_to_req_udp;
         sUdpPortsToOpen.write(new_port_to_open);
         wait_for_udp_port_open = true;
-        new_relative_port_to_req_udp = getRightmostBitPos(diff);
       }
     } else if(wait_for_udp_port_open && !sUdpPortsOpenFeedback.empty())
     {
@@ -614,6 +704,7 @@ void pPortAndResetLogic(
       //in all cases
       wait_for_udp_port_open = false;
     }
+
 
     if(processed_FMC_listen_port != *piMMIO_FmcLsnPort
         && !wait_for_tcp_port_open
@@ -666,8 +757,7 @@ void pPortAndResetLogic(
       }
       //in all cases
       wait_for_tcp_port_open = false;
-    }
-    else if(wait_for_tcp_port_open && !sTcpPortsOpenFeedback.empty())
+    } else if(wait_for_tcp_port_open && !sTcpPortsOpenFeedback.empty())
     {
       bool fed = sTcpPortsOpenFeedback.read();
       if(fed)
@@ -681,10 +771,7 @@ void pPortAndResetLogic(
       //in all cases
       wait_for_tcp_port_open = false;
     }
-  }
-
-
-  if(need_write_sMarkToDel_unpriv && !sMarkToDel_unpriv.full())
+  } else if(need_write_sMarkToDel_unpriv && !sMarkToDel_unpriv.full())
   {
     sMarkToDel_unpriv.write(true);
     need_write_sMarkToDel_unpriv = false;
@@ -701,7 +788,6 @@ void pPortAndResetLogic(
   *status_udp_ports = udp_rx_ports_processed;
   *status_tcp_ports = tcp_rx_ports_processed;
   *status_fmc_ports = processed_FMC_listen_port;
-
 
 }
 
@@ -723,13 +809,13 @@ void pTcpAgency(
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-//FIXME: synthesis crashes #pragma HLS pipeline II=1
+#pragma HLS pipeline II=1
 
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-  static  TableFsmStates agencyFsm = TAB_FSM_READ;
+  //static  TableFsmStates agencyFsm = TAB_FSM_READ;
   static  bool tables_initialized = false;
 
-#pragma HLS RESET variable=agencyFsm
+//#pragma HLS RESET variable=agencyFsm
 #pragma HLS RESET variable=tables_initialized
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
   static NalTriple  tripleList[MAX_NAL_SESSIONS];
@@ -738,16 +824,20 @@ void pTcpAgency(
   static ap_uint<1>  rowsToDelete[MAX_NAL_SESSIONS];
   static ap_uint<1>  privilegedRows[MAX_NAL_SESSIONS];
 
-  //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
+#pragma HLS ARRAY_PARTITION variable=tripleList complete dim=1
+#pragma HLS ARRAY_PARTITION variable=sessionIdList complete dim=1
+#pragma HLS ARRAY_PARTITION variable=usedRows complete dim=1
+#pragma HLS ARRAY_PARTITION variable=rowsToDelete complete dim=1
+#pragma HLS ARRAY_PARTITION variable=privilegedRows complete dim=1
+
+//-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
 
 
   if(!*nts_ready_and_enabled)
   {
-    agencyFsm = TAB_FSM_READ;
+    //agencyFsm = TAB_FSM_READ;
     tables_initialized = false;
-  }
-
-  if (!tables_initialized)
+  } else if (!tables_initialized)
   {
     printf("init tables...\n");
     for(int i = 0; i<MAX_NAL_SESSIONS; i++)
@@ -760,14 +850,11 @@ void pTcpAgency(
       privilegedRows[i] = 0;
     }
     tables_initialized = true;
-  }
+  } else {
 
-  //in order to be able to serve Read and write requests immediately
-  //for(uint8_t again = 0; again < 2; again++)
+  //switch(agencyFsm)
   //{
-  switch(agencyFsm)
-  {
-    case TAB_FSM_READ:
+    //case TAB_FSM_READ:
       if(!sGetTripleFromSid_Req.empty() && !sGetTripleFromSid_Rep.full())
       {
         SessionId sessionID = sGetTripleFromSid_Req.read();
@@ -792,8 +879,7 @@ void pTcpAgency(
           printf("[TcpAgency:INFO] Unknown session requested\n");
         }
         sGetTripleFromSid_Rep.write(ret);
-      }
-      if(!sGetSidFromTriple_Req.empty() && !sGetSidFromTriple_Rep.full())
+      } else if(!sGetSidFromTriple_Req.empty() && !sGetSidFromTriple_Rep.full())
       {
         NalTriple triple = sGetSidFromTriple_Req.read();
         printf("Searching for triple: %llu\n", (unsigned long long) triple);
@@ -816,10 +902,10 @@ void pTcpAgency(
           printf("[TcpAgency:INFO] Unknown triple requested\n");
         }
         sGetSidFromTriple_Rep.write(ret);
-      }
-      agencyFsm = TAB_FSM_WRITE;
-      break;
-    case TAB_FSM_WRITE:
+      } else
+     // agencyFsm = TAB_FSM_WRITE;
+     // break;
+    //case TAB_FSM_WRITE:
       if(!sAddNewTriple_TcpRrh.empty() || !sAddNewTriple_TcpCon.empty())
       {
         NalNewTableEntry ne_struct;
@@ -876,8 +962,7 @@ void pTcpAgency(
             printf("[TcpAgency:ERROR] no free space left in table!\n");
           }
         }
-      }
-      if(!sDeleteEntryBySid.empty())
+      } else if(!sDeleteEntryBySid.empty())
       {
         SessionId sessionID = sDeleteEntryBySid.read();
         printf("try to delete session: %d\n", (int) sessionID);
@@ -895,8 +980,7 @@ void pTcpAgency(
           }
         }
         //nothing to delete, nothing to do...
-      }
-      if(!sMarkAsPriv.empty())
+      } else if(!sMarkAsPriv.empty())
       {
         SessionId sessionID = sMarkAsPriv.read();
         printf("mark session as privileged: %d\n", (int) sessionID);
@@ -911,8 +995,7 @@ void pTcpAgency(
           }
         }
         //nothing found, nothing to do...
-      }
-      if(!sMarkToDel_unpriv.empty())
+      } else if(!sMarkToDel_unpriv.empty())
       {
         if(sMarkToDel_unpriv.read())
         {
@@ -927,8 +1010,7 @@ void pTcpAgency(
             }
           }
         }
-      }
-      if(!sGetNextDelRow_Req.empty() && !sGetNextDelRow_Rep.full())
+      } else if(!sGetNextDelRow_Req.empty() && !sGetNextDelRow_Rep.full())
       {
         if(sGetNextDelRow_Req.read())
         {
@@ -958,12 +1040,10 @@ void pTcpAgency(
           sGetNextDelRow_Rep.write(ret);
         }
       }
-      agencyFsm = TAB_FSM_READ;
-      break;
-  }
-  //}
-
-
+      //agencyFsm = TAB_FSM_READ;
+      //break;
+  //} //switch
+ } // else
 }
 
 
