@@ -59,21 +59,27 @@ void pUdpTX(
 		stream<NalEventNotif> 		&internal_event_fifo
 		);
 
+
 void pUdpRx(
-		stream<UdpPort>             &soUOE_LsnReq,
-		stream<StsBool>             &siUOE_LsnRep,
-		stream<NetworkWord>         &soUdp_data,
-		stream<NetworkMetaStream>   &soUdp_meta,
-	    stream<UdpAppData>          &siUOE_Data,
-	    stream<UdpAppMeta>          &siUOE_Meta,
-		stream<NalConfigUpdate>		&sConfigUpdate,
-		stream<Ip4Addr>				&sGetNidReq_UdpRx,
-		stream<NodeId>	 			&sGetNidRep_UdpRx,
-		stream<UdpPort>				&sUdpPortsToOpen,
-		stream<bool>				&sUdpPortsOpenFeedback,
-		const bool					*nts_ready_and_enabled,
-		const bool					*detected_cache_invalidation,
-		stream<NalEventNotif> 		&internal_event_fifo
+    stream<NetworkWord>         &soUdp_data,
+    stream<NetworkMetaStream>   &soUdp_meta,
+    stream<UdpAppData>          &siUOE_Data,
+    stream<UdpAppMeta>          &siUOE_Meta,
+    stream<NalConfigUpdate>   &sConfigUpdate,
+    stream<Ip4Addr>       &sGetNidReq_UdpRx,
+    stream<NodeId>        &sGetNidRep_UdpRx,
+    const bool          *nts_ready_and_enabled,
+    const bool          *detected_cache_invalidation,
+    stream<NalEventNotif>     &internal_event_fifo
+    );
+
+
+void pUdpLsn(
+	    stream<UdpPort>             &soUOE_LsnReq,
+	    stream<StsBool>             &siUOE_LsnRep,
+	    stream<UdpPort>       &sUdpPortsToOpen,
+	    stream<bool>        &sUdpPortsOpenFeedback,
+	    const bool                *nts_ready_and_enabled
 		);
 
 void pUdpCls(

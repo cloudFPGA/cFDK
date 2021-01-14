@@ -132,8 +132,8 @@ using namespace hls;
 //#define FSM_WRITE_META 7
 //#define FSM_DROP_PACKET 8
 //#define FsmStateUdp uint8_t
-enum FsmStateUdp {FSM_RESET = 0, FSM_IDLE, FSM_W8FORPORT, FSM_W8FORREQS, FSM_FIRST_ACC, FSM_ACC, \
-                  FSM_LAST_ACC, FSM_W8FORMETA, FSM_WRITE_META, FSM_DROP_PACKET};
+enum FsmStateUdp {FSM_RESET = 0, FSM_W8FORMETA, FSM_W8FORREQS, FSM_FIRST_ACC, FSM_ACC, \
+                  FSM_WRITE_META, FSM_DROP_PACKET};
 
 //#define OpnFsmStates uint8_t
 //#define OPN_IDLE 0

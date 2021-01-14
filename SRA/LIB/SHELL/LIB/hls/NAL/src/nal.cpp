@@ -783,9 +783,11 @@ void nal_main(
 
   //=================================================================================================
   // RX UDP
-  pUdpRx(soUOE_LsnReq, siUOE_LsnRep, soUdp_data, soUdp_meta, siUOE_Data, siUOE_Meta,
+
+  pUdpLsn(soUOE_LsnReq, siUOE_LsnRep, sUdpPortsToOpen, sUdpPortsOpenFeedback, &nts_ready_and_enabled);
+
+  pUdpRx(soUdp_data, soUdp_meta, siUOE_Data, siUOE_Meta,
       sA4lToUdpRx, sGetNidReq_UdpRx, sGetNidRep_UdpRx,
-      sUdpPortsToOpen, sUdpPortsOpenFeedback,
       &nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo_1);
 
   //=================================================================================================

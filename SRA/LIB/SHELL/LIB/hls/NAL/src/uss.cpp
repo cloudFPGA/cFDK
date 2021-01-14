@@ -59,12 +59,15 @@ void pUdpTX(
   static Ip4Addr cached_ip4addr_udp_tx = 0;
   static bool cache_init = false;
   static uint8_t evs_loop_i = 0;
+  bool meta_written = false;
 
 #pragma HLS RESET variable=fsmStateTX_Udp
 #pragma HLS RESET variable=cached_nodeid_udp_tx
 #pragma HLS RESET variable=cached_ip4addr_udp_tx
 #pragma HLS RESET variable=cache_init
 #pragma HLS RESET variable=evs_loop_i
+#pragma HLS RESET variable=meta_written
+
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
   static UdpAppDLen udpTX_packet_length = 0;
   static UdpAppDLen udpTX_current_packet_length = 0;
@@ -72,6 +75,9 @@ void pUdpTX(
   static ap_uint<32> dst_ip_addr = 0;
   static NetworkMetaStream udp_meta_in;
   static NodeId dst_rank = 0;
+  static UdpAppMeta txMeta;
+  static NrcPort src_port;
+  static NrcPort dst_port;
 
   static stream<NalEventNotif> evsStreams[6];
 
@@ -127,6 +133,24 @@ void pUdpTX(
             break;
           }
 
+          src_port = udp_meta_in.tdata.src_port;
+          if (src_port == 0)
+          {
+            src_port = DEFAULT_RX_PORT;
+          }
+          dst_port = udp_meta_in.tdata.dst_port;
+          if (dst_port == 0)
+          {
+            dst_port = DEFAULT_RX_PORT;
+            //port_corrections_TX_cnt++;
+            new_ev_not = NalEventNotif(PCOR_TX, 1);
+            //internal_event_fifo.write(new_ev_not);
+            evsStreams[3].write(new_ev_not);
+          }
+
+          //to create here due to timing...
+          txMeta = SocketPair(SockAddr(*ipAddrBE, src_port), SockAddr(0, dst_port));
+
           //request ip if necessary
           if(cache_init && cached_nodeid_udp_tx == dst_rank)
           {
@@ -167,9 +191,10 @@ void pUdpTX(
         //NO break;
 
       case FSM_FIRST_ACC:
-        if (!soUOE_Meta.full() //&& !soUOE_Data.full() &&
+        if (//!soUOE_Meta.full() //&& !soUOE_Data.full() &&
 			//!siUdp_data.empty()
-			&& !soUOE_DLen.full() )
+			//&&
+			!soUOE_DLen.full() )
         {
           if(dst_ip_addr == 0)
           {
@@ -191,30 +216,18 @@ void pUdpTX(
           new_ev_not = NalEventNotif(LAST_TX_NID, dst_rank);
           //internal_event_fifo.write(new_ev_not);
           evsStreams[2].write(new_ev_not);
-          NrcPort src_port = udp_meta_in.tdata.src_port;
-          if (src_port == 0)
-          {
-            src_port = DEFAULT_RX_PORT;
-          }
-          NrcPort dst_port = udp_meta_in.tdata.dst_port;
-          if (dst_port == 0)
-          {
-            dst_port = DEFAULT_RX_PORT;
-            //port_corrections_TX_cnt++;
-            new_ev_not = NalEventNotif(PCOR_TX, 1);
-            //internal_event_fifo.write(new_ev_not);
-            evsStreams[3].write(new_ev_not);
-          }
           //last_tx_port = dst_port;
           new_ev_not = NalEventNotif(LAST_TX_PORT, dst_port);
           //internal_event_fifo.write(new_ev_not);
           evsStreams[4].write(new_ev_not);
           // {{SrcPort, SrcAdd}, {DstPort, DstAdd}}
           //UdpMeta txMeta = {{src_port, ipAddrBE}, {dst_port, dst_ip_addr}};
+          //txMeta = SocketPair(SockAddr(*ipAddrBE, src_port), SockAddr(dst_ip_addr, dst_port));
+          txMeta.dst.addr = dst_ip_addr;
 
-          UdpAppMeta txMeta = SocketPair(SockAddr(*ipAddrBE, src_port), SockAddr(dst_ip_addr, dst_port));
           // Forward data chunk, metadata and payload length
-          soUOE_Meta.write(txMeta);
+          //soUOE_Meta.write(txMeta);
+          meta_written = false;
 
           //we can forward the length, even if 0
           //the UOE handles this as streaming mode
@@ -259,9 +272,26 @@ void pUdpTX(
           // Until LAST bit is set
           if (aWord.getTLast() == 1)
           {
-            fsmStateTX_Udp = FSM_W8FORMETA;
+        	  if(!meta_written)
+        	  {
+        		  fsmStateTX_Udp = FSM_WRITE_META;
+        	  } else {
+        		  fsmStateTX_Udp = FSM_W8FORMETA;
+        	  }
           }
         }
+        //NO break;
+      case FSM_WRITE_META:
+    	  //split due to timing...
+    	  if(!soUOE_Meta.full() && !meta_written)
+    	  {
+    		  soUOE_Meta.write(txMeta);
+    		  meta_written = true;
+    		  if(fsmStateTX_Udp == FSM_WRITE_META)
+    		  {
+    			  fsmStateTX_Udp = FSM_W8FORMETA;
+    		  }
+    	  }
         break;
 
       case FSM_DROP_PACKET:
@@ -294,9 +324,122 @@ void pUdpTX(
   } //else
 }
 
+void pUdpLsn(
+	    stream<UdpPort>             &soUOE_LsnReq,
+	    stream<StsBool>             &siUOE_LsnRep,
+	    stream<UdpPort>       &sUdpPortsToOpen,
+	    stream<bool>        &sUdpPortsOpenFeedback,
+	    const bool                *nts_ready_and_enabled
+		)
+{
+	  //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+	#pragma HLS INLINE off
+	#pragma HLS pipeline II=1
+
+	  char* myName  = concat3(THIS_NAME, "/", "Udp_LSn");
+
+	  //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+	  static LsnFsmStates lsnFsmState = LSN_IDLE;
+	#ifdef __SYNTHESIS_
+	  static ap_uint<16>         startupDelay = 0x8000;
+	#else
+	  static ap_uint<16>         startupDelay = 10;
+	#endif
+
+	#pragma HLS RESET variable=lsnFsmState
+	#pragma HLS RESET variable=startupDelay
+	  //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+	  static ap_uint<8>   watchDogTimer_plisten = 0;
+	  ap_uint<16> new_absolute_port = 0;
+
+
+	  if(!*nts_ready_and_enabled)
+	  {
+	    lsnFsmState = LSN_IDLE;
+	    //return;
+	  } else {
+
+
+	    switch (lsnFsmState) {
+
+	      case LSN_IDLE:
+	        if (startupDelay > 0)
+	        {
+	          startupDelay--;
+	        } else {
+	          //if(*need_tcp_port_req == true)
+	          if(!sUdpPortsToOpen.empty())
+	          {
+	            lsnFsmState = LSN_SEND_REQ;
+	          } else {
+	            lsnFsmState = LSN_DONE;
+	          }
+	        }
+	        break;
+
+	      case LSN_SEND_REQ: //we arrive here only if need_tcp_port_req == true
+	    	  if ( !soUOE_LsnReq.full() && !sUdpPortsToOpen.empty())
+	    	            {
+	    	              //ap_uint<16> new_absolute_port = NAL_RX_MIN_PORT + *new_relative_port_to_req_udp;
+	    	              UdpPort new_absolute_port = sUdpPortsToOpen.read();
+	    	              soUOE_LsnReq.write(new_absolute_port);
+	          if (DEBUG_LEVEL & TRACE_LSN) {
+	            printInfo(myName, "Requesting to listen on port #%d (0x%4.4X).\n",
+	                (int) new_absolute_port, (int) new_absolute_port);
+	#ifndef __SYNTHESIS__
+	            watchDogTimer_plisten = 10;
+	#else
+	            watchDogTimer_plisten = 100;
+	#endif
+	            lsnFsmState = LSN_WAIT_ACK;
+	          }
+	        }
+	        else {
+	          printWarn(myName, "Cannot send a listen port request to [UOE] because stream is full!\n");
+	        }
+	        break;
+
+	      case LSN_WAIT_ACK:
+	        if (!siUOE_LsnRep.empty() && !sUdpPortsOpenFeedback.full())
+	        {
+	          bool    listenDone;
+	          siUOE_LsnRep.read(listenDone);
+	          if (listenDone) {
+	            printInfo(myName, "Received listen acknowledgment from [UOE].\n");
+	            lsnFsmState = LSN_DONE;
+	            sUdpPortsOpenFeedback.write(true);
+	          }
+	          else {
+	            printWarn(myName, "UOE denied listening on port %d (0x%4.4X).\n",
+	                (int) new_absolute_port, (int) new_absolute_port);
+	            sUdpPortsOpenFeedback.write(false);
+	            lsnFsmState = LSN_SEND_REQ;
+	          }
+	        } else if (watchDogTimer_plisten == 0 && !sUdpPortsOpenFeedback.full() )
+	        {
+	            ap_uint<16> new_absolute_port = 0;
+	            printError(myName, "Timeout: Server failed to listen on port %d %d (0x%4.4X).\n",
+	                (int)  new_absolute_port, (int) new_absolute_port);
+	            sUdpPortsOpenFeedback.write(false);
+	            lsnFsmState = LSN_SEND_REQ;
+	          } else {
+	  	        watchDogTimer_plisten--;
+	          }
+	        break;
+
+	      case LSN_DONE:
+	        if(!sUdpPortsToOpen.empty())
+	        {
+	          lsnFsmState = LSN_SEND_REQ;
+	        }
+	        break;
+	    }
+	  }
+}
+
+
+
 void pUdpRx(
-    stream<UdpPort>             &soUOE_LsnReq,
-    stream<StsBool>             &siUOE_LsnRep,
     stream<NetworkWord>         &soUdp_data,
     stream<NetworkMetaStream>   &soUdp_meta,
     stream<UdpAppData>          &siUOE_Data,
@@ -304,8 +447,6 @@ void pUdpRx(
     stream<NalConfigUpdate>   &sConfigUpdate,
     stream<Ip4Addr>       &sGetNidReq_UdpRx,
     stream<NodeId>        &sGetNidRep_UdpRx,
-    stream<UdpPort>       &sUdpPortsToOpen,
-    stream<bool>        &sUdpPortsOpenFeedback,
     const bool          *nts_ready_and_enabled,
     const bool          *detected_cache_invalidation,
     stream<NalEventNotif>     &internal_event_fifo
@@ -319,33 +460,32 @@ void pUdpRx(
 
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
   static FsmStateUdp fsmStateRX_Udp = FSM_RESET;
-  static ap_uint<8>   openPortWaitTime = 100;
-  static ap_uint<8>   udp_lsn_watchDogTimer = 100;
-  static NodeId cached_udp_rx_id = 0; //TODO add reset mechanism!
+  static NodeId cached_udp_rx_id = 0;
   static Ip4Addr cached_udp_rx_ipaddr = 0;
   static NodeId own_rank = 0;
   static bool cache_init = false;
   static uint8_t evs_loop_i = 0;
+  static bool meta_written = false;
 
 #pragma HLS RESET variable=fsmStateRX_Udp
-#pragma HLS RESET variable=openPortWaitTime
-#pragma HLS RESET variable=udp_lsn_watchDogTimer
 #pragma HLS RESET variable=cached_udp_rx_id
 #pragma HLS RESET variable=cached_udp_rx_ipaddr
 #pragma HLS RESET variable=own_rank
 #pragma HLS RESET variable=cache_init
 #pragma HLS RESET variable=evs_loop_i
+#pragma HLS RESET variable=meta_written
 
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-  static NetworkMetaStream in_meta_udp = NetworkMetaStream(); //ATTENTION: don't forget initilizer..
-  static UdpMeta udpRxMeta = UdpMeta();
+  static UdpMeta udpRxMeta;
   static NodeId src_id = INVALID_MRT_VALUE;
+  static NetworkMeta in_meta;
 
   static stream<NalEventNotif> evsStreams[4];
 
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
   //bool ongoing_first_transaction = false;
   NalEventNotif new_ev_not;
+  NetworkMetaStream in_meta_udp_stream;
 
   if(!*nts_ready_and_enabled)
   {
@@ -358,93 +498,23 @@ void pUdpRx(
     cached_udp_rx_id = 0;
     cached_udp_rx_ipaddr = 0;
     cache_init = false;
-  } else {
-
-    if(!sConfigUpdate.empty())
+  } else if(!sConfigUpdate.empty())
     {
       NalConfigUpdate ca = sConfigUpdate.read();
       if(ca.config_addr == NAL_CONFIG_OWN_RANK)
       {
-        own_rank = ca.update_value;
+        own_rank = (NodeId) ca.update_value;
         cache_init = false;
       }
-    }
+    } else {
 
 
     switch(fsmStateRX_Udp) {
 
       default:
       case FSM_RESET:
-#ifndef __SYNTHESIS__
-        openPortWaitTime = 10;
-#else
-        openPortWaitTime = 100;
-#endif
-        fsmStateRX_Udp = FSM_IDLE;
-        break;
-
-      case FSM_IDLE:
-        if(openPortWaitTime == 0)
-        {
-          if ( !soUOE_LsnReq.full() && !sUdpPortsToOpen.empty())
-          {
-            //ap_uint<16> new_absolute_port = NAL_RX_MIN_PORT + *new_relative_port_to_req_udp;
-            ap_uint<16> new_absolute_port = sUdpPortsToOpen.read();
-            soUOE_LsnReq.write(new_absolute_port);
-            fsmStateRX_Udp = FSM_W8FORPORT;
-#ifndef __SYNTHESIS__
-            udp_lsn_watchDogTimer = 10;
-#else
-            udp_lsn_watchDogTimer = 100;
-#endif
-            if (DEBUG_LEVEL & TRACE_LSN) {
-              printInfo(myName, "SHELL/UOE is requested to listen on port #%d (0x%4.4X).\n",
-                  (int) new_absolute_port, (int) new_absolute_port);
-            }
-          } //else if(*udp_rx_ports_processed > 0)
-          else if(sUdpPortsToOpen.empty())
-          { // we have already at least one open port
-            //don't hang after reset
-            fsmStateRX_Udp = FSM_W8FORMETA;
-          }
-        } else {
-          openPortWaitTime--;
-        }
-        break;
-
-      case FSM_W8FORPORT:
-        udp_lsn_watchDogTimer--;
-        if ( !siUOE_LsnRep.empty() && !sUdpPortsOpenFeedback.full())
-        {
-          // Read the acknowledgment
-          StsBool sOpenAck = siUOE_LsnRep.read();
-          //printf("new udp_rx_ports_processed: %#03x\n",(int) *udp_rx_ports_processed);
-          if (sOpenAck)
-          {
-            printInfo(myName, "Received listen acknowledgment from [UOE].\n");
-            fsmStateRX_Udp = FSM_W8FORMETA;
-            //port acknowleded
-            // *need_udp_port_req = false;
-            // *udp_rx_ports_processed |= ((ap_uint<32>) 1) << (*new_relative_port_to_req_udp);
-            sUdpPortsOpenFeedback.write(true);
-          } else {
-            //printWarn(myName, "UOE denied listening on port %d (0x%4.4X).\n",
-            //    (int) (NAL_RX_MIN_PORT + *new_relative_port_to_req_udp),
-            //    (int) (NAL_RX_MIN_PORT + *new_relative_port_to_req_udp));
-            printWarn(myName, "UOE denied listening on port!\n");
-            sUdpPortsOpenFeedback.write(false);
-            fsmStateRX_Udp = FSM_IDLE;
-          }
-        } else {
-          if (udp_lsn_watchDogTimer == 0 && !sUdpPortsOpenFeedback.full() )
-          {
-            printError(myName, "Timeout: Server failed to listen on new udp port.\n");
-            sUdpPortsOpenFeedback.write(false);
-            fsmStateRX_Udp = FSM_IDLE;
-          }
-        }
-        break;
-
+    	  fsmStateRX_Udp = FSM_W8FORMETA;
+    	  //NO break;
       case FSM_W8FORMETA:
         // Wait until both the first data chunk and the first metadata are received from UDP
         if ( !siUOE_Meta.empty()
@@ -453,8 +523,13 @@ void pUdpRx(
         {
           //ongoing_first_transaction = true;
           //extract src ip address
-          udpRxMeta = siUOE_Meta.read();
-          src_id = INVALID_MRT_VALUE;
+          siUOE_Meta.read(udpRxMeta);
+          src_id = (NodeId) INVALID_MRT_VALUE;
+
+          //to create here due to timing...
+          in_meta = NetworkMeta(own_rank, udpRxMeta.dst.port, 0, udpRxMeta.src.port, 0);
+
+          //FIXME: add length here as soon as available from the UOE
           //ask cache
           if(cache_init && cached_udp_rx_ipaddr == udpRxMeta.src.addr)
           {
@@ -467,11 +542,7 @@ void pUdpRx(
             fsmStateRX_Udp = FSM_W8FORREQS;
             break;
           }
-        } else if(!sUdpPortsToOpen.empty())
-        {//edge to port request
-          fsmStateRX_Udp = FSM_IDLE;
-          break;
-        } else {
+        }  else {
         	break;
         }
         //NO break;
@@ -496,10 +567,10 @@ void pUdpRx(
         //NO break;
 
       case FSM_FIRST_ACC:
-        if( //!siUOE_Data.empty() && !soUdp_data.full() &&
-        		!soUdp_meta.full())
-        {
-          if(src_id == INVALID_MRT_VALUE)
+        //if( //!siUOE_Data.empty() && !soUdp_data.full() &&
+        //		!soUdp_meta.full())
+        //{
+          if(src_id == ((NodeId) INVALID_MRT_VALUE))
           {
             //SINK packet
             //node_id_missmatch_RX_cnt++;
@@ -522,12 +593,13 @@ void pUdpRx(
           new_ev_not = NalEventNotif(LAST_RX_PORT, udpRxMeta.dst.port);
           //internal_event_fifo.write(new_ev_not);
           evsStreams[2].write(new_ev_not);
-          NetworkMeta tmp_meta = NetworkMeta(own_rank, udpRxMeta.dst.port, src_id, udpRxMeta.src.port, 0);
+          //in_meta = NetworkMeta(own_rank, udpRxMeta.dst.port, src_id, udpRxMeta.src.port, 0);
           //FIXME: add length here as soon as available from the UOE
-          in_meta_udp = NetworkMetaStream(tmp_meta);
+          in_meta.src_rank = src_id;
 
           //write metadata
-          soUdp_meta.write(in_meta_udp);
+          meta_written = false;
+          //soUdp_meta.write(in_meta_udp);
           //packet_count_RX++;
           new_ev_not = NalEventNotif(PACKET_RX, 1);
           //internal_event_fifo.write(new_ev_not);
@@ -546,7 +618,7 @@ void pUdpRx(
 //            fsmStateRX_Udp = FSM_W8FORMETA;
 //          }
           fsmStateRX_Udp = FSM_ACC;
-        }
+        //}
         break;
 
       case FSM_ACC:
@@ -560,8 +632,26 @@ void pUdpRx(
           // Until LAST bit is set
           if (udpWord.tlast == 1)
           {
+        	  if(!meta_written)
+        	  {
+        		fsmStateRX_Udp = FSM_WRITE_META;
+        	  } else {
             fsmStateRX_Udp = FSM_W8FORMETA;
+        	  }
           }
+        }
+        //NO break;
+      case FSM_WRITE_META:
+    	  //split due to timing...
+        if( !soUdp_meta.full() && !meta_written)
+        {
+            in_meta_udp_stream = NetworkMetaStream(in_meta);
+            soUdp_meta.write(in_meta_udp_stream);
+            meta_written = true;
+            if(fsmStateRX_Udp == FSM_WRITE_META)
+            {
+            	fsmStateRX_Udp = FSM_W8FORMETA;
+            }
         }
         break;
 

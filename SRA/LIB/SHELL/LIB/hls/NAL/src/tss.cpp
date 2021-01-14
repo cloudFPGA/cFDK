@@ -82,11 +82,6 @@ void pTcpLsn(
   } else {
 
 
-    //only if NTS is ready
-    // if(*piNTS_ready == 1 && *layer_4_enabled == 1)
-    // {
-    //   if( fsmStateTX_Udp != FSM_ACC && fsmStateRX_Udp != FSM_ACC )
-    //   { //so we are not in a critical UDP path
     switch (lsnFsmState) {
 
       case LSN_IDLE:
@@ -107,14 +102,6 @@ void pTcpLsn(
       case LSN_SEND_REQ: //we arrive here only if need_tcp_port_req == true
         if (!soTOE_LsnReq.full() && !sTcpPortsToOpen.empty()) {
           new_absolute_port = sTcpPortsToOpen.read();
-          //always process FMC first
-          //              if(fmc_port_opened == false)
-          //              {
-          //                new_absolute_port = *piMMIO_FmcLsnPort;
-          //              } else {
-          //                new_absolute_port = NAL_RX_MIN_PORT + *new_relative_port_to_req_tcp;
-          //              }
-
           TcpAppLsnReq    tcpListenPort = new_absolute_port;
           soTOE_LsnReq.write(tcpListenPort);
           if (DEBUG_LEVEL & TRACE_LSN) {
@@ -134,55 +121,31 @@ void pTcpLsn(
         break;
 
       case LSN_WAIT_ACK:
-        watchDogTimer_plisten--;
-        if (!siTOE_LsnRep.empty() && !sTcpPortsOpenFeedback.full()) {
+        if (!siTOE_LsnRep.empty() && !sTcpPortsOpenFeedback.full())
+        {
           bool    listenDone;
           siTOE_LsnRep.read(listenDone);
           if (listenDone) {
             printInfo(myName, "Received listen acknowledgment from [TOE].\n");
             lsnFsmState = LSN_DONE;
-
-            //                *need_tcp_port_req = false;
-            //                if(fmc_port_opened == false)
-            //                {
-            //                  fmc_port_opened = true;
-            //                  *processed_FMC_listen_port = *piMMIO_FmcLsnPort;
-            //                } else {
-            //                  *tcp_rx_ports_processed |= ((ap_uint<32>) 1) << (*new_relative_port_to_req_tcp);
-            //                  printf("new tcp_rx_ports_processed: %#03x\n",(int) *tcp_rx_ports_processed);
-            //                }
             sTcpPortsOpenFeedback.write(true);
           }
           else {
-            //ap_uint<16> new_absolute_port = 0;
-            //always process FMC first
-            //                if(fmc_port_opened == false)
-            //                {
-            //                  new_absolute_port = *piMMIO_FmcLsnPort;
-            //                } else {
-            //                  new_absolute_port = NAL_RX_MIN_PORT + *new_relative_port_to_req_tcp;
-            //                }
             printWarn(myName, "TOE denied listening on port %d (0x%4.4X).\n",
                 (int) new_absolute_port, (int) new_absolute_port);
             sTcpPortsOpenFeedback.write(false);
             lsnFsmState = LSN_SEND_REQ;
           }
-        } else {
-          if (watchDogTimer_plisten == 0) {
+        } else if (watchDogTimer_plisten == 0 && !sTcpPortsOpenFeedback.full() )
+        {
             ap_uint<16> new_absolute_port = 0;
-            //always process FMC first
-            //                if(fmc_port_opened == false)
-            //                {
-            //                  new_absolute_port = *piMMIO_FmcLsnPort;
-            //                } else {
-            //                  new_absolute_port = NAL_RX_MIN_PORT + *new_relative_port_to_req_tcp;
-            //                }
             printError(myName, "Timeout: Server failed to listen on port %d %d (0x%4.4X).\n",
                 (int)  new_absolute_port, (int) new_absolute_port);
             sTcpPortsOpenFeedback.write(false);
             lsnFsmState = LSN_SEND_REQ;
+          } else {
+              watchDogTimer_plisten--;
           }
-        }
         break;
 
       case LSN_DONE:
@@ -192,8 +155,6 @@ void pTcpLsn(
         }
         break;
     }
-    //  }
-    // }
   }
 }
 
@@ -510,17 +471,15 @@ void pTcpRDp(
     cached_tcp_rx_triple = UNUSED_TABLE_ENTRY_VALUE;
     cached_src_id = INVALID_MRT_VALUE;
     cache_init = false;
-  } else
-  {
-
-    if(!sConfigUpdate.empty())
+  } else if(!sConfigUpdate.empty())
     {
       NalConfigUpdate ca = sConfigUpdate.read();
       if(ca.config_addr == NAL_CONFIG_OWN_RANK)
       {
-        own_rank = ca.update_value;
+        own_rank = (NodeId) ca.update_value;
+        cache_init = false;
       }
-    }
+    } else {
 
 
     //  if(*detected_cache_invalidation || !*nts_ready_and_enabled)
