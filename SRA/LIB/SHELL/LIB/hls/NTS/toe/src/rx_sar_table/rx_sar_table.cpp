@@ -139,7 +139,6 @@ void rx_sar_table(
 
             if (rxeQry.init) {
                 RX_SAR_TABLE[rxeQry.sessionID].appd = rxeQry.rcvd;
-                RX_SAR_TABLE[rxeQry.sessionID].ooo  = FLAG_INO;
             }
         }
         else {
