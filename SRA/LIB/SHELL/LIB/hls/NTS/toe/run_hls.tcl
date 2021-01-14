@@ -148,6 +148,7 @@ if { $hlsCSim} {
     csim_design -argv "0 ../../../../test/testVectors/siIPRX_SynAckPkt.dat"
     csim_design -argv "0 ../../../../test/testVectors/siIPRX_TcpDuplicate.dat"
     csim_design -argv "0 ../../../../test/testVectors/siIPRX_TcpOutOfOrder1.dat"
+    csim_design -argv "0 ../../../../test/testVectors/siIPRX_TcpOutOfOrder2.dat"
 
     csim_design -argv "1 ../../../../test/testVectors/siTAIF_OneSeg.dat"
     csim_design -argv "1 ../../../../test/testVectors/siTAIF_TwoSeg.dat"
