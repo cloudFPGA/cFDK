@@ -52,7 +52,7 @@ using namespace std;
 #define TRACE_Tal    1 << 11
 #define TRACE_TXMEM  1 << 12
 #define TRACE_ALL    0xFFFF
-#define DEBUG_LEVEL (TRACE_OFF)
+#define DEBUG_LEVEL (TRACE_RXMEM)
 
 
 /*******************************************************************************
@@ -505,7 +505,7 @@ void pEmulateTxBufMem(
  * @brief Parse the input test file and set the global parameters of the TB.
  *
  * @param[in]  callerName   The name of the caller process (e.g. "TB/IPRX").
- * @param[in]  startupDelay Tthe time it takes for TOE to be ready.
+ * @param[in]  startupDelay The time it takes for TOE to be ready.
  * @param[in]  inputFile    A ref to the input file to parse.
  *
  * @details:
@@ -537,7 +537,7 @@ bool setGlobalParameters(const char *callerName, unsigned int startupDelay, ifst
         }
         else if (stringVector[0].length() == 1) {
             // By convention, a global parameter must start with a single 'G' character.
-            if ((stringVector[0] == "G") && (stringVector[1] == "PARAM")) {
+            if ((stringVector[0] == "G") and (stringVector[1] == "PARAM")) {
                 if (stringVector[2] == "SimCycles") {
                     // The test vector file is specifying a minimum number of simulation cycles.
                     int noSimCycles = atoi(stringVector[3].c_str());
@@ -597,6 +597,16 @@ bool setGlobalParameters(const char *callerName, unsigned int startupDelay, ifst
                     gHostLsnPort = tcpPort;
                     printInfo(myName, "Redefining the default HOST listen port to be: \n");
                     printTcpPort(myName, gHostLsnPort);
+                }
+                else if (stringVector[2] == "SortTaifGold") {
+                    if (stringVector[3] == "true") {
+                        gSortTaifGold = true;
+                        printInfo(callerName, "Requesting the 'soTAIF.gold' file to be sorted.\n");
+                    }
+                    else {
+                        gSortTaifGold = false;
+                        printInfo(callerName, "Disabling the sorting of the 'soTAIF.gold' file.\n");
+                    }
                 }
                 else if (stringVector[2] == "FpgaServerSocket") {  // DEPRECATED
                     printFatal(myName, "The global parameter \'FpgaServerSockett\' is not supported anymore.\n\tPLEASE UPDATE YOUR TEST VECTOR FILE ACCORDINGLY.\n");
@@ -1221,7 +1231,7 @@ bool pIPTX_Parse(
         ipTxPacket.printHdr(myName);
     }
 
-    if (ipTxPacket.isSYN() && !ipTxPacket.isACK()) {
+    if (ipTxPacket.isSYN() and !ipTxPacket.isACK()) {
         //------------------------------------------------------
         // This is a SYN segment. Reply with a SYN+ACK packet.
         //------------------------------------------------------
@@ -1246,7 +1256,7 @@ bool pIPTX_Parse(
         // Add the created SYN+ACK packet to the ipRxPacketizer
         ipRxPacketizer.push_back(synAckPacket);
     }
-    else if (ipTxPacket.isFIN() && !ipTxPacket.isACK()) {
+    else if (ipTxPacket.isFIN() and !ipTxPacket.isACK()) {
         //------------------------------------------------------
         // This is a FIN segment. Close the connection.
         //------------------------------------------------------
@@ -1283,19 +1293,19 @@ bool pIPTX_Parse(
                                      ipTxPacket.getTcpDestinationPort());
         SocketPair sockPair(dstSock, srcSock);
 
-        if (ipTxPacket.isFIN() && !ipTxPacket.isSYN()) {
+        if (ipTxPacket.isFIN() and !ipTxPacket.isSYN()) {
             // The FIN bit is also set
             nextAckNum++;  // A FIN consumes 1 sequence #
             if (DEBUG_LEVEL & TRACE_IPTX)
                printInfo(myName, "Got a FIN+ACK from TOE.\n");
         }
-        else if (ipTxPacket.isSYN() && !ipTxPacket.isFIN()) {
+        else if (ipTxPacket.isSYN() and !ipTxPacket.isFIN()) {
             // The SYN bit is also set
             nextAckNum++;  // A SYN consumes 1 sequence #
             if (DEBUG_LEVEL & TRACE_IPTX)
                 printInfo(myName, "Got a SYN+ACK from TOE.\n");
         }
-        else if (ipTxPacket.isFIN() && ipTxPacket.isSYN()) {
+        else if (ipTxPacket.isFIN() and ipTxPacket.isSYN()) {
              printError(myName, "Got a SYN+FIN+ACK from TOE.\n");
              // [FIXME - MUST CREATE AND INCREMENT A GLOBAL ERROR COUNTER]
         }
@@ -1330,7 +1340,7 @@ bool pIPTX_Parse(
                 }
             }
         } // End of: isFIN
-        if (ip4PktLen > 0 && !isFinAck) {
+        if (ip4PktLen > 0 and !isFinAck) {
             //--------------------------------------------------------
             // ACK segment contains more data and is not a FIN+ACK.
             // Reply with an empty ACK packet.
@@ -1875,7 +1885,7 @@ void pTAIF_Recv(
             }
             break;
         case ECHO_MODE: // Forward incoming data to the TcpAppSend process (TAs)
-            if (!siTOE_Data.empty() && !soTAs_Data.full()) {
+            if (!siTOE_Data.empty() and !soTAs_Data.full()) {
                 siTOE_Data.read(currChunk);
                 soTAs_Data.write(currChunk);
                 appTxBytCntr += writeAxisAppToFile(currChunk, ofTAIF_Data);
@@ -2801,16 +2811,38 @@ int main(int argc, char *argv[]) {
         if (mode != ECHO_MODE) {
             printInfo(THIS_NAME, "This testbench was executed in mode \'%c\' with siIPRX file = %s.\n", mode, argv[2]);
         }
-        int appTxCompare = system(("diff --brief -w " + std::string(ofTAIF_DataName) + " " + std::string(ofTAIF_GoldName) + " ").c_str());
-        if (appTxCompare != 0) {
-            printError(THIS_NAME, "File \"%s\" differs from file \"%s\" \n", ofTAIF_DataName, ofTAIF_GoldName);
-            nrErr++;
-            if (tcpBytCntr_IPRX_TOE != tcpBytCnt_TOE_APP) {
-                printError(THIS_NAME, "The number of TCP bytes received by TOE on its IP interface (%d) does not match the number TCP bytes forwarded by TOE to the application over its TAIF interface (%d). \n", tcpBytCntr_IPRX_TOE, tcpBytCnt_TOE_APP);
+        if (gSortTaifGold) {
+            //-- Sort and merge the TAIF gold file before comparison
+            string sortedTAIF_GoldName = std::string(ofTAIF_GoldName) + ".sorted";
+            int rc = system(("sort " + std::string(ofTAIF_GoldName) + " > " +
+                                       std::string(sortedTAIF_GoldName)).c_str());
+            if (rc != 0) {
+                printFatal(THIS_NAME, "Failed to sort output file \"%s\". \n", ofTAIF_GoldName);
+            }
+            string mergedTAIF_GoldName = std::string(sortedTAIF_GoldName) + ".merged";
+            string mergedTAIF_StrmName = std::string(ofTAIF_DataName) + ".merged";
+            int mergeCmd1 = system(("paste -sd \"\" "+ std::string(sortedTAIF_GoldName) + " > " + mergedTAIF_GoldName + " ").c_str());
+            int mergeCmd2 = system(("paste -sd \"\" "+ std::string(ofTAIF_DataName)     + " > " + mergedTAIF_StrmName + " ").c_str());
+            int ooo_TcpCompare = system(("diff --brief -w " + mergedTAIF_GoldName + " " + mergedTAIF_StrmName + " ").c_str());
+            if (ooo_TcpCompare != 0) {
+                printError(THIS_NAME, "File \"%s\" differs from file \"%s\" \n", mergedTAIF_StrmName.c_str(), mergedTAIF_GoldName.c_str());
                 nrErr++;
             }
         }
-        if ((opnSessionCount == 0) && (pktCounter_IPRX_TOE > 0)) {
+        else {
+            //-- Default checkers
+            int appTxCompare = system(("diff --brief -w " + std::string(ofTAIF_DataName) + " "
+                                                          + std::string(ofTAIF_GoldName) + " ").c_str());
+            if (appTxCompare != 0) {
+                printError(THIS_NAME, "File \"%s\" differs from file \"%s\" \n", ofTAIF_DataName, ofTAIF_GoldName);
+                nrErr++;
+                if (tcpBytCntr_IPRX_TOE != tcpBytCnt_TOE_APP) {
+                    printError(THIS_NAME, "The number of TCP bytes received by TOE on its IP interface (%d) does not match the number TCP bytes forwarded by TOE to the application over its TAIF interface (%d). \n", tcpBytCntr_IPRX_TOE, tcpBytCnt_TOE_APP);
+                    nrErr++;
+                }
+            }
+        }
+        if ((opnSessionCount == 0) and (pktCounter_IPRX_TOE > 0)) {
             printWarn(THIS_NAME, "No session was opened by the TOE during this run. Please double check!!!\n");
             nrErr++;
         }

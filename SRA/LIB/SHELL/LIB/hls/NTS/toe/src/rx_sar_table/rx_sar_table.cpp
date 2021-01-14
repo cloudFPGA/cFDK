@@ -76,9 +76,9 @@ using namespace hls;
  *   - 'appd' holds a pointer to the next byte ready to be read (.i.e, consumed)
  *            by the application layer.
  *
- *            appd                                    rcvd
- *             |                                       |
- *            \|/                                     \|/
+ *            appd        rcvd           oooTail             oooHead
+ *             |           |               |                   |
+ *            \|/         \|/             \|/                 \|/
  *     --+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+--
  *       |269|270|271|272|273|274|275|276|277|278|279|280|281|282|283|284|
  *     --+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+--
@@ -139,6 +139,7 @@ void rx_sar_table(
 
             if (rxeQry.init) {
                 RX_SAR_TABLE[rxeQry.sessionID].appd = rxeQry.rcvd;
+                RX_SAR_TABLE[rxeQry.sessionID].ooo  = FLAG_INO;
             }
         }
         else {

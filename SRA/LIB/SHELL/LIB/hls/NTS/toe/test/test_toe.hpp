@@ -30,6 +30,7 @@
 #ifndef _TEST_TOE_H_
 #define _TEST_TOE_H_
 
+#include <cstdio>
 #include <iostream>
 #include <fstream>
 #include <map>
@@ -115,6 +116,7 @@ TcpPort         gFpgaLsnPort  = DEFAULT_FPGA_LSN_PORT;  // TCP  listen port
 TcpPort         gFpgaSndPort  = TOE_FIRST_EPHEMERAL_PORT_NUM; // TCP source port
 Ip4Addr         gHostIp4Addr  = DEFAULT_HOST_IP4_ADDR;  // IPv4 address (in NETWORK BYTE ORDER)
 TcpPort         gHostLsnPort  = DEFAULT_HOST_LSN_PORT;  // TCP  listen port
+bool            gSortTaifGold = false;                  // Do not sort soTAIF.gold file
 
 bool            gTest_RcvdIp4Packet  = true; // Check the received IPv4 packet
 bool            gTest_RcvdIp4TotLen  = true; // Check the received IPv4-Total-Length field

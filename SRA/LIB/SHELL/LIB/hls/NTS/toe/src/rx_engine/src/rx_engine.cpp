@@ -1532,7 +1532,8 @@ void pFiniteStateMachine(
                             // Send memory write command
                             soMwr_WrCmd.write(DmCmd(memSegAddr, fsm_Meta.meta.length));
                             // Send Rx data notify to [APP]
-                            soRan_RxNotif.write(TcpAppNotif(fsm_Meta.sessionId, (rxSar.oooHead - fsm_Meta.meta.seqNumb)(TOE_WINDOW_BITS-1, 0),
+                            //OBSOLETE_20210113 soRan_RxNotif.write(TcpAppNotif(fsm_Meta.sessionId, (rxSar.oooHead - fsm_Meta.meta.seqNumb)(TOE_WINDOW_BITS-1, 0),
+                            soRan_RxNotif.write(TcpAppNotif(fsm_Meta.sessionId, (rxSar.oooHead - rxSar.rcvd),
                                                             fsm_Meta.ip4SrcAddr, fsm_Meta.tcpSrcPort,
                                                             fsm_Meta.tcpDstPort));
                             // Send keep command
@@ -1611,10 +1612,10 @@ void pFiniteStateMachine(
             if (fsm_fsmState == FSM_LOAD) {
                 siSTt_StateRep.read(tcpState);
                 siRSt_RxSarRep.read(rxSar);
-                if (tcpState == CLOSED || tcpState == SYN_SENT) {
-                    // Actually this is LISTEN || SYN_SENT
-                    // Initialize rxSar, SEQ + phantom byte, last '1' for makes sure appd is initialized
-                    soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId, fsm_Meta.meta.seqNumb + 1, QUERY_WR, QUERY_INIT));
+                if (tcpState == CLOSED or tcpState == SYN_SENT) {
+                    // Initialize RxSar entry
+                    soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId, fsm_Meta.meta.seqNumb+1,
+                                                       QUERY_WR, QUERY_INIT));
                     // Initialize receive window ([TODO - maybe include count check])
                     soTSt_TxSarQry.write((RXeTxSarQuery(fsm_Meta.sessionId, 0, fsm_Meta.meta.winSize, txSar.cong_window, 0, false)));
                     // Set SYN_ACK event
@@ -1658,9 +1659,9 @@ void pFiniteStateMachine(
                 TimerCmd timerCmd = (fsm_Meta.meta.ackNumb == txSar.prevUnak) ? STOP_TIMER : LOAD_TIMER;
                 soTIm_ReTxTimerCmd.write(RXeReTransTimerCmd(fsm_Meta.sessionId, timerCmd));
                 if ( (tcpState == SYN_SENT) && (fsm_Meta.meta.ackNumb == txSar.prevUnak) ) { // && !mh_lup.created)
-                    // Initialize rx_sar, SEQ + phantom byte, last '1' for appd init
-                    soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId,
-                                                       fsm_Meta.meta.seqNumb + 1, QUERY_WR, QUERY_INIT));
+                    // Initialize RxSar entry
+                    soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId, fsm_Meta.meta.seqNumb+1,
+                                                       QUERY_WR, QUERY_INIT));
                     soTSt_TxSarQry.write(RXeTxSarQuery(fsm_Meta.sessionId,
                                                        fsm_Meta.meta.ackNumb,
                                                        fsm_Meta.meta.winSize,
@@ -1688,7 +1689,7 @@ void pFiniteStateMachine(
             //--------------------------------------
             //-- FIN (_ACK)
             //--------------------------------------
-            if (DEBUG_LEVEL & TRACE_FSM) { printInfo(myName, "Entering '***_ACK' processing.\n"); }
+            if (DEBUG_LEVEL & TRACE_FSM) { printInfo(myName, "Entering 'FIN_ACK' processing.\n"); }
             if (fsm_fsmState == FSM_LOAD) {
                 siSTt_StateRep.read(tcpState);
                 siRSt_RxSarRep.read(rxSar);
@@ -1696,15 +1697,13 @@ void pFiniteStateMachine(
                 TimerCmd timerCmd = (fsm_Meta.meta.ackNumb == txSar.prevUnak) ? STOP_TIMER : LOAD_TIMER;
                 soTIm_ReTxTimerCmd.write(RXeReTransTimerCmd(fsm_Meta.sessionId, timerCmd));
                 // Check state and if FIN in order, Current out of order FINs are not accepted
-                if ( (tcpState == ESTABLISHED || tcpState == FIN_WAIT_1 ||
-                      tcpState == FIN_WAIT_2) && (rxSar.rcvd == fsm_Meta.meta.seqNumb) ) {
+                if ( (tcpState == ESTABLISHED or  tcpState == FIN_WAIT_1 or tcpState == FIN_WAIT_2) and (rxSar.rcvd == fsm_Meta.meta.seqNumb) ) {
                     soTSt_TxSarQry.write((RXeTxSarQuery(fsm_Meta.sessionId,
                                           fsm_Meta.meta.ackNumb, fsm_Meta.meta.winSize,
                                           txSar.cong_window, txSar.count,
                                           ~QUERY_FAST_RETRANSMIT))); //TODO include count check
                     // +1 for phantom byte, there might be data too
-                    soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId,
-                                         fsm_Meta.meta.seqNumb+fsm_Meta.meta.length+1,
+                    soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId, fsm_Meta.meta.seqNumb+fsm_Meta.meta.length+1,
                                          QUERY_WR)); // diff to ACK
                     // Clear the probe timer
                     soTIm_ClearProbeTimer.write(fsm_Meta.sessionId);

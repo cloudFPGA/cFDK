@@ -345,16 +345,17 @@ class RXeRxSarQuery {
     RXeRxSarQuery(SessionId id) :
         sessionID(id), rcvd(0),    ooo(false), oooHead(0), oooTail(0), write(QUERY_RD), init(0) {}
     RXeRxSarQuery(SessionId id, RdWrBit wrBit) :
-        sessionID(id), rcvd(0),    ooo(false), oooHead(0), oooTail(0), write(QUERY_RD), init(0) {}
-    // Write query - In order received
+        sessionID(id), rcvd(0),    ooo(FLAG_INO), oooHead(0), oooTail(0), write(QUERY_RD), init(0) {}
+    // Write query - When in order processing
     RXeRxSarQuery(SessionId id, RxSeqNum rcvd, RdWrBit wrBit) :
-        sessionID(id), rcvd(rcvd), ooo(false), oooHead(0), oooTail(0), write(QUERY_WR), init(0) {}
-    // Write query - Out of order received
-    RXeRxSarQuery(SessionId id, RxSeqNum rcvd, FlagBool ooo, RxSeqNum oooHead, RxSeqNum oooTail, RdWrBit wrBit) :
-        sessionID(id), rcvd(rcvd), ooo(true), oooHead(oooHead), oooTail(oooTail), write(QUERY_WR), init(0) {}
+        sessionID(id), rcvd(rcvd), ooo(FLAG_INO), oooHead(0), oooTail(0), write(QUERY_WR), init(0) {}
     // Init query
     RXeRxSarQuery(SessionId id, RxSeqNum rcvd, RdWrBit wrBit, CmdBit iniBit) :
-        sessionID(id), rcvd(rcvd), ooo(false), oooHead(0), oooTail(0), write(QUERY_WR), init(CMD_INIT) {}
+        sessionID(id), rcvd(rcvd), ooo(FLAG_INO), oooHead(0), oooTail(0), write(QUERY_WR), init(CMD_INIT) {}
+    // Write query - When in out-of-order processing
+    RXeRxSarQuery(SessionId id, RxSeqNum rcvd, FlagBool ooo, RxSeqNum oooHead, RxSeqNum oooTail, RdWrBit wrBit) :
+        sessionID(id), rcvd(rcvd), ooo(ooo), oooHead(oooHead), oooTail(oooTail), write(QUERY_WR), init(0) {}
+
 };
 
 //=========================================================
