@@ -138,14 +138,14 @@ void pTcpLsn(
           }
         } else if (watchDogTimer_plisten == 0 && !sTcpPortsOpenFeedback.full() )
         {
-            ap_uint<16> new_absolute_port = 0;
-            printError(myName, "Timeout: Server failed to listen on port %d %d (0x%4.4X).\n",
-                (int)  new_absolute_port, (int) new_absolute_port);
-            sTcpPortsOpenFeedback.write(false);
-            lsnFsmState = LSN_SEND_REQ;
-          } else {
-              watchDogTimer_plisten--;
-          }
+          ap_uint<16> new_absolute_port = 0;
+          printError(myName, "Timeout: Server failed to listen on port %d %d (0x%4.4X).\n",
+              (int)  new_absolute_port, (int) new_absolute_port);
+          sTcpPortsOpenFeedback.write(false);
+          lsnFsmState = LSN_SEND_REQ;
+        } else {
+          watchDogTimer_plisten--;
+        }
         break;
 
       case LSN_DONE:
@@ -247,7 +247,7 @@ void pTcpRRh(
     }
     if(!session_reinsert.empty())
     {
-    	session_reinsert.read();
+      session_reinsert.read();
     }
   } else {
 
@@ -267,25 +267,25 @@ void pTcpRRh(
             if(already_waiting)
             {
               //KeyValuePair<SessionId,TcpDatLen> new_KVp = KeyValuePair<SessionId,TcpDatLen>(
-            	//	  notif_pRrh.sessionID, notif_pRrh.tcpDatLen+waiting_length);
-            	sessionLength.update(notif_pRrh.sessionID, notif_pRrh.tcpDatLen + waiting_length);
-                printf("[TCP-RRH] adding %d to waiting sessions for session %d.\n",(int) notif_pRrh.tcpDatLen, (int) notif_pRrh.sessionID);
+              //    notif_pRrh.sessionID, notif_pRrh.tcpDatLen+waiting_length);
+              sessionLength.update(notif_pRrh.sessionID, notif_pRrh.tcpDatLen + waiting_length);
+              printf("[TCP-RRH] adding %d to waiting sessions for session %d.\n",(int) notif_pRrh.tcpDatLen, (int) notif_pRrh.sessionID);
 
             } else {
-            	 bool found_slot = sessionLength.insert(notif_pRrh.sessionID, notif_pRrh.tcpDatLen);
-            	 if(!found_slot)
-            	 {
-            	    //we have a problem...
-            	    //but shouldn't happen actually since we have the same size as the table in TOE...
-            	    printf("[TCP-RRH:PANIC] We don't have space left in the waiting table...\n");
-            	    break;
-            	 } else {
-            		 NalNewTableEntry ne_struct = NalNewTableEntry(newTriple(notif_pRrh.ip4SrcAddr, notif_pRrh.tcpSrcPort, notif_pRrh.tcpDstPort),
-                         notif_pRrh.sessionID);
-                     sAddNewTripple_TcpRrh.write(ne_struct);
-            		 waitingSessions.write(notif_pRrh.sessionID);
-                     printf("[TCP-RRH] adding %d with %d bytes as new waiting session.\n", (int) notif_pRrh.sessionID, (int) notif_pRrh.tcpDatLen);
-            	 }
+              bool found_slot = sessionLength.insert(notif_pRrh.sessionID, notif_pRrh.tcpDatLen);
+              if(!found_slot)
+              {
+                //we have a problem...
+                //but shouldn't happen actually since we have the same size as the table in TOE...
+                printf("[TCP-RRH:PANIC] We don't have space left in the waiting table...\n");
+                break;
+              } else {
+                NalNewTableEntry ne_struct = NalNewTableEntry(newTriple(notif_pRrh.ip4SrcAddr, notif_pRrh.tcpSrcPort, notif_pRrh.tcpDstPort),
+                    notif_pRrh.sessionID);
+                sAddNewTripple_TcpRrh.write(ne_struct);
+                waitingSessions.write(notif_pRrh.sessionID);
+                printf("[TCP-RRH] adding %d with %d bytes as new waiting session.\n", (int) notif_pRrh.sessionID, (int) notif_pRrh.tcpDatLen);
+              }
             }
 
             rrhFsmState = RRH_SEND_DREQ;
@@ -300,10 +300,10 @@ void pTcpRRh(
           }
         } else if(!session_reinsert.empty() && !waitingSessions.full())
         {
-        	waitingSessions.write(session_reinsert.read());
-        	rrhFsmState = RRH_SEND_DREQ;
+          waitingSessions.write(session_reinsert.read());
+          rrhFsmState = RRH_SEND_DREQ;
 
-    	} else if(!waitingSessions.empty())
+        } else if(!waitingSessions.empty())
         {
           rrhFsmState = RRH_SEND_DREQ;
         }
@@ -311,16 +311,16 @@ void pTcpRRh(
         //always
         if(read_request_watchDogTimer > 0)
         {
-        	//we are waiting here too
-        	read_request_watchDogTimer--;
+          //we are waiting here too
+          read_request_watchDogTimer--;
         }
         break;
       case RRH_SEND_DREQ:
         if((*piFMC_Tcp_data_FIFO_prog_full == 0 && *piFMC_Tcp_sessid_FIFO_prog_full == 0 )
             && *role_fifo_empty
             && !soTOE_DReq.full() && !sRDp_ReqNotif.full()
-			&& !waitingSessions.empty() && !session_reinsert.full()
-			&& read_request_watchDogTimer == 0
+            && !waitingSessions.empty() && !session_reinsert.full()
+            && read_request_watchDogTimer == 0
           )
         {
           SessionId found_ID = waitingSessions.read();
@@ -329,41 +329,41 @@ void pTcpRRh(
           bool found_smth = sessionLength.lookup(found_ID, found_length);
           if(!found_smth)
           {
-      	    //we have a problem...
-      	    //but shouldn't happen actually since the stream is filled by ourselve
-      	    printf("[TCP-RRH:PANIC] We received a sessionID that is not in the CAM...\n");
-      	    break;
+            //we have a problem...
+            //but shouldn't happen actually since the stream is filled by ourselve
+            printf("[TCP-RRH:PANIC] We received a sessionID that is not in the CAM...\n");
+            break;
           } else {
-        	  TcpDatLen requested_length = 0;
-        	  if(found_length > NAL_MAX_FIFO_DEPTHS_BYTES)
-        	  {
-        		  requested_length = NAL_MAX_FIFO_DEPTHS_BYTES;
-        		  sessionLength.update(found_ID, found_length - NAL_MAX_FIFO_DEPTHS_BYTES);
-        		  session_reinsert.write(found_ID);
-        	  } else {
-        		  requested_length = found_length;
-        		  sessionLength.deleteEntry(found_ID);
-        	  }
-        	  //both cases
-    		  printf("[TCP-RRH] requesting data for #%d with length %d\n", (int) found_ID, (int) requested_length);
-              TcpAppRdReq new_req = TcpAppRdReq(found_ID, requested_length);
-              soTOE_DReq.write(new_req);
-              sRDp_ReqNotif.write(new_req);
+            TcpDatLen requested_length = 0;
+            if(found_length > NAL_MAX_FIFO_DEPTHS_BYTES)
+            {
+              requested_length = NAL_MAX_FIFO_DEPTHS_BYTES;
+              sessionLength.update(found_ID, found_length - NAL_MAX_FIFO_DEPTHS_BYTES);
+              session_reinsert.write(found_ID);
+            } else {
+              requested_length = found_length;
+              sessionLength.deleteEntry(found_ID);
+            }
+            //both cases
+            printf("[TCP-RRH] requesting data for #%d with length %d\n", (int) found_ID, (int) requested_length);
+            TcpAppRdReq new_req = TcpAppRdReq(found_ID, requested_length);
+            soTOE_DReq.write(new_req);
+            sRDp_ReqNotif.write(new_req);
 
-              //add delay cnt to not request sessions after sessions...
-//#ifndef __SYNTHESIS__
-//            read_request_watchDogTimer = 10;
-//#else
-//            read_request_watchDogTimer = 100;
-//#endif
-              //we need this delay so that the FIFO fillstands can be updated...
-              read_request_watchDogTimer = (requested_length/(8*2)) + 1; //8 -> bytes/word, 2 -> by then, the fillstands should be up-to-date
+            //add delay cnt to not request sessions after sessions...
+            //#ifndef __SYNTHESIS__
+            //            read_request_watchDogTimer = 10;
+            //#else
+            //            read_request_watchDogTimer = 100;
+            //#endif
+            //we need this delay so that the FIFO fillstands can be updated...
+            read_request_watchDogTimer = (requested_length/(8*2)) + 1; //8 -> bytes/word, 2 -> by then, the fillstands should be up-to-date
 
           }
         } else if(read_request_watchDogTimer > 0)
         {
-        	read_request_watchDogTimer--;
-        	 printf("[TCP-RRH] Waiting for watchDog (%d)\n.", read_request_watchDogTimer.to_uint());
+          read_request_watchDogTimer--;
+          printf("[TCP-RRH] Waiting for watchDog (%d)\n.", read_request_watchDogTimer.to_uint());
         }
         //always
         rrhFsmState = RRH_WAIT_NOTIF;
@@ -472,14 +472,14 @@ void pTcpRDp(
     cached_src_id = INVALID_MRT_VALUE;
     cache_init = false;
   } else if(!sConfigUpdate.empty())
+  {
+    NalConfigUpdate ca = sConfigUpdate.read();
+    if(ca.config_addr == NAL_CONFIG_OWN_RANK)
     {
-      NalConfigUpdate ca = sConfigUpdate.read();
-      if(ca.config_addr == NAL_CONFIG_OWN_RANK)
-      {
-        own_rank = (NodeId) ca.update_value;
-        cache_init = false;
-      }
-    } else {
+      own_rank = (NodeId) ca.update_value;
+      cache_init = false;
+    }
+  } else {
 
 
     //  if(*detected_cache_invalidation || !*nts_ready_and_enabled)
@@ -1098,9 +1098,9 @@ void pTcpRDp(
                   break;
                 }
               } else {
-              break;
-               }
-             //NO break;
+                break;
+              }
+              //NO break;
             case WRP_W8FORREQS_2:
               if(!cache_init )
               {

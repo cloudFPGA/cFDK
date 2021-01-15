@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*******************************************************************************/
+ *******************************************************************************/
 
 //  *
 //  *                       cloudFPGA
@@ -51,20 +51,20 @@ using namespace std;
  *****************************************************************************/
 void printAxiWord(const char *callerName, AxisRaw chunk)
 {
-    printInfo(callerName, "AxiWord = {D=0x%16.16lX, K=0x%2.2X, L=%d} \n",
-              chunk.getTData().to_ulong(), chunk.getTKeep().to_int(), chunk.getTLast().to_int());
+  printInfo(callerName, "AxiWord = {D=0x%16.16lX, K=0x%2.2X, L=%d} \n",
+      chunk.getTData().to_ulong(), chunk.getTKeep().to_int(), chunk.getTLast().to_int());
 }
 
 void printAxiWord(const char *callerName, NetworkWord chunk)
 {
-    printInfo(callerName, "AxiWord = {D=0x%16.16lX, K=0x%2.2X, L=%d} \n",
-              chunk.tdata.to_ulong(), chunk.tkeep.to_int(), chunk.tlast.to_int());
+  printInfo(callerName, "AxiWord = {D=0x%16.16lX, K=0x%2.2X, L=%d} \n",
+      chunk.tdata.to_ulong(), chunk.tkeep.to_int(), chunk.tlast.to_int());
 }
 
 void printAxiWord(const char *callerName, Axis<64> chunk)
 {
-    printInfo(callerName, "AxiWord = {D=0x%16.16lX, K=0x%2.2X, L=%d} \n",
-              chunk.getTData().to_ulong(), chunk.getTKeep().to_int(), chunk.getTLast().to_int());
+  printInfo(callerName, "AxiWord = {D=0x%16.16lX, K=0x%2.2X, L=%d} \n",
+      chunk.getTData().to_ulong(), chunk.getTKeep().to_int(), chunk.getTLast().to_int());
 }
 
 

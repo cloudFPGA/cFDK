@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*******************************************************************************/
+ *******************************************************************************/
 
 //  *
 //  *                       cloudFPGA
@@ -47,7 +47,7 @@ void convertAxisToNtsWidth(stream<Axis<8> > &small, AxisRaw &out)
   tKeep newk = 0x0;
 
   for(int i = 0; i < 8; i++)
-  //for(int i = 7; i >=0 ; i--)
+    //for(int i = 7; i >=0 ; i--)
   {
     if(!small.empty())
     {
@@ -97,7 +97,7 @@ void convertAxisToMpiWidth(Axis<64> big, stream<Axis<8> > &out)
     //out.full? 
     Axis<8> tmp = Axis<8>(); 
     if(i == positionOfTlast)
-    //if(i == 0)
+      //if(i == 0)
     {
       //only possible position...
       tmp.setTLast(big.getTLast());
@@ -152,10 +152,10 @@ void integerToBigEndian(UINT32 n, UINT8 *bytes)
  * @return a 16-bit unsigned data.
  *****************************************************************************/
 /* MOVED to nts_utils.hpp
-ap_uint<16> byteSwap16(ap_uint<16> inputVector) {
-    return (inputVector.range(7,0), inputVector(15, 8));
-}
-*/
+   ap_uint<16> byteSwap16(ap_uint<16> inputVector) {
+   return (inputVector.range(7,0), inputVector(15, 8));
+   }
+   */
 
 /*****************************************************************************
  * @brief Swap the four bytes of a double-word (.i.e, 32 bits).
@@ -165,29 +165,29 @@ ap_uint<16> byteSwap16(ap_uint<16> inputVector) {
  * @return a 32-bit unsigned data.
  *****************************************************************************/
 /* MOVED to nts_utils.hpp
-ap_uint<32> byteSwap32(ap_uint<32> inputVector) {
-    return (inputVector.range( 7, 0), inputVector(15,  8),
-        inputVector.range(23,16), inputVector(31, 24));
-}
-*/
+   ap_uint<32> byteSwap32(ap_uint<32> inputVector) {
+   return (inputVector.range( 7, 0), inputVector(15,  8),
+   inputVector.range(23,16), inputVector(31, 24));
+   }
+   */
 
 /*****************************************************************************
  * @brief Returns the number of valid bytes in an AxiWord.
  * @param[in] The 'tkeep' field of the AxiWord.
  *****************************************************************************/
 ap_uint<4> keepToLen(ap_uint<8> keepValue) {
-    ap_uint<4> count = 0;
-    switch(keepValue){
-        case 0x01: count = 1; break;
-        case 0x03: count = 2; break;
-        case 0x07: count = 3; break;
-        case 0x0F: count = 4; break;
-        case 0x1F: count = 5; break;
-        case 0x3F: count = 6; break;
-        case 0x7F: count = 7; break;
-        case 0xFF: count = 8; break;
-    }
-    return count;
+  ap_uint<4> count = 0;
+  switch(keepValue){
+    case 0x01: count = 1; break;
+    case 0x03: count = 2; break;
+    case 0x07: count = 3; break;
+    case 0x0F: count = 4; break;
+    case 0x1F: count = 5; break;
+    case 0x3F: count = 6; break;
+    case 0x7F: count = 7; break;
+    case 0xFF: count = 8; break;
+  }
+  return count;
 }
 
 /*****************************************************************************
@@ -196,19 +196,19 @@ ap_uint<4> keepToLen(ap_uint<8> keepValue) {
  * @param[in] The number of valid bytes in an AxiWord.
  *****************************************************************************/
 ap_uint<8> lenToKeep(ap_uint<4> noValidBytes) {
-    ap_uint<8> keep = 0;
+  ap_uint<8> keep = 0;
 
-    switch(noValidBytes) {
-        case 1: keep = 0x01; break;
-        case 2: keep = 0x03; break;
-        case 3: keep = 0x07; break;
-        case 4: keep = 0x0F; break;
-        case 5: keep = 0x1F; break;
-        case 6: keep = 0x3F; break;
-        case 7: keep = 0x7F; break;
-        case 8: keep = 0xFF; break;
-    }
-    return keep;
+  switch(noValidBytes) {
+    case 1: keep = 0x01; break;
+    case 2: keep = 0x03; break;
+    case 3: keep = 0x07; break;
+    case 4: keep = 0x0F; break;
+    case 5: keep = 0x1F; break;
+    case 6: keep = 0x3F; break;
+    case 7: keep = 0x7F; break;
+    case 8: keep = 0xFF; break;
+  }
+  return keep;
 }
 
 

@@ -46,18 +46,18 @@
 using namespace hls;
 
 void pUdpTX(
-		stream<NetworkWord>         &siUdp_data,
-		stream<NetworkMetaStream>   &siUdp_meta,
-	    stream<UdpAppData>          &soUOE_Data,
-	    stream<UdpAppMeta>          &soUOE_Meta,
-	    stream<UdpAppDLen>          &soUOE_DLen,
-		stream<NodeId> 				&sGetIpReq_UdpTx,
-		stream<Ip4Addr> 			&sGetIpRep_UdpTx,
-		const ap_uint<32> 			*ipAddrBE,
-		const bool					*nts_ready_and_enabled,
-		const bool					*detected_cache_invalidation,
-		stream<NalEventNotif> 		&internal_event_fifo
-		);
+    stream<NetworkWord>         &siUdp_data,
+    stream<NetworkMetaStream>   &siUdp_meta,
+      stream<UdpAppData>          &soUOE_Data,
+      stream<UdpAppMeta>          &soUOE_Meta,
+      stream<UdpAppDLen>          &soUOE_DLen,
+    stream<NodeId>        &sGetIpReq_UdpTx,
+    stream<Ip4Addr>       &sGetIpRep_UdpTx,
+    const ap_uint<32>       *ipAddrBE,
+    const bool          *nts_ready_and_enabled,
+    const bool          *detected_cache_invalidation,
+    stream<NalEventNotif>     &internal_event_fifo
+    );
 
 
 void pUdpRx(
@@ -75,19 +75,19 @@ void pUdpRx(
 
 
 void pUdpLsn(
-	    stream<UdpPort>             &soUOE_LsnReq,
-	    stream<StsBool>             &siUOE_LsnRep,
-	    stream<UdpPort>       &sUdpPortsToOpen,
-	    stream<bool>        &sUdpPortsOpenFeedback,
-	    const bool                *nts_ready_and_enabled
-		);
+      stream<UdpPort>             &soUOE_LsnReq,
+      stream<StsBool>             &siUOE_LsnRep,
+      stream<UdpPort>       &sUdpPortsToOpen,
+      stream<bool>        &sUdpPortsOpenFeedback,
+      const bool                *nts_ready_and_enabled
+    );
 
 void pUdpCls(
-	    stream<UdpPort>             &soUOE_ClsReq,
-	    stream<StsBool>             &siUOE_ClsRep,
-		stream<UdpPort>				&sUdpPortsToClose,
-		const bool					*nts_ready_and_enabled
-		);
+      stream<UdpPort>             &soUOE_ClsReq,
+      stream<StsBool>             &siUOE_ClsRep,
+    stream<UdpPort>       &sUdpPortsToClose,
+    const bool          *nts_ready_and_enabled
+    );
 
 
 #endif

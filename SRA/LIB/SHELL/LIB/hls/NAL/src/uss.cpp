@@ -192,9 +192,9 @@ void pUdpTX(
 
       case FSM_FIRST_ACC:
         if (//!soUOE_Meta.full() //&& !soUOE_Data.full() &&
-			//!siUdp_data.empty()
-			//&&
-			!soUOE_DLen.full() )
+            //!siUdp_data.empty()
+            //&&
+            !soUOE_DLen.full() )
         {
           if(dst_ip_addr == 0)
           {
@@ -204,12 +204,12 @@ void pUdpTX(
             evsStreams[1].write(new_ev_not);
             //SINK packet
             fsmStateTX_Udp = FSM_DROP_PACKET;
-//            if (first_word.getTLast() == 1)
-//            {
-//              fsmStateTX_Udp = FSM_W8FORMETA;
-//            } else {
-//              fsmStateTX_Udp = FSM_DROP_PACKET;
-//            }
+            //            if (first_word.getTLast() == 1)
+            //            {
+            //              fsmStateTX_Udp = FSM_W8FORMETA;
+            //            } else {
+            //              fsmStateTX_Udp = FSM_DROP_PACKET;
+            //            }
             break;
           }
           //last_tx_node_id = dst_rank;
@@ -237,21 +237,21 @@ void pUdpTX(
           //internal_event_fifo.write(new_ev_not);
           evsStreams[5].write(new_ev_not);
 
-//          //read first word
-//          UdpAppData first_word = siUdp_data.read();
-//          udpTX_current_packet_length += extractByteCnt((Axis<64>) first_word);
-//          if(udpTX_packet_length > 0 && udpTX_current_packet_length >= udpTX_packet_length)
-//          {
-//                      first_word.setTLast(1);
-//          }
-//          soUOE_Data.write(first_word);
-//
-//          if (first_word.getTLast() == 1)
-//          {
-//            fsmStateTX_Udp = FSM_W8FORMETA;
-//          } else {
-//            fsmStateTX_Udp = FSM_ACC;
-//          }
+          //          //read first word
+          //          UdpAppData first_word = siUdp_data.read();
+          //          udpTX_current_packet_length += extractByteCnt((Axis<64>) first_word);
+          //          if(udpTX_packet_length > 0 && udpTX_current_packet_length >= udpTX_packet_length)
+          //          {
+          //                      first_word.setTLast(1);
+          //          }
+          //          soUOE_Data.write(first_word);
+          //
+          //          if (first_word.getTLast() == 1)
+          //          {
+          //            fsmStateTX_Udp = FSM_W8FORMETA;
+          //          } else {
+          //            fsmStateTX_Udp = FSM_ACC;
+          //          }
           fsmStateTX_Udp = FSM_ACC;
         }
         break;
@@ -272,26 +272,26 @@ void pUdpTX(
           // Until LAST bit is set
           if (aWord.getTLast() == 1)
           {
-        	  if(!meta_written)
-        	  {
-        		  fsmStateTX_Udp = FSM_WRITE_META;
-        	  } else {
-        		  fsmStateTX_Udp = FSM_W8FORMETA;
-        	  }
+            if(!meta_written)
+            {
+              fsmStateTX_Udp = FSM_WRITE_META;
+            } else {
+              fsmStateTX_Udp = FSM_W8FORMETA;
+            }
           }
         }
         //NO break;
       case FSM_WRITE_META:
-    	  //split due to timing...
-    	  if(!soUOE_Meta.full() && !meta_written)
-    	  {
-    		  soUOE_Meta.write(txMeta);
-    		  meta_written = true;
-    		  if(fsmStateTX_Udp == FSM_WRITE_META)
-    		  {
-    			  fsmStateTX_Udp = FSM_W8FORMETA;
-    		  }
-    	  }
+        //split due to timing...
+        if(!soUOE_Meta.full() && !meta_written)
+        {
+          soUOE_Meta.write(txMeta);
+          meta_written = true;
+          if(fsmStateTX_Udp == FSM_WRITE_META)
+          {
+            fsmStateTX_Udp = FSM_W8FORMETA;
+          }
+        }
         break;
 
       case FSM_DROP_PACKET:
@@ -301,9 +301,9 @@ void pUdpTX(
           udpTX_current_packet_length += extractByteCnt((Axis<64>) aWord);
 
           if( (udpTX_packet_length > 0 && udpTX_current_packet_length >= udpTX_packet_length)
-             || aWord.getTLast() == 1 )
+              || aWord.getTLast() == 1 )
           {
-              fsmStateTX_Udp = FSM_W8FORMETA;
+            fsmStateTX_Udp = FSM_W8FORMETA;
           }
         }
         break;
@@ -325,116 +325,116 @@ void pUdpTX(
 }
 
 void pUdpLsn(
-	    stream<UdpPort>             &soUOE_LsnReq,
-	    stream<StsBool>             &siUOE_LsnRep,
-	    stream<UdpPort>       &sUdpPortsToOpen,
-	    stream<bool>        &sUdpPortsOpenFeedback,
-	    const bool                *nts_ready_and_enabled
-		)
+    stream<UdpPort>             &soUOE_LsnReq,
+    stream<StsBool>             &siUOE_LsnRep,
+    stream<UdpPort>       &sUdpPortsToOpen,
+    stream<bool>        &sUdpPortsOpenFeedback,
+    const bool                *nts_ready_and_enabled
+    )
 {
-	  //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-	#pragma HLS INLINE off
-	#pragma HLS pipeline II=1
+  //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+#pragma HLS INLINE off
+#pragma HLS pipeline II=1
 
-	  char* myName  = concat3(THIS_NAME, "/", "Udp_LSn");
+  char* myName  = concat3(THIS_NAME, "/", "Udp_LSn");
 
-	  //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-	  static LsnFsmStates lsnFsmState = LSN_IDLE;
-	#ifdef __SYNTHESIS_
-	  static ap_uint<16>         startupDelay = 0x8000;
-	#else
-	  static ap_uint<16>         startupDelay = 10;
-	#endif
+  //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+  static LsnFsmStates lsnFsmState = LSN_IDLE;
+#ifdef __SYNTHESIS_
+  static ap_uint<16>         startupDelay = 0x8000;
+#else
+  static ap_uint<16>         startupDelay = 10;
+#endif
 
-	#pragma HLS RESET variable=lsnFsmState
-	#pragma HLS RESET variable=startupDelay
-	  //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-	  static ap_uint<8>   watchDogTimer_plisten = 0;
-	  ap_uint<16> new_absolute_port = 0;
-
-
-	  if(!*nts_ready_and_enabled)
-	  {
-	    lsnFsmState = LSN_IDLE;
-	    //return;
-	  } else {
+#pragma HLS RESET variable=lsnFsmState
+#pragma HLS RESET variable=startupDelay
+  //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+  static ap_uint<8>   watchDogTimer_plisten = 0;
+  ap_uint<16> new_absolute_port = 0;
 
 
-	    switch (lsnFsmState) {
+  if(!*nts_ready_and_enabled)
+  {
+    lsnFsmState = LSN_IDLE;
+    //return;
+  } else {
 
-	      case LSN_IDLE:
-	        if (startupDelay > 0)
-	        {
-	          startupDelay--;
-	        } else {
-	          //if(*need_tcp_port_req == true)
-	          if(!sUdpPortsToOpen.empty())
-	          {
-	            lsnFsmState = LSN_SEND_REQ;
-	          } else {
-	            lsnFsmState = LSN_DONE;
-	          }
-	        }
-	        break;
 
-	      case LSN_SEND_REQ: //we arrive here only if need_tcp_port_req == true
-	    	  if ( !soUOE_LsnReq.full() && !sUdpPortsToOpen.empty())
-	    	            {
-	    	              //ap_uint<16> new_absolute_port = NAL_RX_MIN_PORT + *new_relative_port_to_req_udp;
-	    	              UdpPort new_absolute_port = sUdpPortsToOpen.read();
-	    	              soUOE_LsnReq.write(new_absolute_port);
-	          if (DEBUG_LEVEL & TRACE_LSN) {
-	            printInfo(myName, "Requesting to listen on port #%d (0x%4.4X).\n",
-	                (int) new_absolute_port, (int) new_absolute_port);
-	#ifndef __SYNTHESIS__
-	            watchDogTimer_plisten = 10;
-	#else
-	            watchDogTimer_plisten = 100;
-	#endif
-	            lsnFsmState = LSN_WAIT_ACK;
-	          }
-	        }
-	        else {
-	          printWarn(myName, "Cannot send a listen port request to [UOE] because stream is full!\n");
-	        }
-	        break;
+    switch (lsnFsmState) {
 
-	      case LSN_WAIT_ACK:
-	        if (!siUOE_LsnRep.empty() && !sUdpPortsOpenFeedback.full())
-	        {
-	          bool    listenDone;
-	          siUOE_LsnRep.read(listenDone);
-	          if (listenDone) {
-	            printInfo(myName, "Received listen acknowledgment from [UOE].\n");
-	            lsnFsmState = LSN_DONE;
-	            sUdpPortsOpenFeedback.write(true);
-	          }
-	          else {
-	            printWarn(myName, "UOE denied listening on port %d (0x%4.4X).\n",
-	                (int) new_absolute_port, (int) new_absolute_port);
-	            sUdpPortsOpenFeedback.write(false);
-	            lsnFsmState = LSN_SEND_REQ;
-	          }
-	        } else if (watchDogTimer_plisten == 0 && !sUdpPortsOpenFeedback.full() )
-	        {
-	            ap_uint<16> new_absolute_port = 0;
-	            printError(myName, "Timeout: Server failed to listen on port %d %d (0x%4.4X).\n",
-	                (int)  new_absolute_port, (int) new_absolute_port);
-	            sUdpPortsOpenFeedback.write(false);
-	            lsnFsmState = LSN_SEND_REQ;
-	          } else {
-	  	        watchDogTimer_plisten--;
-	          }
-	        break;
+      case LSN_IDLE:
+        if (startupDelay > 0)
+        {
+          startupDelay--;
+        } else {
+          //if(*need_tcp_port_req == true)
+          if(!sUdpPortsToOpen.empty())
+          {
+            lsnFsmState = LSN_SEND_REQ;
+          } else {
+            lsnFsmState = LSN_DONE;
+          }
+        }
+        break;
 
-	      case LSN_DONE:
-	        if(!sUdpPortsToOpen.empty())
-	        {
-	          lsnFsmState = LSN_SEND_REQ;
-	        }
-	        break;
-	    }
-	  }
+      case LSN_SEND_REQ: //we arrive here only if need_tcp_port_req == true
+        if ( !soUOE_LsnReq.full() && !sUdpPortsToOpen.empty())
+        {
+          //ap_uint<16> new_absolute_port = NAL_RX_MIN_PORT + *new_relative_port_to_req_udp;
+          UdpPort new_absolute_port = sUdpPortsToOpen.read();
+          soUOE_LsnReq.write(new_absolute_port);
+          if (DEBUG_LEVEL & TRACE_LSN) {
+            printInfo(myName, "Requesting to listen on port #%d (0x%4.4X).\n",
+                (int) new_absolute_port, (int) new_absolute_port);
+#ifndef __SYNTHESIS__
+            watchDogTimer_plisten = 10;
+#else
+            watchDogTimer_plisten = 100;
+#endif
+            lsnFsmState = LSN_WAIT_ACK;
+          }
+        }
+        else {
+          printWarn(myName, "Cannot send a listen port request to [UOE] because stream is full!\n");
+        }
+        break;
+
+      case LSN_WAIT_ACK:
+        if (!siUOE_LsnRep.empty() && !sUdpPortsOpenFeedback.full())
+        {
+          bool    listenDone;
+          siUOE_LsnRep.read(listenDone);
+          if (listenDone) {
+            printInfo(myName, "Received listen acknowledgment from [UOE].\n");
+            lsnFsmState = LSN_DONE;
+            sUdpPortsOpenFeedback.write(true);
+          }
+          else {
+            printWarn(myName, "UOE denied listening on port %d (0x%4.4X).\n",
+                (int) new_absolute_port, (int) new_absolute_port);
+            sUdpPortsOpenFeedback.write(false);
+            lsnFsmState = LSN_SEND_REQ;
+          }
+        } else if (watchDogTimer_plisten == 0 && !sUdpPortsOpenFeedback.full() )
+        {
+          ap_uint<16> new_absolute_port = 0;
+          printError(myName, "Timeout: Server failed to listen on port %d %d (0x%4.4X).\n",
+              (int)  new_absolute_port, (int) new_absolute_port);
+          sUdpPortsOpenFeedback.write(false);
+          lsnFsmState = LSN_SEND_REQ;
+        } else {
+          watchDogTimer_plisten--;
+        }
+        break;
+
+      case LSN_DONE:
+        if(!sUdpPortsToOpen.empty())
+        {
+          lsnFsmState = LSN_SEND_REQ;
+        }
+        break;
+    }
+  }
 }
 
 
@@ -499,27 +499,27 @@ void pUdpRx(
     cached_udp_rx_ipaddr = 0;
     cache_init = false;
   } else if(!sConfigUpdate.empty())
+  {
+    NalConfigUpdate ca = sConfigUpdate.read();
+    if(ca.config_addr == NAL_CONFIG_OWN_RANK)
     {
-      NalConfigUpdate ca = sConfigUpdate.read();
-      if(ca.config_addr == NAL_CONFIG_OWN_RANK)
-      {
-        own_rank = (NodeId) ca.update_value;
-        cache_init = false;
-      }
-    } else {
+      own_rank = (NodeId) ca.update_value;
+      cache_init = false;
+    }
+  } else {
 
 
     switch(fsmStateRX_Udp) {
 
       default:
       case FSM_RESET:
-    	  fsmStateRX_Udp = FSM_W8FORMETA;
-    	  //NO break;
+        fsmStateRX_Udp = FSM_W8FORMETA;
+        //NO break;
       case FSM_W8FORMETA:
         // Wait until both the first data chunk and the first metadata are received from UDP
         if ( !siUOE_Meta.empty()
             //&& !soUdp_data.full() && !soUdp_meta.full()
-			&& !sGetNidReq_UdpRx.full())
+            && !sGetNidReq_UdpRx.full())
         {
           //ongoing_first_transaction = true;
           //extract src ip address
@@ -543,7 +543,7 @@ void pUdpRx(
             break;
           }
         }  else {
-        	break;
+          break;
         }
         //NO break;
 
@@ -568,56 +568,56 @@ void pUdpRx(
 
       case FSM_FIRST_ACC:
         //if( //!siUOE_Data.empty() && !soUdp_data.full() &&
-        //		!soUdp_meta.full())
+        //    !soUdp_meta.full())
         //{
-          if(src_id == ((NodeId) INVALID_MRT_VALUE))
-          {
-            //SINK packet
-            //node_id_missmatch_RX_cnt++;
-            new_ev_not = NalEventNotif(NID_MISS_RX, 1);
-            //internal_event_fifo.write(new_ev_not);
-            evsStreams[0].write(new_ev_not);
-            printf("[UDP-RX:ERROR]invalid src_id, packet will be dropped.\n");
-            //blocking write, because in the error case we value debug information
-            // more than bandwidth
-            fsmStateRX_Udp = FSM_DROP_PACKET;
-            cache_init = false;
-            break;
-          }
-          //status
-          //last_rx_node_id = src_id;
-          new_ev_not = NalEventNotif(LAST_RX_NID, src_id);
+        if(src_id == ((NodeId) INVALID_MRT_VALUE))
+        {
+          //SINK packet
+          //node_id_missmatch_RX_cnt++;
+          new_ev_not = NalEventNotif(NID_MISS_RX, 1);
           //internal_event_fifo.write(new_ev_not);
-          evsStreams[1].write(new_ev_not);
-          //last_rx_port = udpRxMeta.dst.port;
-          new_ev_not = NalEventNotif(LAST_RX_PORT, udpRxMeta.dst.port);
-          //internal_event_fifo.write(new_ev_not);
-          evsStreams[2].write(new_ev_not);
-          //in_meta = NetworkMeta(own_rank, udpRxMeta.dst.port, src_id, udpRxMeta.src.port, 0);
-          //FIXME: add length here as soon as available from the UOE
-          in_meta.src_rank = src_id;
+          evsStreams[0].write(new_ev_not);
+          printf("[UDP-RX:ERROR]invalid src_id, packet will be dropped.\n");
+          //blocking write, because in the error case we value debug information
+          // more than bandwidth
+          fsmStateRX_Udp = FSM_DROP_PACKET;
+          cache_init = false;
+          break;
+        }
+        //status
+        //last_rx_node_id = src_id;
+        new_ev_not = NalEventNotif(LAST_RX_NID, src_id);
+        //internal_event_fifo.write(new_ev_not);
+        evsStreams[1].write(new_ev_not);
+        //last_rx_port = udpRxMeta.dst.port;
+        new_ev_not = NalEventNotif(LAST_RX_PORT, udpRxMeta.dst.port);
+        //internal_event_fifo.write(new_ev_not);
+        evsStreams[2].write(new_ev_not);
+        //in_meta = NetworkMeta(own_rank, udpRxMeta.dst.port, src_id, udpRxMeta.src.port, 0);
+        //FIXME: add length here as soon as available from the UOE
+        in_meta.src_rank = src_id;
 
-          //write metadata
-          meta_written = false;
-          //soUdp_meta.write(in_meta_udp);
-          //packet_count_RX++;
-          new_ev_not = NalEventNotif(PACKET_RX, 1);
-          //internal_event_fifo.write(new_ev_not);
-          evsStreams[3].write(new_ev_not);
-          // Forward data chunk to ROLE
-          //UdpAppData    udpWord = siUOE_Data.read();
+        //write metadata
+        meta_written = false;
+        //soUdp_meta.write(in_meta_udp);
+        //packet_count_RX++;
+        new_ev_not = NalEventNotif(PACKET_RX, 1);
+        //internal_event_fifo.write(new_ev_not);
+        evsStreams[3].write(new_ev_not);
+        // Forward data chunk to ROLE
+        //UdpAppData    udpWord = siUOE_Data.read();
 
-//          NetworkWord first_word = siUOE_Data.read();
-//          soUdp_data.write(first_word);
-//
-//          if (!first_word.tlast == 1)
-//          {
-//            fsmStateRX_Udp = FSM_ACC;
-//          } else {
-//            //we are already done, stay here
-//            fsmStateRX_Udp = FSM_W8FORMETA;
-//          }
-          fsmStateRX_Udp = FSM_ACC;
+        //          NetworkWord first_word = siUOE_Data.read();
+        //          soUdp_data.write(first_word);
+        //
+        //          if (!first_word.tlast == 1)
+        //          {
+        //            fsmStateRX_Udp = FSM_ACC;
+        //          } else {
+        //            //we are already done, stay here
+        //            fsmStateRX_Udp = FSM_W8FORMETA;
+        //          }
+        fsmStateRX_Udp = FSM_ACC;
         //}
         break;
 
@@ -632,26 +632,26 @@ void pUdpRx(
           // Until LAST bit is set
           if (udpWord.tlast == 1)
           {
-        	  if(!meta_written)
-        	  {
-        		fsmStateRX_Udp = FSM_WRITE_META;
-        	  } else {
-            fsmStateRX_Udp = FSM_W8FORMETA;
-        	  }
+            if(!meta_written)
+            {
+              fsmStateRX_Udp = FSM_WRITE_META;
+            } else {
+              fsmStateRX_Udp = FSM_W8FORMETA;
+            }
           }
         }
         //NO break;
       case FSM_WRITE_META:
-    	  //split due to timing...
+        //split due to timing...
         if( !soUdp_meta.full() && !meta_written)
         {
-            in_meta_udp_stream = NetworkMetaStream(in_meta);
-            soUdp_meta.write(in_meta_udp_stream);
-            meta_written = true;
-            if(fsmStateRX_Udp == FSM_WRITE_META)
-            {
-            	fsmStateRX_Udp = FSM_W8FORMETA;
-            }
+          in_meta_udp_stream = NetworkMetaStream(in_meta);
+          soUdp_meta.write(in_meta_udp_stream);
+          meta_written = true;
+          if(fsmStateRX_Udp == FSM_WRITE_META)
+          {
+            fsmStateRX_Udp = FSM_W8FORMETA;
+          }
         }
         break;
 

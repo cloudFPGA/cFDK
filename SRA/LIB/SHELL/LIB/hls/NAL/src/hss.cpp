@@ -68,11 +68,11 @@ void axi4liteProcessing(
     stream<NalConfigUpdate>   &sToStatusProc,
     stream<NalMrtUpdate>    &sMrtUpdate,
     stream<NalStatusUpdate>   &sStatusUpdate
-)
+    )
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-	//no pipeline, isn't compatible to AXI4Lite bus
+  //no pipeline, isn't compatible to AXI4Lite bus
 
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
   static uint16_t tableCopyVariable = 0;
@@ -133,36 +133,36 @@ void axi4liteProcessing(
   // ----- AXI4Lite Processing -----
 
 
-    switch(a4lFsm)
-    {
-      default:
-      case A4L_COPY_CONFIG:
-        //TODO: necessary? Or does this AXI4Lite anyways "in the background"?
-        //or do we need to copy it explicetly, but could do this also every ~2 seconds?
-        if(tableCopyVariable < NUMBER_CONFIG_WORDS)
+  switch(a4lFsm)
+  {
+    default:
+    case A4L_COPY_CONFIG:
+      //TODO: necessary? Or does this AXI4Lite anyways "in the background"?
+      //or do we need to copy it explicetly, but could do this also every ~2 seconds?
+      if(tableCopyVariable < NUMBER_CONFIG_WORDS)
+      {
+        ap_uint<16> new_word = ctrlLink[tableCopyVariable];
+        if(new_word != config[tableCopyVariable])
         {
-            ap_uint<16> new_word = ctrlLink[tableCopyVariable];
-            if(new_word != config[tableCopyVariable])
-            {
-              configProp = selectConfigUpdatePropagation(tableCopyVariable);
-              cu = NalConfigUpdate(tableCopyVariable, new_word);
-              cbFsm = CB_START;
-              config[tableCopyVariable] = new_word;
-            }
-            tableCopyVariable++;
-            if(tableCopyVariable >= NUMBER_CONFIG_WORDS)
-            {
-              tableCopyVariable = 0;
-              a4lFsm = A4L_COPY_MRT;
-            }
-        } else {
+          configProp = selectConfigUpdatePropagation(tableCopyVariable);
+          cu = NalConfigUpdate(tableCopyVariable, new_word);
+          cbFsm = CB_START;
+          config[tableCopyVariable] = new_word;
+        }
+        tableCopyVariable++;
+        if(tableCopyVariable >= NUMBER_CONFIG_WORDS)
+        {
           tableCopyVariable = 0;
           a4lFsm = A4L_COPY_MRT;
         }
-        break;
-      case A4L_COPY_MRT:
-    	  if(!sMrtUpdate.full())
-    	  {
+      } else {
+        tableCopyVariable = 0;
+        a4lFsm = A4L_COPY_MRT;
+      }
+      break;
+    case A4L_COPY_MRT:
+      if(!sMrtUpdate.full())
+      {
         if(tableCopyVariable < MAX_MRT_SIZE)
         {
           ap_uint<32> new_ip4node = ctrlLink[tableCopyVariable + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS];
@@ -184,117 +184,117 @@ void axi4liteProcessing(
           tableCopyVariable = 0;
           a4lFsm = A4L_COPY_STATUS;
         }
-    	  }
-        break;
-      case A4L_COPY_STATUS:
-        if(tableCopyVariable < NUMBER_STATUS_WORDS)
+      }
+      break;
+    case A4L_COPY_STATUS:
+      if(tableCopyVariable < NUMBER_STATUS_WORDS)
+      {
+        ctrlLink[NUMBER_CONFIG_WORDS + tableCopyVariable] = status[tableCopyVariable];
+        tableCopyVariable++;
+        if(tableCopyVariable >= NUMBER_STATUS_WORDS)
         {
-          ctrlLink[NUMBER_CONFIG_WORDS + tableCopyVariable] = status[tableCopyVariable];
-          tableCopyVariable++;
-          if(tableCopyVariable >= NUMBER_STATUS_WORDS)
-          {
-            //tableCopyVariable = 0;
-            a4lFsm = A4L_COPY_FINISH;
-          }
-        } else {
           //tableCopyVariable = 0;
           a4lFsm = A4L_COPY_FINISH;
         }
-        break;
-      case A4L_COPY_FINISH:
-        tableCopyVariable = 0;
-        //acknowledge the processed version
-        ap_uint<32> new_mrt_version = config[NAL_CONFIG_MRT_VERSION];
-        printf("\t\t\t[A4L:CtrlLink:Info] Acknowledged MRT version %d.\n", (int) new_mrt_version);
-        *mrt_version_processed = new_mrt_version;
-        a4lFsm = A4L_COPY_CONFIG;
-        break;
-    }
+      } else {
+        //tableCopyVariable = 0;
+        a4lFsm = A4L_COPY_FINISH;
+      }
+      break;
+    case A4L_COPY_FINISH:
+      tableCopyVariable = 0;
+      //acknowledge the processed version
+      ap_uint<32> new_mrt_version = config[NAL_CONFIG_MRT_VERSION];
+      printf("\t\t\t[A4L:CtrlLink:Info] Acknowledged MRT version %d.\n", (int) new_mrt_version);
+      *mrt_version_processed = new_mrt_version;
+      a4lFsm = A4L_COPY_CONFIG;
+      break;
+  }
 
 
-    //
-    //  if(tableCopyVariable >= MAX_MRT_SIZE)
-    //  {
-    //    tableCopyVariable = 0;
-    //    //acknowledge the processed version
-    //    ap_uint<32> new_mrt_version = config[NAL_CONFIG_MRT_VERSION];
-    //    // if(new_mrt_version > mrt_version_processed)
-    //    // {
-    //    //invalidate cache
-    //    //cached_udp_rx_ipaddr = 0;
-    //    //cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
-    //    //cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
-    //    //   detected_cache_invalidation = true;
-    //    //moved to outer process
-    //    //}
-    //    *mrt_version_processed = new_mrt_version;
-    //  }  else {
-    //    tableCopyVariable++;
-    //  }
+  //
+  //  if(tableCopyVariable >= MAX_MRT_SIZE)
+  //  {
+  //    tableCopyVariable = 0;
+  //    //acknowledge the processed version
+  //    ap_uint<32> new_mrt_version = config[NAL_CONFIG_MRT_VERSION];
+  //    // if(new_mrt_version > mrt_version_processed)
+  //    // {
+  //    //invalidate cache
+  //    //cached_udp_rx_ipaddr = 0;
+  //    //cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
+  //    //cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
+  //    //   detected_cache_invalidation = true;
+  //    //moved to outer process
+  //    //}
+  //    *mrt_version_processed = new_mrt_version;
+  //  }  else {
+  //    tableCopyVariable++;
+  //  }
 
   // ----- Config Broadcast -----
 
-     	switch(cbFsm)
-    	{
-    	default:
-    	case CB_WAIT:
-    		break;
-    	case CB_START:
-    		cu_toCB = cu;
-    		switch (configProp) {
-    		                default:
-    		                case 0:
-    		                  //NOP
-    		                  break;
-    		                case 1:
-    		                	cbFsm = CB_1;
-    		                  break;
-    		                case 2:
-    		                	cbFsm = CB_2;
-    		                  break;
-    		                case 3:
-    		                	cbFsm = CB_3_0;
-    		                  printf("[A4l] Issued rank update: %d\n", (int) cu.update_value);
-    		                  break;
-    		              }
-    		break;
-    		case CB_1:
-    			//(currently not used)
-    			//if(!sToTcpAgency.full())
-    			//{
-	            //      sToTcpAgency.write(cu_toCB);
-	                  cbFsm = CB_WAIT;
-    			//}
-    			break;
-    		case CB_2:
-    			if(!sToPortLogic.full())
-    			{
-	                  sToPortLogic.write(cu_toCB);
-	                  cbFsm = CB_WAIT;
-    			}
-    			break;
-    		case CB_3_0:
-    			if(!sToUdpRx.full())
-    			{
-	                  sToUdpRx.write(cu_toCB);
-	                  cbFsm = CB_3_1;
-    			}
-    			break;
-    	      case CB_3_1:
-    	        if(!sToTcpRx.full())
-    	        {
-    	          sToTcpRx.write(cu_toCB);
-                  cbFsm = CB_3_2;
-    	        }
-    	        break;
-    	      case CB_3_2:
-    	        if(!sToStatusProc.full())
-    	        {
-    	          sToStatusProc.write(cu_toCB);
-                  cbFsm = CB_WAIT;
-    	        }
-    	        break;
-    	}
+  switch(cbFsm)
+  {
+    default:
+    case CB_WAIT:
+      break;
+    case CB_START:
+      cu_toCB = cu;
+      switch (configProp) {
+        default:
+        case 0:
+          //NOP
+          break;
+        case 1:
+          cbFsm = CB_1;
+          break;
+        case 2:
+          cbFsm = CB_2;
+          break;
+        case 3:
+          cbFsm = CB_3_0;
+          printf("[A4l] Issued rank update: %d\n", (int) cu.update_value);
+          break;
+      }
+      break;
+    case CB_1:
+      //(currently not used)
+      //if(!sToTcpAgency.full())
+      //{
+      //      sToTcpAgency.write(cu_toCB);
+      cbFsm = CB_WAIT;
+      //}
+      break;
+    case CB_2:
+      if(!sToPortLogic.full())
+      {
+        sToPortLogic.write(cu_toCB);
+        cbFsm = CB_WAIT;
+      }
+      break;
+    case CB_3_0:
+      if(!sToUdpRx.full())
+      {
+        sToUdpRx.write(cu_toCB);
+        cbFsm = CB_3_1;
+      }
+      break;
+    case CB_3_1:
+      if(!sToTcpRx.full())
+      {
+        sToTcpRx.write(cu_toCB);
+        cbFsm = CB_3_2;
+      }
+      break;
+    case CB_3_2:
+      if(!sToStatusProc.full())
+      {
+        sToStatusProc.write(cu_toCB);
+        cbFsm = CB_WAIT;
+      }
+      break;
+  }
 
 
 
@@ -302,22 +302,22 @@ void axi4liteProcessing(
 
 
 void pMrtAgency(
-		stream<NalMrtUpdate> &sMrtUpdate,
-	    stream<NodeId>        &sGetIpReq_UdpTx,
-	    stream<Ip4Addr>       &sGetIpRep_UdpTx,
-	    stream<NodeId>        &sGetIpReq_TcpTx,
-	    stream<Ip4Addr>       &sGetIpRep_TcpTx,
-	    stream<Ip4Addr>       &sGetNidReq_UdpRx,
-	    stream<NodeId>        &sGetNidRep_UdpRx,
-	    stream<Ip4Addr>       &sGetNidReq_TcpRx,
-	    stream<NodeId>        &sGetNidRep_TcpRx//,
-	    //stream<Ip4Addr>       &sGetNidReq_TcpTx,
-	    //stream<NodeId>        &sGetNidRep_TcpTx
-		)
+    stream<NalMrtUpdate> &sMrtUpdate,
+    stream<NodeId>        &sGetIpReq_UdpTx,
+    stream<Ip4Addr>       &sGetIpRep_UdpTx,
+    stream<NodeId>        &sGetIpReq_TcpTx,
+    stream<Ip4Addr>       &sGetIpRep_TcpTx,
+    stream<Ip4Addr>       &sGetNidReq_UdpRx,
+    stream<NodeId>        &sGetNidRep_UdpRx,
+    stream<Ip4Addr>       &sGetNidReq_TcpRx,
+    stream<NodeId>        &sGetNidRep_TcpRx//,
+    //stream<Ip4Addr>       &sGetNidReq_TcpTx,
+    //stream<NodeId>        &sGetNidRep_TcpTx
+    )
 {
-	//-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+  //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-//#pragma HLS pipeline II=1
+  //#pragma HLS pipeline II=1
 
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
   static bool tables_initialized = false;
@@ -328,13 +328,13 @@ void pMrtAgency(
   //static ap_uint<32> localMRT[MAX_MRT_SIZE];
   //static Cam16<NodeId,Ip4Addr> mrt_p0 = Cam16<NodeId,Ip4Addr>();
 
-#define CAM_SIZE 16
-#define CAM_NUM 8
-  static Cam16<NodeId,Ip4Addr> mrt_cam16_array[CAM_NUM];
+#define CAM_SIZE 8
+#define CAM_NUM 16
+  static Cam8<NodeId,Ip4Addr> mrt_cam_arr[CAM_NUM];
 #ifndef __SYNTHESIS__
   if(MAX_MRT_SIZE != 128)
   {
-    printf("\n\t\tERROR: pMrtAgency is currently configured to support only a MRT size up to 128! Abort.\n(Currently, the use of \'mrt_cam16_array\' must be updated accordingly by hand.)\n");
+    printf("\n\t\tERROR: pMrtAgency is currently configured to support only a MRT size up to 128! Abort.\n(Currently, the use of \'mrt_cam_arr\' must be updated accordingly by hand.)\n");
     exit(-1);
   }
 #endif
@@ -343,150 +343,150 @@ void pMrtAgency(
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
 
   if(!tables_initialized)
-   {
-//     for(int i = 0; i < MAX_MRT_SIZE; i++)
-//     {
-//#pragma HLS unroll factor=8
-//       localMRT[i] = (NodeId) INVALID_MRT_VALUE;
-//     }
-	  for(int i = 0; i < CAM_NUM; i++)
-	  {
-		  mrt_cam16_array[i].reset();
-	  }
-     tables_initialized = true;
-   } else if(!sMrtUpdate.empty())
-   {
-	   NalMrtUpdate mrt_update = sMrtUpdate.read();
-	   uint8_t cam_select = mrt_update.nid / CAM_SIZE;
-	   if(mrt_update.nid < MAX_MRT_SIZE && cam_select < CAM_NUM)
-	   {
-		   //localMRT[mrt_update.nid] = mrt_update.ip4a;
-		   Ip4Addr old_addr = 0;
-		   if(mrt_cam16_array[cam_select].lookup(mrt_update.nid, old_addr))
-		   {
-			   mrt_cam16_array[cam_select].update(mrt_update.nid, mrt_update.ip4a);
-		   } else {
-			   mrt_cam16_array[cam_select].insert(mrt_update.nid, mrt_update.ip4a);
-		   }
-		   printf("[pMrtAgency] got status update for node %d with address %d (on CAM #%d)\n",
-				   (int) mrt_update.nid, (int) mrt_update.ip4a, cam_select);
-	   }
-   } else {
-	   if( (!sGetIpReq_UdpTx.empty() || !sGetIpReq_TcpTx.empty())
-			   && !sGetIpRep_TcpTx.full() && !sGetIpRep_UdpTx.full())
-	     {
-		   bool answer_udp = false;
-		   NodeId rank;
-		   if(!sGetIpReq_UdpTx.empty())
-		   {
-		      rank = sGetIpReq_UdpTx.read();
-		      answer_udp = true;
-		   } else {
-			   rank = sGetIpReq_TcpTx.read();
-		   }
-		   uint8_t cam_select = rank / CAM_SIZE;
-		   Ip4Addr rep = 0;  //return zero on failure
-		   if(rank < MAX_MRT_SIZE && cam_select < CAM_NUM)
-		   {
-			   mrt_cam16_array[cam_select].lookup(rank, rep);
-		   }
-		   if(answer_udp)
-		   {
-			   sGetIpRep_UdpTx.write(rep);
-		   } else {
-			   sGetIpRep_TcpTx.write(rep);
-		   }
-//	       if(rank > MAX_MRT_SIZE || cam_select > CAM_NUM)
-//	       {
-//	         //return zero on failure
-//	         sGetIpRep_UdpTx.write(0);
-//	       } else {
-//	         sGetIpRep_UdpTx.write(localMRT[rank]);
-//	         //if request is issued, requester should be ready to read --> "blocking" write
-//	       }
-	     }
-//	     else if(!sGetIpReq_TcpTx.empty() && !sGetIpRep_TcpTx.full())
-//	     {
-//	       NodeId rank = sGetIpReq_TcpTx.read();
-//	       if(rank > MAX_MRT_SIZE)
-//	       {
-//	         //return zero on failure
-//	         sGetIpRep_TcpTx.write(0);
-//	       } else {
-//	         sGetIpRep_TcpTx.write(localMRT[rank]);
-//	       }
-//	     }
-	     else if( (!sGetNidReq_UdpRx.empty() || !sGetNidReq_TcpRx.empty() )
-	    		 && !sGetNidRep_TcpRx.full()&& !sGetNidRep_UdpRx.full())
-	     {
-	    	 bool answer_udp = false;
-	       ap_uint<32> ipAddr;
-	       if(!sGetNidReq_UdpRx.empty())
-	       {
-	    	   ipAddr =  sGetNidReq_UdpRx.read();
-	    	   answer_udp = true;
-	       } else {
-	    	   ipAddr = sGetNidReq_TcpRx.read();
-	       }
-	       printf("[HSS-INFO] Searching for Node ID of IP %d.\n", (int) ipAddr);
-	       NodeId rep = INVALID_MRT_VALUE;
-//	       for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
-//	       {
-//	         //#pragma HLS unroll factor=8
-//	         if(localMRT[i] == ipAddr)
-//	         {
-//	           rep = (NodeId) i;
-//	           break;
-//	         }
-//	       }
-	       for(int i = 0; i < CAM_NUM; i++)
-	       {
-	       		  if(mrt_cam16_array[i].reverse_lookup(ipAddr, rep))
-	       		  {
-	       			  break;
-	       		  }
-	       }
-	       if(answer_udp)
-	       {
-	    	   sGetNidRep_UdpRx.write(rep);
-	       } else {
-	    	   sGetNidRep_TcpRx.write(rep);
-	       }
-	     }
-//	     else if(!sGetNidReq_TcpRx.empty() && !sGetNidRep_TcpRx.full())
-//	     {
-//	       ap_uint<32> ipAddr = sGetNidReq_TcpRx.read();
-//	       printf("[HSS-INFO] Searching for Node ID of IP %d.\n", (int) ipAddr);
-//	       NodeId rep = INVALID_MRT_VALUE;
-//	       for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
-//	       {
-//	         //#pragma HLS unroll factor=8
-//	         if(localMRT[i] == ipAddr)
-//	         {
-//	           rep = (NodeId) i;
-//	           break;
-//	         }
-//	       }
-//	       sGetNidRep_TcpRx.write(rep);
-//	     }
-	     //  else if(!sGetNidReq_TcpTx.empty() && !sGetNidRep_TcpTx.full())
-	     //  {
-	     //    ap_uint<32> ipAddr = sGetNidReq_TcpTx.read();
-	     //    printf("[HSS-INFO] Searching for Node ID of IP %d.\n", (int) ipAddr);
-	     //    NodeId rep = INVALID_MRT_VALUE;
-	     //    for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
-	     //    {
-	     ////#pragma HLS unroll factor=8
-	     //      if(localMRT[i] == ipAddr)
-	     //      {
-	     //        rep = (NodeId) i;
-	     //        break;
-	     //      }
-	     //    }
-	     //    sGetNidRep_TcpTx.write(rep);
-	     //  }
+  {
+    //     for(int i = 0; i < MAX_MRT_SIZE; i++)
+    //     {
+    //#pragma HLS unroll factor=8
+    //       localMRT[i] = (NodeId) INVALID_MRT_VALUE;
+    //     }
+    for(int i = 0; i < CAM_NUM; i++)
+    {
+      mrt_cam_arr[i].reset();
+    }
+    tables_initialized = true;
+  } else if(!sMrtUpdate.empty())
+  {
+    NalMrtUpdate mrt_update = sMrtUpdate.read();
+    uint8_t cam_select = mrt_update.nid / CAM_SIZE;
+    if(mrt_update.nid < MAX_MRT_SIZE && cam_select < CAM_NUM)
+    {
+      //localMRT[mrt_update.nid] = mrt_update.ip4a;
+      Ip4Addr old_addr = 0;
+      if(mrt_cam_arr[cam_select].lookup(mrt_update.nid, old_addr))
+      {
+        mrt_cam_arr[cam_select].update(mrt_update.nid, mrt_update.ip4a);
+      } else {
+        mrt_cam_arr[cam_select].insert(mrt_update.nid, mrt_update.ip4a);
+      }
+      printf("[pMrtAgency] got status update for node %d with address %d (on CAM #%d)\n",
+          (int) mrt_update.nid, (int) mrt_update.ip4a, cam_select);
+    }
+  } else {
+    if( (!sGetIpReq_UdpTx.empty() || !sGetIpReq_TcpTx.empty())
+        && !sGetIpRep_TcpTx.full() && !sGetIpRep_UdpTx.full())
+    {
+      bool answer_udp = false;
+      NodeId rank;
+      if(!sGetIpReq_UdpTx.empty())
+      {
+        rank = sGetIpReq_UdpTx.read();
+        answer_udp = true;
+      } else {
+        rank = sGetIpReq_TcpTx.read();
+      }
+      uint8_t cam_select = rank / CAM_SIZE;
+      Ip4Addr rep = 0;  //return zero on failure
+      if(rank < MAX_MRT_SIZE && cam_select < CAM_NUM)
+      {
+        mrt_cam_arr[cam_select].lookup(rank, rep);
+      }
+      if(answer_udp)
+      {
+        sGetIpRep_UdpTx.write(rep);
+      } else {
+        sGetIpRep_TcpTx.write(rep);
+      }
+      //         if(rank > MAX_MRT_SIZE || cam_select > CAM_NUM)
+      //         {
+      //           //return zero on failure
+      //           sGetIpRep_UdpTx.write(0);
+      //         } else {
+      //           sGetIpRep_UdpTx.write(localMRT[rank]);
+      //           //if request is issued, requester should be ready to read --> "blocking" write
+      //         }
+    }
+    //       else if(!sGetIpReq_TcpTx.empty() && !sGetIpRep_TcpTx.full())
+    //       {
+    //         NodeId rank = sGetIpReq_TcpTx.read();
+    //         if(rank > MAX_MRT_SIZE)
+    //         {
+    //           //return zero on failure
+    //           sGetIpRep_TcpTx.write(0);
+    //         } else {
+    //           sGetIpRep_TcpTx.write(localMRT[rank]);
+    //         }
+    //       }
+    else if( (!sGetNidReq_UdpRx.empty() || !sGetNidReq_TcpRx.empty() )
+        && !sGetNidRep_TcpRx.full()&& !sGetNidRep_UdpRx.full())
+    {
+      bool answer_udp = false;
+      ap_uint<32> ipAddr;
+      if(!sGetNidReq_UdpRx.empty())
+      {
+        ipAddr =  sGetNidReq_UdpRx.read();
+        answer_udp = true;
+      } else {
+        ipAddr = sGetNidReq_TcpRx.read();
+      }
+      printf("[HSS-INFO] Searching for Node ID of IP %d.\n", (int) ipAddr);
+      NodeId rep = INVALID_MRT_VALUE;
+      //         for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
+      //         {
+      //           //#pragma HLS unroll factor=8
+      //           if(localMRT[i] == ipAddr)
+      //           {
+      //             rep = (NodeId) i;
+      //             break;
+      //           }
+      //         }
+      for(int i = 0; i < CAM_NUM; i++)
+      {
+        if(mrt_cam_arr[i].reverse_lookup(ipAddr, rep))
+        {
+          break;
+        }
+      }
+      if(answer_udp)
+      {
+        sGetNidRep_UdpRx.write(rep);
+      } else {
+        sGetNidRep_TcpRx.write(rep);
+      }
+    }
+    //       else if(!sGetNidReq_TcpRx.empty() && !sGetNidRep_TcpRx.full())
+    //       {
+    //         ap_uint<32> ipAddr = sGetNidReq_TcpRx.read();
+    //         printf("[HSS-INFO] Searching for Node ID of IP %d.\n", (int) ipAddr);
+    //         NodeId rep = INVALID_MRT_VALUE;
+    //         for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
+    //         {
+    //           //#pragma HLS unroll factor=8
+    //           if(localMRT[i] == ipAddr)
+    //           {
+    //             rep = (NodeId) i;
+    //             break;
+    //           }
+    //         }
+    //         sGetNidRep_TcpRx.write(rep);
+    //       }
+    //  else if(!sGetNidReq_TcpTx.empty() && !sGetNidRep_TcpTx.full())
+    //  {
+    //    ap_uint<32> ipAddr = sGetNidReq_TcpTx.read();
+    //    printf("[HSS-INFO] Searching for Node ID of IP %d.\n", (int) ipAddr);
+    //    NodeId rep = INVALID_MRT_VALUE;
+    //    for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
+    //    {
+    ////#pragma HLS unroll factor=8
+    //      if(localMRT[i] == ipAddr)
+    //      {
+    //        rep = (NodeId) i;
+    //        break;
+    //      }
+    //    }
+    //    sGetNidRep_TcpTx.write(rep);
+    //  }
 
-   } //else
+  } //else
 }
 
 
@@ -580,7 +580,7 @@ void pPortAndResetLogic(
 
   } else if(*layer_4_enabled == 0)
   {
-	  //if layer 4 is reset, ports will be closed
+    //if layer 4 is reset, ports will be closed
     processed_FMC_listen_port = 0x0;
     udp_rx_ports_processed = 0x0;
     tcp_rx_ports_processed = 0x0;
@@ -815,7 +815,7 @@ void pTcpAgency(
   //static  TableFsmStates agencyFsm = TAB_FSM_READ;
   static  bool tables_initialized = false;
 
-//#pragma HLS RESET variable=agencyFsm
+  //#pragma HLS RESET variable=agencyFsm
 #pragma HLS RESET variable=tables_initialized
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
   static NalTriple  tripleList[MAX_NAL_SESSIONS];
@@ -830,7 +830,7 @@ void pTcpAgency(
 #pragma HLS ARRAY_PARTITION variable=rowsToDelete complete dim=1
 #pragma HLS ARRAY_PARTITION variable=privilegedRows complete dim=1
 
-//-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
+  //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
 
 
   if(!*nts_ready_and_enabled)
@@ -852,60 +852,60 @@ void pTcpAgency(
     tables_initialized = true;
   } else {
 
-  //switch(agencyFsm)
-  //{
+    //switch(agencyFsm)
+    //{
     //case TAB_FSM_READ:
-      if(!sGetTripleFromSid_Req.empty() && !sGetTripleFromSid_Rep.full())
+    if(!sGetTripleFromSid_Req.empty() && !sGetTripleFromSid_Rep.full())
+    {
+      SessionId sessionID = sGetTripleFromSid_Req.read();
+      printf("searching for session: %d\n", (int) sessionID);
+      uint32_t i = 0;
+      NalTriple ret = UNUSED_TABLE_ENTRY_VALUE;
+      bool found_smth = false;
+      for(i = 0; i < MAX_NAL_SESSIONS; i++)
       {
-        SessionId sessionID = sGetTripleFromSid_Req.read();
-        printf("searching for session: %d\n", (int) sessionID);
-        uint32_t i = 0;
-        NalTriple ret = UNUSED_TABLE_ENTRY_VALUE;
-        bool found_smth = false;
-        for(i = 0; i < MAX_NAL_SESSIONS; i++)
+        //#pragma HLS unroll factor=8
+        if(sessionIdList[i] == sessionID && usedRows[i] == 1 && rowsToDelete[i] == 0)
         {
-          //#pragma HLS unroll factor=8
-          if(sessionIdList[i] == sessionID && usedRows[i] == 1 && rowsToDelete[i] == 0)
-          {
-            ret = tripleList[i];
-            printf("found triple entry: %d | %d |  %llu\n",(int) i, (int) sessionID, (unsigned long long) ret);
-            found_smth = true;
-            break;
-          }
+          ret = tripleList[i];
+          printf("found triple entry: %d | %d |  %llu\n",(int) i, (int) sessionID, (unsigned long long) ret);
+          found_smth = true;
+          break;
         }
-        if(!found_smth)
-        {
-          //unkown session TODO
-          printf("[TcpAgency:INFO] Unknown session requested\n");
-        }
-        sGetTripleFromSid_Rep.write(ret);
-      } else if(!sGetSidFromTriple_Req.empty() && !sGetSidFromTriple_Rep.full())
+      }
+      if(!found_smth)
       {
-        NalTriple triple = sGetSidFromTriple_Req.read();
-        printf("Searching for triple: %llu\n", (unsigned long long) triple);
-        uint32_t i = 0;
-        SessionId ret = UNUSED_SESSION_ENTRY_VALUE;
-        bool found_smth = false;
-        for(i = 0; i < MAX_NAL_SESSIONS; i++)
+        //unkown session TODO
+        printf("[TcpAgency:INFO] Unknown session requested\n");
+      }
+      sGetTripleFromSid_Rep.write(ret);
+    } else if(!sGetSidFromTriple_Req.empty() && !sGetSidFromTriple_Rep.full())
+    {
+      NalTriple triple = sGetSidFromTriple_Req.read();
+      printf("Searching for triple: %llu\n", (unsigned long long) triple);
+      uint32_t i = 0;
+      SessionId ret = UNUSED_SESSION_ENTRY_VALUE;
+      bool found_smth = false;
+      for(i = 0; i < MAX_NAL_SESSIONS; i++)
+      {
+        //#pragma HLS unroll factor=8
+        if(tripleList[i] == triple && usedRows[i] == 1 && rowsToDelete[i] == 0)
         {
-          //#pragma HLS unroll factor=8
-          if(tripleList[i] == triple && usedRows[i] == 1 && rowsToDelete[i] == 0)
-          {
-            ret = sessionIdList[i];
-            found_smth = true;
-            break;
-          }
+          ret = sessionIdList[i];
+          found_smth = true;
+          break;
         }
-        if(!found_smth)
-        {
-          //there is (not yet) a connection TODO
-          printf("[TcpAgency:INFO] Unknown triple requested\n");
-        }
-        sGetSidFromTriple_Rep.write(ret);
-      } else
-     // agencyFsm = TAB_FSM_WRITE;
-     // break;
-    //case TAB_FSM_WRITE:
+      }
+      if(!found_smth)
+      {
+        //there is (not yet) a connection TODO
+        printf("[TcpAgency:INFO] Unknown triple requested\n");
+      }
+      sGetSidFromTriple_Rep.write(ret);
+    } else
+      // agencyFsm = TAB_FSM_WRITE;
+      // break;
+      //case TAB_FSM_WRITE:
       if(!sAddNewTriple_TcpRrh.empty() || !sAddNewTriple_TcpCon.empty())
       {
         NalNewTableEntry ne_struct;
@@ -1040,10 +1040,10 @@ void pTcpAgency(
           sGetNextDelRow_Rep.write(ret);
         }
       }
-      //agencyFsm = TAB_FSM_READ;
-      //break;
-  //} //switch
- } // else
+    //agencyFsm = TAB_FSM_READ;
+    //break;
+    //} //switch
+  } // else
 }
 
 

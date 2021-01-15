@@ -128,6 +128,56 @@ struct Cam8 {
     }
 
     /*******************************************************************************
+     * @brief Reverse-search the CAM array for a key to a value.
+     *
+     * @param[in]  value   The value to lookup.
+     * @param[out] key     The key corresponding to that value (or the first match).
+     *
+     * @return true if the the key was found.
+     *******************************************************************************/
+    bool reverse_lookup(V value, K &key)
+    {
+#pragma HLS pipeline II=1
+#pragma HLS INLINE
+      if ((CamArray0.value == value) && (CamArray0.valid == true)) {
+        key = CamArray0.key;
+        return true;
+      }
+      else if ((CamArray1.value == value) && (CamArray1.valid == true)) {
+        key = CamArray1.key;
+        return true;
+      }
+      else if ((CamArray2.value == value) && (CamArray2.valid == true)) {
+        key = CamArray2.key;
+        return true;
+      }
+      else if ((CamArray3.value == value) && (CamArray3.valid == true)) {
+        key = CamArray3.key;
+        return true;
+      }
+      else if ((CamArray4.value == value) && (CamArray4.valid == true)) {
+        key = CamArray4.key;
+        return true;
+      }
+      else if ((CamArray5.value == value) && (CamArray5.valid == true)) {
+        key = CamArray5.key;
+        return true;
+      }
+      else if ((CamArray6.value == value) && (CamArray6.valid == true)) {
+        key = CamArray6.key;
+        return true;
+      }
+      else if ((CamArray7.value == value) && (CamArray7.valid == true)) {
+        key = CamArray7.key;
+        return true;
+      }
+      else {
+        return false;
+      }
+    }
+
+
+    /*******************************************************************************
      * @brief Insert a new key-value pair in the CAM array.
      *
      * @param[in]  KeyValuePair  The key-value pair to insert.
@@ -179,7 +229,7 @@ struct Cam8 {
     bool insert(K key, V value)
     {
 #pragma HLS INLINE
-    	return insert(KeyValuePair<K,V>(key,value,true));
+      return insert(KeyValuePair<K,V>(key,value,true));
     }
 
     /*******************************************************************************

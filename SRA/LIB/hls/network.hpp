@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*******************************************************************************/
+ *******************************************************************************/
 
 //  *
 //  *                       cloudFPGA
@@ -45,13 +45,13 @@ using namespace hls;
 #define NETWORK_WORD_BYTE_WIDTH 8
 #define NETWORK_WORD_BIT_WIDTH 64
 
-struct NetworkWord { 
-    ap_uint<64>    tdata;
-    ap_uint<8>     tkeep;
-    ap_uint<1>     tlast;
-    NetworkWord()      {}
-    NetworkWord(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
-                   tdata(tdata), tkeep(tkeep), tlast(tlast) {}
+struct NetworkWord {
+  ap_uint<64>    tdata;
+  ap_uint<8>     tkeep;
+  ap_uint<1>     tlast;
+  NetworkWord()      {}
+  NetworkWord(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
+    tdata(tdata), tkeep(tkeep), tlast(tlast) {}
 };
 
 
@@ -80,9 +80,9 @@ struct NetworkMeta {
   //"alphabetical order"
   NetworkMeta(NodeId d_id, NrcPort d_port, NodeId s_id, NrcPort s_port, NetworkDataLength length) :
     dst_rank(d_id), dst_port(d_port), src_rank(s_id), src_port(s_port), len(length) {}
- };
+};
 
-//ATTENTION: split between NetworkMeta and NetworkMetaStream is necessary, since "DATA_PACK" wasn't working properly [FIXME]...
+//split between NetworkMeta and NetworkMetaStream to not make the Shell Role interface depend on "DATA_PACK"
 struct NetworkMetaStream {
   NetworkMeta tdata; 
   //ap_uint<(sizeof(NetworkMeta)+7)/8> tkeep; TODO: sizeof seems not to work?

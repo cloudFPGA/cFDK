@@ -47,11 +47,11 @@
 ////    else {
 ////      break;
 ////    }
-//	  if(num & (1 << i))
-//	  {
-//		  pos = i;
-//		  break;
-//	  }
+//    if(num & (1 << i))
+//    {
+//      pos = i;
+//      break;
+//    }
 //  }
 //  return pos;
 //}
@@ -60,24 +60,24 @@
 //ap_uint<32> getRightmostBitPos(ap_uint<32> num)
 //{
 //#pragma HLS INLINE
-//	return (ap_uint<32>) ((half) hls::log2((half)(num & -num)));
+//  return (ap_uint<32>) ((half) hls::log2((half)(num & -num)));
 //}
 
 //returns the ZERO-based bit position (so 0 for LSB)
 ap_uint<32> getRightmostBitPos(ap_uint<32> num)
 {
 #pragma HLS INLINE off
-	ap_uint<32> one_hot = num & -num;
+  ap_uint<32> one_hot = num & -num;
   ap_uint<32> pos = 0;
   for (int i = 0; i < 32; i++)
   {
 #pragma HLS unroll
-	  if(one_hot <= 1)
-	  {
-		  break;
-	  }
-	  pos++;
-	  one_hot >>= 1;
+    if(one_hot <= 1)
+    {
+      break;
+    }
+    pos++;
+    one_hot >>= 1;
   }
   //printf("[NAL:RigthmostBit] returning %d for input %d\n", (int) pos, (int) num);
   return pos;
@@ -119,43 +119,44 @@ uint8_t extractByteCnt(Axis<64> currWord)
 {
 #pragma HLS INLINE
 
-	uint8_t ret = 0;
+  uint8_t ret = 0;
 
-    switch (currWord.getTKeep()) {
-      case 0b11111111:
-        ret = 8;
-        break;
-      case 0b01111111:
-        ret = 7;
-        break;
-      case 0b00111111:
-        ret = 6;
-        break;
-      case 0b00011111:
-        ret = 5;
-        break;
-      case 0b00001111:
-        ret = 4;
-        break;
-      case 0b00000111:
-        ret = 3;
-        break;
-      case 0b00000011:
-        ret = 2;
-        break;
-      default:
-      case 0b00000001:
-        ret = 1;
-        break;
-    }
-    return ret;
+  switch (currWord.getTKeep()) {
+    case 0b11111111:
+      ret = 8;
+      break;
+    case 0b01111111:
+      ret = 7;
+      break;
+    case 0b00111111:
+      ret = 6;
+      break;
+    case 0b00011111:
+      ret = 5;
+      break;
+    case 0b00001111:
+      ret = 4;
+      break;
+    case 0b00000111:
+      ret = 3;
+      break;
+    case 0b00000011:
+      ret = 2;
+      break;
+    default:
+    case 0b00000001:
+      ret = 1;
+      break;
+  }
+  return ret;
 }
 
 void pStatusMemory(
     stream<NalEventNotif>  &internal_event_fifo,
     const ap_uint<1>       *layer_7_enabled,
     const ap_uint<1>       *role_decoupled,
-    const NodeId       *own_rank,
+    //const NodeId       *own_rank,
+    stream<NalConfigUpdate>   &sConfigUpdate,
     const ap_uint<32>      *mrt_version_processed,
     const ap_uint<32>    *udp_rx_ports_processed,
     const ap_uint<32>    *tcp_rx_ports_processed,
@@ -164,7 +165,8 @@ void pStatusMemory(
 
     )
 {  //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-#pragma HLS INLINE //yes, inline it!
+  //#pragma HLS INLINE //yes, inline it!
+#pragma HLS INLINE off
 #pragma HLS pipeline II=1
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
   static ap_uint<32> node_id_missmatch_RX_cnt = 0;
@@ -180,6 +182,7 @@ void pStatusMemory(
 
   static ap_uint<32> packet_count_RX = 0;
   static ap_uint<32> packet_count_TX = 0;
+  static NodeId own_rank = 0;
 
   static ap_uint<16> tcp_new_connection_failure_cnt = 0;
 
@@ -202,6 +205,7 @@ void pStatusMemory(
 #pragma HLS reset variable=tcp_new_connection_failure_cnt
 #pragma HLS reset variable=tables_initialized
 #pragma HLS reset variable=status_update_i
+#pragma HLS reset variable=own_rank
 
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
 
@@ -230,10 +234,15 @@ void pStatusMemory(
     last_tx_port = 0x0;
     last_tx_node_id = 0x0;
     //return;
-  } else
+  } else if(!sConfigUpdate.empty())
   {
-
-  if(!internal_event_fifo.empty())
+    NalConfigUpdate ca = sConfigUpdate.read();
+    if(ca.config_addr == NAL_CONFIG_OWN_RANK)
+    {
+      own_rank = ca.update_value;
+      status[NAL_STATUS_OWN_RANK] = (ap_uint<32>) own_rank;
+    }
+  } else if(!internal_event_fifo.empty())
   {
     NalEventNotif nevs = internal_event_fifo.read();
     //printf("[DEBUG] Process event %d with update value %d\n", \
@@ -286,14 +295,14 @@ void pStatusMemory(
         break;
     }
 
-  }
+  } else {
 
     //update status entries
     status[NAL_STATUS_MRT_VERSION] = *mrt_version_processed;
     status[NAL_STATUS_OPEN_UDP_PORTS] = *udp_rx_ports_processed;
     status[NAL_STATUS_OPEN_TCP_PORTS] = *tcp_rx_ports_processed;
     status[NAL_STATUS_FMC_PORT_PROCESSED] = (ap_uint<32>) *processed_FMC_listen_port;
-    status[NAL_STATUS_OWN_RANK] = (ap_uint<32>) *own_rank;
+    //status[NAL_STATUS_OWN_RANK] = (ap_uint<32>) *own_rank;
 
     //udp
     //status[NAL_STATUS_SEND_STATE] = (ap_uint<32>) fsmStateRX_Udp;
@@ -321,14 +330,9 @@ void pStatusMemory(
     status[NAL_AUTHORIZED_ACCESS] = (ap_uint<32>) authorized_access_cnt;
 
 
-  //check for differences
-  if(!sStatusUpdate.full())
-  {
-    //for(int i = 0; i < NUMBER_STATUS_WORDS; i++)
-    //{
-    	// if(!sStatusUpdate.full())
-    //	  {
-      //if(old_status[i] != status[i])
+    //check for differences
+    if(!sStatusUpdate.full())
+    {
       if(old_status[status_update_i] != status[status_update_i])
       {
         ap_uint<32> uv = status[status_update_i];
@@ -339,36 +343,32 @@ void pStatusMemory(
         //       (int) su.status_addr, (int) su.new_value);
         //}
         //one at a time is enough
-        //break;
-      }
-      status_update_i++;
-      if(status_update_i >= NUMBER_STATUS_WORDS)
-      {
-    	  status_update_i = 0;
-      }
-    	  //} else {
-    	//	  break;
-    	 // }
     }
-  //}
-  } // else
+    status_update_i++;
+    if(status_update_i >= NUMBER_STATUS_WORDS)
+    {
+      status_update_i = 0;
+    }
+  }
+} // else
 
 }
 
 void eventStatusHousekeeping(
-    const ap_uint<1>          *layer_4_enabled,
-    const ap_uint<1>       *layer_7_enabled,
-    const ap_uint<1>       *role_decoupled,
-    const ap_uint<32>      *mrt_version_processed,
-    const ap_uint<32>    *udp_rx_ports_processed,
-    const ap_uint<32>    *tcp_rx_ports_processed,
-    const ap_uint<16>    *processed_FMC_listen_port,
-    stream<NalConfigUpdate>   &sConfigUpdate,
+    //const ap_uint<1>          *layer_4_enabled,
+    //const ap_uint<1>       *layer_7_enabled,
+    //const ap_uint<1>       *role_decoupled,
+    //const ap_uint<32>      *mrt_version_processed,
+    //const ap_uint<32>    *udp_rx_ports_processed,
+    //const ap_uint<32>    *tcp_rx_ports_processed,
+    //const ap_uint<16>    *processed_FMC_listen_port,
+    //stream<NalConfigUpdate>   &sConfigUpdate,
     stream<NalEventNotif>  &internal_event_fifo_0,
     stream<NalEventNotif>  &internal_event_fifo_1,
     stream<NalEventNotif>  &internal_event_fifo_2,
     stream<NalEventNotif>  &internal_event_fifo_3,
-    stream<NalStatusUpdate>   &sStatusUpdate
+    //stream<NalStatusUpdate>   &sStatusUpdate
+    stream<NalEventNotif>  &merged_fifo
     )
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -376,94 +376,94 @@ void eventStatusHousekeeping(
 #pragma HLS pipeline II=1
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
   static FiveStateFsm statusFSM = FSM_STATE_0;
-  static NodeId own_rank = 0;
+  //static NodeId own_rank = 0;
 
-#pragma HLS reset variable=own_rank
+  //#pragma HLS reset variable=own_rank
 #pragma HLS reset variable=statusFSM
 
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
 
-  static stream<NalEventNotif> merged_fifo ("sEvent_Merged_Fifo");
+  //  static stream<NalEventNotif> merged_fifo ("sEvent_Merged_Fifo");
 
-#pragma HLS STREAM variable=merged_fifo depth=32
+  //#pragma HLS STREAM variable=merged_fifo depth=32
 
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
 
   //if else tree to lower latency, the event fifos should have enough buffer...
 
-  if(!sConfigUpdate.empty())
-  {
-    NalConfigUpdate ca = sConfigUpdate.read();
-    if(ca.config_addr == NAL_CONFIG_OWN_RANK)
-    {
-      own_rank = ca.update_value;
-    }
-  } else {
+  //  if(!sConfigUpdate.empty())
+  //  {
+  //    NalConfigUpdate ca = sConfigUpdate.read();
+  //    if(ca.config_addr == NAL_CONFIG_OWN_RANK)
+  //    {
+  //      own_rank = ca.update_value;
+  //    }
+  //  } else {
 
-	  switch(statusFSM) {
+  switch(statusFSM) {
 
-	  default:
-	  case FSM_STATE_0:
-		  if(!internal_event_fifo_0.empty() && !merged_fifo.full())
-	  {
-	    NalEventNotif tmp = internal_event_fifo_0.read();
-	    printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_0\n", \
-	        (int) tmp.type, (int) tmp.update_value);
-	    merged_fifo.write(tmp);
-		  //statusFSM = FSM_STATE_4;
-	  } //else {
-		    statusFSM = FSM_STATE_1;
-	  //}
-		   break;
-	  case FSM_STATE_1:
-		    if(!internal_event_fifo_1.empty() && !merged_fifo.full() )
-	  {
-	    NalEventNotif tmp = internal_event_fifo_1.read();
-	    printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_1\n", \
-	        (int) tmp.type, (int) tmp.update_value);
-	    merged_fifo.write(tmp);
-		  //statusFSM = FSM_STATE_4;
-	  } //else {
-		    statusFSM = FSM_STATE_2;
-	  //}
-		  break;
-	  case FSM_STATE_2:
-		  if(!internal_event_fifo_2.empty()  && !merged_fifo.full())
-	  {
-	    NalEventNotif tmp = internal_event_fifo_2.read();
-	    printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_2\n", \
-	        (int) tmp.type, (int) tmp.update_value);
-	    merged_fifo.write(tmp);
-		  //statusFSM = FSM_STATE_4;
-	  } //else {
-		  statusFSM = FSM_STATE_3;
-	  //}
-		  break;
-	  case FSM_STATE_3:
-		  if(!internal_event_fifo_3.empty() && !merged_fifo.full())
-	  {
-	    NalEventNotif tmp = internal_event_fifo_3.read();
-	    printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_3\n", \
-	        (int) tmp.type, (int) tmp.update_value);
-	    merged_fifo.write(tmp);
-		  //statusFSM = FSM_STATE_4;
-	  } //else {
-		  statusFSM = FSM_STATE_4;
-	  //}
-		//  break;
-	  //case FSM_STATE_4:
-	//	  pStatusMemory(merged_fifo, layer_7_enabled, role_decoupled, &own_rank, mrt_version_processed,
-		//        udp_rx_ports_processed, tcp_rx_ports_processed, processed_FMC_listen_port, sStatusUpdate);
-		  //if(merged_fifo.empty())
-		  //{
-			  statusFSM = FSM_STATE_0;
-		  //}
-		  ////otherwise, stay here
-		  break;
-   } //switch
-	   pStatusMemory(merged_fifo, layer_7_enabled, role_decoupled, &own_rank, mrt_version_processed,
-			   	     udp_rx_ports_processed, tcp_rx_ports_processed, processed_FMC_listen_port, sStatusUpdate);
-  }//else
+    default:
+    case FSM_STATE_0:
+      if(!internal_event_fifo_0.empty() && !merged_fifo.full())
+      {
+        NalEventNotif tmp = internal_event_fifo_0.read();
+        printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_0\n", \
+            (int) tmp.type, (int) tmp.update_value);
+        merged_fifo.write(tmp);
+        //statusFSM = FSM_STATE_4;
+      } //else {
+      statusFSM = FSM_STATE_1;
+      //}
+      break;
+    case FSM_STATE_1:
+      if(!internal_event_fifo_1.empty() && !merged_fifo.full() )
+      {
+        NalEventNotif tmp = internal_event_fifo_1.read();
+        printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_1\n", \
+            (int) tmp.type, (int) tmp.update_value);
+        merged_fifo.write(tmp);
+        //statusFSM = FSM_STATE_4;
+      } //else {
+      statusFSM = FSM_STATE_2;
+      //}
+      break;
+    case FSM_STATE_2:
+      if(!internal_event_fifo_2.empty()  && !merged_fifo.full())
+      {
+        NalEventNotif tmp = internal_event_fifo_2.read();
+        printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_2\n", \
+            (int) tmp.type, (int) tmp.update_value);
+        merged_fifo.write(tmp);
+        //statusFSM = FSM_STATE_4;
+      } //else {
+      statusFSM = FSM_STATE_3;
+      //}
+      break;
+    case FSM_STATE_3:
+      if(!internal_event_fifo_3.empty() && !merged_fifo.full())
+      {
+        NalEventNotif tmp = internal_event_fifo_3.read();
+        printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_3\n", \
+            (int) tmp.type, (int) tmp.update_value);
+        merged_fifo.write(tmp);
+        //statusFSM = FSM_STATE_4;
+      } //else {
+      statusFSM = FSM_STATE_4;
+      //}
+      //  break;
+      //case FSM_STATE_4:
+      //    pStatusMemory(merged_fifo, layer_7_enabled, role_decoupled, &own_rank, mrt_version_processed,
+      //        udp_rx_ports_processed, tcp_rx_ports_processed, processed_FMC_listen_port, sStatusUpdate);
+      //if(merged_fifo.empty())
+      //{
+      statusFSM = FSM_STATE_0;
+      //}
+      ////otherwise, stay here
+      break;
+  } //switch
+  //  pStatusMemory(merged_fifo, layer_7_enabled, role_decoupled, &own_rank, mrt_version_processed,
+  //            udp_rx_ports_processed, tcp_rx_ports_processed, processed_FMC_listen_port, sStatusUpdate);
+  //}//else
 }
 
 
@@ -638,9 +638,9 @@ void nal_main(
 
 #pragma HLS INTERFACE axis register both port=soTOE_Data
 #pragma HLS INTERFACE axis register both port=soTOE_SndReq
-#pragma HLS DATA_PACK		         variable=soTOE_SndReq
+#pragma HLS DATA_PACK            variable=soTOE_SndReq
 #pragma HLS INTERFACe axis register both port=siTOE_SndRep
-#pragma HLS DATA_PACK				 variable=siTOE_SndRep
+#pragma HLS DATA_PACK        variable=siTOE_SndRep
 
 #pragma HLS INTERFACE axis register both port=soTOE_OpnReq
 #pragma HLS DATA_PACK                variable=soTOE_OpnReq
@@ -705,6 +705,7 @@ void nal_main(
   static stream<NalEventNotif> internal_event_fifo_1 ("internal_event_fifo_1");
   static stream<NalEventNotif> internal_event_fifo_2 ("internal_event_fifo_2");
   static stream<NalEventNotif> internal_event_fifo_3 ("internal_event_fifo_3");
+  static stream<NalEventNotif> merged_fifo           ("sEvent_Merged_Fifo");
   //static stream<NalConfigUpdate>   sA4lToTcpAgency    ("sA4lToTcpAgency"); //(currently not used)
   static stream<NalConfigUpdate>   sA4lToPortLogic    ("sA4lToPortLogic");
   static stream<NalConfigUpdate>   sA4lToUdpRx        ("sA4lToUdpRx");
@@ -732,9 +733,9 @@ void nal_main(
 
   static stream<NetworkWord>        sRoleTcpDataRx_buffer ("sRoleTcpDataRx_buffer");
   static stream<NetworkMetaStream>    sRoleTcpMetaRx_buffer ("sRoleTcpMetaRx_buffer");
-  static stream<TcpAppData>			sTcpWrp2Wbu_data  ("sTcpWrp2Wbu_data");
-  static stream<TcpAppMeta>			sTcpWrp2Wbu_sessId ("sTcpWrp2Wbu_sessId");
-  static stream<TcpDatLen>			sTcpWrp2Wbu_len  ("sTcpWrp2Wbu_len");
+  static stream<TcpAppData>     sTcpWrp2Wbu_data  ("sTcpWrp2Wbu_data");
+  static stream<TcpAppMeta>     sTcpWrp2Wbu_sessId ("sTcpWrp2Wbu_sessId");
+  static stream<TcpDatLen>      sTcpWrp2Wbu_len  ("sTcpWrp2Wbu_len");
 
   static stream<SessionId>          sGetTripleFromSid_Req    ("sGetTripleFromSid_Req");
   static stream<NalTriple>          sGetTripleFromSid_Rep    ("sGetTripleFromSid_Rep");
@@ -747,19 +748,20 @@ void nal_main(
   static stream<bool>               sMarkToDel_unpriv        ("sMarkToDel_unpriv");
   static stream<bool>               sGetNextDelRow_Req       ("sGetNextDelRow_Req");
   static stream<SessionId>          sGetNextDelRow_Rep       ("sGetNextDelRow_Rep");
-  static stream<TcpAppRdReq>       	sRDp_ReqNotif			 ("sRDp_ReqNotif");
+  static stream<TcpAppRdReq>        sRDp_ReqNotif      ("sRDp_ReqNotif");
 
   static stream<NalTriple>      sNewTcpCon_Req       ("sNewTcpCon_Req");
   static stream<NalNewTcpConRep>    sNewTcpCon_Rep           ("sNewTcpConRep");
-  static stream<TcpAppNotif>       sTcpNotif_buffer 	("sTcpNotif_buffer");
+  static stream<TcpAppNotif>       sTcpNotif_buffer   ("sTcpNotif_buffer");
 
 
 #pragma HLS STREAM variable=internal_event_fifo_0 depth=32
 #pragma HLS STREAM variable=internal_event_fifo_1 depth=32
 #pragma HLS STREAM variable=internal_event_fifo_2 depth=32
 #pragma HLS STREAM variable=internal_event_fifo_3 depth=32
+#pragma HLS STREAM variable=merged_fifo depth=128
 
-//#pragma HLS STREAM variable=sA4lToTcpAgency  depth=16 //(currently not used)
+  //#pragma HLS STREAM variable=sA4lToTcpAgency  depth=16 //(currently not used)
 #pragma HLS STREAM variable=sA4lToPortLogic  depth=16
 #pragma HLS STREAM variable=sA4lToUdpRx      depth=16
 #pragma HLS STREAM variable=sA4lToTcpRx      depth=16
@@ -873,7 +875,7 @@ void nal_main(
   pTcpRxNotifEnq(siTOE_Notif, sTcpNotif_buffer, &nts_ready_and_enabled);
 
   pTcpRRh(sTcpNotif_buffer, soTOE_DReq, sAddNewTriple_TcpRrh, sDeleteEntryBySid,  sRDp_ReqNotif,
-		  piFMC_Tcp_data_FIFO_prog_full, piFMC_Tcp_sessid_FIFO_prog_full, &role_fifo_empty, &nts_ready_and_enabled);
+      piFMC_Tcp_data_FIFO_prog_full, piFMC_Tcp_sessid_FIFO_prog_full, &role_fifo_empty, &nts_ready_and_enabled);
 
   //=================================================================================================
   // TCP Read Path
@@ -891,7 +893,7 @@ void nal_main(
   //=================================================================================================
   // TCP Write Path
   pTcpWRp(siFMC_Tcp_data, siFMC_Tcp_SessId, siTcp_data, siTcp_meta,
-		  sTcpWrp2Wbu_data, sTcpWrp2Wbu_sessId, sTcpWrp2Wbu_len,
+      sTcpWrp2Wbu_data, sTcpWrp2Wbu_sessId, sTcpWrp2Wbu_len,
       sGetIpReq_TcpTx, sGetIpRep_TcpTx,
       //sGetNidReq_TcpTx, sGetNidRep_TcpTx,
       sGetSidFromTriple_Req, sGetSidFromTriple_Rep, sNewTcpCon_Req, sNewTcpCon_Rep,
@@ -899,7 +901,7 @@ void nal_main(
       &detected_cache_invalidation, internal_event_fifo_3);
 
   pTcpWBu(sTcpWrp2Wbu_data, sTcpWrp2Wbu_sessId, sTcpWrp2Wbu_len,
-		  soTOE_Data, soTOE_SndReq, siTOE_SndRep, &nts_ready_and_enabled);
+      soTOE_Data, soTOE_SndReq, siTOE_SndRep, &nts_ready_and_enabled);
 
   //=================================================================================================
   // TCP start remote connection
@@ -922,14 +924,21 @@ void nal_main(
 
   pMrtAgency(sA4lMrtUpdate, sGetIpReq_UdpTx, sGetIpRep_UdpTx, sGetIpReq_TcpTx, sGetIpRep_TcpTx, sGetNidReq_UdpRx, sGetNidRep_UdpRx, sGetNidReq_TcpRx, sGetNidRep_TcpRx);
 
-  eventStatusHousekeeping(layer_4_enabled, layer_7_enabled, role_decoupled, &mrt_version_used, &status_udp_ports, &status_tcp_ports,
-      &status_fmc_ports, sA4lToStatusProc, internal_event_fifo_0, internal_event_fifo_1, internal_event_fifo_2, internal_event_fifo_3, sStatusUpdate);
+  //eventStatusHousekeeping(layer_4_enabled, layer_7_enabled, role_decoupled, &mrt_version_used, &status_udp_ports, &status_tcp_ports,
+  //    &status_fmc_ports, sA4lToStatusProc, internal_event_fifo_0, internal_event_fifo_1, internal_event_fifo_2, internal_event_fifo_3, sStatusUpdate);
+
+  eventStatusHousekeeping( internal_event_fifo_0, internal_event_fifo_1, internal_event_fifo_2, internal_event_fifo_3, merged_fifo);
+
+  pStatusMemory(merged_fifo, layer_7_enabled, role_decoupled, sA4lToStatusProc, &mrt_version_used, &status_udp_ports, &status_tcp_ports, &status_fmc_ports, sStatusUpdate);
+
+
+
 
   axi4liteProcessing(layer_4_enabled, ctrlLink, &mrt_version_processed,
-		  //sA4lToTcpAgency, //(currently not used)
-		  sA4lToPortLogic, sA4lToUdpRx,
+      //sA4lToTcpAgency, //(currently not used)
+      sA4lToPortLogic, sA4lToUdpRx,
       sA4lToTcpRx, sA4lToStatusProc,
-	  sA4lMrtUpdate, sStatusUpdate);
+      sA4lMrtUpdate, sStatusUpdate);
 
 }
 

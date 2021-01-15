@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*******************************************************************************/
+ *******************************************************************************/
 
 /*****************************************************************************
  * @file       : nal.hpp
@@ -133,7 +133,7 @@ using namespace hls;
 //#define FSM_DROP_PACKET 8
 //#define FsmStateUdp uint8_t
 enum FsmStateUdp {FSM_RESET = 0, FSM_W8FORMETA, FSM_W8FORREQS, FSM_FIRST_ACC, FSM_ACC, \
-                  FSM_WRITE_META, FSM_DROP_PACKET};
+  FSM_WRITE_META, FSM_DROP_PACKET};
 
 //#define OpnFsmStates uint8_t
 //#define OPN_IDLE 0
@@ -162,7 +162,7 @@ enum RrhFsmStates {RRH_WAIT_NOTIF = 0, RRH_SEND_DREQ};
 //#define RDP_WRITE_META_FMC 4
 //#define RDP_DROP_PACKET 5
 enum RdpFsmStates {RDP_WAIT_META = 0, RDP_W8FORREQS_1, RDP_W8FORREQS_2, RDP_FILTER_META, RDP_STREAM_ROLE, RDP_STREAM_FMC, \
-	               RDP_WRITE_META_ROLE, RDP_WRITE_META_FMC, RDP_DROP_PACKET};
+  RDP_WRITE_META_ROLE, RDP_WRITE_META_FMC, RDP_DROP_PACKET};
 
 //#define WrpFsmStates uint8_t
 //#define WRP_WAIT_META 0
@@ -171,7 +171,7 @@ enum RdpFsmStates {RDP_WAIT_META = 0, RDP_W8FORREQS_1, RDP_W8FORREQS_2, RDP_FILT
 //#define WRP_STREAM_ROLE 3
 //#define WRP_DROP_PACKET 4
 enum WrpFsmStates {WRP_WAIT_META = 0, WRP_STREAM_FMC, WRP_W8FORREQS_1,  WRP_W8FORREQS_11, WRP_W8FORREQS_2, WRP_WAIT_CONNECTION, \
-	               WRP_STREAM_ROLE, WRP_DROP_PACKET};
+  WRP_STREAM_ROLE, WRP_DROP_PACKET};
 
 enum WbuFsmStates {WBU_WAIT_META = 0, WBU_SND_REQ, WBU_WAIT_REP, WBU_STREAM, WBU_DROP};
 
@@ -189,8 +189,8 @@ enum DeqFsmStates {DEQ_WAIT_META = 0, DEQ_STREAM_DATA};
 enum TableFsmStates {TAB_FSM_READ = 0, TAB_FSM_WRITE};
 
 enum AxiLiteFsmStates {A4L_COPY_CONFIG = 0, \
-	//A4L_BROADCAST_CONFIG_1, A4L_BROADCAST_CONFIG_2,
-	                   A4L_COPY_MRT, A4L_COPY_STATUS, A4L_COPY_FINISH};
+  //A4L_BROADCAST_CONFIG_1, A4L_BROADCAST_CONFIG_2,
+  A4L_COPY_MRT, A4L_COPY_STATUS, A4L_COPY_FINISH};
 
 enum ConfigBcastStates {CB_WAIT = 0, CB_START, CB_1, CB_2, CB_3_0, CB_3_1, CB_3_2};
 
@@ -215,16 +215,16 @@ enum ConfigBcastStates {CB_WAIT = 0, CB_START, CB_1, CB_2, CB_3_0, CB_3_1, CB_3_
 #define UNUSED_SESSION_ENTRY_VALUE 0xFFFE
 #define INVALID_MRT_VALUE 0xFFFFF
 
- /*
-  * ctrlLINK Structure:
-  * 1.         0 --            NUMBER_CONFIG_WORDS -1 :  possible configuration from FMC to NAL
-  * 2. NUMBER_CONFIG_WORDS --  NUMBER_STATUS_WORDS -1 :  possible status from NAL to FMC
-  * 3. NUMBER_STATUS_WORDS 
-  *     + NUMBER_STATUS_WORDS --  MAX_MRT_SIZE +
-  *                              NUMBER_CONFIG_WORDS +
-  *                              NUMBER_STATUS_WORDS    : Message Routing Table (MRT)
-  *
-  */
+/*
+ * ctrlLINK Structure:
+ * 1.         0 --            NUMBER_CONFIG_WORDS -1 :  possible configuration from FMC to NAL
+ * 2. NUMBER_CONFIG_WORDS --  NUMBER_STATUS_WORDS -1 :  possible status from NAL to FMC
+ * 3. NUMBER_STATUS_WORDS 
+ *     + NUMBER_STATUS_WORDS --  MAX_MRT_SIZE +
+ *                              NUMBER_CONFIG_WORDS +
+ *                              NUMBER_STATUS_WORDS    : Message Routing Table (MRT)
+ *
+ */
 #define NAL_CONFIG_OWN_RANK 0
 #define NAL_CONFIG_MRT_VERSION 1
 #define NAL_CONFIG_SAVED_UDP_PORTS 2
@@ -273,35 +273,35 @@ typedef UdpAppMeta  UdpMeta;
 typedef UdpAppDLen  UdpPLen;
 
 enum NalCntIncType {NID_MISS_RX = 0, NID_MISS_TX, PCOR_TX, TCP_CON_FAIL, LAST_RX_PORT, \
-	                LAST_RX_NID, LAST_TX_PORT, LAST_TX_NID, PACKET_RX, PACKET_TX, UNAUTH_ACCESS, \
-                    AUTH_ACCESS, FMC_TCP_BYTES};
+  LAST_RX_NID, LAST_TX_PORT, LAST_TX_NID, PACKET_RX, PACKET_TX, UNAUTH_ACCESS, \
+    AUTH_ACCESS, FMC_TCP_BYTES};
 
 
 struct NalEventNotif {
-	NalCntIncType type;
-	ap_uint<32>   update_value;
-	//in case of LAST_* types, the update_value is the new value
-	//on other cases, it is an increment value
-	NalEventNotif() {}
-	NalEventNotif(NalCntIncType nt, ap_uint<32> uv): type(nt), update_value(uv) {}
+  NalCntIncType type;
+  ap_uint<32>   update_value;
+  //in case of LAST_* types, the update_value is the new value
+  //on other cases, it is an increment value
+  NalEventNotif() {}
+  NalEventNotif(NalCntIncType nt, ap_uint<32> uv): type(nt), update_value(uv) {}
 };
 //typedef NalEventNotif NalEventNotifType;
 
 typedef ap_uint<64> NalTriple;
 
 struct NalNewTableEntry {
-	NalTriple  new_triple;
-	SessionId	sessId;
-	NalNewTableEntry() {}
-	NalNewTableEntry(NalTriple nt, SessionId sid): new_triple(nt), sessId(sid) {}
+  NalTriple  new_triple;
+  SessionId sessId;
+  NalNewTableEntry() {}
+  NalNewTableEntry(NalTriple nt, SessionId sid): new_triple(nt), sessId(sid) {}
 };
 
 struct NalNewTcpConRep {
-	NalTriple new_triple;
-	SessionId newSessionId;
-	bool	  failure;
-	NalNewTcpConRep() {}
-	NalNewTcpConRep(NalTriple nt, SessionId ns, bool fail): new_triple(nt), newSessionId(ns), failure(fail) {}
+  NalTriple new_triple;
+  SessionId newSessionId;
+  bool    failure;
+  NalNewTcpConRep() {}
+  NalNewTcpConRep(NalTriple nt, SessionId ns, bool fail): new_triple(nt), newSessionId(ns), failure(fail) {}
 };
 
 //INLINE METHODs
@@ -316,7 +316,7 @@ uint8_t extractByteCnt(Axis<64> currWord);
 #include "tss.hpp"
 #include "hss.hpp"
 #include "cam8.hpp"
-#include "cam16.hpp"
+//#include "cam16.hpp"
 
 void nal_main(
     // ----- link to FMC -----
@@ -339,7 +339,7 @@ void nal_main(
     stream<NetworkWord>         &soUdp_data,
     stream<NetworkMetaStream>   &siUdp_meta,
     stream<NetworkMetaStream>   &soUdp_meta,
-    
+
     // -- ROLE TCP connection
     ap_uint<32>                 *pi_tcp_rx_ports,
     stream<NetworkWord>         &siTcp_data,
@@ -347,13 +347,13 @@ void nal_main(
     stream<NetworkWord>         &soTcp_data,
     stream<NetworkMetaStream>   &soTcp_meta,
 
-	 // -- FMC TCP connection
-	 stream<TcpAppData>          &siFMC_Tcp_data,
-	 stream<TcpAppMeta>          &siFMC_Tcp_SessId,
-	 ap_uint<1>                  *piFMC_Tcp_data_FIFO_prog_full,
-	 stream<TcpAppData>          &soFMC_Tcp_data,
-	 ap_uint<1>                  *piFMC_Tcp_sessid_FIFO_prog_full,
-	 stream<TcpAppMeta>          &soFMC_Tcp_SessId,
+    // -- FMC TCP connection
+    stream<TcpAppData>          &siFMC_Tcp_data,
+    stream<TcpAppMeta>          &siFMC_Tcp_SessId,
+    ap_uint<1>                  *piFMC_Tcp_data_FIFO_prog_full,
+    stream<TcpAppData>          &soFMC_Tcp_data,
+    ap_uint<1>                  *piFMC_Tcp_sessid_FIFO_prog_full,
+    stream<TcpAppMeta>          &soFMC_Tcp_SessId,
 
     //-- UOE / Control Port Interfaces
     stream<UdpPort>             &soUOE_LsnReq,
@@ -370,28 +370,28 @@ void nal_main(
     stream<UdpAppMeta>          &soUOE_Meta,
     stream<UdpAppDLen>          &soUOE_DLen,
 
-	//-- TOE / Rx Data Interfaces
-	stream<TcpAppNotif>    &siTOE_Notif,
-	stream<TcpAppRdReq>    &soTOE_DReq,
-	stream<TcpAppData>     &siTOE_Data,
-	stream<TcpAppMeta>     &siTOE_SessId,
-	//-- TOE / Listen Interfaces
-	stream<TcpAppLsnReq>   &soTOE_LsnReq,
-	stream<TcpAppLsnRep>   &siTOE_LsnRep,
-	//-- TOE / Tx Data Interfaces
+    //-- TOE / Rx Data Interfaces
+    stream<TcpAppNotif>    &siTOE_Notif,
+    stream<TcpAppRdReq>    &soTOE_DReq,
+    stream<TcpAppData>     &siTOE_Data,
+    stream<TcpAppMeta>     &siTOE_SessId,
+    //-- TOE / Listen Interfaces
+    stream<TcpAppLsnReq>   &soTOE_LsnReq,
+    stream<TcpAppLsnRep>   &siTOE_LsnRep,
+    //-- TOE / Tx Data Interfaces
     stream<TcpAppData>      &soTOE_Data,
     stream<TcpAppSndReq>    &soTOE_SndReq,
     stream<TcpAppSndRep>    &siTOE_SndRep,
-	//stream<AppWrSts>    &siTOE_DSts,
-	//-- TOE / Open Interfaces
-	stream<TcpAppOpnReq>      &soTOE_OpnReq,
-	stream<TcpAppOpnRep>   &siTOE_OpnRep,
-	//-- TOE / Close Interfaces
-	stream<TcpAppClsReq>   &soTOE_ClsReq
-);
+    //stream<AppWrSts>    &siTOE_DSts,
+    //-- TOE / Open Interfaces
+    stream<TcpAppOpnReq>      &soTOE_OpnReq,
+    stream<TcpAppOpnRep>   &siTOE_OpnRep,
+    //-- TOE / Close Interfaces
+    stream<TcpAppClsReq>   &soTOE_ClsReq
+    );
 
 #endif
 
 
-/*! \} */
+    /*! \} */
 
