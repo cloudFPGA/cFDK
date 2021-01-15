@@ -354,7 +354,7 @@ void pStatusMemory(
 
 }
 
-void eventStatusHousekeeping(
+void eventFifoMerge(
     //const ap_uint<1>          *layer_4_enabled,
     //const ap_uint<1>       *layer_7_enabled,
     //const ap_uint<1>       *role_decoupled,
@@ -375,95 +375,39 @@ void eventStatusHousekeeping(
 #pragma HLS INLINE off
 #pragma HLS pipeline II=1
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-  static FiveStateFsm statusFSM = FSM_STATE_0;
-  //static NodeId own_rank = 0;
-
-  //#pragma HLS reset variable=own_rank
-#pragma HLS reset variable=statusFSM
-
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-
-  //  static stream<NalEventNotif> merged_fifo ("sEvent_Merged_Fifo");
-
-  //#pragma HLS STREAM variable=merged_fifo depth=32
-
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
 
   //if else tree to lower latency, the event fifos should have enough buffer...
 
-  //  if(!sConfigUpdate.empty())
-  //  {
-  //    NalConfigUpdate ca = sConfigUpdate.read();
-  //    if(ca.config_addr == NAL_CONFIG_OWN_RANK)
-  //    {
-  //      own_rank = ca.update_value;
-  //    }
-  //  } else {
-
-  switch(statusFSM) {
-
-    default:
-    case FSM_STATE_0:
       if(!internal_event_fifo_0.empty() && !merged_fifo.full())
       {
         NalEventNotif tmp = internal_event_fifo_0.read();
         printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_0\n", \
             (int) tmp.type, (int) tmp.update_value);
         merged_fifo.write(tmp);
-        //statusFSM = FSM_STATE_4;
-      } //else {
-      statusFSM = FSM_STATE_1;
-      //}
-      break;
-    case FSM_STATE_1:
-      if(!internal_event_fifo_1.empty() && !merged_fifo.full() )
+      }
+      else if(!internal_event_fifo_1.empty() && !merged_fifo.full() )
       {
         NalEventNotif tmp = internal_event_fifo_1.read();
         printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_1\n", \
             (int) tmp.type, (int) tmp.update_value);
         merged_fifo.write(tmp);
-        //statusFSM = FSM_STATE_4;
-      } //else {
-      statusFSM = FSM_STATE_2;
-      //}
-      break;
-    case FSM_STATE_2:
-      if(!internal_event_fifo_2.empty()  && !merged_fifo.full())
+      }
+      else if(!internal_event_fifo_2.empty()  && !merged_fifo.full())
       {
         NalEventNotif tmp = internal_event_fifo_2.read();
         printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_2\n", \
             (int) tmp.type, (int) tmp.update_value);
         merged_fifo.write(tmp);
-        //statusFSM = FSM_STATE_4;
-      } //else {
-      statusFSM = FSM_STATE_3;
-      //}
-      break;
-    case FSM_STATE_3:
-      if(!internal_event_fifo_3.empty() && !merged_fifo.full())
+      }
+      else if(!internal_event_fifo_3.empty() && !merged_fifo.full())
       {
         NalEventNotif tmp = internal_event_fifo_3.read();
         printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_3\n", \
             (int) tmp.type, (int) tmp.update_value);
         merged_fifo.write(tmp);
-        //statusFSM = FSM_STATE_4;
-      } //else {
-      statusFSM = FSM_STATE_4;
-      //}
-      //  break;
-      //case FSM_STATE_4:
-      //    pStatusMemory(merged_fifo, layer_7_enabled, role_decoupled, &own_rank, mrt_version_processed,
-      //        udp_rx_ports_processed, tcp_rx_ports_processed, processed_FMC_listen_port, sStatusUpdate);
-      //if(merged_fifo.empty())
-      //{
-      statusFSM = FSM_STATE_0;
-      //}
-      ////otherwise, stay here
-      break;
-  } //switch
-  //  pStatusMemory(merged_fifo, layer_7_enabled, role_decoupled, &own_rank, mrt_version_processed,
-  //            udp_rx_ports_processed, tcp_rx_ports_processed, processed_FMC_listen_port, sStatusUpdate);
-  //}//else
+      }
 }
 
 
@@ -924,10 +868,10 @@ void nal_main(
 
   pMrtAgency(sA4lMrtUpdate, sGetIpReq_UdpTx, sGetIpRep_UdpTx, sGetIpReq_TcpTx, sGetIpRep_TcpTx, sGetNidReq_UdpRx, sGetNidRep_UdpRx, sGetNidReq_TcpRx, sGetNidRep_TcpRx);
 
-  //eventStatusHousekeeping(layer_4_enabled, layer_7_enabled, role_decoupled, &mrt_version_used, &status_udp_ports, &status_tcp_ports,
+  //eventFifoMerge(layer_4_enabled, layer_7_enabled, role_decoupled, &mrt_version_used, &status_udp_ports, &status_tcp_ports,
   //    &status_fmc_ports, sA4lToStatusProc, internal_event_fifo_0, internal_event_fifo_1, internal_event_fifo_2, internal_event_fifo_3, sStatusUpdate);
 
-  eventStatusHousekeeping( internal_event_fifo_0, internal_event_fifo_1, internal_event_fifo_2, internal_event_fifo_3, merged_fifo);
+  eventFifoMerge( internal_event_fifo_0, internal_event_fifo_1, internal_event_fifo_2, internal_event_fifo_3, merged_fifo);
 
   pStatusMemory(merged_fifo, layer_7_enabled, role_decoupled, sA4lToStatusProc, &mrt_version_used, &status_udp_ports, &status_tcp_ports, &status_fmc_ports, sStatusUpdate);
 

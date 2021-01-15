@@ -317,7 +317,7 @@ void pMrtAgency(
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-  //#pragma HLS pipeline II=1
+//#pragma HLS pipeline II=1
 
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
   static bool tables_initialized = false;
@@ -325,51 +325,53 @@ void pMrtAgency(
 #pragma HLS reset variable=tables_initialized
 
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-  //static ap_uint<32> localMRT[MAX_MRT_SIZE];
-  //static Cam16<NodeId,Ip4Addr> mrt_p0 = Cam16<NodeId,Ip4Addr>();
+  static ap_uint<32> localMRT[MAX_MRT_SIZE];
 
-#define CAM_SIZE 8
-#define CAM_NUM 16
-  static Cam8<NodeId,Ip4Addr> mrt_cam_arr[CAM_NUM];
-#ifndef __SYNTHESIS__
-  if(MAX_MRT_SIZE != 128)
-  {
-    printf("\n\t\tERROR: pMrtAgency is currently configured to support only a MRT size up to 128! Abort.\n(Currently, the use of \'mrt_cam_arr\' must be updated accordingly by hand.)\n");
-    exit(-1);
-  }
-#endif
+//#define CAM_SIZE 8
+//#define CAM_NUM 16
+//  static Cam8<NodeId,Ip4Addr> mrt_cam_arr[CAM_NUM];
+//#ifndef __SYNTHESIS__
+//  if(MAX_MRT_SIZE != 128)
+//  {
+//    printf("\n\t\tERROR: pMrtAgency is currently configured to support only a MRT size up to 128! Abort.\n(Currently, the use of \'mrt_cam_arr\' must be updated accordingly by hand.)\n");
+//    exit(-1);
+//  }
+//#endif
 
 
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
 
   if(!tables_initialized)
   {
-    //     for(int i = 0; i < MAX_MRT_SIZE; i++)
-    //     {
-    //#pragma HLS unroll factor=8
-    //       localMRT[i] = (NodeId) INVALID_MRT_VALUE;
-    //     }
-    for(int i = 0; i < CAM_NUM; i++)
+    for(int i = 0; i < MAX_MRT_SIZE; i++)
     {
-      mrt_cam_arr[i].reset();
+#pragma HLS unroll factor=8
+      localMRT[i] = (NodeId) INVALID_MRT_VALUE;
     }
+    //for(int i = 0; i < CAM_NUM; i++)
+    //{
+    //  mrt_cam_arr[i].reset();
+    //}
     tables_initialized = true;
   } else if(!sMrtUpdate.empty())
   {
     NalMrtUpdate mrt_update = sMrtUpdate.read();
-    uint8_t cam_select = mrt_update.nid / CAM_SIZE;
-    if(mrt_update.nid < MAX_MRT_SIZE && cam_select < CAM_NUM)
+    //uint8_t cam_select = mrt_update.nid / CAM_SIZE;
+    //if(mrt_update.nid < MAX_MRT_SIZE && cam_select < CAM_NUM)
+    if(mrt_update.nid < MAX_MRT_SIZE)
     {
-      //localMRT[mrt_update.nid] = mrt_update.ip4a;
-      Ip4Addr old_addr = 0;
-      if(mrt_cam_arr[cam_select].lookup(mrt_update.nid, old_addr))
-      {
-        mrt_cam_arr[cam_select].update(mrt_update.nid, mrt_update.ip4a);
-      } else {
-        mrt_cam_arr[cam_select].insert(mrt_update.nid, mrt_update.ip4a);
-      }
-      printf("[pMrtAgency] got status update for node %d with address %d (on CAM #%d)\n",
-          (int) mrt_update.nid, (int) mrt_update.ip4a, cam_select);
+      localMRT[mrt_update.nid] = mrt_update.ip4a;
+      //Ip4Addr old_addr = 0;
+      //if(mrt_cam_arr[cam_select].lookup(mrt_update.nid, old_addr))
+      //{
+      //  mrt_cam_arr[cam_select].update(mrt_update.nid, mrt_update.ip4a);
+      //} else {
+      //  mrt_cam_arr[cam_select].insert(mrt_update.nid, mrt_update.ip4a);
+      //}
+      //printf("[pMrtAgency] got status update for node %d with address %d (on CAM #%d)\n",
+      //    (int) mrt_update.nid, (int) mrt_update.ip4a, cam_select);
+      printf("[pMrtAgency] got status update for node %d with address %d\n",
+          (int) mrt_update.nid, (int) mrt_update.ip4a);
     }
   } else {
     if( (!sGetIpReq_UdpTx.empty() || !sGetIpReq_TcpTx.empty())
@@ -384,11 +386,13 @@ void pMrtAgency(
       } else {
         rank = sGetIpReq_TcpTx.read();
       }
-      uint8_t cam_select = rank / CAM_SIZE;
+      //uint8_t cam_select = rank / CAM_SIZE;
       Ip4Addr rep = 0;  //return zero on failure
-      if(rank < MAX_MRT_SIZE && cam_select < CAM_NUM)
+      //if(rank < MAX_MRT_SIZE && cam_select < CAM_NUM)
+      if(rank < MAX_MRT_SIZE)
       {
-        mrt_cam_arr[cam_select].lookup(rank, rep);
+        //mrt_cam_arr[cam_select].lookup(rank, rep);
+        rep = localMRT[rank];
       }
       if(answer_udp)
       {
@@ -430,22 +434,22 @@ void pMrtAgency(
       }
       printf("[HSS-INFO] Searching for Node ID of IP %d.\n", (int) ipAddr);
       NodeId rep = INVALID_MRT_VALUE;
-      //         for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
-      //         {
-      //           //#pragma HLS unroll factor=8
-      //           if(localMRT[i] == ipAddr)
-      //           {
-      //             rep = (NodeId) i;
-      //             break;
-      //           }
-      //         }
-      for(int i = 0; i < CAM_NUM; i++)
+      for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
       {
-        if(mrt_cam_arr[i].reverse_lookup(ipAddr, rep))
+#pragma HLS unroll factor=8
+        if(localMRT[i] == ipAddr)
         {
+          rep = (NodeId) i;
           break;
         }
       }
+      //for(int i = 0; i < CAM_NUM; i++)
+      //{
+      //  if(mrt_cam_arr[i].reverse_lookup(ipAddr, rep))
+      //  {
+      //    break;
+      //  }
+      //}
       if(answer_udp)
       {
         sGetNidRep_UdpRx.write(rep);
