@@ -76,13 +76,15 @@ void axi4liteProcessing(
     stream<NalConfigUpdate>   &sToUdpRx,
     stream<NalConfigUpdate>   &sToTcpRx,
     stream<NalConfigUpdate>   &sToStatusProc,
-    stream<NalMrtUpdate>    &sMrtUpdate,
+    //stream<NalMrtUpdate>    &sMrtUpdate,
+    ap_uint<32> localMRT[MAX_MRT_SIZE],
     stream<NalStatusUpdate>   &sStatusUpdate
     );
 
 
 void pMrtAgency(
-    stream<NalMrtUpdate> &sMrtUpdate,
+    const ap_uint<32> localMRT[MAX_MRT_SIZE],
+    //stream<NalMrtUpdate> &sMrtUpdate,
     stream<NodeId>        &sGetIpReq_UdpTx,
     stream<Ip4Addr>       &sGetIpRep_UdpTx,
     stream<NodeId>        &sGetIpReq_TcpTx,
@@ -119,20 +121,20 @@ void pPortAndResetLogic(
     ap_uint<32>   *mrt_version_used
     );
 
-    void pTcpAgency(
-        stream<SessionId>     &sGetTripleFromSid_Req,
-        stream<NalTriple>       &sGetTripleFromSid_Rep,
-        stream<NalTriple>       &sGetSidFromTriple_Req,
-        stream<SessionId>       &sGetSidFromTriple_Rep,
-        stream<NalNewTableEntry>  &sAddNewTriple_TcpRrh,
-        stream<NalNewTableEntry>  &sAddNewTriple_TcpCon,
-        stream<SessionId>     &sDeleteEntryBySid,
-        stream<SessionId>     &sMarkAsPriv,
-        stream<bool>        &sMarkToDel_unpriv,
-        stream<bool>        &sGetNextDelRow_Req,
-        stream<SessionId>     &sGetNextDelRow_Rep,
-        const bool              *nts_ready_and_enabled
-        );
+void pTcpAgency(
+    stream<SessionId>     &sGetTripleFromSid_Req,
+    stream<NalTriple>       &sGetTripleFromSid_Rep,
+    stream<NalTriple>       &sGetSidFromTriple_Req,
+    stream<SessionId>       &sGetSidFromTriple_Rep,
+    stream<NalNewTableEntry>  &sAddNewTriple_TcpRrh,
+    stream<NalNewTableEntry>  &sAddNewTriple_TcpCon,
+    stream<SessionId>     &sDeleteEntryBySid,
+    stream<SessionId>     &sMarkAsPriv,
+    stream<bool>        &sMarkToDel_unpriv,
+    stream<bool>        &sGetNextDelRow_Req,
+    stream<SessionId>     &sGetNextDelRow_Rep,
+    const bool              *nts_ready_and_enabled
+    );
 
 
 #endif

@@ -66,7 +66,8 @@ void axi4liteProcessing(
     stream<NalConfigUpdate>   &sToUdpRx,
     stream<NalConfigUpdate>   &sToTcpRx,
     stream<NalConfigUpdate>   &sToStatusProc,
-    stream<NalMrtUpdate>    &sMrtUpdate,
+    //stream<NalMrtUpdate>    &sMrtUpdate,
+    ap_uint<32> localMRT[MAX_MRT_SIZE],
     stream<NalStatusUpdate>   &sStatusUpdate
     )
 {
@@ -86,7 +87,7 @@ void axi4liteProcessing(
 #pragma HLS reset variable=cbFsm
 
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-  static ap_uint<32> localMRT[MAX_MRT_SIZE];
+  //static ap_uint<32> localMRT[MAX_MRT_SIZE];
   static ap_uint<32> config[NUMBER_CONFIG_WORDS];
   static ap_uint<32> status[NUMBER_STATUS_WORDS];
 
@@ -161,19 +162,19 @@ void axi4liteProcessing(
       }
       break;
     case A4L_COPY_MRT:
-      if(!sMrtUpdate.full())
-      {
+      //if(!sMrtUpdate.full())
+      //{
         if(tableCopyVariable < MAX_MRT_SIZE)
         {
           ap_uint<32> new_ip4node = ctrlLink[tableCopyVariable + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS];
-          if (new_ip4node != localMRT[tableCopyVariable])
-          {
+          //if (new_ip4node != localMRT[tableCopyVariable])
+          //{
             //NalMrtUpdate mu = NalMrtUpdate(tableCopyVariable, new_ip4node);
             //sMrtUpdate.write(mu);
             localMRT[tableCopyVariable] = new_ip4node;
-            NalMrtUpdate mrt_update = NalMrtUpdate(tableCopyVariable, new_ip4node);
-            sMrtUpdate.write(mrt_update);
-          }
+          //  NalMrtUpdate mrt_update = NalMrtUpdate(tableCopyVariable, new_ip4node);
+          //  sMrtUpdate.write(mrt_update);
+          //}
           tableCopyVariable++;
           if(tableCopyVariable >= MAX_MRT_SIZE)
           {
@@ -184,7 +185,7 @@ void axi4liteProcessing(
           tableCopyVariable = 0;
           a4lFsm = A4L_COPY_STATUS;
         }
-      }
+      //}
       break;
     case A4L_COPY_STATUS:
       if(tableCopyVariable < NUMBER_STATUS_WORDS)
@@ -302,7 +303,8 @@ void axi4liteProcessing(
 
 
 void pMrtAgency(
-    stream<NalMrtUpdate> &sMrtUpdate,
+    const ap_uint<32> localMRT[MAX_MRT_SIZE],
+    //stream<NalMrtUpdate> &sMrtUpdate,
     stream<NodeId>        &sGetIpReq_UdpTx,
     stream<Ip4Addr>       &sGetIpRep_UdpTx,
     stream<NodeId>        &sGetIpReq_TcpTx,
@@ -320,12 +322,12 @@ void pMrtAgency(
 //#pragma HLS pipeline II=1
 
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-  static bool tables_initialized = false;
+  //static bool tables_initialized = false;
 
-#pragma HLS reset variable=tables_initialized
+//#pragma HLS reset variable=tables_initialized
 
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-  static ap_uint<32> localMRT[MAX_MRT_SIZE];
+  //static ap_uint<32> localMRT[MAX_MRT_SIZE];
 
 //#define CAM_SIZE 8
 //#define CAM_NUM 16
@@ -341,39 +343,39 @@ void pMrtAgency(
 
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
 
-  if(!tables_initialized)
-  {
-    for(int i = 0; i < MAX_MRT_SIZE; i++)
-    {
-#pragma HLS unroll factor=8
-      localMRT[i] = (NodeId) INVALID_MRT_VALUE;
-    }
-    //for(int i = 0; i < CAM_NUM; i++)
-    //{
-    //  mrt_cam_arr[i].reset();
-    //}
-    tables_initialized = true;
-  } else if(!sMrtUpdate.empty())
-  {
-    NalMrtUpdate mrt_update = sMrtUpdate.read();
-    //uint8_t cam_select = mrt_update.nid / CAM_SIZE;
-    //if(mrt_update.nid < MAX_MRT_SIZE && cam_select < CAM_NUM)
-    if(mrt_update.nid < MAX_MRT_SIZE)
-    {
-      localMRT[mrt_update.nid] = mrt_update.ip4a;
-      //Ip4Addr old_addr = 0;
-      //if(mrt_cam_arr[cam_select].lookup(mrt_update.nid, old_addr))
-      //{
-      //  mrt_cam_arr[cam_select].update(mrt_update.nid, mrt_update.ip4a);
-      //} else {
-      //  mrt_cam_arr[cam_select].insert(mrt_update.nid, mrt_update.ip4a);
-      //}
-      //printf("[pMrtAgency] got status update for node %d with address %d (on CAM #%d)\n",
-      //    (int) mrt_update.nid, (int) mrt_update.ip4a, cam_select);
-      printf("[pMrtAgency] got status update for node %d with address %d\n",
-          (int) mrt_update.nid, (int) mrt_update.ip4a);
-    }
-  } else {
+//  if(!tables_initialized)
+//  {
+//    for(int i = 0; i < MAX_MRT_SIZE; i++)
+//    {
+//#pragma HLS unroll factor=8
+//      localMRT[i] = (NodeId) INVALID_MRT_VALUE;
+//    }
+//    //for(int i = 0; i < CAM_NUM; i++)
+//    //{
+//    //  mrt_cam_arr[i].reset();
+//    //}
+//    tables_initialized = true;
+//  } else if(!sMrtUpdate.empty())
+//  {
+//    NalMrtUpdate mrt_update = sMrtUpdate.read();
+//    //uint8_t cam_select = mrt_update.nid / CAM_SIZE;
+//    //if(mrt_update.nid < MAX_MRT_SIZE && cam_select < CAM_NUM)
+//    if(mrt_update.nid < MAX_MRT_SIZE)
+//    {
+//      localMRT[mrt_update.nid] = mrt_update.ip4a;
+//      //Ip4Addr old_addr = 0;
+//      //if(mrt_cam_arr[cam_select].lookup(mrt_update.nid, old_addr))
+//      //{
+//      //  mrt_cam_arr[cam_select].update(mrt_update.nid, mrt_update.ip4a);
+//      //} else {
+//      //  mrt_cam_arr[cam_select].insert(mrt_update.nid, mrt_update.ip4a);
+//      //}
+//      //printf("[pMrtAgency] got status update for node %d with address %d (on CAM #%d)\n",
+//      //    (int) mrt_update.nid, (int) mrt_update.ip4a, cam_select);
+//      printf("[pMrtAgency] got status update for node %d with address %d\n",
+//          (int) mrt_update.nid, (int) mrt_update.ip4a);
+//    }
+//  } else {
     if( (!sGetIpReq_UdpTx.empty() || !sGetIpReq_TcpTx.empty())
         && !sGetIpRep_TcpTx.full() && !sGetIpRep_UdpTx.full())
     {
@@ -490,7 +492,7 @@ void pMrtAgency(
     //    sGetNidRep_TcpTx.write(rep);
     //  }
 
-  } //else
+//  } //else
 }
 
 

@@ -655,7 +655,7 @@ void nal_main(
   static stream<NalConfigUpdate>   sA4lToUdpRx        ("sA4lToUdpRx");
   static stream<NalConfigUpdate>   sA4lToTcpRx        ("sA4lToTcpRx");
   static stream<NalConfigUpdate>   sA4lToStatusProc   ("sA4lToStatusProc");
-  static stream<NalMrtUpdate>      sA4lMrtUpdate      ("sA4lMrtUpdate");
+  //static stream<NalMrtUpdate>      sA4lMrtUpdate      ("sA4lMrtUpdate");
   static stream<NalStatusUpdate>   sStatusUpdate    ("sStatusUpdate");
   static stream<NodeId>            sGetIpReq_UdpTx    ("sGetIpReq_UdpTx");
   static stream<Ip4Addr>           sGetIpRep_UdpTx    ("sGetIpRep_UdpTx");
@@ -698,6 +698,7 @@ void nal_main(
   static stream<NalNewTcpConRep>    sNewTcpCon_Rep           ("sNewTcpConRep");
   static stream<TcpAppNotif>       sTcpNotif_buffer   ("sTcpNotif_buffer");
 
+  static ap_uint<32> localMRT[MAX_MRT_SIZE];
 
 #pragma HLS STREAM variable=internal_event_fifo_0 depth=32
 #pragma HLS STREAM variable=internal_event_fifo_1 depth=32
@@ -710,7 +711,7 @@ void nal_main(
 #pragma HLS STREAM variable=sA4lToUdpRx      depth=16
 #pragma HLS STREAM variable=sA4lToTcpRx      depth=16
 #pragma HLS STREAM variable=sA4lToStatusProc depth=16
-#pragma HLS STREAM variable=sA4lMrtUpdate    depth=16
+//#pragma HLS STREAM variable=sA4lMrtUpdate    depth=16
 #pragma HLS STREAM variable=sStatusUpdate    depth=16
 #pragma HLS STREAM variable=sGetIpReq_UdpTx  depth=16
 #pragma HLS STREAM variable=sGetIpRep_UdpTx  depth=16
@@ -755,6 +756,9 @@ void nal_main(
 #pragma HLS STREAM variable=sNewTcpCon_Rep       depth=16
 
 #pragma HLS STREAM variable=sTcpNotif_buffer     depth=1024
+
+#pragma HLS RESOURCE variable=localMRT core=RAM_2P_BRAM
+
 
   //=================================================================================================
   // Reset static variables
@@ -866,8 +870,6 @@ void nal_main(
       sAddNewTriple_TcpRrh, sAddNewTriple_TcpCon, sDeleteEntryBySid, sMarkAsPriv, sMarkToDel_unpriv,
       sGetNextDelRow_Req, sGetNextDelRow_Rep, &nts_ready_and_enabled);
 
-  pMrtAgency(sA4lMrtUpdate, sGetIpReq_UdpTx, sGetIpRep_UdpTx, sGetIpReq_TcpTx, sGetIpRep_TcpTx, sGetNidReq_UdpRx, sGetNidRep_UdpRx, sGetNidReq_TcpRx, sGetNidRep_TcpRx);
-
   //eventFifoMerge(layer_4_enabled, layer_7_enabled, role_decoupled, &mrt_version_used, &status_udp_ports, &status_tcp_ports,
   //    &status_fmc_ports, sA4lToStatusProc, internal_event_fifo_0, internal_event_fifo_1, internal_event_fifo_2, internal_event_fifo_3, sStatusUpdate);
 
@@ -876,13 +878,15 @@ void nal_main(
   pStatusMemory(merged_fifo, layer_7_enabled, role_decoupled, sA4lToStatusProc, &mrt_version_used, &status_udp_ports, &status_tcp_ports, &status_fmc_ports, sStatusUpdate);
 
 
-
-
   axi4liteProcessing(layer_4_enabled, ctrlLink, &mrt_version_processed,
       //sA4lToTcpAgency, //(currently not used)
       sA4lToPortLogic, sA4lToUdpRx,
       sA4lToTcpRx, sA4lToStatusProc,
-      sA4lMrtUpdate, sStatusUpdate);
+      localMRT, sStatusUpdate);
+
+
+  pMrtAgency(localMRT, sGetIpReq_UdpTx, sGetIpRep_UdpTx, sGetIpReq_TcpTx, sGetIpRep_TcpTx, sGetNidReq_UdpRx, sGetNidRep_UdpRx, sGetNidReq_TcpRx, sGetNidRep_TcpRx);
+
 
 }
 
