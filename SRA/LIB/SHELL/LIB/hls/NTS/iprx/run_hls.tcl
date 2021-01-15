@@ -27,7 +27,7 @@ set ipDescription  "Parses incoming Ethernet frames, extracts and forwards IP pa
 set ipVendor       "IBM"
 set ipLibrary      "hls"
 set ipVersion      "1.0"
-set ipPkgFormat    "ip_catalog"
+set ipPkgFormat    "syn_dcp"
 
 # Set Project Environment Variables  
 #-------------------------------------------------
