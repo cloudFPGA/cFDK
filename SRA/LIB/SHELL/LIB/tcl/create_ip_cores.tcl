@@ -93,7 +93,7 @@ proc my_clean_ip_dir { ipModName } {
 
 #-------------------------------------------------------------------------------
 # my_create_ip ${ipModName ipDir ipVendor ipLibrary ipName ipVersion ipCfgList}
-#  A procedure that automates the creation and the customizationof of an IP.
+#  A procedure that automates the creation and the customization of an IP.
 #  :param ipModName the name of the IP module to create (as a string).
 #  :param ipDir     the directory path for remote IP to be created and
 #                     managed outside of the project (as a string).
