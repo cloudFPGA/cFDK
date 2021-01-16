@@ -1,23 +1,7 @@
--- /*******************************************************************************
---  * Copyright 2016 -- 2020 IBM Corporation
---  *
---  * Licensed under the Apache License, Version 2.0 (the "License");
---  * you may not use this file except in compliance with the License.
---  * You may obtain a copy of the License at
---  *
---  *     http://www.apache.org/licenses/LICENSE-2.0
---  *
---  * Unless required by applicable law or agreed to in writing, software
---  * distributed under the License is distributed on an "AS IS" BASIS,
---  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
---  * See the License for the specific language governing permissions and
---  * limitations under the License.
--- *******************************************************************************/
-
-
 -- *****************************************************************************
 -- *
 -- *                             cloudFPGA
+-- *            All rights reserved -- Property of IBM 
 -- *
 -- *----------------------------------------------------------------------------
 -- *                                                
@@ -209,78 +193,112 @@ architecture structural of topFMKU60 is
   --------------------------------------------------------
   -- SIGNAL DECLARATIONS : [SHELL/Nts] <--> [ROLE/Nts] 
   --------------------------------------------------------
-  
-  -- UDP Interfaces ------------------------------------
-  ---- UDP Data (AXI4S) --------------------
+   
+  -- ROLE-->SHELL / Nts / Udp / Tx Data Interfaces
+  ---- Axi4-Stream UDP Data ---------------
   signal ssROL_SHL_Nts_Udp_Data_tdata       : std_ulogic_vector( 63 downto 0);
   signal ssROL_SHL_Nts_Udp_Data_tkeep       : std_ulogic_vector(  7 downto 0);
   signal ssROL_SHL_Nts_Udp_Data_tlast       : std_ulogic;
   signal ssROL_SHL_Nts_Udp_Data_tvalid      : std_ulogic;
   signal ssROL_SHL_Nts_Udp_Data_tready      : std_ulogic;
+  ---- Axi4-Stream UDP Metadata -----------
+  signal ssROL_SHL_Nts_Udp_Meta_tdata       : std_ulogic_vector( 95 downto 0);
+  signal ssROL_SHL_Nts_Udp_Meta_tvalid      : std_ulogic;
+  signal ssROL_SHL_Nts_Udp_Meta_tready      : std_ulogic;
+  ---- Axis4Stream UDP Data Length ---------
+  signal ssROL_SHL_Nts_Udp_DLen_tdata       : std_ulogic_vector( 15 downto 0);
+  signal ssROL_SHL_Nts_Udp_DLen_tvalid      : std_ulogic;
+  signal ssROL_SHL_Nts_Udp_DLen_tready      : std_ulogic;
+    
+  -- SHELL-->ROLE / Nts / Udp / Rx Data Interfaces
   ---- UDP Data (AXI4S) --------------------
   signal ssSHL_ROL_Nts_Udp_Data_tdata       : std_ulogic_vector( 63 downto 0);
   signal ssSHL_ROL_Nts_Udp_Data_tkeep       : std_ulogic_vector(  7 downto 0);
   signal ssSHL_ROL_Nts_Udp_Data_tlast       : std_ulogic;
   signal ssSHL_ROL_Nts_Udp_Data_tvalid      : std_ulogic;
   signal ssSHL_ROL_Nts_Udp_Data_tready      : std_ulogic;
+  ---- Axi4-Stream UDP Metadata -----------
+  signal ssSHL_ROL_Nts_Udp_Meta_tdata       : std_ulogic_vector( 95 downto 0);
+  signal ssSHL_ROL_Nts_Udp_Meta_tvalid      : std_ulogic;
+  signal ssSHL_ROL_Nts_Udp_Meta_tready      : std_ulogic;
   
-  -- TCP Interfaces ------------------------------------
-  ---- FPGA Transmit Data Path (ROLE--> SHELL) ---
-  ---- Stream TCP Data ---------------------
+  -- SHELL-->ROLE / Nts/ Udp / Rx Ctrl Interfaces
+  ---- Axi4-Stream UDP Listen Request -----
+  signal ssROL_SHL_Nts_Udp_LsnReq_tdata     : std_ulogic_vector( 15 downto 0);
+  signal ssROL_SHL_Nts_Udp_LsnReq_tvalid    : std_ulogic;
+  signal ssROL_SHL_Nts_Udp_LsnReq_tready    : std_ulogic;
+  ---- Axi4-Stream UDP Listen Reply --------
+  signal ssSHL_ROL_Nts_Udp_LsnRep_tdata     : std_ulogic_vector(  7 downto 0);
+  signal ssSHL_ROL_Nts_Udp_LsnRep_tvalid    : std_ulogic;
+  signal ssSHL_ROL_Nts_Udp_LsnRep_tready    : std_ulogic;
+  ---- Axi4-Stream UDP Close Request ------
+  signal ssROL_SHL_Nts_Udp_ClsReq_tdata     : std_ulogic_vector( 15 downto 0);
+  signal ssROL_SHL_Nts_Udp_ClsReq_tvalid    : std_ulogic;
+  signal ssROL_SHL_Nts_Udp_ClsReq_tready    : std_ulogic;
+  ---- Axi4-Stream UDP Close Reply ---------
+  signal ssSHL_ROL_Nts_Udp_ClsRep_tdata     : std_ulogic_vector(  7 downto 0);
+  signal ssSHL_ROL_Nts_Udp_ClsRep_tvalid    : std_ulogic;
+  signal ssSHL_ROL_Nts_Udp_ClsRep_tready    : std_ulogic;
+  
+  -- ROLE-->SHELL / Nts / Tcp / Tx Data Interfaces
+  ---- Axi4-Stream TCP Data ----------------
   signal ssROL_SHL_Nts_Tcp_Data_tdata       : std_ulogic_vector( 63 downto 0);
   signal ssROL_SHL_Nts_Tcp_Data_tkeep       : std_ulogic_vector(  7 downto 0);
   signal ssROL_SHL_Nts_Tcp_Data_tlast       : std_ulogic;
   signal ssROL_SHL_Nts_Tcp_Data_tvalid      : std_ulogic;
   signal ssROL_SHL_Nts_Tcp_Data_tready      : std_ulogic;
-  ---- Stream TCP Metadata -----------------
-  signal ssROL_SHL_Nts_Tcp_Meta_tdata       : std_ulogic_vector( 15 downto 0);
-  signal ssROL_SHL_Nts_Tcp_Meta_tvalid      : std_ulogic;
-  signal ssROL_SHL_Nts_Tcp_Meta_tready      : std_ulogic;
-  ---- Stream TCP Data Status ------
-  signal ssSHL_ROL_Nts_Tcp_DSts_tdata       : std_ulogic_vector( 23 downto 0);
-  signal ssSHL_ROL_Nts_Tcp_DSts_tvalid      : std_ulogic;
-  signal ssSHL_ROL_Nts_Tcp_DSts_tready      : std_ulogic;
-  ---- FPGA Receive Data Path (SHELL-->ROLE) -----
-  ---- Stream TCP Data ---------------------
+  ---- Axi4-Stream TCP Send Request --------
+  signal ssROL_SHL_Nts_Tcp_SndReq_tdata     : std_ulogic_vector( 31 downto 0);
+  signal ssROL_SHL_Nts_Tcp_SndReq_tvalid    : std_ulogic;
+  signal ssROL_SHL_Nts_Tcp_SndReq_tready    : std_ulogic;
+  ---- Axi4-Stream TCP Send Reply ----------
+  signal ssSHL_ROL_Nts_Tcp_SndRep_tdata     : std_ulogic_vector( 55 downto 0);
+  signal ssSHL_ROL_Nts_Tcp_SndRep_tvalid    : std_ulogic;
+  signal ssSHL_ROL_Nts_Tcp_SndRep_tready    : std_ulogic;
+  
+  -- SHELL-->ROLE / Nts / Tcp / Rx Data Interfaces
+  ---- Axi4-Stream TCP Data -----------------
   signal ssSHL_ROL_Nts_Tcp_Data_tdata       : std_ulogic_vector( 63 downto 0);
   signal ssSHL_ROL_Nts_Tcp_Data_tkeep       : std_ulogic_vector(  7 downto 0);
   signal ssSHL_ROL_Nts_Tcp_Data_tlast       : std_ulogic;
   signal ssSHL_ROL_Nts_Tcp_Data_tvalid      : std_ulogic;
   signal ssSHL_ROL_Nts_Tcp_Data_tready      : std_ulogic;
-  --- Stream TCP Meta ----------------------
+  ----  Axi4-Stream TCP Metadata ------------
   signal ssSHL_ROL_Nts_Tcp_Meta_tdata       : std_ulogic_vector( 15 downto 0);
   signal ssSHL_ROL_Nts_Tcp_Meta_tvalid      : std_ulogic;
   signal ssSHL_ROL_Nts_Tcp_Meta_tready      : std_ulogic;
-  ---- Stream TCP Data Notification --------
+  ----  Axi4-Stream TCP Data Notification ---
   signal ssSHL_ROL_Nts_Tcp_Notif_tdata      : std_ulogic_vector(7+96 downto 0);  -- 8-bits boundary
   signal ssSHL_ROL_Nts_Tcp_Notif_tvalid     : std_ulogic;
   signal ssSHL_ROL_Nts_Tcp_Notif_tready     : std_ulogic;
-  ---- Stream TCP Data Request -------------
+  ----  Axi4-Stream TCP Data Request --------
   signal ssROL_SHL_Nts_Tcp_DReq_tdata       : std_ulogic_vector( 31 downto 0);
   signal ssROL_SHL_Nts_Tcp_DReq_tvalid      : std_ulogic;
-  signal ssROL_SHL_Nts_Tcp_DReq_tready      : std_ulogic;    
-  ---- FPGA Transmit Ctrl Path (ROLE-->SHELL) ----
-  ---- Stream  TCP Open Session Request ----
+  signal ssROL_SHL_Nts_Tcp_DReq_tready      : std_ulogic;
+  
+  -- ROLE-->SHELL / Nts / Tcp / TxP Ctlr Interfaces
+  ---- Axi4-Stream TCP Open Session Request
   signal ssROL_SHL_Nts_Tcp_OpnReq_tdata     : std_ulogic_vector( 47 downto 0);
   signal ssROL_SHL_Nts_Tcp_OpnReq_tvalid    : std_ulogic;
   signal ssROL_SHL_Nts_Tcp_OpnReq_tready    : std_ulogic;
-  ---- Stream TCP Open Session Status ------
+  ---- Axi4-Stream TCP Open Session Reply
   signal ssSHL_ROL_Nts_Tcp_OpnRep_tdata     : std_ulogic_vector( 23 downto 0);
   signal ssSHL_ROL_Nts_Tcp_OpnRep_tvalid    : std_ulogic;
   signal ssSHL_ROL_Nts_Tcp_OpnRep_tready    : std_ulogic;
-  ---- Stream TCP Close Request ------------ 
+  ---- Axi4-Stream TCP Close Request ------
   signal ssROL_SHL_Nts_Tcp_ClsReq_tdata     : std_ulogic_vector( 15 downto 0);
   signal ssROL_SHL_Nts_Tcp_ClsReq_tvalid    : std_ulogic;
   signal ssROL_SHL_Nts_Tcp_ClsReq_tready    : std_ulogic;
-  ---- FPGA Receive Ctrl Path (ETH-->ROL) --------
-  ---- Stream TCP Listen Request -----------
+  
+  -- SHELL-->ROLE / Nts / Tcp / Rx Ctlr Interfaces
+  ----  Axi4-Stream TCP Listen Request ----
   signal ssROL_SHL_Nts_Tcp_LsnReq_tdata     : std_ulogic_vector( 15 downto 0);   
   signal ssROL_SHL_Nts_Tcp_LsnReq_tvalid    : std_ulogic;
   signal ssROL_SHL_Nts_Tcp_LsnReq_tready    : std_ulogic;
-  ---- Stream _SHLTCP Listen Status 
-  signal ssSHL_ROL_Nts_Tcp_LsnAck_tdata     : std_ulogic_vector(  7 downto 0);
-  signal ssSHL_ROL_Nts_Tcp_LsnAck_tvalid    : std_ulogic;
-  signal ssSHL_ROL_Nts_Tcp_LsnAck_tready    : std_ulogic;
+  ----  Axi4-Stream TCP Listen Rep --------
+  signal ssSHL_ROL_Nts_Tcp_LsnRep_tdata     : std_ulogic_vector(  7 downto 0);
+  signal ssSHL_ROL_Nts_Tcp_LsnRep_tvalid    : std_ulogic;
+  signal ssSHL_ROL_Nts_Tcp_LsnRep_tready    : std_ulogic;
  
   --------------------------------------------------------
   -- SIGNAL DECLARATIONS : [SHELL/Mem] <--> [ROLE/Mem] 
@@ -318,7 +336,7 @@ architecture structural of topFMKU60 is
   signal smROL_SHL_Mem_Mp1_AWID             : std_ulogic_vector(3 downto 0);
   signal smROL_SHL_Mem_Mp1_AWADDR           : std_ulogic_vector(32 downto 0);
   signal smROL_SHL_Mem_Mp1_AWLEN            : std_ulogic_vector(7 downto 0);
-  signal smROL_SHL_Mem_Mp1_AWSIZE           : std_ulogic_vector(3 downto 0);
+  signal smROL_SHL_Mem_Mp1_AWSIZE           : std_ulogic_vector(2 downto 0);
   signal smROL_SHL_Mem_Mp1_AWBURST          : std_ulogic_vector(1 downto 0);
   signal smROL_SHL_Mem_Mp1_AWVALID          : std_ulogic;
   signal smROL_SHL_Mem_Mp1_AWREADY          : std_ulogic;
@@ -334,7 +352,7 @@ architecture structural of topFMKU60 is
   signal smROL_SHL_Mem_Mp1_ARID             : std_ulogic_vector(3 downto 0);
   signal smROL_SHL_Mem_Mp1_ARADDR           : std_ulogic_vector(32 downto 0);
   signal smROL_SHL_Mem_Mp1_ARLEN            : std_ulogic_vector(7 downto 0);
-  signal smROL_SHL_Mem_Mp1_ARSIZE           : std_ulogic_vector(3 downto 0);
+  signal smROL_SHL_Mem_Mp1_ARSIZE           : std_ulogic_vector(2downto 0);
   signal smROL_SHL_Mem_Mp1_ARBURST          : std_ulogic_vector(1 downto 0);
   signal smROL_SHL_Mem_Mp1_ARVALID          : std_ulogic;
   signal smROL_SHL_Mem_Mp1_ARREADY          : std_ulogic;
@@ -367,13 +385,6 @@ architecture structural of topFMKU60 is
   signal sROL_SHL_Mmio_RdReg                : std_ulogic_vector( 15 downto 0);
    ---- APP_WRROL[0:1] ---------------------
   signal sSHL_ROL_Mmio_WrReg                : std_ulogic_vector( 15 downto 0);
-
-  --OBSOLETE-20191125 --------------------------------------------------------
-  --OBSOLETE-20191125 -- SIGNAL DECLARATION : [FMC] <--> [ROLE] 
-  --OBSOLETE-20191125 --------------------------------------------------------
-  --OBSOLETE-20191125 signal sSHL_ROL_Fmc_Rank                  : std_ulogic_vector( 31 downto 0);
-  --OBSOLETE-20191125 signal sSHL_ROL_Fmc_Size                  : std_ulogic_vector( 31 downto 0);
-  
   -- Delayed reset counter 
   signal sRstDelayCounter                   : std_ulogic_vector(5 downto 0);
   
@@ -397,12 +408,10 @@ architecture structural of topFMKU60 is
       ------------------------------------------------------
       piTOP_156_25Rst                   : in    std_ulogic;
       piTOP_156_25Clk                   : in    std_ulogic;
-       
       ------------------------------------------------------
       -- TOP / Bitstream Identification
       ------------------------------------------------------
       piTOP_Timestamp                   : in   std_ulogic_vector( 31 downto 0);
-       
       ------------------------------------------------------
       -- CLKT / Clock Tree Interface 
       ------------------------------------------------------
@@ -412,7 +421,6 @@ architecture structural of topFMKU60 is
       piCLKT_Mem1Clk_p                  : in    std_ulogic;
       piCLKT_10GeClk_n                  : in    std_ulogic;
       piCLKT_10GeClk_p                  : in    std_ulogic;
-       
       ------------------------------------------------------
       -- PSOC / External Memory Interface (Emif)
       ------------------------------------------------------
@@ -423,12 +431,10 @@ architecture structural of topFMKU60 is
       piPSOC_Emif_AdS_n                 : in    std_ulogic;
       piPSOC_Emif_Addr                  : in    std_ulogic_vector(gMmioAddrWidth-1 downto 0);
       pioPSOC_Emif_Data                 : inout std_ulogic_vector(gMmioDataWidth-1 downto 0);
- 
       ------------------------------------------------------
       -- LED / Heart Beat Interface (Yellow LED)
       ------------------------------------------------------
-      poLED_HeartBeat_n                 : out   std_ulogic;
-       
+      poLED_HeartBeat_n                 : out   std_ulogic; 
       ------------------------------------------------------
       -- DDR4 / Memory Channel 0 Interface (Mc0)
       ------------------------------------------------------
@@ -446,7 +452,6 @@ architecture structural of topFMKU60 is
       poDDR4_Mem_Mc0_Ck_n               : out   std_ulogic;
       poDDR4_Mem_Mc0_Ck_p               : out   std_ulogic;
       poDDR4_Mem_Mc0_Reset_n            : out   std_ulogic;
- 
       ------------------------------------------------------
       -- DDR4 / Memory Channel 1 Interface (Mc1)
       ------------------------------------------------------  
@@ -464,7 +469,6 @@ architecture structural of topFMKU60 is
       poDDR4_Mem_Mc1_Ck_n               : out   std_ulogic;
       poDDR4_Mem_Mc1_Ck_p               : out   std_ulogic;
       poDDR4_Mem_Mc1_Reset_n            : out   std_ulogic;
-       
       ------------------------------------------------------
       -- ECON / Edge Connector Interface (SPD08-200)
       ------------------------------------------------------
@@ -472,63 +476,91 @@ architecture structural of topFMKU60 is
       piECON_Eth_10Ge0_p                : in    std_ulogic;
       poECON_Eth_10Ge0_n                : out   std_ulogic;
       poECON_Eth_10Ge0_p                : out   std_ulogic;
-      
       ------------------------------------------------------
       -- ROLE / Output Clock and Reset Interfaces
       ------------------------------------------------------
       poROL_156_25Clk                   : out   std_ulogic;
       poROL_156_25Rst                   : out   std_ulogic;
-
       ------------------------------------------------------
-      -- ROLE / Nts / Udp Interface
+      -- ROLE / Nts / Udp / Tx Data Interfaces (.i.e ROLE-->SHELL)
       ------------------------------------------------------
-      -- Input UDP Data (AXI4S) --------
+      ---- Axi4-Stream UDP Data ---------------
       siROL_Nts_Udp_Data_tdata          : in    std_ulogic_vector( 63 downto 0);
       siROL_Nts_Udp_Data_tkeep          : in    std_ulogic_vector(  7 downto 0);
       siROL_Nts_Udp_Data_tlast          : in    std_ulogic;
       siROL_Nts_Udp_Data_tvalid         : in    std_ulogic;
       siROL_Nts_Udp_Data_tready         : out   std_ulogic;
-      -- Output UDP Data (AXI4S) -------
+      ---- Axi4-Stream UDP Metadata -----------
+      siROL_Nts_Udp_Meta_tdata          : in    std_logic_vector( 95 downto 0);
+      siROL_Nts_Udp_Meta_tvalid         : in    std_ulogic;
+      siROL_Nts_Udp_Meta_tready         : out   std_ulogic;
+      ---- Axis4Stream UDP Data Length ---------
+      siROL_Nts_Udp_DLen_tdata          : in    std_logic_vector( 15 downto 0);
+      siROL_Nts_Udp_DLen_tvalid         : in    std_ulogic;
+      siROL_Nts_Udp_DLen_tready         : out   std_ulogic;
+      ------------------------------------------------------
+      -- ROLE / Nts / Udp / Rx Data Interfaces (.i.e SHELL-->ROLE)
+      ------------------------------------------------------
+      ---- Axi4-Stream UDP Data ---------------
       soROL_Nts_Udp_Data_tdata          : out   std_ulogic_vector( 63 downto 0);
       soROL_Nts_Udp_Data_tkeep          : out   std_ulogic_vector(  7 downto 0);
       soROL_Nts_Udp_Data_tlast          : out   std_ulogic;
       soROL_Nts_Udp_Data_tvalid         : out   std_ulogic;
       soROL_Nts_Udp_Data_tready         : in    std_ulogic;
-      
+      ---- Axi4-Stream UDP Metadata -----------
+      soROL_Nts_Udp_Meta_tdata          : out   std_logic_vector( 95 downto 0);
+      soROL_Nts_Udp_Meta_tvalid         : out   std_ulogic;
+      soROL_Nts_Udp_Meta_tready         : in    std_ulogic;
       ------------------------------------------------------
-      -- ROLE / Nts / Tcp / TxP Data Flow Interfaces
+      -- ROLE / Nts/ Udp / Rx Ctrl Interfaces (.i.e SHELL<-->ROLE)
       ------------------------------------------------------
-      -- FPGA Transmit Path (ROLE-->SHELL) ---------
-      ---- Stream TCP Data -------------
+      ---- Axi4-Stream UDP Listen Request -----
+      siROL_Nts_Udp_LsnReq_tdata        : in    std_ulogic_vector( 15 downto 0);
+      siROL_Nts_Udp_LsnReq_tvalid       : in    std_ulogic;
+      siROL_Nts_Udp_LsnReq_tready       : out   std_ulogic;
+      ---- Axi4-Stream UDP Listen Reply --------
+      soROL_Nts_Udp_LsnRep_tdata        : out   std_ulogic_vector(  7 downto 0);
+      soROL_Nts_Udp_LsnRep_tvalid       : out   std_ulogic;
+      soROL_Nts_Udp_LsnRep_tready       : in    std_ulogic;
+      ---- Axi4-Stream UDP Close Request ------
+      siROL_Nts_Udp_ClsReq_tdata        : in    std_ulogic_vector( 15 downto 0);
+      siROL_Nts_Udp_ClsReq_tvalid       : in    std_ulogic;
+      siROL_Nts_Udp_ClsReq_tready       : out   std_ulogic;
+      ---- Axi4-Stream UDP Close Reply ---------
+      soROL_Nts_Udp_ClsRep_tdata        : out   std_ulogic_vector(  7 downto 0);
+      soROL_Nts_Udp_ClsRep_tvalid       : out   std_ulogic;
+      soROL_Nts_Udp_ClsRep_tready       : in    std_ulogic;
+      ------------------------------------------------------
+      -- ROLE / Nts / Tcp / Tx Data Interfaces (.i.e ROLE-->SHELL)
+      ------------------------------------------------------
+      ---- Axi4-Stream TCP Data ---------------     
       siROL_Nts_Tcp_Data_tdata          : in    std_ulogic_vector( 63 downto 0);
       siROL_Nts_Tcp_Data_tkeep          : in    std_ulogic_vector(  7 downto 0);
       siROL_Nts_Tcp_Data_tlast          : in    std_ulogic;
       siROL_Nts_Tcp_Data_tvalid         : in    std_ulogic;
       siROL_Nts_Tcp_Data_tready         : out   std_ulogic;
-      ---- Stream TCP Metadata ---------
-      siROL_Nts_Tcp_Meta_tdata           : in    std_ulogic_vector( 15 downto 0);
-      siROL_Nts_Tcp_Meta_tvalid          : in    std_ulogic;
-      siROL_Nts_Tcp_Meta_tready          : out   std_ulogic;
-      ---- Stream TCP Data Status ------
-      soROL_Nts_Tcp_DSts_tdata          : out   std_ulogic_vector( 23 downto 0);
-      soROL_Nts_Tcp_DSts_tvalid         : out   std_ulogic;
-      soROL_Nts_Tcp_DSts_tready         : in    std_ulogic;
-      
-      ------------------------------------------------------               
-      -- ROLE / Nts / Tcp / RxP Data Flow Interfaces                      
-      ------------------------------------------------------               
-      -- FPGA Receive Path (SHELL-->ROLE) -----------                      
-      ---- Stream TCP Data -------------
+      ---- Axi4-Stream TCP Send Request -------
+      siROL_Nts_Tcp_SndReq_tdata        : in    std_ulogic_vector( 31 downto 0);
+      siROL_Nts_Tcp_SndReq_tvalid       : in    std_ulogic;
+      siROL_Nts_Tcp_SndReq_tready       : out   std_ulogic;
+      ---- Axi4-Stream TCP Send Reply ---------
+      soROL_Nts_Tcp_SndRep_tdata        : out   std_ulogic_vector( 55 downto 0);
+      soROL_Nts_Tcp_SndRep_tvalid       : out   std_ulogic;
+      soROL_Nts_Tcp_SndRep_tready       : in    std_ulogic;
+      ------------------------------------------------------
+      -- ROLE / Nts / Tcp / Rx Data Interfaces  (.i.e SHELL-->ROLE)
+      ------------------------------------------------------
+      -- Axi4-Stream TCP Data -----------------
       soROL_Nts_Tcp_Data_tdata          : out   std_ulogic_vector( 63 downto 0);
       soROL_Nts_Tcp_Data_tkeep          : out   std_ulogic_vector(  7 downto 0);
       soROL_Nts_Tcp_Data_tlast          : out   std_ulogic;
       soROL_Nts_Tcp_Data_tvalid         : out   std_ulogic;
       soROL_Nts_Tcp_Data_tready         : in    std_ulogic;
-      ---- Stream TCP Metadata ---------
+      --  Axi4-Stream TCP Metadata ------------
       soROL_Nts_Tcp_Meta_tdata          : out   std_ulogic_vector( 15 downto 0);
       soROL_Nts_Tcp_Meta_tvalid         : out   std_ulogic;
       soROL_Nts_Tcp_Meta_tready         : in    std_ulogic;
-      ---- Stream TCP Data Notification 
+      --  Axi4-Stream TCP Data Notification ---
       soROL_Nts_Tcp_Notif_tdata         : out   std_ulogic_vector(7+96 downto 0);  -- 8-bits boundary
       soROL_Nts_Tcp_Notif_tvalid        : out   std_ulogic;
       soROL_Nts_Tcp_Notif_tready        : in    std_ulogic;
@@ -536,37 +568,32 @@ architecture structural of topFMKU60 is
       siROL_Nts_Tcp_DReq_tdata          : in    std_ulogic_vector( 31 downto 0);
       siROL_Nts_Tcp_DReq_tvalid         : in    std_ulogic;
       siROL_Nts_Tcp_DReq_tready         : out   std_ulogic;
-           
       ------------------------------------------------------
-      -- ROLE / Nts / Tcp / TxP Ctlr Flow Interfaces
+      -- ROLE / Nts / Tcp / TxP Ctlr Interfaces (.i.e ROLE-->SHELL)
       ------------------------------------------------------
-      -- FPGA Transmit Path (ROLE-->SHELL) ---------
-      ---- Stream TCP Open Session Request
+      ---- Axi4-Stream TCP Open Session Request
       siROL_Nts_Tcp_OpnReq_tdata        : in    std_ulogic_vector( 47 downto 0);
       siROL_Nts_Tcp_OpnReq_tvalid       : in    std_ulogic;
       siROL_Nts_Tcp_OpnReq_tready       : out   std_ulogic;
-      ---- Stream TCP Open Session Status 
+      ----- Axi4-Stream TCP Open Session Reply
       soROL_Nts_Tcp_OpnRep_tdata        : out   std_ulogic_vector( 23 downto 0);
       soROL_Nts_Tcp_OpnRep_tvalid       : out   std_ulogic;
       soROL_Nts_Tcp_OpnRep_tready       : in    std_ulogic;
-      ---- Stream TCP Close Request ------
+      ---- Axi4-Stream TCP Close Request ------
       siROL_Nts_Tcp_ClsReq_tdata        : in    std_ulogic_vector( 15 downto 0);
       siROL_Nts_Tcp_ClsReq_tvalid       : in    std_ulogic;
       siROL_Nts_Tcp_ClsReq_tready       : out   std_ulogic;
-     
       ------------------------------------------------------
-      -- ROLE / Nts / Tcp / RxP Ctlr Flow Interfaces
+      -- ROLE / Nts / Tcp / Rx Ctlr Interfaces (.i.e SHELL-->ROLE)
       ------------------------------------------------------
-      -- FPGA Receive Path (ETH-->ROLE) ------------
-      ---- Stream TCP Listen Request -----
+      ----  Axi4-Stream TCP Listen Request ----
       siROL_Nts_Tcp_LsnReq_tdata        : in  std_ulogic_vector( 15 downto 0);   
       siROL_Nts_Tcp_LsnReq_tvalid       : in  std_ulogic;
       siROL_Nts_Tcp_LsnReq_tready       : out std_ulogic;
-      ---- Stream TCP Listen Status ------
-      soROL_Nts_Tcp_LsnAck_tdata        : out std_ulogic_vector(  7 downto 0);
-      soROL_Nts_Tcp_LsnAck_tvalid       : out std_ulogic;
-      soROL_Nts_Tcp_LsnAck_tready       : in  std_ulogic;
-  
+      ----  Axi4-Stream TCP Listen Rep --------
+      soROL_Nts_Tcp_LsnRep_tdata        : out std_ulogic_vector(  7 downto 0);
+      soROL_Nts_Tcp_LsnRep_tvalid       : out std_ulogic;
+      soROL_Nts_Tcp_LsnRep_tready       : in  std_ulogic;
       ------------------------------------------------------  
       -- ROLE / Mem / Mp0 Interface
       ------------------------------------------------------
@@ -599,40 +626,38 @@ architecture structural of topFMKU60 is
       siROL_Mem_Mp0_Write_tlast         : in    std_ulogic;
       siROL_Mem_Mp0_Write_tvalid        : in    std_ulogic;
       siROL_Mem_Mp0_Write_tready        : out   std_ulogic;
-       
       ------------------------------------------------------
       -- ROLE / Mem / Mp1 Interface
       ------------------------------------------------------
-      miROL_Mem_Mp1_AWID                : in    std_ulogic_vector(3 downto 0);
-      miROL_Mem_Mp1_AWADDR              : in    std_ulogic_vector(32 downto 0);
-      miROL_Mem_Mp1_AWLEN               : in    std_ulogic_vector(7 downto 0);
-      miROL_Mem_Mp1_AWSIZE              : in    std_ulogic_vector(3 downto 0);
-      miROL_Mem_Mp1_AWBURST             : in    std_ulogic_vector(1 downto 0);
+      miROL_Mem_Mp1_AWID                : in    std_ulogic_vector(  3 downto 0);
+      miROL_Mem_Mp1_AWADDR              : in    std_ulogic_vector( 32 downto 0);
+      miROL_Mem_Mp1_AWLEN               : in    std_ulogic_vector(  7 downto 0);
+      miROL_Mem_Mp1_AWSIZE              : in    std_ulogic_vector(  2 downto 0);
+      miROL_Mem_Mp1_AWBURST             : in    std_ulogic_vector(  1 downto 0);
       miROL_Mem_Mp1_AWVALID             : in    std_ulogic;
       miROL_Mem_Mp1_AWREADY             : out   std_ulogic;
       miROL_Mem_Mp1_WDATA               : in    std_ulogic_vector(511 downto 0);
-      miROL_Mem_Mp1_WSTRB               : in    std_ulogic_vector(63 downto 0);
+      miROL_Mem_Mp1_WSTRB               : in    std_ulogic_vector( 63 downto 0);
       miROL_Mem_Mp1_WLAST               : in    std_ulogic;
       miROL_Mem_Mp1_WVALID              : in    std_ulogic;
       miROL_Mem_Mp1_WREADY              : out   std_ulogic;
-      miROL_Mem_Mp1_BID                 : out   std_ulogic_vector(3 downto 0);
-      miROL_Mem_Mp1_BRESP               : out   std_ulogic_vector(1 downto 0);
+      miROL_Mem_Mp1_BID                 : out   std_ulogic_vector(  3 downto 0);
+      miROL_Mem_Mp1_BRESP               : out   std_ulogic_vector(  1 downto 0);
       miROL_Mem_Mp1_BVALID              : out   std_ulogic;
       miROL_Mem_Mp1_BREADY              : in    std_ulogic;
-      miROL_Mem_Mp1_ARID                : in    std_ulogic_vector(3 downto 0);
-      miROL_Mem_Mp1_ARADDR              : in    std_ulogic_vector(32 downto 0);
-      miROL_Mem_Mp1_ARLEN               : in    std_ulogic_vector(7 downto 0);
-      miROL_Mem_Mp1_ARSIZE              : in    std_ulogic_vector(3 downto 0);
-      miROL_Mem_Mp1_ARBURST             : in    std_ulogic_vector(1 downto 0);
+      miROL_Mem_Mp1_ARID                : in    std_ulogic_vector(  3 downto 0);
+      miROL_Mem_Mp1_ARADDR              : in    std_ulogic_vector( 32 downto 0);
+      miROL_Mem_Mp1_ARLEN               : in    std_ulogic_vector(  7 downto 0);
+      miROL_Mem_Mp1_ARSIZE              : in    std_ulogic_vector(  2 downto 0);
+      miROL_Mem_Mp1_ARBURST             : in    std_ulogic_vector(  1 downto 0);
       miROL_Mem_Mp1_ARVALID             : in    std_ulogic;
       miROL_Mem_Mp1_ARREADY             : out   std_ulogic;
-      miROL_Mem_Mp1_RID                 : out   std_ulogic_vector(3 downto 0);
+      miROL_Mem_Mp1_RID                 : out   std_ulogic_vector(  3 downto 0);
       miROL_Mem_Mp1_RDATA               : out   std_ulogic_vector(511 downto 0);
-      miROL_Mem_Mp1_RRESP               : out   std_ulogic_vector(1 downto 0);
+      miROL_Mem_Mp1_RRESP               : out   std_ulogic_vector(  1 downto 0);
       miROL_Mem_Mp1_RLAST               : out   std_ulogic;
       miROL_Mem_Mp1_RVALID              : out   std_ulogic;
       miROL_Mem_Mp1_RREADY              : in    std_ulogic;
-         
       --------------------------------------------------------
       -- ROLE / Mmio / AppFlash Interface
       --------------------------------------------------------
@@ -654,122 +679,133 @@ architecture structural of topFMKU60 is
       ---- APP_RDROL --------------------
       piROL_Mmio_RdReg                  : in    std_ulogic_vector( 15 downto 0);
       ---- APP_WRROL --------------------
-      poROL_Mmio_WrReg                  : out   std_ulogic_vector( 15 downto 0);
-           
-      --OBSOLETE-20191125 --------------------------------------------------------
-      --OBSOLETE-20191125 -- ROLE / Fmc / Management Interface 
-      --OBSOLETE-20191125 --------------------------------------------------------
-      --OBSOLETE-20191125 poROL_Fmc_Rank                    : out   std_logic_vector(31 downto 0);
-      --OBSOLETE-20191125 poROL_Fmc_Size                    : out   std_logic_vector(31 downto 0);
-      
-      poVoid                            : out   std_ulogic
- 
+      poROL_Mmio_WrReg                  : out   std_ulogic_vector( 15 downto 0)
     );
   end component Shell_Kale;
-
 
   -- [INFO] The ROLE component is declared in the corresponding TOP package.
   -- not this time 
   -- to declare the component in the pkg seems not to work for Verilog or .dcp modules 
   component Role_Kale
     port (
-      
       ------------------------------------------------------
       -- TOP / Global Input Clock and Reset Interface
       ------------------------------------------------------
       piSHL_156_25Clk                     : in    std_ulogic;
       piSHL_156_25Rst                     : in    std_ulogic;
-      
       ------------------------------------------------------
-      -- SHELL / Nts / Udp Interface
+      --- SHELL / Nts / Udp / Tx Data Interfaces (.i.e SHELL-->ROLE)
       ------------------------------------------------------
-      -- Input UDP Data (AXI4S) ----------
+      ---- Axi4-Stream UDP Data ----------------
       siSHL_Nts_Udp_Data_tdata            : in    std_ulogic_vector( 63 downto 0);
       siSHL_Nts_Udp_Data_tkeep            : in    std_ulogic_vector(  7 downto 0);
       siSHL_Nts_Udp_Data_tvalid           : in    std_ulogic;
       siSHL_Nts_Udp_Data_tlast            : in    std_ulogic;
       siSHL_Nts_Udp_Data_tready           : out   std_ulogic;
-      -- Output UDP Data (AXI4S) ---------
+      ---- Axi4-Stream UDP Metadata ------------
+      siSHL_Nts_Udp_Meta_tdata            : in    std_ulogic_vector( 95 downto 0);
+      siSHL_Nts_Udp_Meta_tvalid           : in    std_ulogic;
+      siSHL_Nts_Udp_Meta_tready           : out   std_ulogic; 
+      ------------------------------------------------------
+      -- SHELL / Nts / Udp / Rx Data Interfaces (.i.e ROLE-->SHELL)
+      -----------------------------------------------------
+      ---- Axi4-Stream UDP Data ---------------
       soSHL_Nts_Udp_Data_tdata            : out   std_ulogic_vector( 63 downto 0);
       soSHL_Nts_Udp_Data_tkeep            : out   std_ulogic_vector(  7 downto 0);
       soSHL_Nts_Udp_Data_tvalid           : out   std_ulogic;
       soSHL_Nts_Udp_Data_tlast            : out   std_ulogic;
       soSHL_Nts_Udp_Data_tready           : in    std_ulogic;
-      
+      ---- Axi4-Stream UDP Meta ---------------
+      soSHL_Nts_Udp_Meta_tdata            : out   std_ulogic_vector( 95 downto 0);
+      soSHL_Nts_Udp_Meta_tvalid           : out   std_ulogic;
+      soSHL_Nts_Udp_Meta_tready           : in    std_ulogic;
+      ---- Axi4-Stream UDP Data Length ---------
+      soSHL_Nts_Udp_DLen_tdata            : out   std_ulogic_vector( 15 downto 0);
+      soSHL_Nts_Udp_DLen_tvalid           : out   std_ulogic;
+      soSHL_Nts_Udp_DLen_tready           : in    std_ulogic;
       ------------------------------------------------------
-      -- SHELL / Nts / Tcp / TxP Data Flow Interfaces
+      -- SHELL / Nts/ Udp / Rx Ctrl Interfaces (.i.e ROLE<-->SHELL)
       ------------------------------------------------------
-      -- FPGA Transmit Path (ROLE-->SHELL) ---------
-      ---- Stream TCP Data ---------------
+      ---- Axi4-Stream UDP Listen Request -----
+      soSHL_Nts_Udp_LsnReq_tdata          : out   std_ulogic_vector( 15 downto 0);
+      soSHL_Nts_Udp_LsnReq_tvalid         : out   std_ulogic;           
+      soSHL_Nts_Udp_LsnReq_tready         : in    std_ulogic;           
+      ---- Axi4-Stream UDP Listen Reply --------
+      siSHL_Nts_Udp_LsnRep_tdata          : in    std_ulogic_vector(  7 downto 0);
+      siSHL_Nts_Udp_LsnRep_tvalid         : in    std_ulogic;   
+      siSHL_Nts_Udp_LsnRep_tready         : out   std_ulogic;
+      ---- Axi4-Stream UDP Close Request ------
+      soSHL_Nts_Udp_ClsReq_tdata          : out   std_ulogic_vector( 15 downto 0); 
+      soSHL_Nts_Udp_ClsReq_tvalid         : out   std_ulogic;   
+      soSHL_Nts_Udp_ClsReq_tready         : in    std_ulogic;
+      --- Axi4-Stream UDP Close Reply ---------
+      siSHL_Nts_Udp_ClsRep_tdata          : in    std_ulogic_vector(  7 downto 0);
+      siSHL_Nts_Udp_ClsRep_tvalid         : in    std_ulogic;   
+      siSHL_Nts_Udp_ClsRep_tready         : out   std_ulogic;
+      ------------------------------------------------------
+      -- SHELL / Nts / Tcp / Tx Data Interfaces (.i.e ROLE-->SHELL)
+      ------------------------------------------------------
+      ---- Axi4-Stream TCP Data ---------------
       soSHL_Nts_Tcp_Data_tdata            : out   std_ulogic_vector( 63 downto 0);
       soSHL_Nts_Tcp_Data_tkeep            : out   std_ulogic_vector(  7 downto 0);
       soSHL_Nts_Tcp_Data_tlast            : out   std_ulogic;
       soSHL_Nts_Tcp_Data_tvalid           : out   std_ulogic;
       soSHL_Nts_Tcp_Data_tready           : in    std_ulogic;
-      ---- Stream TCP Metadata -----------
-      soSHL_Nts_Tcp_Meta_tdata            : out   std_ulogic_vector( 15 downto 0);
-      soSHL_Nts_Tcp_Meta_tvalid           : out   std_ulogic;
-      soSHL_Nts_Tcp_Meta_tready           : in    std_ulogic;
-      ---- Stream TCP Data Status --------
-      siSHL_Nts_Tcp_DSts_tdata            : in    std_ulogic_vector( 23 downto 0);
-      siSHL_Nts_Tcp_DSts_tvalid           : in    std_ulogic;
-      siSHL_Nts_Tcp_DSts_tready           : out   std_ulogic;
-  
+      ---- Axi4-Stream TCP Send Request -------
+      soSHL_Nts_Tcp_SndReq_tdata          : out   std_ulogic_vector( 31 downto 0);
+      soSHL_Nts_Tcp_SndReq_tvalid         : out   std_ulogic;
+      soSHL_Nts_Tcp_SndReq_tready         : in    std_ulogic;
+      ---- Axi4-Stream TCP Send Reply ---------
+      siSHL_Nts_Tcp_SndRep_tdata          : in    std_ulogic_vector( 55 downto 0);
+      siSHL_Nts_Tcp_SndRep_tvalid         : in    std_ulogic;
+      siSHL_Nts_Tcp_SndRep_tready         : out   std_ulogic;
       --------------------------------------------------------
-      -- SHELL / Nts / Tcp / RxP Data Flow Interfaces
+      -- SHELL / Nts / Tcp / Rx Data Interfaces  (.i.e SHELL-->ROLE)
       --------------------------------------------------------
-      -- FPGA Receive Path (SHELL-->ROLE) ----------
-      ---- Stream TCP Data ---------------
+      ---- Axi4-Stream TCP Data -----------------
       siSHL_Nts_Tcp_Data_tdata            : in    std_ulogic_vector( 63 downto 0);
       siSHL_Nts_Tcp_Data_tkeep            : in    std_ulogic_vector(  7 downto 0);
       siSHL_Nts_Tcp_Data_tlast            : in    std_ulogic;
       siSHL_Nts_Tcp_Data_tvalid           : in    std_ulogic;
       siSHL_Nts_Tcp_Data_tready           : out   std_ulogic;
-      ---- Stream TCP Meta ---------------
+      -----  Axi4-Stream TCP Metadata ------------
       siSHL_Nts_Tcp_Meta_tdata            : in    std_ulogic_vector( 15 downto 0);
-      siSHL_Nts_Tcp_Meta_tkeep            : in    std_ulogic_vector(  1 downto 0);
-      siSHL_Nts_Tcp_Meta_tlast            : in    std_ulogic;
       siSHL_Nts_Tcp_Meta_tvalid           : in    std_ulogic;
       siSHL_Nts_Tcp_Meta_tready           : out   std_ulogic;
-      ---- Stream TCP Data Notification --
+      ----  Axi4-Stream TCP Data Notification ---
       siSHL_Nts_Tcp_Notif_tdata           : in   std_ulogic_vector(7+96 downto 0);  -- 8-bits boundary
       siSHL_Nts_Tcp_Notif_tvalid          : in   std_ulogic;
       siSHL_Nts_Tcp_Notif_tready          : out  std_ulogic;
-      ---- Stream TCP Data Request -------
+      ----  Axi4-Stream TCP Data Request --------
       soSHL_Nts_Tcp_DReq_tdata            : out   std_ulogic_vector( 31 downto 0); 
       soSHL_Nts_Tcp_DReq_tvalid           : out   std_ulogic;       
       soSHL_Nts_Tcp_DReq_tready           : in    std_ulogic;
-  
       ------------------------------------------------------
-      -- SHELL / Nts / Tcp / TxP Ctlr Flow Interfaces
+      -- SHELL / Nts / Tcp / TxP Ctlr Interfaces (.i.e ROLE<-->SHELL)
       ------------------------------------------------------
-      -- FPGA Transmit Path (ROLE-->SHELL) ---------
-      ---- Stream TCP Open Session Request
+      ---- Axi4-Stream TCP Open Session Request
       soSHL_Nts_Tcp_OpnReq_tdata          : out   std_ulogic_vector( 47 downto 0);  
       soSHL_Nts_Tcp_OpnReq_tvalid         : out   std_ulogic;
       soSHL_Nts_Tcp_OpnReq_tready         : in    std_ulogic;
-      ---- Stream TCP Open Session Status  
+      ---- Axi4-Stream TCP Open Session Reply
       siSHL_Nts_Tcp_OpnRep_tdata          : in    std_ulogic_vector( 23 downto 0); 
       siSHL_Nts_Tcp_OpnRep_tvalid         : in    std_ulogic;
       siSHL_Nts_Tcp_OpnRep_tready         : out   std_ulogic;
-      ---- Stream TCP Close Request ------
+      ---- Axi4-Stream TCP Close Request ------
       soSHL_Nts_Tcp_ClsReq_tdata          : out    std_ulogic_vector( 15 downto 0);  
       soSHL_Nts_Tcp_ClsReq_tvalid         : out    std_ulogic;
       soSHL_Nts_Tcp_ClsReq_tready         : in     std_ulogic;
-  
       ------------------------------------------------------
-      -- SHELL / Nts / Tcp / RxP Ctlr Flow Interfaces
+      -- SHELL / Nts / Tcp / Rx Ctlr Interfaces (.i.e SHELL-->ROLE)
       ------------------------------------------------------
-      -- FPGA Receive Path (SHELL-->ROLE) ----------
-      ---- Stream TCP Listen Request -----
+      ---- Axi4-Stream TCP Listen Request ----
       soSHL_Nts_Tcp_LsnReq_tdata          : out    std_ulogic_vector( 15 downto 0);  
       soSHL_Nts_Tcp_LsnReq_tvalid         : out    std_ulogic;
       soSHL_Nts_Tcp_LsnReq_tready         : in     std_ulogic;
       ---- Stream TCP Listen Status ----
-      siSHL_Nts_Tcp_LsnAck_tdata          : in     std_ulogic_vector(  7 downto 0); 
-      siSHL_Nts_Tcp_LsnAck_tvalid         : in     std_ulogic;
-      siSHL_Nts_Tcp_LsnAck_tready         : out    std_ulogic;
-      
+      siSHL_Nts_Tcp_LsnRep_tdata          : in     std_ulogic_vector(  7 downto 0); 
+      siSHL_Nts_Tcp_LsnRep_tvalid         : in     std_ulogic;
+      siSHL_Nts_Tcp_LsnRep_tready         : out    std_ulogic;
       ------------------------------------------------------
       -- SHELL / Mem / Mp0 Interface
       ------------------------------------------------------
@@ -802,40 +838,38 @@ architecture structural of topFMKU60 is
       soSHL_Mem_Mp0_Write_tlast           : out   std_ulogic;
       soSHL_Mem_Mp0_Write_tvalid          : out   std_ulogic;
       soSHL_Mem_Mp0_Write_tready          : in    std_ulogic; 
-      
       ------------------------------------------------------
       -- SHELL / Mem / Mp1 Interface
       ------------------------------------------------------
-      moMEM_Mp1_AWID                  : out   std_ulogic_vector(3 downto 0);
-      moMEM_Mp1_AWADDR                : out   std_ulogic_vector(32 downto 0);
-      moMEM_Mp1_AWLEN                 : out   std_ulogic_vector(7 downto 0);
-      moMEM_Mp1_AWSIZE                : out   std_ulogic_vector(3 downto 0);
-      moMEM_Mp1_AWBURST               : out   std_ulogic_vector(1 downto 0);
-      moMEM_Mp1_AWVALID               : out   std_ulogic;
-      moMEM_Mp1_AWREADY               : in    std_ulogic;
-      moMEM_Mp1_WDATA                 : out   std_ulogic_vector(511 downto 0);
-      moMEM_Mp1_WSTRB                 : out   std_ulogic_vector(63 downto 0);
-      moMEM_Mp1_WLAST                 : out   std_ulogic;
-      moMEM_Mp1_WVALID                : out   std_ulogic;
-      moMEM_Mp1_WREADY                : in    std_ulogic;
-      moMEM_Mp1_BID                   : in    std_ulogic_vector(3 downto 0);
-      moMEM_Mp1_BRESP                 : in    std_ulogic_vector(1 downto 0);
-      moMEM_Mp1_BVALID                : in    std_ulogic;
-      moMEM_Mp1_BREADY                : out   std_ulogic;
-      moMEM_Mp1_ARID                  : out   std_ulogic_vector(3 downto 0);
-      moMEM_Mp1_ARADDR                : out   std_ulogic_vector(32 downto 0);
-      moMEM_Mp1_ARLEN                 : out   std_ulogic_vector(7 downto 0);
-      moMEM_Mp1_ARSIZE                : out   std_ulogic_vector(3 downto 0);
-      moMEM_Mp1_ARBURST               : out   std_ulogic_vector(1 downto 0);
-      moMEM_Mp1_ARVALID               : out   std_ulogic;
-      moMEM_Mp1_ARREADY               : in    std_ulogic;
-      moMEM_Mp1_RID                   : in    std_ulogic_vector(3 downto 0);
-      moMEM_Mp1_RDATA                 : in    std_ulogic_vector(511 downto 0);
-      moMEM_Mp1_RRESP                 : in    std_ulogic_vector(1 downto 0);
-      moMEM_Mp1_RLAST                 : in    std_ulogic;
-      moMEM_Mp1_RVALID                : in    std_ulogic;
-      moMEM_Mp1_RREADY                : out   std_ulogic;
-
+      moSHL_Mem_Mp1_AWID                  : out   std_ulogic_vector(3 downto 0);
+      moSHL_Mem_Mp1_AWADDR                : out   std_ulogic_vector(32 downto 0);
+      moSHL_Mem_Mp1_AWLEN                 : out   std_ulogic_vector(7 downto 0);
+      moSHL_Mem_Mp1_AWSIZE                : out   std_ulogic_vector(2 downto 0);
+      moSHL_Mem_Mp1_AWBURST               : out   std_ulogic_vector(1 downto 0);
+      moSHL_Mem_Mp1_AWVALID               : out   std_ulogic;
+      moSHL_Mem_Mp1_AWREADY               : in    std_ulogic;
+      moSHL_Mem_Mp1_WDATA                 : out   std_ulogic_vector(511 downto 0);
+      moSHL_Mem_Mp1_WSTRB                 : out   std_ulogic_vector(63 downto 0);
+      moSHL_Mem_Mp1_WLAST                 : out   std_ulogic;
+      moSHL_Mem_Mp1_WVALID                : out   std_ulogic;
+      moSHL_Mem_Mp1_WREADY                : in    std_ulogic;
+      moSHL_Mem_Mp1_BID                   : in    std_ulogic_vector(3 downto 0);
+      moSHL_Mem_Mp1_BRESP                 : in    std_ulogic_vector(1 downto 0);
+      moSHL_Mem_Mp1_BVALID                : in    std_ulogic;
+      moSHL_Mem_Mp1_BREADY                : out   std_ulogic;
+      moSHL_Mem_Mp1_ARID                  : out   std_ulogic_vector(3 downto 0);
+      moSHL_Mem_Mp1_ARADDR                : out   std_ulogic_vector(32 downto 0);
+      moSHL_Mem_Mp1_ARLEN                 : out   std_ulogic_vector(7 downto 0);
+      moSHL_Mem_Mp1_ARSIZE                : out   std_ulogic_vector(2 downto 0);
+      moSHL_Mem_Mp1_ARBURST               : out   std_ulogic_vector(1 downto 0);
+      moSHL_Mem_Mp1_ARVALID               : out   std_ulogic;
+      moSHL_Mem_Mp1_ARREADY               : in    std_ulogic;
+      moSHL_Mem_Mp1_RID                   : in    std_ulogic_vector(3 downto 0);
+      moSHL_Mem_Mp1_RDATA                 : in    std_ulogic_vector(511 downto 0);
+      moSHL_Mem_Mp1_RRESP                 : in    std_ulogic_vector(1 downto 0);
+      moSHL_Mem_Mp1_RLAST                 : in    std_ulogic;
+      moSHL_Mem_Mp1_RVALID                : in    std_ulogic;
+      moSHL_Mem_Mp1_RREADY                : out   std_ulogic;
       --------------------------------------------------------
       -- SHELL / Mmio / AppFlash Interface
       --------------------------------------------------------
@@ -848,23 +882,20 @@ architecture structural of topFMKU60 is
       ---- [DIAG_STAT_1] -----------------
       poSHL_Mmio_Mc1_MemTestStat          : out   std_ulogic_vector(  1 downto 0);
       ---- [DIAG_CTRL_2] -----------------
-      piSHL_Mmio_UdpEchoCtrl              : in    std_ulogic_vector(  1 downto 0);
-      piSHL_Mmio_UdpPostDgmEn             : in    std_ulogic;
-      piSHL_Mmio_UdpCaptDgmEn             : in    std_ulogic;
-      piSHL_Mmio_TcpEchoCtrl              : in    std_ulogic_vector(  1 downto 0);
-      piSHL_Mmio_TcpPostSegEn             : in    std_ulogic;
-      piSHL_Mmio_TcpCaptSegEn             : in    std_ulogic;
+      --[NOT_USED] piSHL_Mmio_UdpEchoCtrl   : in    std_ulogic_vector(  1 downto 0);
+      --[NOT_USED] piSHL_Mmio_UdpPostDgmEn  : in    std_ulogic;
+      --[NOT_USED] piSHL_Mmio_UdpCaptDgmEn  : in    std_ulogic;
+      --[NOT_USED] piSHL_Mmio_TcpEchoCtrl   : in    std_ulogic_vector(  1 downto 0);
+      --[NOT_USED] piSHL_Mmio_TcpPostSegEn  : in    std_ulogic;
+      --[NOT_USED] piSHL_Mmio_TcpCaptSegEn  : in    std_ulogic;
       ---- [APP_RDROL] -------------------
       poSHL_Mmio_RdReg                    : out   std_ulogic_vector( 15 downto 0);
       --- [APP_WRROL] --------------------
       piSHL_Mmio_WrReg                    : in    std_ulogic_vector( 15 downto 0);
-
       --------------------------------------------------------
       -- TOP : Secondary Clock (Asynchronous)
       --------------------------------------------------------
-      piTOP_250_00Clk                     : in    std_ulogic;  -- Freerunning
-         
-      poVoid                              : out   std_ulogic          
+      piTOP_250_00Clk                     : in    std_ulogic   -- Freerunning
     );
     end component Role_Kale;
 
@@ -942,379 +973,406 @@ begin
       ------------------------------------------------------
       -- TOP / Input Clocks and Resets from topFMKU60
       ------------------------------------------------------
-      piTOP_156_25Rst                   => sTOP_156_25Rst,
-      piTOP_156_25Clk                   => sTOP_156_25Clk,
-      
+      piTOP_156_25Rst               => sTOP_156_25Rst,
+      piTOP_156_25Clk               => sTOP_156_25Clk,     
       ------------------------------------------------------
       -- TOP / Bitstream Identification
       ------------------------------------------------------
-      piTOP_Timestamp                   => sTOP_Timestamp,
-      
+      piTOP_Timestamp               => sTOP_Timestamp, 
       ------------------------------------------------------
       -- CLKT / Clock Tree Interface 
       ------------------------------------------------------
-      piCLKT_Mem0Clk_n                  => piCLKT_Mem0Clk_n,
-      piCLKT_Mem0Clk_p                  => piCLKT_Mem0Clk_p,
-      piCLKT_Mem1Clk_n                  => piCLKT_Mem1Clk_n,
-      piCLKT_Mem1Clk_p                  => piCLKT_Mem1Clk_p,
-      piCLKT_10GeClk_n                  => piCLKT_10GeClk_n,
-      piCLKT_10GeClk_p                  => piCLKT_10GeClk_p,
-
+      piCLKT_Mem0Clk_n              => piCLKT_Mem0Clk_n,
+      piCLKT_Mem0Clk_p              => piCLKT_Mem0Clk_p,
+      piCLKT_Mem1Clk_n              => piCLKT_Mem1Clk_n,
+      piCLKT_Mem1Clk_p              => piCLKT_Mem1Clk_p,
+      piCLKT_10GeClk_n              => piCLKT_10GeClk_n,
+      piCLKT_10GeClk_p              => piCLKT_10GeClk_p,
       ------------------------------------------------------
       -- PSOC / External Memory Interface => Emif)
       ------------------------------------------------------
-      piPSOC_Emif_Clk                   => piPSOC_Emif_Clk,
-      piPSOC_Emif_Cs_n                  => piPSOC_Emif_Cs_n,
-      piPSOC_Emif_We_n                  => piPSOC_Emif_We_n,
-      piPSOC_Emif_Oe_n                  => piPSOC_Emif_Oe_n,
-      piPSOC_Emif_AdS_n                 => piPSOC_Emif_AdS_n,
-      piPSOC_Emif_Addr                  => piPSOC_Emif_Addr,
-      pioPSOC_Emif_Data                 => pioPSOC_Emif_Data,
-      
+      piPSOC_Emif_Clk               => piPSOC_Emif_Clk,
+      piPSOC_Emif_Cs_n              => piPSOC_Emif_Cs_n,
+      piPSOC_Emif_We_n              => piPSOC_Emif_We_n,
+      piPSOC_Emif_Oe_n              => piPSOC_Emif_Oe_n,
+      piPSOC_Emif_AdS_n             => piPSOC_Emif_AdS_n,
+      piPSOC_Emif_Addr              => piPSOC_Emif_Addr,
+      pioPSOC_Emif_Data             => pioPSOC_Emif_Data,
       ------------------------------------------------------
       -- LED / Shl / Heart Beat Interface => Yellow LED)
       ------------------------------------------------------
-      poLED_HeartBeat_n                 => poLED_HeartBeat_n,
-
+      poLED_HeartBeat_n             => poLED_HeartBeat_n,
       ------------------------------------------------------
       -- DDR4 / Memory Channel 0 Interface => (Mc0)
       ------------------------------------------------------
-      pioDDR4_Mem_Mc0_DmDbi_n           => pioDDR4_Mem_Mc0_DmDbi_n,
-      pioDDR4_Mem_Mc0_Dq                => pioDDR4_Mem_Mc0_Dq,
-      pioDDR4_Mem_Mc0_Dqs_n             => pioDDR4_Mem_Mc0_Dqs_n,
-      pioDDR4_Mem_Mc0_Dqs_p             => pioDDR4_Mem_Mc0_Dqs_p,
-      poDDR4_Mem_Mc0_Act_n              => poDDR4_Mem_Mc0_Act_n,
-      poDDR4_Mem_Mc0_Adr                => poDDR4_Mem_Mc0_Adr,
-      poDDR4_Mem_Mc0_Ba                 => poDDR4_Mem_Mc0_Ba,
-      poDDR4_Mem_Mc0_Bg                 => poDDR4_Mem_Mc0_Bg,
-      poDDR4_Mem_Mc0_Cke                => poDDR4_Mem_Mc0_Cke,
-      poDDR4_Mem_Mc0_Odt                => poDDR4_Mem_Mc0_Odt,
-      poDDR4_Mem_Mc0_Cs_n               => poDDR4_Mem_Mc0_Cs_n,
-      poDDR4_Mem_Mc0_Ck_n               => poDDR4_Mem_Mc0_Ck_n,
-      poDDR4_Mem_Mc0_Ck_p               => poDDR4_Mem_Mc0_Ck_p,
-      poDDR4_Mem_Mc0_Reset_n            => poDDR4_Mem_Mc0_Reset_n,
-      
+      pioDDR4_Mem_Mc0_DmDbi_n       => pioDDR4_Mem_Mc0_DmDbi_n,
+      pioDDR4_Mem_Mc0_Dq            => pioDDR4_Mem_Mc0_Dq,
+      pioDDR4_Mem_Mc0_Dqs_n         => pioDDR4_Mem_Mc0_Dqs_n,
+      pioDDR4_Mem_Mc0_Dqs_p         => pioDDR4_Mem_Mc0_Dqs_p,
+      poDDR4_Mem_Mc0_Act_n          => poDDR4_Mem_Mc0_Act_n,
+      poDDR4_Mem_Mc0_Adr            => poDDR4_Mem_Mc0_Adr,
+      poDDR4_Mem_Mc0_Ba             => poDDR4_Mem_Mc0_Ba,
+      poDDR4_Mem_Mc0_Bg             => poDDR4_Mem_Mc0_Bg,
+      poDDR4_Mem_Mc0_Cke            => poDDR4_Mem_Mc0_Cke,
+      poDDR4_Mem_Mc0_Odt            => poDDR4_Mem_Mc0_Odt,
+      poDDR4_Mem_Mc0_Cs_n           => poDDR4_Mem_Mc0_Cs_n,
+      poDDR4_Mem_Mc0_Ck_n           => poDDR4_Mem_Mc0_Ck_n,
+      poDDR4_Mem_Mc0_Ck_p           => poDDR4_Mem_Mc0_Ck_p,
+      poDDR4_Mem_Mc0_Reset_n        => poDDR4_Mem_Mc0_Reset_n,
       ------------------------------------------------------
       -- DDR4 / Shl / Memory Channel 1 Interface (Mc1)
       ------------------------------------------------------
-      pioDDR4_Mem_Mc1_DmDbi_n           => pioDDR4_Mem_Mc1_DmDbi_n,
-      pioDDR4_Mem_Mc1_Dq                => pioDDR4_Mem_Mc1_Dq,
-      pioDDR4_Mem_Mc1_Dqs_n             => pioDDR4_Mem_Mc1_Dqs_n,
-      pioDDR4_Mem_Mc1_Dqs_p             => pioDDR4_Mem_Mc1_Dqs_p,
-      poDDR4_Mem_Mc1_Act_n              => poDDR4_Mem_Mc1_Act_n,
-      poDDR4_Mem_Mc1_Adr                => poDDR4_Mem_Mc1_Adr,
-      poDDR4_Mem_Mc1_Ba                 => poDDR4_Mem_Mc1_Ba,
-      poDDR4_Mem_Mc1_Bg                 => poDDR4_Mem_Mc1_Bg,
-      poDDR4_Mem_Mc1_Cke                => poDDR4_Mem_Mc1_Cke,
-      poDDR4_Mem_Mc1_Odt                => poDDR4_Mem_Mc1_Odt,
-      poDDR4_Mem_Mc1_Cs_n               => poDDR4_Mem_Mc1_Cs_n,
-      poDDR4_Mem_Mc1_Ck_n               => poDDR4_Mem_Mc1_Ck_n,
-      poDDR4_Mem_Mc1_Ck_p               => poDDR4_Mem_Mc1_Ck_p,
-      poDDR4_Mem_Mc1_Reset_n            => poDDR4_Mem_Mc1_Reset_n,
-      
+      pioDDR4_Mem_Mc1_DmDbi_n       => pioDDR4_Mem_Mc1_DmDbi_n,
+      pioDDR4_Mem_Mc1_Dq            => pioDDR4_Mem_Mc1_Dq,
+      pioDDR4_Mem_Mc1_Dqs_n         => pioDDR4_Mem_Mc1_Dqs_n,
+      pioDDR4_Mem_Mc1_Dqs_p         => pioDDR4_Mem_Mc1_Dqs_p,
+      poDDR4_Mem_Mc1_Act_n          => poDDR4_Mem_Mc1_Act_n,
+      poDDR4_Mem_Mc1_Adr            => poDDR4_Mem_Mc1_Adr,
+      poDDR4_Mem_Mc1_Ba             => poDDR4_Mem_Mc1_Ba,
+      poDDR4_Mem_Mc1_Bg             => poDDR4_Mem_Mc1_Bg,
+      poDDR4_Mem_Mc1_Cke            => poDDR4_Mem_Mc1_Cke,
+      poDDR4_Mem_Mc1_Odt            => poDDR4_Mem_Mc1_Odt,
+      poDDR4_Mem_Mc1_Cs_n           => poDDR4_Mem_Mc1_Cs_n,
+      poDDR4_Mem_Mc1_Ck_n           => poDDR4_Mem_Mc1_Ck_n,
+      poDDR4_Mem_Mc1_Ck_p           => poDDR4_Mem_Mc1_Ck_p,
+      poDDR4_Mem_Mc1_Reset_n        => poDDR4_Mem_Mc1_Reset_n,
       ------------------------------------------------------
       -- ECON / Edge / Connector Interface (SPD08-200)
       ------------------------------------------------------
-      piECON_Eth_10Ge0_n                => piECON_Eth_10Ge0_n,
-      piECON_Eth_10Ge0_p                => piECON_Eth_10Ge0_p,
-      poECON_Eth_10Ge0_n                => poECON_Eth_10Ge0_n, 
-      poECON_Eth_10Ge0_p                => poECON_Eth_10Ge0_p,
-      
+      piECON_Eth_10Ge0_n            => piECON_Eth_10Ge0_n,
+      piECON_Eth_10Ge0_p            => piECON_Eth_10Ge0_p,
+      poECON_Eth_10Ge0_n            => poECON_Eth_10Ge0_n, 
+      poECON_Eth_10Ge0_p            => poECON_Eth_10Ge0_p,
       ------------------------------------------------------
       -- ROLE / Reset and Clock Interfaces
       ------------------------------------------------------
-      poROL_156_25Clk                   => sSHL_156_25Clk,
-      poROL_156_25Rst                   => sSHL_156_25Rst,
-
+      poROL_156_25Clk               => sSHL_156_25Clk,
+      poROL_156_25Rst               => sSHL_156_25Rst,
       ------------------------------------------------------
-      -- ROLE / Nts / Udp Interface
+      -- ROLE / Nts / Udp / Tx Data Interfaces (.i.e ROLE-->SHELL)
       ------------------------------------------------------
-      -- Input UDP Data (AXI4S) --------
-      siROL_Nts_Udp_Data_tdata          => ssROL_SHL_Nts_Udp_Data_tdata,
-      siROL_Nts_Udp_Data_tkeep          => ssROL_SHL_Nts_Udp_Data_tkeep,
-      siROL_Nts_Udp_Data_tlast          => ssROL_SHL_Nts_Udp_Data_tlast,
-      siROL_Nts_Udp_Data_tvalid         => ssROL_SHL_Nts_Udp_Data_tvalid,
-      siROL_Nts_Udp_Data_tready         => ssROL_SHL_Nts_Udp_Data_tready,
-      -- Output UDP Data (AXI4S) -------
-      soROL_Nts_Udp_Data_tdata          => ssSHL_ROL_Nts_Udp_Data_tdata,
-      soROL_Nts_Udp_Data_tkeep          => ssSHL_ROL_Nts_Udp_Data_tkeep,
-      soROL_Nts_Udp_Data_tlast          => ssSHL_ROL_Nts_Udp_Data_tlast,
-      soROL_Nts_Udp_Data_tvalid         => ssSHL_ROL_Nts_Udp_Data_tvalid,
-      soROL_Nts_Udp_Data_tready         => ssROL_SHL_Nts_Udp_Data_tready,
-      
+      ---- Axi4-Stream UDP Data ---------------
+      siROL_Nts_Udp_Data_tdata      => ssROL_SHL_Nts_Udp_Data_tdata,
+      siROL_Nts_Udp_Data_tkeep      => ssROL_SHL_Nts_Udp_Data_tkeep,
+      siROL_Nts_Udp_Data_tlast      => ssROL_SHL_Nts_Udp_Data_tlast,
+      siROL_Nts_Udp_Data_tvalid     => ssROL_SHL_Nts_Udp_Data_tvalid,
+      siROL_Nts_Udp_Data_tready     => ssROL_SHL_Nts_Udp_Data_tready,
+      ---- Axi4-Stream UDP Metadata -----------
+      siROL_Nts_Udp_Meta_tdata      => ssROL_SHL_Nts_Udp_Meta_tdata ,
+      siROL_Nts_Udp_Meta_tvalid     => ssROL_SHL_Nts_Udp_Meta_tvalid,
+      siROL_Nts_Udp_Meta_tready     => ssROL_SHL_Nts_Udp_Meta_tready,
+      ---- Axis4Stream UDP Data Length ---------
+      siROL_Nts_Udp_DLen_tdata      => ssROL_SHL_Nts_Udp_DLen_tdata ,
+      siROL_Nts_Udp_DLen_tvalid     => ssROL_SHL_Nts_Udp_DLen_tvalid,
+      siROL_Nts_Udp_DLen_tready     => ssROL_SHL_Nts_Udp_DLen_tready,
       ------------------------------------------------------
-      -- ROLE / Nts / Tcp / TxP Data Flow Interfaces
+      --ROLE / Nts / Udp / Rx Data Interfaces (.i.e SHELL-->ROLE)
       ------------------------------------------------------
-      -- FPGA Transmit Path (ROLE-->SHELL) -------
-      ---- Stream TCP Data -------------
-      siROL_Nts_Tcp_Data_tdata          => ssROL_SHL_Nts_Tcp_Data_tdata,
-      siROL_Nts_Tcp_Data_tkeep          => ssROL_SHL_Nts_Tcp_Data_tkeep,
-      siROL_Nts_Tcp_Data_tlast          => ssROL_SHL_Nts_Tcp_Data_tlast,
-      siROL_Nts_Tcp_Data_tvalid         => ssROL_SHL_Nts_Tcp_Data_tvalid,
-      siROL_Nts_Tcp_Data_tready         => ssROL_SHL_Nts_Tcp_Data_tready,
-      ---- Stream TCP Meta -------------
-      siROL_Nts_Tcp_Meta_tdata          => ssROL_SHL_Nts_Tcp_Meta_tdata,
-      siROL_Nts_Tcp_Meta_tvalid         => ssROL_SHL_Nts_Tcp_Meta_tvalid,
-      siROL_Nts_Tcp_Meta_tready         => ssROL_SHL_Nts_Tcp_Meta_tready,
-      ---- Stream TCP Data Status ------
-      soROL_Nts_Tcp_DSts_tdata          => ssSHL_ROL_Nts_Tcp_DSts_tdata,
-      soROL_Nts_Tcp_DSts_tvalid         => ssSHL_ROL_Nts_Tcp_DSts_tvalid, 
-      soROL_Nts_Tcp_DSts_tready         => ssSHL_ROL_Nts_Tcp_DSts_tready,
-    
+      ---- Axi4-Stream UDP Data ---------------
+      soROL_Nts_Udp_Data_tdata      => ssSHL_ROL_Nts_Udp_Data_tdata,
+      soROL_Nts_Udp_Data_tkeep      => ssSHL_ROL_Nts_Udp_Data_tkeep,
+      soROL_Nts_Udp_Data_tlast      => ssSHL_ROL_Nts_Udp_Data_tlast,
+      soROL_Nts_Udp_Data_tvalid     => ssSHL_ROL_Nts_Udp_Data_tvalid,
+      soROL_Nts_Udp_Data_tready     => ssSHL_ROL_Nts_Udp_Data_tready,
+      ---- Axi4-Stream UDP Metadata -----------
+      soROL_Nts_Udp_Meta_tdata      => ssSHL_ROL_Nts_Udp_Meta_tdata ,
+      soROL_Nts_Udp_Meta_tvalid     => ssSHL_ROL_Nts_Udp_Meta_tvalid,
+      soROL_Nts_Udp_Meta_tready     => ssSHL_ROL_Nts_Udp_Meta_tready,
       ------------------------------------------------------
-      -- ROLE / Nts / Tcp / RxP Data Flow Interfaces
+      -- ROLE / Nts/ Udp / Rx Ctrl Interfaces (.i.e SHELL-->ROLE)
       ------------------------------------------------------
-      -- FPGA Receive Path (SHELL-->ROLE) --------
-      ---- Stream TCP Data -------------
-      soROL_Nts_Tcp_Data_tdata          => ssSHL_ROL_Nts_Tcp_Data_tdata,
-      soROL_Nts_Tcp_Data_tkeep          => ssSHL_ROL_Nts_Tcp_Data_tkeep,
-      soROL_Nts_Tcp_Data_tlast          => ssSHL_ROL_Nts_Tcp_Data_tlast,
-      soROL_Nts_Tcp_Data_tvalid         => ssSHL_ROL_Nts_Tcp_Data_tvalid,
-      soROL_Nts_Tcp_Data_tready         => ssSHL_ROL_Nts_Tcp_Data_tready,
-      ---- Stream TCP Metadata ---------
-      soROL_Nts_Tcp_Meta_tdata          => ssSHL_ROL_Nts_Tcp_Meta_tdata,
-      soROL_Nts_Tcp_Meta_tvalid         => ssSHL_ROL_Nts_Tcp_Meta_tvalid,
-      soROL_Nts_Tcp_Meta_tready         => ssSHL_ROL_Nts_Tcp_Meta_tready,
-      ---- Stream TCP Data Notification 
-      soROL_Nts_Tcp_Notif_tdata         => ssSHL_ROL_Nts_Tcp_Notif_tdata,
-      soROL_Nts_Tcp_Notif_tvalid        => ssSHL_ROL_Nts_Tcp_Notif_tvalid, 
-      soROL_Nts_Tcp_Notif_tready        => ssSHL_ROL_Nts_Tcp_Notif_tready,
-      ---- Stream TCP Data Request -----
-      siROL_Nts_Tcp_DReq_tdata          => ssROL_SHL_Nts_Tcp_DReq_tdata,
-      siROL_Nts_Tcp_DReq_tvalid         => ssROL_SHL_Nts_Tcp_DReq_tvalid,
-      siROL_Nts_Tcp_DReq_tready         => ssROL_SHL_Nts_Tcp_DReq_tready,
-      
+      ---- Axi4-Stream UDP Listen Request -----
+      siROL_Nts_Udp_LsnReq_tdata    => ssROL_SHL_Nts_Udp_LsnReq_tdata ,
+      siROL_Nts_Udp_LsnReq_tvalid   => ssROL_SHL_Nts_Udp_LsnReq_tvalid,
+      siROL_Nts_Udp_LsnReq_tready   => ssROL_SHL_Nts_Udp_LsnReq_tready,
+      ---- Axi4-Stream UDP Listen Reply --------
+      soROL_Nts_Udp_LsnRep_tdata    => ssSHL_ROL_Nts_Udp_LsnRep_tdata ,
+      soROL_Nts_Udp_LsnRep_tvalid   => ssSHL_ROL_Nts_Udp_LsnRep_tvalid,
+      soROL_Nts_Udp_LsnRep_tready   => ssSHL_ROL_Nts_Udp_LsnRep_tready,
+      ---- Axi4-Stream UDP Close Request ------
+      siROL_Nts_Udp_ClsReq_tdata    => ssROL_SHL_Nts_Udp_ClsReq_tdata ,
+      siROL_Nts_Udp_ClsReq_tvalid   => ssROL_SHL_Nts_Udp_ClsReq_tvalid,
+      siROL_Nts_Udp_ClsReq_tready   => ssROL_SHL_Nts_Udp_ClsReq_tready,
+      ---- Axi4-Stream UDP Close Reply ---------
+      soROL_Nts_Udp_ClsRep_tdata    => ssSHL_ROL_Nts_Udp_ClsRep_tdata ,
+      soROL_Nts_Udp_ClsRep_tvalid   => ssSHL_ROL_Nts_Udp_ClsRep_tvalid,
+      soROL_Nts_Udp_ClsRep_tready   => ssSHL_ROL_Nts_Udp_ClsRep_tready,
       ------------------------------------------------------
-      -- ROLE / Nts / Tcp / TxP Ctlr Flow Interfaces
+      -- ROLE / Nts / Tcp / Tx Data Interfaces (.i.e ROLE-->SHELL)
       ------------------------------------------------------
-      -- FPGA Transmit Path (ROLE-->SHELL) -------
-      ---- Stream TCP Open Session Request
-      siROL_Nts_Tcp_OpnReq_tdata        => ssROL_SHL_Nts_Tcp_OpnReq_tdata,
-      siROL_Nts_Tcp_OpnReq_tvalid       => ssROL_SHL_Nts_Tcp_OpnReq_tvalid,
-      siROL_Nts_Tcp_OpnReq_tready       => ssROL_SHL_Nts_Tcp_OpnReq_tready,
-      ---- Stream TCP Open Session Status 
-      soROL_Nts_Tcp_OpnRep_tdata        => ssSHL_ROL_Nts_Tcp_OpnRep_tdata,
-      soROL_Nts_Tcp_OpnRep_tvalid       => ssSHL_ROL_Nts_Tcp_OpnRep_tvalid,
-      soROL_Nts_Tcp_OpnRep_tready       => ssSHL_ROL_Nts_Tcp_OpnRep_tready,
-      ---- Stream TCP Close Request ----
-      siROL_Nts_Tcp_ClsReq_tdata        => ssROL_SHL_Nts_Tcp_ClsReq_tdata,
-      siROL_Nts_Tcp_ClsReq_tvalid       => ssROL_SHL_Nts_Tcp_ClsReq_tvalid,
-      siROL_Nts_Tcp_ClsReq_tready       => ssROL_SHL_Nts_Tcp_ClsReq_tready,   
-      
+      ---- Axi4-Stream TCP Data ---------------
+      siROL_Nts_Tcp_Data_tdata      => ssROL_SHL_Nts_Tcp_Data_tdata,
+      siROL_Nts_Tcp_Data_tkeep      => ssROL_SHL_Nts_Tcp_Data_tkeep,
+      siROL_Nts_Tcp_Data_tlast      => ssROL_SHL_Nts_Tcp_Data_tlast,
+      siROL_Nts_Tcp_Data_tvalid     => ssROL_SHL_Nts_Tcp_Data_tvalid,
+      siROL_Nts_Tcp_Data_tready     => ssROL_SHL_Nts_Tcp_Data_tready,
+      ---- Axi4-Stream TCP Send Request -------
+      siROL_Nts_Tcp_SndReq_tdata    => ssROL_SHL_Nts_Tcp_SndReq_tdata,
+      siROL_Nts_Tcp_SndReq_tvalid   => ssROL_SHL_Nts_Tcp_SndReq_tvalid,
+      siROL_Nts_Tcp_SndReq_tready   => ssROL_SHL_Nts_Tcp_SndReq_tready,
+      ---- Axi4-Stream TCP Send Reply ---------
+      soROL_Nts_Tcp_SndRep_tdata    => ssSHL_ROL_Nts_Tcp_SndRep_tdata,
+      soROL_Nts_Tcp_SndRep_tvalid   => ssSHL_ROL_Nts_Tcp_SndRep_tvalid, 
+      soROL_Nts_Tcp_SndRep_tready   => ssSHL_ROL_Nts_Tcp_SndRep_tready,
       ------------------------------------------------------
-      -- ROLE / Nts / Trif / RxP Ctlr Flow Interfaces
+      -- ROLE / Nts / Tcp / Rx Data Interfaces  (.i.e SHELL-->ROLE)
       ------------------------------------------------------
-      -- FPGA Receive Path (ETH-->ROLE) ------------
-      ---- Stream TCP Listen Request ---
-      siROL_Nts_Tcp_LsnReq_tdata        => ssROL_SHL_Nts_Tcp_LsnReq_tdata,
-      siROL_Nts_Tcp_LsnReq_tvalid       => ssROL_SHL_Nts_Tcp_LsnReq_tvalid,
-      siROL_Nts_Tcp_LsnReq_tready       => ssROL_SHL_Nts_Tcp_LsnReq_tready,
-      ---- Stream TCP Listen Status ----
-      soROL_Nts_Tcp_LsnAck_tdata        => ssSHL_ROL_Nts_Tcp_LsnAck_tdata,
-      soROL_Nts_Tcp_LsnAck_tvalid       => ssSHL_ROL_Nts_Tcp_LsnAck_tvalid,
-      soROL_Nts_Tcp_LsnAck_tready       => ssSHL_ROL_Nts_Tcp_LsnAck_tready,
-
+      ---- Axi4-Stream TCP Data -----------------
+      soROL_Nts_Tcp_Data_tdata      => ssSHL_ROL_Nts_Tcp_Data_tdata,
+      soROL_Nts_Tcp_Data_tkeep      => ssSHL_ROL_Nts_Tcp_Data_tkeep,
+      soROL_Nts_Tcp_Data_tlast      => ssSHL_ROL_Nts_Tcp_Data_tlast,
+      soROL_Nts_Tcp_Data_tvalid     => ssSHL_ROL_Nts_Tcp_Data_tvalid,
+      soROL_Nts_Tcp_Data_tready     => ssSHL_ROL_Nts_Tcp_Data_tready,
+      ----  Axi4-Stream TCP Metadata ------------
+      soROL_Nts_Tcp_Meta_tdata      => ssSHL_ROL_Nts_Tcp_Meta_tdata,
+      soROL_Nts_Tcp_Meta_tvalid     => ssSHL_ROL_Nts_Tcp_Meta_tvalid,
+      soROL_Nts_Tcp_Meta_tready     => ssSHL_ROL_Nts_Tcp_Meta_tready,
+      ----  Axi4-Stream TCP Data Notification ---
+      soROL_Nts_Tcp_Notif_tdata     => ssSHL_ROL_Nts_Tcp_Notif_tdata,
+      soROL_Nts_Tcp_Notif_tvalid    => ssSHL_ROL_Nts_Tcp_Notif_tvalid, 
+      soROL_Nts_Tcp_Notif_tready    => ssSHL_ROL_Nts_Tcp_Notif_tready,
+      ----  Axi4-Stream TCP Data Request --------
+      siROL_Nts_Tcp_DReq_tdata      => ssROL_SHL_Nts_Tcp_DReq_tdata,
+      siROL_Nts_Tcp_DReq_tvalid     => ssROL_SHL_Nts_Tcp_DReq_tvalid,
+      siROL_Nts_Tcp_DReq_tready     => ssROL_SHL_Nts_Tcp_DReq_tready,
+      ------------------------------------------------------
+      -- ROLE / Nts / Tcp / TxP Ctlr Interfaces (.i.e ROLE-->SHELL)
+      ------------------------------------------------------
+      ---- Axi4-Stream TCP Open Session Request
+      siROL_Nts_Tcp_OpnReq_tdata    => ssROL_SHL_Nts_Tcp_OpnReq_tdata,
+      siROL_Nts_Tcp_OpnReq_tvalid   => ssROL_SHL_Nts_Tcp_OpnReq_tvalid,
+      siROL_Nts_Tcp_OpnReq_tready   => ssROL_SHL_Nts_Tcp_OpnReq_tready,
+      ---- Axi4-Stream TCP Open Session Reply
+      soROL_Nts_Tcp_OpnRep_tdata    => ssSHL_ROL_Nts_Tcp_OpnRep_tdata,
+      soROL_Nts_Tcp_OpnRep_tvalid   => ssSHL_ROL_Nts_Tcp_OpnRep_tvalid,
+      soROL_Nts_Tcp_OpnRep_tready   => ssSHL_ROL_Nts_Tcp_OpnRep_tready,
+      ---- Axi4-Stream TCP Close Request ------
+      siROL_Nts_Tcp_ClsReq_tdata    => ssROL_SHL_Nts_Tcp_ClsReq_tdata,
+      siROL_Nts_Tcp_ClsReq_tvalid   => ssROL_SHL_Nts_Tcp_ClsReq_tvalid,
+      siROL_Nts_Tcp_ClsReq_tready   => ssROL_SHL_Nts_Tcp_ClsReq_tready,   
+      ------------------------------------------------------
+      -- ROLE / Nts / Tcp / Rx Ctlr Interfaces (.i.e SHELL-->ROLE)
+      ------------------------------------------------------
+      ----  Axi4-Stream TCP Listen Request ----
+      siROL_Nts_Tcp_LsnReq_tdata    => ssROL_SHL_Nts_Tcp_LsnReq_tdata,
+      siROL_Nts_Tcp_LsnReq_tvalid   => ssROL_SHL_Nts_Tcp_LsnReq_tvalid,
+      siROL_Nts_Tcp_LsnReq_tready   => ssROL_SHL_Nts_Tcp_LsnReq_tready,
+      ----  Axi4-Stream TCP Listen Rep --------
+      soROL_Nts_Tcp_LsnRep_tdata    => ssSHL_ROL_Nts_Tcp_LsnRep_tdata,
+      soROL_Nts_Tcp_LsnRep_tvalid   => ssSHL_ROL_Nts_Tcp_LsnRep_tvalid,
+      soROL_Nts_Tcp_LsnRep_tready   => ssSHL_ROL_Nts_Tcp_LsnRep_tready,
       ------------------------------------------------------  
       -- ROLE / Mem / Mp0 Interface
       ------------------------------------------------------
       -- Memory Port #0 / S2MM-AXIS ------------------   
       ---- Stream Read Command ---------
-      siROL_Mem_Mp0_RdCmd_tdata         => ssROL_SHL_Mem_Mp0_RdCmd_tdata,
-      siROL_Mem_Mp0_RdCmd_tvalid        => ssROL_SHL_Mem_Mp0_RdCmd_tvalid,
-      siROL_Mem_Mp0_RdCmd_tready        => ssROL_SHL_Mem_Mp0_RdCmd_tready,
+      siROL_Mem_Mp0_RdCmd_tdata     => ssROL_SHL_Mem_Mp0_RdCmd_tdata,
+      siROL_Mem_Mp0_RdCmd_tvalid    => ssROL_SHL_Mem_Mp0_RdCmd_tvalid,
+      siROL_Mem_Mp0_RdCmd_tready    => ssROL_SHL_Mem_Mp0_RdCmd_tready,
       ---- Stream Read Status ----------
-      soROL_Mem_Mp0_RdSts_tdata         => ssSHL_ROL_Mem_Mp0_RdSts_tdata,
-      soROL_Mem_Mp0_RdSts_tvalid        => ssSHL_ROL_Mem_Mp0_RdSts_tvalid,
-      soROL_Mem_Mp0_RdSts_tready        => ssSHL_ROL_Mem_Mp0_RdSts_tready,
+      soROL_Mem_Mp0_RdSts_tdata     => ssSHL_ROL_Mem_Mp0_RdSts_tdata,
+      soROL_Mem_Mp0_RdSts_tvalid    => ssSHL_ROL_Mem_Mp0_RdSts_tvalid,
+      soROL_Mem_Mp0_RdSts_tready    => ssSHL_ROL_Mem_Mp0_RdSts_tready,
       ---- Stream Data Output Channel --
-      soROL_Mem_Mp0_Read_tdata          => ssSHL_ROL_Mem_Mp0_Read_tdata,
-      soROL_Mem_Mp0_Read_tkeep          => ssSHL_ROL_Mem_Mp0_Read_tkeep,
-      soROL_Mem_Mp0_Read_tlast          => ssSHL_ROL_Mem_Mp0_Read_tlast,
-      soROL_Mem_Mp0_Read_tvalid         => ssSHL_ROL_Mem_Mp0_Read_tvalid,
-      soROL_Mem_Mp0_Read_tready         => ssSHL_ROL_Mem_Mp0_Read_tready,
+      soROL_Mem_Mp0_Read_tdata      => ssSHL_ROL_Mem_Mp0_Read_tdata,
+      soROL_Mem_Mp0_Read_tkeep      => ssSHL_ROL_Mem_Mp0_Read_tkeep,
+      soROL_Mem_Mp0_Read_tlast      => ssSHL_ROL_Mem_Mp0_Read_tlast,
+      soROL_Mem_Mp0_Read_tvalid     => ssSHL_ROL_Mem_Mp0_Read_tvalid,
+      soROL_Mem_Mp0_Read_tready     => ssSHL_ROL_Mem_Mp0_Read_tready,
       ---- Stream Write Command --------
-      siROL_Mem_Mp0_WrCmd_tdata         => ssROL_SHL_Mem_Mp0_WrCmd_tdata,
-      siROL_Mem_Mp0_WrCmd_tvalid        => ssROL_SHL_Mem_Mp0_WrCmd_tvalid,
-      siROL_Mem_Mp0_WrCmd_tready        => ssROL_SHL_Mem_Mp0_WrCmd_tready,
+      siROL_Mem_Mp0_WrCmd_tdata     => ssROL_SHL_Mem_Mp0_WrCmd_tdata,
+      siROL_Mem_Mp0_WrCmd_tvalid    => ssROL_SHL_Mem_Mp0_WrCmd_tvalid,
+      siROL_Mem_Mp0_WrCmd_tready    => ssROL_SHL_Mem_Mp0_WrCmd_tready,
       ---- Stream Write Status ---------
-      soROL_Mem_Mp0_WrSts_tvalid        => ssSHL_ROL_Mem_Mp0_WrSts_tvalid,
-      soROL_Mem_Mp0_WrSts_tdata         => ssSHL_ROL_Mem_Mp0_WrSts_tdata,
-      soROL_Mem_Mp0_WrSts_tready        => ssSHL_ROL_Mem_Mp0_WrSts_tready,
+      soROL_Mem_Mp0_WrSts_tvalid    => ssSHL_ROL_Mem_Mp0_WrSts_tvalid,
+      soROL_Mem_Mp0_WrSts_tdata     => ssSHL_ROL_Mem_Mp0_WrSts_tdata,
+      soROL_Mem_Mp0_WrSts_tready    => ssSHL_ROL_Mem_Mp0_WrSts_tready,
       ---- Stream Data Input Channel ---
-      siROL_Mem_Mp0_Write_tdata         => ssROL_SHL_Mem_Mp0_Write_tdata,
-      siROL_Mem_Mp0_Write_tkeep         => ssROL_SHL_Mem_Mp0_Write_tkeep,
-      siROL_Mem_Mp0_Write_tlast         => ssROL_SHL_Mem_Mp0_Write_tlast,
-      siROL_Mem_Mp0_Write_tvalid        => ssROL_SHL_Mem_Mp0_Write_tvalid,
-      siROL_Mem_Mp0_Write_tready        => ssROL_SHL_Mem_Mp0_Write_tready, 
-      
+      siROL_Mem_Mp0_Write_tdata     => ssROL_SHL_Mem_Mp0_Write_tdata,
+      siROL_Mem_Mp0_Write_tkeep     => ssROL_SHL_Mem_Mp0_Write_tkeep,
+      siROL_Mem_Mp0_Write_tlast     => ssROL_SHL_Mem_Mp0_Write_tlast,
+      siROL_Mem_Mp0_Write_tvalid    => ssROL_SHL_Mem_Mp0_Write_tvalid,
+      siROL_Mem_Mp0_Write_tready    => ssROL_SHL_Mem_Mp0_Write_tready, 
       ------------------------------------------------------
       -- ROLE / Mem / Mp1 Interface
       ------------------------------------------------------
-      miROL_Mem_Mp1_AWID                =>  smROL_SHL_Mem_Mp1_AWID     ,
-      miROL_Mem_Mp1_AWADDR              =>  smROL_SHL_Mem_Mp1_AWADDR   ,
-      miROL_Mem_Mp1_AWLEN               =>  smROL_SHL_Mem_Mp1_AWLEN    ,
-      miROL_Mem_Mp1_AWSIZE              =>  smROL_SHL_Mem_Mp1_AWSIZE   ,
-      miROL_Mem_Mp1_AWBURST             =>  smROL_SHL_Mem_Mp1_AWBURST  ,
-      miROL_Mem_Mp1_AWVALID             =>  smROL_SHL_Mem_Mp1_AWVALID  ,
-      miROL_Mem_Mp1_AWREADY             =>  smROL_SHL_Mem_Mp1_AWREADY  ,
-      miROL_Mem_Mp1_WDATA               =>  smROL_SHL_Mem_Mp1_WDATA    ,
-      miROL_Mem_Mp1_WSTRB               =>  smROL_SHL_Mem_Mp1_WSTRB    ,
-      miROL_Mem_Mp1_WLAST               =>  smROL_SHL_Mem_Mp1_WLAST    ,
-      miROL_Mem_Mp1_WVALID              =>  smROL_SHL_Mem_Mp1_WVALID   ,
-      miROL_Mem_Mp1_WREADY              =>  smROL_SHL_Mem_Mp1_WREADY   ,
-      miROL_Mem_Mp1_BID                 =>  smROL_SHL_Mem_Mp1_BID      ,
-      miROL_Mem_Mp1_BRESP               =>  smROL_SHL_Mem_Mp1_BRESP    ,
-      miROL_Mem_Mp1_BVALID              =>  smROL_SHL_Mem_Mp1_BVALID   ,
-      miROL_Mem_Mp1_BREADY              =>  smROL_SHL_Mem_Mp1_BREADY   ,
-      miROL_Mem_Mp1_ARID                =>  smROL_SHL_Mem_Mp1_ARID     ,
-      miROL_Mem_Mp1_ARADDR              =>  smROL_SHL_Mem_Mp1_ARADDR   ,
-      miROL_Mem_Mp1_ARLEN               =>  smROL_SHL_Mem_Mp1_ARLEN    ,
-      miROL_Mem_Mp1_ARSIZE              =>  smROL_SHL_Mem_Mp1_ARSIZE   ,
-      miROL_Mem_Mp1_ARBURST             =>  smROL_SHL_Mem_Mp1_ARBURST  ,
-      miROL_Mem_Mp1_ARVALID             =>  smROL_SHL_Mem_Mp1_ARVALID  ,
-      miROL_Mem_Mp1_ARREADY             =>  smROL_SHL_Mem_Mp1_ARREADY  ,
-      miROL_Mem_Mp1_RID                 =>  smROL_SHL_Mem_Mp1_RID      ,
-      miROL_Mem_Mp1_RDATA               =>  smROL_SHL_Mem_Mp1_RDATA    ,
-      miROL_Mem_Mp1_RRESP               =>  smROL_SHL_Mem_Mp1_RRESP    ,
-      miROL_Mem_Mp1_RLAST               =>  smROL_SHL_Mem_Mp1_RLAST    ,
-      miROL_Mem_Mp1_RVALID              =>  smROL_SHL_Mem_Mp1_RVALID   ,
-      miROL_Mem_Mp1_RREADY              =>  smROL_SHL_Mem_Mp1_RREADY   ,
-
+      miROL_Mem_Mp1_AWID            => smROL_SHL_Mem_Mp1_AWID     ,
+      miROL_Mem_Mp1_AWADDR          => smROL_SHL_Mem_Mp1_AWADDR   ,
+      miROL_Mem_Mp1_AWLEN           => smROL_SHL_Mem_Mp1_AWLEN    ,
+      miROL_Mem_Mp1_AWSIZE          => smROL_SHL_Mem_Mp1_AWSIZE   ,
+      miROL_Mem_Mp1_AWBURST         => smROL_SHL_Mem_Mp1_AWBURST  ,
+      miROL_Mem_Mp1_AWVALID         => smROL_SHL_Mem_Mp1_AWVALID  ,
+      miROL_Mem_Mp1_AWREADY         => smROL_SHL_Mem_Mp1_AWREADY  ,
+      miROL_Mem_Mp1_WDATA           => smROL_SHL_Mem_Mp1_WDATA    ,
+      miROL_Mem_Mp1_WSTRB           => smROL_SHL_Mem_Mp1_WSTRB    ,
+      miROL_Mem_Mp1_WLAST           => smROL_SHL_Mem_Mp1_WLAST    ,
+      miROL_Mem_Mp1_WVALID          => smROL_SHL_Mem_Mp1_WVALID   ,
+      miROL_Mem_Mp1_WREADY          => smROL_SHL_Mem_Mp1_WREADY   ,
+      miROL_Mem_Mp1_BID             => smROL_SHL_Mem_Mp1_BID      ,
+      miROL_Mem_Mp1_BRESP           => smROL_SHL_Mem_Mp1_BRESP    ,
+      miROL_Mem_Mp1_BVALID          => smROL_SHL_Mem_Mp1_BVALID   ,
+      miROL_Mem_Mp1_BREADY          => smROL_SHL_Mem_Mp1_BREADY   ,
+      miROL_Mem_Mp1_ARID            => smROL_SHL_Mem_Mp1_ARID     ,
+      miROL_Mem_Mp1_ARADDR          => smROL_SHL_Mem_Mp1_ARADDR   ,
+      miROL_Mem_Mp1_ARLEN           => smROL_SHL_Mem_Mp1_ARLEN    ,
+      miROL_Mem_Mp1_ARSIZE          => smROL_SHL_Mem_Mp1_ARSIZE   ,
+      miROL_Mem_Mp1_ARBURST         => smROL_SHL_Mem_Mp1_ARBURST  ,
+      miROL_Mem_Mp1_ARVALID         => smROL_SHL_Mem_Mp1_ARVALID  ,
+      miROL_Mem_Mp1_ARREADY         => smROL_SHL_Mem_Mp1_ARREADY  ,
+      miROL_Mem_Mp1_RID             => smROL_SHL_Mem_Mp1_RID      ,
+      miROL_Mem_Mp1_RDATA           => smROL_SHL_Mem_Mp1_RDATA    ,
+      miROL_Mem_Mp1_RRESP           => smROL_SHL_Mem_Mp1_RRESP    ,
+      miROL_Mem_Mp1_RLAST           => smROL_SHL_Mem_Mp1_RLAST    ,
+      miROL_Mem_Mp1_RVALID          => smROL_SHL_Mem_Mp1_RVALID   ,
+      miROL_Mem_Mp1_RREADY          =>  smROL_SHL_Mem_Mp1_RREADY   ,
       ------------------------------------------------------
       -- ROLE / Mmio / AppFlash Interface
       ------------------------------------------------------
       ---- [PHY_RESET] -----------------
-      poROL_Mmio_Ly7Rst                 => (sSHL_ROL_Mmio_Ly7Rst),
+      poROL_Mmio_Ly7Rst             => (sSHL_ROL_Mmio_Ly7Rst),
       ---- [PHY_ENABLE] --------------
-      poROL_Mmio_Ly7En                  => (sSHL_ROL_Mmio_Ly7En),
+      poROL_Mmio_Ly7En              => (sSHL_ROL_Mmio_Ly7En),
       ---- [DIAG_CTRL_1] ---------------
-      poROL_Mmio_Mc1_MemTestCtrl        => sSHL_ROL_Mmio_Mc1_MemTestCtrl,
+      poROL_Mmio_Mc1_MemTestCtrl    => sSHL_ROL_Mmio_Mc1_MemTestCtrl,
       ---- [DIAG_STAT_1] ---------------
-      piROL_Mmio_Mc1_MemTestStat        => sROL_SHL_Mmio_Mc1_MemTestStat,
+      piROL_Mmio_Mc1_MemTestStat    => sROL_SHL_Mmio_Mc1_MemTestStat,
       ---- [DIAG_CTRL_2] ---------------
-      poROL_Mmio_UdpEchoCtrl            => sSHL_ROL_Mmio_UdpEchoCtrl,
-      poROL_Mmio_UdpPostDgmEn           => sSHL_ROL_Mmio_UdpPostDgmEn,
-      poROL_Mmio_UdpCaptDgmEn           => sSHL_ROL_Mmio_UdpCaptDgmEn,
-      poROL_Mmio_TcpEchoCtrl            => sSHL_ROL_Mmio_TcpEchoCtrl,
-      poROL_Mmio_TcpPostSegEn           => sSHL_ROL_Mmio_TcpPostSegEn,
-      poROL_Mmio_TcpCaptSegEn           => sSHL_ROL_Mmio_TcpCaptSegEn,
+      poROL_Mmio_UdpEchoCtrl        => sSHL_ROL_Mmio_UdpEchoCtrl,
+      poROL_Mmio_UdpPostDgmEn       => sSHL_ROL_Mmio_UdpPostDgmEn,
+      poROL_Mmio_UdpCaptDgmEn       => sSHL_ROL_Mmio_UdpCaptDgmEn,
+      poROL_Mmio_TcpEchoCtrl        => sSHL_ROL_Mmio_TcpEchoCtrl,
+      poROL_Mmio_TcpPostSegEn       => sSHL_ROL_Mmio_TcpPostSegEn,
+      poROL_Mmio_TcpCaptSegEn       => sSHL_ROL_Mmio_TcpCaptSegEn,
       ---- [APP_RDROL] -----------------
-      piROL_Mmio_RdReg                  => sROL_SHL_Mmio_RdReg,
+      piROL_Mmio_RdReg              => sROL_SHL_Mmio_RdReg,
       ---- [APP_WRROL] -----------------
-      poROL_Mmio_WrReg                  => sSHL_ROL_Mmio_WrReg,
-            
-      --OBSOLETE-20191125 --------------------------------------------------------
-      --OBSOLETE-20191125 -- ROLE / Fmc / Management Interface 
-      --OBSOLETE-20191125 --------------------------------------------------------
-      --OBSOLETE-20191125 poROL_Fmc_Rank                    => sSHL_ROL_Fmc_Rank,
-      --OBSOLETE-20191125 poROL_Fmc_Size                    => sSHL_ROL_Fmc_Size,
-      
-      poVoid                            => open
-         
-  );  -- End of SuperShell instantiation
+      poROL_Mmio_WrReg              => sSHL_ROL_Mmio_WrReg
+  );  -- End-of:  Shell_Kale instantiation
 
   --==========================================================================
   --  INST: ROLE FOR FMKU60
   --==========================================================================
   ROLE : Role_Kale
     port map (
-    
       ------------------------------------------------------
       -- SHELL / Global Input Clock and Reset Interface
       ------------------------------------------------------
       piSHL_156_25Clk                   => sSHL_156_25Clk,
       piSHL_156_25Rst                   => sSHL_156_25Rst,
-    
       ------------------------------------------------------
-      -- SHELL / Nts / Udp Interface
+      -- SHELL / Nts / Udp / Tx Data Interfaces (.i.e SHELL-->ROLE)
       ------------------------------------------------------
-      -- Input UDP Data (AXI4S) --------
-      siSHL_Nts_Udp_Data_tdata          => ssSHL_ROL_Nts_Udp_Data_tdata,
-      siSHL_Nts_Udp_Data_tkeep          => ssSHL_ROL_Nts_Udp_Data_tkeep,
-      siSHL_Nts_Udp_Data_tlast          => ssSHL_ROL_Nts_Udp_Data_tlast,
+      ---- Axi4-Stream UDP Data ----------------
+      siSHL_Nts_Udp_Data_tdata          => ssSHL_ROL_Nts_Udp_Data_tdata ,
+      siSHL_Nts_Udp_Data_tkeep          => ssSHL_ROL_Nts_Udp_Data_tkeep ,
+      siSHL_Nts_Udp_Data_tlast          => ssSHL_ROL_Nts_Udp_Data_tlast ,
       siSHL_Nts_Udp_Data_tvalid         => ssSHL_ROL_Nts_Udp_Data_tvalid,
       siSHL_Nts_Udp_Data_tready         => ssSHL_ROL_Nts_Udp_Data_tready,
-      -- Output UDP Data (AXI4S) -------
-      soSHL_Nts_Udp_Data_tdata          => ssROL_SHL_Nts_Udp_Data_tdata,
-      soSHL_Nts_Udp_Data_tkeep          => ssROL_SHL_Nts_Udp_Data_tkeep,
-      soSHL_Nts_Udp_Data_tlast          => ssROL_SHL_Nts_Udp_Data_tlast,
+      ---- Axi4-Stream UDP Metadata ------------
+      siSHL_Nts_Udp_Meta_tdata          => ssSHL_ROL_Nts_Udp_Meta_tdata ,
+      siSHL_Nts_Udp_Meta_tvalid         => ssSHL_ROL_Nts_Udp_Meta_tvalid,
+      siSHL_Nts_Udp_Meta_tready         => ssSHL_ROL_Nts_Udp_Meta_tready,
+      -----------------------------------------------------
+      -- SHELL / Nts / Udp / Rx Data Interfaces (.i.e ROLE-->SHELL)
+      ------------------------------------------------------
+      ---- Axi4-Stream UDP Data ---------------
+      soSHL_Nts_Udp_Data_tdata          => ssROL_SHL_Nts_Udp_Data_tdata ,
+      soSHL_Nts_Udp_Data_tkeep          => ssROL_SHL_Nts_Udp_Data_tkeep ,
+      soSHL_Nts_Udp_Data_tlast          => ssROL_SHL_Nts_Udp_Data_tlast ,
       soSHL_Nts_Udp_Data_tvalid         => ssROL_SHL_Nts_Udp_Data_tvalid,
       soSHL_Nts_Udp_Data_tready         => ssROL_SHL_Nts_Udp_Data_tready,
-
+      ---- Axi4-Stream UDP Meta ---------------
+      soSHL_Nts_Udp_Meta_tdata          => ssROL_SHL_Nts_Udp_Meta_tdata ,
+      soSHL_Nts_Udp_Meta_tvalid         => ssROL_SHL_Nts_Udp_Meta_tvalid,
+      soSHL_Nts_Udp_Meta_tready         => ssROL_SHL_Nts_Udp_Meta_tready, 
+      ---- Axi4-Stream UDP Data Length ---------
+      soSHL_Nts_Udp_DLen_tdata          => ssROL_SHL_Nts_Udp_DLen_tdata ,
+      soSHL_Nts_Udp_DLen_tvalid         => ssROL_SHL_Nts_Udp_DLen_tvalid,
+      soSHL_Nts_Udp_DLen_tready         => ssROL_SHL_Nts_Udp_DLen_tready,
       ------------------------------------------------------
-      -- SHELL / Nts / Tcp / TxP Data Flow Interfaces
+      -- SHELL / Nts/ Udp / Rx Ctrl Interfaces (.i.e ROLE-->SHELL)
       ------------------------------------------------------
-      -- FPGA Transmit Path (ROLE-->SHELL) ---------
-      ---- Stream TCP Data ---------------
-      soSHL_Nts_Tcp_Data_tdata          => ssROL_SHL_Nts_Tcp_Data_tdata,
-      soSHL_Nts_Tcp_Data_tkeep          => ssROL_SHL_Nts_Tcp_Data_tkeep,
-      soSHL_Nts_Tcp_Data_tlast          => ssROL_SHL_Nts_Tcp_Data_tlast,
+      ---- Axi4-Stream UDP Listen Request -----
+      soSHL_Nts_Udp_LsnReq_tdata        => ssROL_SHL_Nts_Udp_LsnReq_tdata ,
+      soSHL_Nts_Udp_LsnReq_tvalid       => ssROL_SHL_Nts_Udp_LsnReq_tvalid,
+      soSHL_Nts_Udp_LsnReq_tready       => ssROL_SHL_Nts_Udp_LsnReq_tready,
+      ---- Axi4-Stream UDP Listen Reply --------
+      siSHL_Nts_Udp_LsnRep_tdata        => ssSHL_ROL_Nts_Udp_LsnRep_tdata ,
+      siSHL_Nts_Udp_LsnRep_tvalid       => ssSHL_ROL_Nts_Udp_LsnRep_tvalid,
+      siSHL_Nts_Udp_LsnRep_tready       => ssSHL_ROL_Nts_Udp_LsnRep_tready,
+      ---- Axi4-Stream UDP Close Request ------
+      soSHL_Nts_Udp_ClsReq_tdata        => ssROL_SHL_Nts_Udp_ClsReq_tdata ,
+      soSHL_Nts_Udp_ClsReq_tvalid       => ssROL_SHL_Nts_Udp_ClsReq_tvalid,
+      soSHL_Nts_Udp_ClsReq_tready       => ssROL_SHL_Nts_Udp_ClsReq_tready,
+      ---- Axi4-Stream UDP Close Reply ---------
+      siSHL_Nts_Udp_ClsRep_tdata        => ssSHL_ROL_Nts_Udp_ClsRep_tdata ,
+      siSHL_Nts_Udp_ClsRep_tvalid       => ssSHL_ROL_Nts_Udp_ClsRep_tvalid,
+      siSHL_Nts_Udp_ClsRep_tready       => ssSHL_ROL_Nts_Udp_ClsRep_tready,
+      ------------------------------------------------------
+      -- SHELL / Nts / Tcp / Tx Data Interfaces (.i.e ROLE-->SHELL)
+      ------------------------------------------------------
+      ---- Axi4-Stream TCP Data ---------------
+      soSHL_Nts_Tcp_Data_tdata          => ssROL_SHL_Nts_Tcp_Data_tdata ,
+      soSHL_Nts_Tcp_Data_tkeep          => ssROL_SHL_Nts_Tcp_Data_tkeep ,
+      soSHL_Nts_Tcp_Data_tlast          => ssROL_SHL_Nts_Tcp_Data_tlast ,
       soSHL_Nts_Tcp_Data_tvalid         => ssROL_SHL_Nts_Tcp_Data_tvalid,
       soSHL_Nts_Tcp_Data_tready         => ssROL_SHL_Nts_Tcp_Data_tready,
-      ---- Stream TCP Metadata -----------
-      soSHL_Nts_Tcp_Meta_tdata          => ssROL_SHL_Nts_Tcp_Meta_tdata,
-      soSHL_Nts_Tcp_Meta_tvalid         => ssROL_SHL_Nts_Tcp_Meta_tvalid,
-      soSHL_Nts_Tcp_Meta_tready         => ssROL_SHL_Nts_Tcp_Meta_tready,
-      ---- Stream TCP Data Status --------
-      siSHL_Nts_Tcp_DSts_tdata          => ssSHL_ROL_Nts_Tcp_DSts_tdata,
-      siSHL_Nts_Tcp_DSts_tvalid         => ssSHL_ROL_Nts_Tcp_DSts_tvalid,
-      siSHL_Nts_Tcp_DSts_tready         => ssSHL_ROL_Nts_Tcp_DSts_tready,
-      
+      ---- Axi4-Stream TCP Send Request --------
+      soSHL_Nts_Tcp_SndReq_tdata        => ssROL_SHL_Nts_Tcp_SndReq_tdata ,
+      soSHL_Nts_Tcp_SndReq_tvalid       => ssROL_SHL_Nts_Tcp_SndReq_tvalid,
+      soSHL_Nts_Tcp_SndReq_tready       => ssROL_SHL_Nts_Tcp_SndReq_tready,
+       ---- Axi4-Stream TCP Send Reply ---------
+      siSHL_Nts_Tcp_SndRep_tdata        => ssSHL_ROL_Nts_Tcp_SndRep_tdata ,
+      siSHL_Nts_Tcp_SndRep_tvalid       => ssSHL_ROL_Nts_Tcp_SndRep_tvalid,
+      siSHL_Nts_Tcp_SndRep_tready       => ssSHL_ROL_Nts_Tcp_SndRep_tready,
       --------------------------------------------------------
-      -- SHELL / Nts / Tcp / RxP Data Flow Interfaces
+      -- SHELL / Nts / Tcp / Rx Data Interfaces  (.i.e SHELL-->ROLE)
       --------------------------------------------------------
-      -- FPGA Receive Path (SHELL-->ROLE) ----------
-      ---- Stream TCP Data ---------------
+      ---- Axi4-Stream TCP Data -----------------
       siSHL_Nts_Tcp_Data_tdata          => ssSHL_ROL_Nts_Tcp_Data_tdata,
       siSHL_Nts_Tcp_Data_tkeep          => ssSHL_ROL_Nts_Tcp_Data_tkeep,
       siSHL_Nts_Tcp_Data_tlast          => ssSHL_ROL_Nts_Tcp_Data_tlast,
       siSHL_Nts_Tcp_Data_tvalid         => ssSHL_ROL_Nts_Tcp_Data_tvalid,
       siSHL_Nts_Tcp_Data_tready         => ssSHL_ROL_Nts_Tcp_Data_tready,
-      ---- Stream TCP Meta ---------------
+      ----  Axi4-Stream TCP Metadata ------------
       siSHL_Nts_Tcp_Meta_tdata          => ssSHL_ROL_Nts_Tcp_Meta_tdata,
-      siSHL_Nts_Tcp_Meta_tkeep          => (others => '1'),
-      siSHL_Nts_Tcp_Meta_tlast          => '1',
       siSHL_Nts_Tcp_Meta_tvalid         => ssSHL_ROL_Nts_Tcp_Meta_tvalid,
       siSHL_Nts_Tcp_Meta_tready         => ssSHL_ROL_Nts_Tcp_Meta_tready,
-      ---- Stream TCP Data Notification --
+      ----  Axi4-Stream TCP Data Notification ---
       siSHL_Nts_Tcp_Notif_tdata         => ssSHL_ROL_Nts_Tcp_Notif_tdata,
       siSHL_Nts_Tcp_Notif_tvalid        => ssSHL_ROL_Nts_Tcp_Notif_tvalid,
       siSHL_Nts_Tcp_Notif_tready        => ssSHL_ROL_Nts_Tcp_Notif_tready,
-      ---- Stream TCP Data Request -------
+      ----  Axi4-Stream TCP Data Request --------
       soSHL_Nts_Tcp_DReq_tdata          => ssROL_SHL_Nts_Tcp_DReq_tdata,
       soSHL_Nts_Tcp_DReq_tvalid         => ssROL_SHL_Nts_Tcp_DReq_tvalid,  
       soSHL_Nts_Tcp_DReq_tready         => ssROL_SHL_Nts_Tcp_DReq_tready,
-      
       ------------------------------------------------------
-      -- SHELL / Nts / Tcp / TxP Ctlr Flow Interfaces
+      -- SHELL / Nts / Tcp / TxP Ctlr Interfaces (.i.e ROLE-->SHELL)
       ------------------------------------------------------
-      -- FPGA Transmit Path (ROLE-->SHELL) ---------
+      ---- Axi4-Stream TCP Open Session Request
       ---- Stream TCP Open Session Request
       soSHL_Nts_Tcp_OpnReq_tdata        => ssROL_SHL_Nts_Tcp_OpnReq_tdata,
       soSHL_Nts_Tcp_OpnReq_tvalid       => ssROL_SHL_Nts_Tcp_OpnReq_tvalid,
       soSHL_Nts_Tcp_OpnReq_tready       => ssROL_SHL_Nts_Tcp_OpnReq_tready,
-      ---- Stream TCP Open Session Status  
+      ---- Axi4-Stream TCP Open Session Reply
       siSHL_Nts_Tcp_OpnRep_tdata        => ssSHL_ROL_Nts_Tcp_OpnRep_tdata,
       siSHL_Nts_Tcp_OpnRep_tvalid       => ssSHL_ROL_Nts_Tcp_OpnRep_tvalid,
       siSHL_Nts_Tcp_OpnRep_tready       => ssSHL_ROL_Nts_Tcp_OpnRep_tready,
-      ---- Stream TCP Close Request ------
+      ---- Axi4-Stream TCP Close Request ------
       soSHL_Nts_Tcp_ClsReq_tdata        => ssROL_SHL_Nts_Tcp_ClsReq_tdata,
       soSHL_Nts_Tcp_ClsReq_tvalid       => ssROL_SHL_Nts_Tcp_ClsReq_tvalid,
       soSHL_Nts_Tcp_ClsReq_tready       => ssROL_SHL_Nts_Tcp_ClsReq_tready,
-      
       ------------------------------------------------------
-      -- SHELL / Nts / Tcp / RxP Ctlr Flow Interfaces
+      -- SHELL / Nts / Tcp / Rx Ctlr Interfaces (.i.e SHELL-->ROLE)
       ------------------------------------------------------
-      -- FPGA Receive Path (NTS-->ROLE) ------------
-      ---- Stream TCP Listen Request -----
+      ---- Axi4-Stream TCP Listen Request ----
       soSHL_Nts_Tcp_LsnReq_tdata        => ssROL_SHL_Nts_Tcp_LsnReq_tdata,
       soSHL_Nts_Tcp_LsnReq_tvalid       => ssROL_SHL_Nts_Tcp_LsnReq_tvalid,
       soSHL_Nts_Tcp_LsnReq_tready       => ssROL_SHL_Nts_Tcp_LsnReq_tready,
-      ---- Stream TCP Listen Status ----
-      siSHL_Nts_Tcp_LsnAck_tdata        => ssSHL_ROL_Nts_Tcp_LsnAck_tdata,
-      siSHL_Nts_Tcp_LsnAck_tvalid       => ssSHL_ROL_Nts_Tcp_LsnAck_tvalid,
-      siSHL_Nts_Tcp_LsnAck_tready       => ssSHL_ROL_Nts_Tcp_LsnAck_tready, 
-       
+      -----  Axi4-Stream TCP Listen Rep --------
+      siSHL_Nts_Tcp_LsnRep_tdata        => ssSHL_ROL_Nts_Tcp_LsnRep_tdata,
+      siSHL_Nts_Tcp_LsnRep_tvalid       => ssSHL_ROL_Nts_Tcp_LsnRep_tvalid,
+      siSHL_Nts_Tcp_LsnRep_tready       => ssSHL_ROL_Nts_Tcp_LsnRep_tready, 
       ------------------------------------------------------
       -- SHELL / Mem / Mp0 Interface
       ------------------------------------------------------
@@ -1347,40 +1405,38 @@ begin
       soSHL_Mem_Mp0_Write_tlast         => ssROL_SHL_Mem_Mp0_Write_tlast,
       soSHL_Mem_Mp0_Write_tvalid        => ssROL_SHL_Mem_Mp0_Write_tvalid,
       soSHL_Mem_Mp0_Write_tready        => ssROL_SHL_Mem_Mp0_Write_tready,
-      
       ------------------------------------------------------
       -- SHELL / Role / Mem / Mp1 Interface
       ------------------------------------------------------
-      moMEM_Mp1_AWID                =>  smROL_SHL_Mem_Mp1_AWID     ,
-      moMEM_Mp1_AWADDR              =>  smROL_SHL_Mem_Mp1_AWADDR   ,
-      moMEM_Mp1_AWLEN               =>  smROL_SHL_Mem_Mp1_AWLEN    ,
-      moMEM_Mp1_AWSIZE              =>  smROL_SHL_Mem_Mp1_AWSIZE   ,
-      moMEM_Mp1_AWBURST             =>  smROL_SHL_Mem_Mp1_AWBURST  ,
-      moMEM_Mp1_AWVALID             =>  smROL_SHL_Mem_Mp1_AWVALID  ,
-      moMEM_Mp1_AWREADY             =>  smROL_SHL_Mem_Mp1_AWREADY  ,
-      moMEM_Mp1_WDATA               =>  smROL_SHL_Mem_Mp1_WDATA    ,
-      moMEM_Mp1_WSTRB               =>  smROL_SHL_Mem_Mp1_WSTRB    ,
-      moMEM_Mp1_WLAST               =>  smROL_SHL_Mem_Mp1_WLAST    ,
-      moMEM_Mp1_WVALID              =>  smROL_SHL_Mem_Mp1_WVALID   ,
-      moMEM_Mp1_WREADY              =>  smROL_SHL_Mem_Mp1_WREADY   ,
-      moMEM_Mp1_BID                 =>  smROL_SHL_Mem_Mp1_BID      ,
-      moMEM_Mp1_BRESP               =>  smROL_SHL_Mem_Mp1_BRESP    ,
-      moMEM_Mp1_BVALID              =>  smROL_SHL_Mem_Mp1_BVALID   ,
-      moMEM_Mp1_BREADY              =>  smROL_SHL_Mem_Mp1_BREADY   ,
-      moMEM_Mp1_ARID                =>  smROL_SHL_Mem_Mp1_ARID     ,
-      moMEM_Mp1_ARADDR              =>  smROL_SHL_Mem_Mp1_ARADDR   ,
-      moMEM_Mp1_ARLEN               =>  smROL_SHL_Mem_Mp1_ARLEN    ,
-      moMEM_Mp1_ARSIZE              =>  smROL_SHL_Mem_Mp1_ARSIZE   ,
-      moMEM_Mp1_ARBURST             =>  smROL_SHL_Mem_Mp1_ARBURST  ,
-      moMEM_Mp1_ARVALID             =>  smROL_SHL_Mem_Mp1_ARVALID  ,
-      moMEM_Mp1_ARREADY             =>  smROL_SHL_Mem_Mp1_ARREADY  ,
-      moMEM_Mp1_RID                 =>  smROL_SHL_Mem_Mp1_RID      ,
-      moMEM_Mp1_RDATA               =>  smROL_SHL_Mem_Mp1_RDATA    ,
-      moMEM_Mp1_RRESP               =>  smROL_SHL_Mem_Mp1_RRESP    ,
-      moMEM_Mp1_RLAST               =>  smROL_SHL_Mem_Mp1_RLAST    ,
-      moMEM_Mp1_RVALID              =>  smROL_SHL_Mem_Mp1_RVALID   ,
-      moMEM_Mp1_RREADY              =>  smROL_SHL_Mem_Mp1_RREADY   ,
-      
+      moSHL_Mem_Mp1_AWID                =>  smROL_SHL_Mem_Mp1_AWID     ,
+      moSHL_Mem_Mp1_AWADDR              =>  smROL_SHL_Mem_Mp1_AWADDR   ,
+      moSHL_Mem_Mp1_AWLEN               =>  smROL_SHL_Mem_Mp1_AWLEN    ,
+      moSHL_Mem_Mp1_AWSIZE              =>  smROL_SHL_Mem_Mp1_AWSIZE   ,
+      moSHL_Mem_Mp1_AWBURST             =>  smROL_SHL_Mem_Mp1_AWBURST  ,
+      moSHL_Mem_Mp1_AWVALID             =>  smROL_SHL_Mem_Mp1_AWVALID  ,
+      moSHL_Mem_Mp1_AWREADY             =>  smROL_SHL_Mem_Mp1_AWREADY  ,
+      moSHL_Mem_Mp1_WDATA               =>  smROL_SHL_Mem_Mp1_WDATA    ,
+      moSHL_Mem_Mp1_WSTRB               =>  smROL_SHL_Mem_Mp1_WSTRB    ,
+      moSHL_Mem_Mp1_WLAST               =>  smROL_SHL_Mem_Mp1_WLAST    ,
+      moSHL_Mem_Mp1_WVALID              =>  smROL_SHL_Mem_Mp1_WVALID   ,
+      moSHL_Mem_Mp1_WREADY              =>  smROL_SHL_Mem_Mp1_WREADY   ,
+      moSHL_Mem_Mp1_BID                 =>  smROL_SHL_Mem_Mp1_BID      ,
+      moSHL_Mem_Mp1_BRESP               =>  smROL_SHL_Mem_Mp1_BRESP    ,
+      moSHL_Mem_Mp1_BVALID              =>  smROL_SHL_Mem_Mp1_BVALID   ,
+      moSHL_Mem_Mp1_BREADY              =>  smROL_SHL_Mem_Mp1_BREADY   ,
+      moSHL_Mem_Mp1_ARID                =>  smROL_SHL_Mem_Mp1_ARID     ,
+      moSHL_Mem_Mp1_ARADDR              =>  smROL_SHL_Mem_Mp1_ARADDR   ,
+      moSHL_Mem_Mp1_ARLEN               =>  smROL_SHL_Mem_Mp1_ARLEN    ,
+      moSHL_Mem_Mp1_ARSIZE              =>  smROL_SHL_Mem_Mp1_ARSIZE   ,
+      moSHL_Mem_Mp1_ARBURST             =>  smROL_SHL_Mem_Mp1_ARBURST  ,
+      moSHL_Mem_Mp1_ARVALID             =>  smROL_SHL_Mem_Mp1_ARVALID  ,
+      moSHL_Mem_Mp1_ARREADY             =>  smROL_SHL_Mem_Mp1_ARREADY  ,
+      moSHL_Mem_Mp1_RID                 =>  smROL_SHL_Mem_Mp1_RID      ,
+      moSHL_Mem_Mp1_RDATA               =>  smROL_SHL_Mem_Mp1_RDATA    ,
+      moSHL_Mem_Mp1_RRESP               =>  smROL_SHL_Mem_Mp1_RRESP    ,
+      moSHL_Mem_Mp1_RLAST               =>  smROL_SHL_Mem_Mp1_RLAST    ,
+      moSHL_Mem_Mp1_RVALID              =>  smROL_SHL_Mem_Mp1_RVALID   ,
+      moSHL_Mem_Mp1_RREADY              =>  smROL_SHL_Mem_Mp1_RREADY   ,
       ------------------------------------------------------
       -- SHELL / Mmio / AppFlash Interface
       ------------------------------------------------------
@@ -1393,31 +1449,21 @@ begin
       ---- [DIAG_STAT_1] ---------------
       poSHL_Mmio_Mc1_MemTestStat        => sROL_SHL_Mmio_Mc1_MemTestStat,
       ---- [DIAG_CTRL_2] ---------------
-      piSHL_Mmio_UdpEchoCtrl            => sSHL_ROL_Mmio_UdpEchoCtrl,
-      piSHL_Mmio_UdpPostDgmEn           => sSHL_ROL_Mmio_UdpPostDgmEn,
-      piSHL_Mmio_UdpCaptDgmEn           => sSHL_ROL_Mmio_UdpCaptDgmEn,
-      piSHL_Mmio_TcpEchoCtrl            => sSHL_ROL_Mmio_TcpEchoCtrl,
-      piSHL_Mmio_TcpPostSegEn           => sSHL_ROL_Mmio_TcpPostSegEn,
-      piSHL_Mmio_TcpCaptSegEn           => sSHL_ROL_Mmio_TcpCaptSegEn,
+      --[NOT_USED] piSHL_Mmio_UdpEchoCtrl  => sSHL_ROL_Mmio_UdpEchoCtrl,
+      --[NOT_USED] piSHL_Mmio_UdpPostDgmEn => sSHL_ROL_Mmio_UdpPostDgmEn,
+      --[NOT_USED] piSHL_Mmio_UdpCaptDgmEn => sSHL_ROL_Mmio_UdpCaptDgmEn,
+      --[NOT_USED] piSHL_Mmio_TcpEchoCtrl  => sSHL_ROL_Mmio_TcpEchoCtrl,
+      --[NOT_USED] piSHL_Mmio_TcpPostSegEn => sSHL_ROL_Mmio_TcpPostSegEn,
+      --[NOT_USED] piSHL_Mmio_TcpCaptSegEn => sSHL_ROL_Mmio_TcpCaptSegEn,
       ---- [APP_RDROL] -----------------
       poSHL_Mmio_RdReg                  => sROL_SHL_Mmio_RdReg,
       --- [APP_WRROL] ------------------
       piSHL_Mmio_WrReg                  => sSHL_ROL_Mmio_WrReg,
-
       ------------------------------------------------------
       ---- TOP : Secondary Clock (Asynchronous)
       ------------------------------------------------------
-      piTOP_250_00Clk                   => sTOP_250_00Clk,  -- Freerunning
-      
-      --------------------------------------------------------
-      -- ROLE / Fmc / Management Interface 
-      -------------------------------------------------------- 
-      -- NOT_USED_BY_THIS_ROLE piSMC_ROLE_rank                     => sSMC_ROL_rank,
-      -- NOT_USED_BY_THIS_ROLE piSMC_ROLE_size                     => sSMC_ROL_size,
-      
-      poVoid                            => open  
-  
-  );  -- End of Role instantiation
+      piTOP_250_00Clk                   => sTOP_250_00Clk  -- Freerunning
+  );  -- End-of: Role instantiation
 
 end structural;
 
