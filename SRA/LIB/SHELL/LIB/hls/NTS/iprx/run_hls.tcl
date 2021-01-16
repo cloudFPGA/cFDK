@@ -27,7 +27,7 @@ set ipDescription  "Parses incoming Ethernet frames, extracts and forwards IP pa
 set ipVendor       "IBM"
 set ipLibrary      "hls"
 set ipVersion      "1.0"
-set ipPkgFormat    "syn_dcp"
+set ipPkgFormat    "ip_catalog"
 
 # Set Project Environment Variables  
 #-------------------------------------------------
@@ -182,7 +182,7 @@ if { $hlsCoSim } {
 if { $hlsRtl } {
     switch $hlsRtl {
         1 {
-            export_design -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+            export_design -rtl vhdl -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
         }
         2 {
             export_design -flow syn -rtl verilog -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
