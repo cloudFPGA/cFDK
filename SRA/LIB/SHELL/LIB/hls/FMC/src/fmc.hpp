@@ -316,7 +316,7 @@ void fmc(
     //XMEM
     ap_uint<32> xmem[XMEM_SIZE], 
     //NRC 
-    ap_uint<32> nrcCtrl[NAL_CTRL_LINK_SIZE],
+    ap_uint<32> nalCtrl[NAL_CTRL_LINK_SIZE],
     ap_uint<1> *disable_ctrl_link,
     stream<TcpWord>           &siNAL_Tcp_data,
     stream<AppMeta>           &siNAL_Tcp_SessId,

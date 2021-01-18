@@ -86,7 +86,7 @@ struct NetworkMeta {
 struct NetworkMetaStream {
   NetworkMeta tdata; 
   //ap_uint<(sizeof(NetworkMeta)+7)/8> tkeep; TODO: sizeof seems not to work?
-  ap_uint<10> tkeep;
+  ap_uint<8> tkeep;
   ap_uint<1> tlast;
   NetworkMetaStream() {}
   NetworkMetaStream(NetworkMeta single_data) : tdata(single_data), tkeep(0xFFF), tlast(1) {}

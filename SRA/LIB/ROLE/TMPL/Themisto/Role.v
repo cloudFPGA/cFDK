@@ -62,15 +62,15 @@ module Role_Themisto (
     //-- Open Port vector
     output [ 31: 0]   poROL_Nrc_Udp_Rx_ports,
     //-- ROLE <-> NRC Meta Interface
-    output [ 79: 0]   soROLE_Nrc_Udp_Meta_TDATA,
+    output [ 63: 0]   soROLE_Nrc_Udp_Meta_TDATA,
     output            soROLE_Nrc_Udp_Meta_TVALID,
     input             soROLE_Nrc_Udp_Meta_TREADY,
-    output [  9: 0]   soROLE_Nrc_Udp_Meta_TKEEP,
+    output [  7: 0]   soROLE_Nrc_Udp_Meta_TKEEP,
     output            soROLE_Nrc_Udp_Meta_TLAST,
-    input  [ 79: 0]   siNRC_Role_Udp_Meta_TDATA,
+    input  [ 63: 0]   siNRC_Role_Udp_Meta_TDATA,
     input             siNRC_Role_Udp_Meta_TVALID,
     output            siNRC_Role_Udp_Meta_TREADY,
-    input  [  9: 0]   siNRC_Role_Udp_Meta_TKEEP,
+    input  [  7: 0]   siNRC_Role_Udp_Meta_TKEEP,
     input             siNRC_Role_Udp_Meta_TLAST,
     
     //------------------------------------------------------
@@ -91,15 +91,15 @@ module Role_Themisto (
     //-- Open Port vector
     output [ 31: 0]  poROL_Nrc_Tcp_Rx_ports,
     //-- ROLE <-> NRC Meta Interface
-    output [ 79: 0]  soROLE_Nrc_Tcp_Meta_TDATA,
+    output [ 63: 0]  soROLE_Nrc_Tcp_Meta_TDATA,
     output           soROLE_Nrc_Tcp_Meta_TVALID,
     input            soROLE_Nrc_Tcp_Meta_TREADY,
-    output [  9: 0]  soROLE_Nrc_Tcp_Meta_TKEEP,
+    output [  7: 0]  soROLE_Nrc_Tcp_Meta_TKEEP,
     output           soROLE_Nrc_Tcp_Meta_TLAST,
-    input  [ 79: 0]  siNRC_Role_Tcp_Meta_TDATA,
+    input  [ 63: 0]  siNRC_Role_Tcp_Meta_TDATA,
     input            siNRC_Role_Tcp_Meta_TVALID,
     output           siNRC_Role_Tcp_Meta_TREADY,
-    input  [  9: 0]  siNRC_Role_Tcp_Meta_TKEEP,
+    input  [  7: 0]  siNRC_Role_Tcp_Meta_TKEEP,
     input            siNRC_Role_Tcp_Meta_TLAST,
     
     //------------------------------------------------------

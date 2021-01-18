@@ -40,15 +40,15 @@ set DecouplerType [list CONFIG.ALL_PARAMS {HAS_AXI_LITE 0 HAS_AXIS_CONTROL 0 INT
         soROL_Nts_Udp_Data_tvalid      { DIRECTION in  } \
         soROL_Nts_Udp_Data_tready      { DIRECTION out } \
         piROL_Nrc_Udp_Rx_ports         { DIRECTION out WIDTH  32 } \
-        siROLE_Nrc_Udp_Meta_TDATA      { DIRECTION out WIDTH  80 } \
+        siROLE_Nrc_Udp_Meta_TDATA      { DIRECTION out WIDTH  64 } \
         siROLE_Nrc_Udp_Meta_TVALID     { DIRECTION out } \
         siROLE_Nrc_Udp_Meta_TREADY     { DIRECTION in  } \
-        siROLE_Nrc_Udp_Meta_TKEEP      { DIRECTION out WIDTH  10 } \
+        siROLE_Nrc_Udp_Meta_TKEEP      { DIRECTION out WIDTH   8 } \
         siROLE_Nrc_Udp_Meta_TLAST      { DIRECTION out } \
-        soNRC_Role_Udp_Meta_TDATA      { DIRECTION in  WIDTH  80 } \
+        soNRC_Role_Udp_Meta_TDATA      { DIRECTION in  WIDTH  64 } \
         soNRC_Role_Udp_Meta_TVALID     { DIRECTION in  } \
         soNRC_Role_Udp_Meta_TREADY     { DIRECTION out } \
-        soNRC_Role_Udp_Meta_TKEEP      { DIRECTION in  WIDTH  10 } \
+        soNRC_Role_Udp_Meta_TKEEP      { DIRECTION in  WIDTH   8 } \
         soNRC_Role_Udp_Meta_TLAST      { DIRECTION in  } \
         siROL_Nts_Tcp_Data_tdata       { DIRECTION out WIDTH  64 } \
         siROL_Nts_Tcp_Data_tkeep       { DIRECTION out WIDTH   8 } \

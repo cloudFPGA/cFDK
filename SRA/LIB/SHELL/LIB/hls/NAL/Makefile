@@ -50,8 +50,8 @@ ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS) $(REF_DEPS)
 	@cat ${ipName}_prj/solution1/syn/report/${ipName}${top_suffix}_csynth.rpt
 	@#the following is for checking if the AXI4Lite Addresses had changed 
 	@#diff ./${ipName}_prj/solution1/impl/ip/drivers/${ipName}${top_suffix}_v1_0/src/x${ipName}${top_suffix}_hw.h ./ref/x${ipName}${top_suffix}_hw.h
-	sed "s/[ \t]*\/\/.*$$//"  ./${ipName}_prj/solution1/impl/ip/drivers/${ipName}${top_suffix}_v1_0/src/x${ipName}${top_suffix}_hw.h | grep -v "^$$" > ./${ipName}_prj/x${ipName}${top_suffix}_hw.h_stripped.tmp
-	diff ./${ipName}_prj/x${ipName}${top_suffix}_hw.h_stripped.tmp ./ref/x${ipName}${top_suffix}_hw.h_stripped
+	@sed "s/[ \t]*\/\/.*$$//"  ./${ipName}_prj/solution1/impl/ip/drivers/${ipName}${top_suffix}_v1_0/src/x${ipName}${top_suffix}_hw.h | grep -v "^$$" > ./${ipName}_prj/x${ipName}${top_suffix}_hw.h_stripped.tmp
+	@diff ./${ipName}_prj/x${ipName}${top_suffix}_hw.h_stripped.tmp ./ref/x${ipName}${top_suffix}_hw.h_stripped
 	@/bin/echo -e "AXI4Lite Addresses checked: OK\n"
 	@touch $@
 	@touch ../../.ip_guard
