@@ -61,15 +61,15 @@ set DecouplerType [list CONFIG.ALL_PARAMS {HAS_AXI_LITE 0 HAS_AXIS_CONTROL 0 INT
         soROL_Nts_Tcp_Data_tvalid      { DIRECTION in  } \
         soROL_Nts_Tcp_Data_tready      { DIRECTION out } \
         piROL_Nrc_Tcp_Rx_ports         { DIRECTION out WIDTH  32 } \
-        siROLE_Nrc_Tcp_Meta_TDATA      { DIRECTION out WIDTH  80 } \
+        siROLE_Nrc_Tcp_Meta_TDATA      { DIRECTION out WIDTH  64 } \
         siROLE_Nrc_Tcp_Meta_TVALID     { DIRECTION out } \
         siROLE_Nrc_Tcp_Meta_TREADY     { DIRECTION in  } \
-        siROLE_Nrc_Tcp_Meta_TKEEP      { DIRECTION out WIDTH  10 } \
+        siROLE_Nrc_Tcp_Meta_TKEEP      { DIRECTION out WIDTH   8 } \
         siROLE_Nrc_Tcp_Meta_TLAST      { DIRECTION out } \
-        soNRC_Role_Tcp_Meta_TDATA      { DIRECTION in  WIDTH  80 } \
+        soNRC_Role_Tcp_Meta_TDATA      { DIRECTION in  WIDTH  64 } \
         soNRC_Role_Tcp_Meta_TVALID     { DIRECTION in  } \
         soNRC_Role_Tcp_Meta_TREADY     { DIRECTION out } \
-        soNRC_Role_Tcp_Meta_TKEEP      { DIRECTION in  WIDTH  10 } \
+        soNRC_Role_Tcp_Meta_TKEEP      { DIRECTION in  WIDTH   8 } \
         soNRC_Role_Tcp_Meta_TLAST      { DIRECTION in  } \
         siROL_Mem_Mp0_RdCmd_tdata      { DIRECTION out WIDTH  80 } \
         siROL_Mem_Mp0_RdCmd_tvalid     { DIRECTION out } \
