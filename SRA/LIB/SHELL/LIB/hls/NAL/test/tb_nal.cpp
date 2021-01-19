@@ -60,7 +60,7 @@ using namespace std;
 //------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
 //------------------------------------------------------
-#define MAX_SIM_CYCLES   375
+#define MAX_SIM_CYCLES   350
 //---------------------------------------------------------
 //-- DEFAULT LOCAL FPGA AND FOREIGN HOST SOCKETS
 //--  By default, the following sockets will be used by the

@@ -515,6 +515,7 @@ void fmc(
     ap_uint<1> *layer_4_enabled,
     ap_uint<1> *layer_6_enabled,
     ap_uint<1> *layer_7_enabled,
+    ap_uint<1> *nts_ready,
     //get FPGA time
     ap_uint<32> *in_time_seconds,
     ap_uint<32> *in_time_minutes,
@@ -553,6 +554,7 @@ void fmc(
 #pragma HLS INTERFACE ap_vld register port=layer_4_enabled name=piLayer4enabled
 #pragma HLS INTERFACE ap_vld register port=layer_6_enabled name=piLayer6enabled
 #pragma HLS INTERFACE ap_vld register port=layer_7_enabled name=piLayer7enabled
+#pragma HLS INTERFACE ap_vld register port=nts_ready       name=piNTS_ready
 #pragma HLS INTERFACE ap_vld register port=in_time_seconds name=piTime_seconds
 #pragma HLS INTERFACE ap_vld register port=in_time_minutes name=piTime_minutes
 #pragma HLS INTERFACE ap_vld register port=in_time_hours   name=piTime_hours
@@ -778,6 +780,7 @@ void fmc(
   fpga_status[FPGA_STATE_LAYER_7] = *layer_7_enabled;
   fpga_status[FPGA_STATE_CONFIG_UPDATE] = need_to_update_nrc_config;
   fpga_status[FPGA_STATE_MRT_UPDATE] = need_to_update_nrc_mrt;
+  fpga_status[FPGA_STATE_NTS_READY] = *nts_ready;
 
   fpga_time_seconds = *in_time_seconds;
   fpga_time_minutes = *in_time_minutes;

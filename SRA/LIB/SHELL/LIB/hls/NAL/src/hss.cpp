@@ -709,10 +709,7 @@ void pPortAndResetLogic(
       }
       //in all cases
       wait_for_udp_port_open = false;
-    }
-
-
-    if(processed_FMC_listen_port != *piMMIO_FmcLsnPort
+    } else if(processed_FMC_listen_port != *piMMIO_FmcLsnPort
         && !wait_for_tcp_port_open
         && !sTcpPortsToOpen.full())
     {
@@ -776,13 +773,14 @@ void pPortAndResetLogic(
       }
       //in all cases
       wait_for_tcp_port_open = false;
+    } else if(need_write_sMarkToDel_unpriv && !sMarkToDel_unpriv.full())
+    {
+      sMarkToDel_unpriv.write(true);
+      need_write_sMarkToDel_unpriv = false;
     }
-  } else if(need_write_sMarkToDel_unpriv && !sMarkToDel_unpriv.full())
-  {
-    sMarkToDel_unpriv.write(true);
-    need_write_sMarkToDel_unpriv = false;
   }
-
+  
+  //-- always --------------------------------------------
   if(mrt_version_old != *mrt_version_processed)
   {
     mrt_version_old = *mrt_version_processed;

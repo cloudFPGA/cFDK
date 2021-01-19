@@ -65,6 +65,7 @@ ap_uint<32> MMIO_in_BE, MMIO_out_BE;
 ap_uint<1>  layer_4_enabled = 0b1;
 ap_uint<1>  layer_6_enabled = 0b0;
 ap_uint<1>  layer_7_enabled = 0b0;
+ap_uint<1>  nts_ready = 0b1;
 ap_uint<16> role_mmio = 0x1DEA;
 ap_uint<32> sim_fpga_time_seconds = 0;
 ap_uint<32> sim_fpga_time_minutes = 0;
@@ -111,7 +112,7 @@ void stepDut() {
     }
     MMIO_in_BE = reverse_byte_order(MMIO_in);
     fmc(&MMIO_in_BE, &MMIO_out_BE,
-        &layer_4_enabled, &layer_6_enabled, &layer_7_enabled,
+        &layer_4_enabled, &layer_6_enabled, &layer_7_enabled, &nts_ready,
         &sim_fpga_time_seconds, &sim_fpga_time_minutes, &sim_fpga_time_hours,
         &role_mmio,
         used_hwicap_buffer, decoupStatus, &decoupActive,

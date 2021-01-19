@@ -1614,6 +1614,8 @@ module Shell_Themisto # (
     .piLayer6enabled_V_ap_vld (1),
     .piLayer7enabled_V        (sMMIO_LayerEn[7] & (~ sMMIO_LayerRst[7])),
     .piLayer7enabled_V_ap_vld (1),
+    .piNTS_ready_V            (sNTS0_MMIO_NtsReady),
+    .piNTS_ready_V_ap_vld     (1),
     .piTime_seconds_V         (sTIME_Broadcast_seconds),
     .piTime_seconds_V_ap_vld  (1),
     .piTime_minutes_V         (sTIME_Broadcast_minutes),

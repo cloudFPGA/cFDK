@@ -213,6 +213,7 @@ using namespace hls;
 #define FPGA_STATE_LAYER_7 2
 #define FPGA_STATE_CONFIG_UPDATE 3
 #define FPGA_STATE_MRT_UPDATE 4
+#define FPGA_STATE_NTS_READY 5
 
 //ctrl link interval
 #define CHECK_CTRL_LINK_INTERVAL_SECONDS 2
@@ -303,6 +304,7 @@ void fmc(
     ap_uint<1> *layer_4_enabled,
     ap_uint<1> *layer_6_enabled,
     ap_uint<1> *layer_7_enabled,
+    ap_uint<1> *nts_ready,
     //get FPGA time
     ap_uint<32> *in_time_seconds,
     ap_uint<32> *in_time_minutes,

@@ -152,7 +152,7 @@ enum LsnFsmStates {LSN_IDLE = 0, LSN_SEND_REQ, LSN_WAIT_ACK, LSN_DONE};
 //#define RrhFsmStates uint8_t
 //#define RRH_WAIT_NOTIF 0
 //#define RRH_SEND_DREQ 1
-enum RrhFsmStates {RRH_WAIT_NOTIF = 0, RRH_SEND_DREQ};
+enum RrhFsmStates {RRH_WAIT_NOTIF = 0, RRH_PROCESS_NOTIF, RRH_SEND_DREQ};
 
 //#define RdpFsmStates uint8_t
 //#define RDP_WAIT_META 0
