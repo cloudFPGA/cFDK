@@ -513,6 +513,7 @@ void pPortAndResetLogic(
     stream<bool>      &sTcpPortsOpenFeedback,
     stream<bool>      &sMarkToDel_unpriv,
     bool          *detected_cache_invalidation,
+    bool          *nts_ready_and_enabled,
     ap_uint<32>       *status_udp_ports,
     ap_uint<32>       *status_tcp_ports,
     ap_uint<16>       *status_fmc_ports,
@@ -522,8 +523,8 @@ void pPortAndResetLogic(
     )
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-#pragma HLS INLINE off
-#pragma HLS pipeline II=1
+//#pragma HLS INLINE off
+//#pragma HLS pipeline II=1
 
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
   static ap_uint<16> processed_FMC_listen_port = 0;
@@ -564,6 +565,7 @@ void pPortAndResetLogic(
   // restore saved states
 
   *start_tcp_cls_fsm = false;
+  *detected_cache_invalidation = false;
 
   if(!sConfigUpdate.empty())
   {
@@ -787,6 +789,8 @@ void pPortAndResetLogic(
     *detected_cache_invalidation = true;
   }
   *mrt_version_used = mrt_version_old;
+  
+  *nts_ready_and_enabled = (*piNTS_ready == 1 && *layer_4_enabled == 1);
 
   //"publish" current processed ports
   *status_udp_ports = udp_rx_ports_processed;

@@ -113,6 +113,7 @@ void pPortAndResetLogic(
     stream<bool>      &sTcpPortsOpenFeedback,
     stream<bool>      &sMarkToDel_unpriv,
     bool          *detected_cache_invalidation,
+    bool          *nts_ready_and_enabled,
     ap_uint<32>       *status_udp_ports,
     ap_uint<32>       *status_tcp_ports,
     ap_uint<16>       *status_fmc_ports,

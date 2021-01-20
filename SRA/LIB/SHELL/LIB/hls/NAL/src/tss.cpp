@@ -78,24 +78,29 @@ void pTcpLsn(
   if(!*nts_ready_and_enabled)
   {
     lsnFsmState = LSN_IDLE;
-    //return;
+#ifdef __SYNTHESIS_
+  startupDelay = 0x8000;
+#else
+  startupDelay = 30;
+#endif
   } else {
 
 
     switch (lsnFsmState) {
 
+      default:
       case LSN_IDLE:
         if (startupDelay > 0)
         {
           startupDelay--;
         } else {
           //if(*need_tcp_port_req == true)
-          if(!sTcpPortsToOpen.empty())
-          {
+          //if(!sTcpPortsToOpen.empty())
+          //{
             lsnFsmState = LSN_SEND_REQ;
-          } else {
-            lsnFsmState = LSN_DONE;
-          }
+          //} else {
+          //  lsnFsmState = LSN_DONE;
+          //}
         }
         break;
 
@@ -115,9 +120,9 @@ void pTcpLsn(
             lsnFsmState = LSN_WAIT_ACK;
           }
         }
-        else {
-          printWarn(myName, "Cannot send a listen port request to [TOE] because stream is full!\n");
-        }
+        //else {
+        //  printWarn(myName, "Cannot send a listen port request to [TOE] because stream is full!\n");
+        //}
         break;
 
       case LSN_WAIT_ACK:
@@ -127,7 +132,8 @@ void pTcpLsn(
           siTOE_LsnRep.read(listenDone);
           if (listenDone) {
             printInfo(myName, "Received listen acknowledgment from [TOE].\n");
-            lsnFsmState = LSN_DONE;
+            //lsnFsmState = LSN_DONE;
+            lsnFsmState = LSN_SEND_REQ;
             sTcpPortsOpenFeedback.write(true);
           }
           else {
@@ -148,12 +154,12 @@ void pTcpLsn(
         }
         break;
 
-      case LSN_DONE:
-        if(!sTcpPortsToOpen.empty())
-        {
-          lsnFsmState = LSN_SEND_REQ;
-        }
-        break;
+      //case LSN_DONE:
+      //  if(!sTcpPortsToOpen.empty())
+      //  {
+      //    lsnFsmState = LSN_SEND_REQ;
+      //  }
+      //  break;
     }
   }
 }
@@ -793,7 +799,8 @@ void pRoleTcpRxDeq(
     stream<NetworkWord>       &sRoleTcpDataRx_buffer,
     stream<NetworkMetaStream>   &sRoleTcpMetaRx_buffer,
     stream<NetworkWord>         &soTcp_data,
-    stream<NetworkMetaStream>   &soTcp_meta
+    stream<NetworkMetaStream>   &soTcp_meta,
+    bool                        *role_fifo_empty
     )
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -847,6 +854,11 @@ void pRoleTcpRxDeq(
       }
       break;
   }
+
+// -- always ------ 
+
+  *role_fifo_empty = sRoleTcpDataRx_buffer.empty();
+
 
 }
 

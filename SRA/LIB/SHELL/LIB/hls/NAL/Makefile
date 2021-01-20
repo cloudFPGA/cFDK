@@ -45,7 +45,7 @@ all: ${ipName}_prj/solution1/impl/ip
 
 ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS) $(REF_DEPS)
 	$(MAKE) clean
-	export hlsSim=0; export hlsCoSim=0; vivado_hls -f run_hls.tcl
+	export hlsSim=0; export hlsCoSim=0; vivado_hls -f run_hls.tcl | tee csynth.log
 	@#print the report
 	@cat ${ipName}_prj/solution1/syn/report/${ipName}${top_suffix}_csynth.rpt
 	@#the following is for checking if the AXI4Lite Addresses had changed 
@@ -59,11 +59,11 @@ ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS) $(REF_DEPS)
 
 
 csim: clean
-	export hlsSim=1; export hlsCoSim=0; vivado_hls -f run_hls.tcl
+	export hlsSim=1; export hlsCoSim=0; vivado_hls -f run_hls.tcl | tee csim.log
 
 
 cosim: 
-	export hlsSim=0; export hlsCoSim=1; vivado_hls -f run_hls.tcl
+	export hlsSim=0; export hlsCoSim=1; vivado_hls -f run_hls.tcl | tee cosim.log
 
 cosim_view:
 	@/bin/echo -e "current_fileset\nopen_wave_database $(ipName)$(top_suffix).wdb\n" > ./$(ipName)_prj/solution1/sim/verilog/open_wave.tcl

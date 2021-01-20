@@ -356,24 +356,30 @@ void pUdpLsn(
   if(!*nts_ready_and_enabled)
   {
     lsnFsmState = LSN_IDLE;
-    //return;
+#ifdef __SYNTHESIS_
+  startupDelay = 0x8000;
+#else
+  startupDelay = 10;
+#endif
+
   } else {
 
 
     switch (lsnFsmState) {
 
+      default:
       case LSN_IDLE:
         if (startupDelay > 0)
         {
           startupDelay--;
         } else {
           //if(*need_tcp_port_req == true)
-          if(!sUdpPortsToOpen.empty())
-          {
+          //if(!sUdpPortsToOpen.empty())
+          //{
             lsnFsmState = LSN_SEND_REQ;
-          } else {
-            lsnFsmState = LSN_DONE;
-          }
+          //} else {
+          //  lsnFsmState = LSN_DONE;
+          //}
         }
         break;
 
@@ -394,9 +400,9 @@ void pUdpLsn(
             lsnFsmState = LSN_WAIT_ACK;
           }
         }
-        else {
-          printWarn(myName, "Cannot send a listen port request to [UOE] because stream is full!\n");
-        }
+        //else {
+        //  printWarn(myName, "Cannot send a listen port request to [UOE] because stream is full!\n");
+        //}
         break;
 
       case LSN_WAIT_ACK:
@@ -406,7 +412,8 @@ void pUdpLsn(
           siUOE_LsnRep.read(listenDone);
           if (listenDone) {
             printInfo(myName, "Received listen acknowledgment from [UOE].\n");
-            lsnFsmState = LSN_DONE;
+            //lsnFsmState = LSN_DONE;
+            lsnFsmState = LSN_SEND_REQ;
             sUdpPortsOpenFeedback.write(true);
           }
           else {
@@ -427,12 +434,12 @@ void pUdpLsn(
         }
         break;
 
-      case LSN_DONE:
-        if(!sUdpPortsToOpen.empty())
-        {
-          lsnFsmState = LSN_SEND_REQ;
-        }
-        break;
+      //case LSN_DONE:
+      //  if(!sUdpPortsToOpen.empty())
+      //  {
+      //    lsnFsmState = LSN_SEND_REQ;
+      //  }
+      //  break;
     }
   }
 }

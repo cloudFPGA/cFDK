@@ -768,28 +768,32 @@ void nal_main(
 #pragma HLS reset variable=expect_FMC_response
 #pragma HLS reset variable=start_tcp_cls_fsm
 
+  //===========================================================
+  //  core wide STATIC DATAFLOW variables
+  
+  static bool role_fifo_empty;
+  static ap_uint<32>   status_udp_ports;
+  static ap_uint<32> status_tcp_ports;
+  static ap_uint<16> status_fmc_ports;
+  static bool detected_cache_invalidation;
+  static bool nts_ready_and_enabled;
 
   //===========================================================
   //  core wide variables (for one iteration)
 
-  ap_uint<32> ipAddrBE = *myIpAddress;
-  bool nts_ready_and_enabled = (*piNTS_ready == 1 && *layer_4_enabled == 1);
-  bool detected_cache_invalidation = false;
+  //ap_uint<32> ipAddrBE = *myIpAddress;
+  //bool nts_ready_and_enabled = (*piNTS_ready == 1 && *layer_4_enabled == 1);
   //bool start_udp_cls_fsm = false;
 
 
-  ap_uint<32>   status_udp_ports;
-  ap_uint<32> status_tcp_ports;
-  ap_uint<16> status_fmc_ports;
 
-  bool role_fifo_empty = (sRoleTcpDataRx_buffer.empty());
 
   //===========================================================
   // restore saved states and ports handling & check for resets
 
   pPortAndResetLogic(layer_4_enabled, layer_7_enabled, role_decoupled, piNTS_ready, piMMIO_FmcLsnPort,
       pi_udp_rx_ports, pi_tcp_rx_ports, sA4lToPortLogic, sUdpPortsToOpen, sUdpPortsToClose,
-      sTcpPortsToOpen, sUdpPortsOpenFeedback, sTcpPortsOpenFeedback, sMarkToDel_unpriv, &detected_cache_invalidation,
+      sTcpPortsToOpen, sUdpPortsOpenFeedback, sTcpPortsOpenFeedback, sMarkToDel_unpriv, &detected_cache_invalidation, &nts_ready_and_enabled,
       &status_udp_ports, &status_tcp_ports, &status_fmc_ports, &start_tcp_cls_fsm, &mrt_version_processed, &mrt_version_used);
 
   //=================================================================================================
@@ -797,7 +801,7 @@ void nal_main(
 
   pUdpTX(siUdp_data, siUdp_meta, soUOE_Data, soUOE_Meta, soUOE_DLen,
       sGetIpReq_UdpTx, sGetIpRep_UdpTx,
-      &ipAddrBE, &nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo_0);
+      myIpAddress, &nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo_0);
 
   //=================================================================================================
   // RX UDP
@@ -836,7 +840,7 @@ void nal_main(
       &nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo_2);
 
 
-  pRoleTcpRxDeq(layer_7_enabled, role_decoupled, sRoleTcpDataRx_buffer, sRoleTcpMetaRx_buffer, soTcp_data, soTcp_meta);
+  pRoleTcpRxDeq(layer_7_enabled, role_decoupled, sRoleTcpDataRx_buffer, sRoleTcpMetaRx_buffer, soTcp_data, soTcp_meta, &role_fifo_empty);
 
   //=================================================================================================
   // TCP Write Path
