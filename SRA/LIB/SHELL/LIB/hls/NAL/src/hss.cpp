@@ -58,9 +58,9 @@ uint8_t selectConfigUpdatePropagation(uint16_t config_addr)
 }
 
 void axi4liteProcessing(
-    ap_uint<1>          *layer_4_enabled,
+    //ap_uint<1>          *layer_4_enabled,
     ap_uint<32>   ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
-    ap_uint<32>   *mrt_version_processed,
+    //ap_uint<32>   *mrt_version_processed,
     //stream<NalConfigUpdate>   &sToTcpAgency, //(currently not used)
     stream<NalConfigUpdate>   &sToPortLogic,
     stream<NalConfigUpdate>   &sToUdpRx,
@@ -68,6 +68,8 @@ void axi4liteProcessing(
     stream<NalConfigUpdate>   &sToStatusProc,
     //stream<NalMrtUpdate>    &sMrtUpdate,
     ap_uint<32> localMRT[MAX_MRT_SIZE],
+    stream<uint32_t>          &mrt_version_update_0,
+    stream<uint32_t>          &mrt_version_update_1,
     stream<NalStatusUpdate>   &sStatusUpdate
     )
 {
@@ -80,11 +82,15 @@ void axi4liteProcessing(
   static bool tables_initialized = false;
   static AxiLiteFsmStates a4lFsm = A4L_COPY_CONFIG;
   static ConfigBcastStates cbFsm = CB_WAIT;
+  static uint32_t processed_mrt_version = 0;
+  static ConfigBcastStates mbFsm = CB_WAIT;
 
 #pragma HLS reset variable=tableCopyVariable
 #pragma HLS reset variable=tables_initialized
 #pragma HLS reset variable=a4lFsm
 #pragma HLS reset variable=cbFsm
+#pragma HLS reset variable=procssed_mrt_version
+#pragma HLS reset variable=mbFsm
 
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
   //static ap_uint<32> localMRT[MAX_MRT_SIZE];
@@ -205,9 +211,14 @@ void axi4liteProcessing(
     case A4L_COPY_FINISH:
       tableCopyVariable = 0;
       //acknowledge the processed version
-      ap_uint<32> new_mrt_version = config[NAL_CONFIG_MRT_VERSION];
+      uint32_t new_mrt_version = (uint32_t) config[NAL_CONFIG_MRT_VERSION];
       printf("\t\t\t[A4L:CtrlLink:Info] Acknowledged MRT version %d.\n", (int) new_mrt_version);
-      *mrt_version_processed = new_mrt_version;
+      //*mrt_version_processed = new_mrt_version;
+      if(new_mrt_version != processed_mrt_version)
+      {
+        mbFsm = CB_START;
+        processed_mrt_version = new_mrt_version;
+      }
       a4lFsm = A4L_COPY_CONFIG;
       break;
   }
@@ -297,6 +308,33 @@ void axi4liteProcessing(
       break;
   }
 
+
+  // ----- MRT version broadcast ----
+
+  switch(mbFsm)
+  {
+    default:
+    case CB_WAIT:
+      //NOP
+      break;
+    case CB_START:
+      mbFsm = CB_1;
+      break;
+    case CB_1:
+      if(!mrt_version_update_0.full())
+      {
+        mrt_version_update_0.write(processed_mrt_version);
+        mbFsm = CB_2;
+      }
+      break;
+    case CB_2:
+      if(!mrt_version_update_1.full())
+      {
+        mrt_version_update_1.write(processed_mrt_version);
+        mbFsm = CB_WAIT;
+      }
+      break;
+  }
 
 
 }
@@ -497,7 +535,310 @@ void pMrtAgency(
 
 
 
-void pPortAndResetLogic(
+//void pPortAndResetLogic(
+//    ap_uint<1>        *layer_4_enabled,
+//    ap_uint<1>        *layer_7_enabled,
+//    ap_uint<1>        *role_decoupled,
+//    ap_uint<1>        *piNTS_ready,
+//    ap_uint<16>       *piMMIO_FmcLsnPort,
+//    ap_uint<32>           *pi_udp_rx_ports,
+//    ap_uint<32>         *pi_tcp_rx_ports,
+//    stream<NalConfigUpdate> &sConfigUpdate,
+//    stream<UdpPort>     &sUdpPortsToOpen,
+//    stream<UdpPort>     &sUdpPortsToClose,
+//    stream<TcpPort>     &sTcpPortsToOpen,
+//    stream<bool>      &sUdpPortsOpenFeedback,
+//    stream<bool>      &sTcpPortsOpenFeedback,
+//    stream<bool>      &sMarkToDel_unpriv,
+//    bool          *detected_cache_invalidation,
+//    bool          *nts_ready_and_enabled,
+//    ap_uint<32>       *status_udp_ports,
+//    ap_uint<32>       *status_tcp_ports,
+//    ap_uint<16>       *status_fmc_ports,
+//    bool          *start_tcp_cls_fsm,
+//    const ap_uint<32>   *mrt_version_processed,
+//    ap_uint<32>   *mrt_version_used
+//    )
+//{
+//  //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+////#pragma HLS INLINE off
+////#pragma HLS pipeline II=1
+//
+//  //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+//  static ap_uint<16> processed_FMC_listen_port = 0;
+//  static bool fmc_port_opened = false;
+//  static ap_uint<32> tcp_rx_ports_processed = 0;
+//  static bool pr_was_done_flag = false;
+//  static ap_uint<32> udp_rx_ports_processed = 0;
+//  static bool wait_for_udp_port_open = false;
+//  static bool wait_for_tcp_port_open = false;
+//  static bool need_write_sMarkToDel_unpriv = false;
+//  static ap_uint<32> mrt_version_old = 0;
+//
+//#ifndef __SYNTHESIS__
+//  static ap_uint<16>  mmio_stabilize_counter = 1;
+//#else
+//  static ap_uint<16>  mmio_stabilize_counter = NAL_MMIO_STABILIZE_TIME;
+//#endif
+//
+//#pragma HLS reset variable=pr_was_done_flag
+//
+//#pragma HLS reset variable=mmio_stabilize_counter
+//#pragma HLS reset variable=processed_FMC_listen_port
+//#pragma HLS reset variable=fmc_port_opened
+//#pragma HLS reset variable=udp_rx_ports_processed
+//#pragma HLS reset variable=tcp_rx_ports_processed
+//#pragma HLS reset variable=wait_for_udp_port_open
+//#pragma HLS reset variable=wait_for_tcp_port_open
+//#pragma HLS reset variable=need_write_sMarkToDel_unpriv
+//#pragma HLS reset variable=mrt_version_old
+//
+//  //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+//  static ap_uint<16> new_relative_port_to_req_udp = 0;
+//  static ap_uint<16> new_relative_port_to_req_tcp = 0;
+//
+//
+//  //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
+//  //===========================================================
+//  // restore saved states
+//
+//  *start_tcp_cls_fsm = false;
+//  *detected_cache_invalidation = false;
+//
+//  if(!sConfigUpdate.empty())
+//  {
+//    NalConfigUpdate ca = sConfigUpdate.read();
+//    switch(ca.config_addr)
+//    {
+//      case NAL_CONFIG_SAVED_FMC_PORTS:
+//        processed_FMC_listen_port = (ap_uint<16>) ca.update_value;
+//        break;
+//      case NAL_CONFIG_SAVED_UDP_PORTS:
+//        udp_rx_ports_processed = ca.update_value;
+//        break;
+//      case NAL_CONFIG_SAVED_TCP_PORTS:
+//        tcp_rx_ports_processed = ca.update_value;
+//        break;
+//      default:
+//        printf("[ERROR] invalid config update received!\n");
+//        break;
+//    }
+//
+//  } else if(*layer_4_enabled == 0)
+//  {
+//    //if layer 4 is reset, ports will be closed
+//    processed_FMC_listen_port = 0x0;
+//    udp_rx_ports_processed = 0x0;
+//    tcp_rx_ports_processed = 0x0;
+//    //also, all sessions should be lost
+//    //tables_initalized = false;
+//    //we don't need to close ports any more
+//    //clsFsmState_Tcp = CLS_IDLE;
+//    //clsFsmState_Udp = CLS_IDLE;
+//    //and we shouldn't expect smth
+//    //expect_FMC_response = false;
+//    //invalidate cache
+//    //cached_udp_rx_ipaddr = 0;
+//    //cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
+//    //cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
+//    *detected_cache_invalidation = true;
+//    need_write_sMarkToDel_unpriv = false;
+//  } else if (*layer_7_enabled == 0 || *role_decoupled == 1 )
+//  {
+//
+//    if(*layer_4_enabled == 1 && *piNTS_ready == 1)
+//    {
+//      if(udp_rx_ports_processed > 0 && !sUdpPortsToClose.full())
+//      {
+//
+//        //mark all UDP ports as to be deleted
+//        //udp_rx_ports_to_close = udp_rx_ports_processed;
+//        ap_uint<16> newRelativePortToClose = 0;
+//        ap_uint<16> newAbsolutePortToClose = 0;
+//        newRelativePortToClose = getRightmostBitPos(udp_rx_ports_processed);
+//        //while(newRelativePortToClose != 0 && !sUdpPortsToClose.full())
+//        if(newRelativePortToClose != 0 && !sUdpPortsToClose.full())
+//        {
+//          newAbsolutePortToClose = NAL_RX_MIN_PORT + newRelativePortToClose;
+//          sUdpPortsToClose.write(newAbsolutePortToClose);
+//          ap_uint<32> one_cold_closed_port = ~(((ap_uint<32>) 1) << (newRelativePortToClose));
+//          udp_rx_ports_processed &= one_cold_closed_port;
+//          printf("new UDP port ports to close: %#04x\n",(unsigned int) udp_rx_ports_processed);
+//          //newRelativePortToClose = getRightmostBitPos(udp_rx_ports_processed);
+//        }
+//        //start closing FSM UDP
+//        //clsFsmState_Udp = CLS_NEXT;
+//        //start_udp_cls_fsm = true;
+//      } else if(tcp_rx_ports_processed > 0)
+//      {
+//        //mark all TCP ports as to be deleted
+//        //markCurrentRowsAsToDelete_unprivileged();
+//        need_write_sMarkToDel_unpriv = true;
+//
+//        tcp_rx_ports_processed = 0x0;
+//        if( *role_decoupled == 0 )
+//        {//start closing FSM TCP
+//          //clsFsmState_Tcp = CLS_NEXT;
+//          *start_tcp_cls_fsm = true;
+//        } else {
+//          //FMC is using TCP!
+//          pr_was_done_flag = true;
+//        }
+//      }
+//    } else {
+//      udp_rx_ports_processed = 0x0;
+//      tcp_rx_ports_processed = 0x0;
+//    }
+//
+//    if( *role_decoupled == 0)
+//    { //invalidate cache
+//      //cached_udp_rx_ipaddr = 0;
+//      //cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
+//      //cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
+//      *detected_cache_invalidation = true;
+//    } else {
+//      //FMC is using TCP!
+//      pr_was_done_flag = true;
+//    }
+//  } else if(pr_was_done_flag && *role_decoupled == 0)
+//  {//so, after the PR was done
+//    //invalidate cache
+//    //cached_udp_rx_ipaddr = 0;
+//    //cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
+//    //cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
+//    //start closing FSM TCP
+//    //ports have been marked earlier
+//    //clsFsmState_Tcp = CLS_NEXT;
+//    *start_tcp_cls_fsm = true;
+//    //FSM will wait until RDP and WRP are done
+//    pr_was_done_flag = false;
+//  } else if(*piNTS_ready == 1 && *layer_4_enabled == 1)
+//  {
+//    //===========================================================
+//    //  port requests
+//    //  only if a user application is running...
+//    if((udp_rx_ports_processed != *pi_udp_rx_ports) && *layer_7_enabled == 1
+//        && *role_decoupled == 0 && !wait_for_udp_port_open
+//        && !sUdpPortsToOpen.full() )
+//    {
+//      //we close ports only if layer 7 is reset, so only look for new ports
+//      ap_uint<32> tmp = udp_rx_ports_processed | *pi_udp_rx_ports;
+//      ap_uint<32> diff = udp_rx_ports_processed ^ tmp;
+//      //printf("rx_ports IN: %#04x\n",(int) *pi_udp_rx_ports);
+//      //printf("udp_rx_ports_processed: %#04x\n",(int) udp_rx_ports_processed);
+//      printf("UDP port diff: %#04x\n",(unsigned int) diff);
+//      if(diff != 0)
+//      {//we have to open new ports, one after another
+//        //new_relative_port_to_req_udp = getRightmostBitPos(diff);
+//        //need_udp_port_req = true;
+//        new_relative_port_to_req_udp = getRightmostBitPos(diff);
+//        UdpPort new_port_to_open = NAL_RX_MIN_PORT + new_relative_port_to_req_udp;
+//        sUdpPortsToOpen.write(new_port_to_open);
+//        wait_for_udp_port_open = true;
+//      }
+//    } else if(wait_for_udp_port_open && !sUdpPortsOpenFeedback.empty())
+//    {
+//      bool fed = sUdpPortsOpenFeedback.read();
+//      if(fed)
+//      {
+//        udp_rx_ports_processed |= ((ap_uint<32>) 1) << (new_relative_port_to_req_udp);
+//        printf("new udp_rx_ports_processed: %#03x\n",(int) udp_rx_ports_processed);
+//      } else {
+//        printf("[ERROR] UDP port opening failed.\n");
+//        //TODO: add block list for ports? otherwise we will try it again and again
+//      }
+//      //in all cases
+//      wait_for_udp_port_open = false;
+//    } else if(processed_FMC_listen_port != *piMMIO_FmcLsnPort
+//        && !wait_for_tcp_port_open
+//        && !sTcpPortsToOpen.full())
+//    {
+//      if(mmio_stabilize_counter == 0 && !sTcpPortsToOpen.full())
+//      {
+//        fmc_port_opened = false;
+//        //need_tcp_port_req = true;
+//#ifndef __SYNTHESIS__
+//        mmio_stabilize_counter = 1;
+//#else
+//        mmio_stabilize_counter = NAL_MMIO_STABILIZE_TIME;
+//#endif
+//        printf("Need FMC port request: %#02x\n",(unsigned int) *piMMIO_FmcLsnPort);
+//        sTcpPortsToOpen.write(*piMMIO_FmcLsnPort);
+//        wait_for_tcp_port_open = true;
+//      } else {
+//        mmio_stabilize_counter--;
+//      }
+//
+//    } else if((tcp_rx_ports_processed != *pi_tcp_rx_ports) && *layer_7_enabled == 1
+//        && *role_decoupled == 0 && !wait_for_tcp_port_open  && !sTcpPortsToOpen.full() )
+//    { //  only if a user application is running...
+//      //we close ports only if layer 7 is reset, so only look for new ports
+//      ap_uint<32> tmp = tcp_rx_ports_processed | *pi_tcp_rx_ports;
+//      ap_uint<32> diff = tcp_rx_ports_processed ^ tmp;
+//      //printf("rx_ports IN: %#04x\n",(int) *pi_tcp_rx_ports);
+//      //printf("tcp_rx_ports_processed: %#04x\n",(int) tcp_rx_ports_processed);
+//      printf("TCP port diff: %#04x\n",(unsigned int) diff);
+//      if(diff != 0)
+//      {//we have to open new ports, one after another
+//        new_relative_port_to_req_tcp = getRightmostBitPos(diff);
+//        TcpPort new_port = NAL_RX_MIN_PORT + new_relative_port_to_req_tcp;
+//        sTcpPortsToOpen.write(new_port);
+//        wait_for_tcp_port_open = true;
+//        //need_tcp_port_req = true;
+//      }
+//    } else if(wait_for_tcp_port_open && !fmc_port_opened && !sTcpPortsOpenFeedback.empty())
+//    {
+//      bool fed = sTcpPortsOpenFeedback.read();
+//      if(fed)
+//      {
+//        processed_FMC_listen_port = *piMMIO_FmcLsnPort;
+//        printf("FMC Port opened: %#03x\n",(int) processed_FMC_listen_port);
+//        fmc_port_opened = true;
+//      } else {
+//        printf("[ERROR] FMC TCP port opening failed.\n");
+//        //TODO: add block list for ports? otherwise we will try it again and again
+//      }
+//      //in all cases
+//      wait_for_tcp_port_open = false;
+//    } else if(wait_for_tcp_port_open && !sTcpPortsOpenFeedback.empty())
+//    {
+//      bool fed = sTcpPortsOpenFeedback.read();
+//      if(fed)
+//      {
+//        tcp_rx_ports_processed |= ((ap_uint<32>) 1) << (new_relative_port_to_req_tcp);
+//        printf("new tcp_rx_ports_processed: %#03x\n",(int) tcp_rx_ports_processed);
+//      } else {
+//        printf("[ERROR] TCP port opening failed.\n");
+//        //TODO: add block list for ports? otherwise we will try it again and again
+//      }
+//      //in all cases
+//      wait_for_tcp_port_open = false;
+//    } else if(need_write_sMarkToDel_unpriv && !sMarkToDel_unpriv.full())
+//    {
+//      sMarkToDel_unpriv.write(true);
+//      need_write_sMarkToDel_unpriv = false;
+//    }
+//  }
+//  
+//  //-- always --------------------------------------------
+//  if(mrt_version_old != *mrt_version_processed)
+//  {
+//    mrt_version_old = *mrt_version_processed;
+//    *detected_cache_invalidation = true;
+//  }
+//  *mrt_version_used = mrt_version_old;
+//  
+//  *nts_ready_and_enabled = (*piNTS_ready == 1 && *layer_4_enabled == 1);
+//
+//  //"publish" current processed ports
+//  *status_udp_ports = udp_rx_ports_processed;
+//  *status_tcp_ports = tcp_rx_ports_processed;
+//  *status_fmc_ports = processed_FMC_listen_port;
+//
+//}
+
+
+void pPortLogic(
     ap_uint<1>        *layer_4_enabled,
     ap_uint<1>        *layer_7_enabled,
     ap_uint<1>        *role_decoupled,
@@ -512,30 +853,20 @@ void pPortAndResetLogic(
     stream<bool>      &sUdpPortsOpenFeedback,
     stream<bool>      &sTcpPortsOpenFeedback,
     stream<bool>      &sMarkToDel_unpriv,
-    bool          *detected_cache_invalidation,
-    bool          *nts_ready_and_enabled,
-    ap_uint<32>       *status_udp_ports,
-    ap_uint<32>       *status_tcp_ports,
-    ap_uint<16>       *status_fmc_ports,
-    bool          *start_tcp_cls_fsm,
-    const ap_uint<32>   *mrt_version_processed,
-    ap_uint<32>   *mrt_version_used
+    stream<NalPortUpdate> &sPortUpdate,
+    stream<bool>              &sStartTclCls
     )
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-//#pragma HLS INLINE off
-//#pragma HLS pipeline II=1
+#pragma HLS INLINE off
+#pragma HLS pipeline II=1
 
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
   static ap_uint<16> processed_FMC_listen_port = 0;
-  static bool fmc_port_opened = false;
+  //static bool fmc_port_opened = false;
   static ap_uint<32> tcp_rx_ports_processed = 0;
-  static bool pr_was_done_flag = false;
   static ap_uint<32> udp_rx_ports_processed = 0;
-  static bool wait_for_udp_port_open = false;
-  static bool wait_for_tcp_port_open = false;
-  static bool need_write_sMarkToDel_unpriv = false;
-  static ap_uint<32> mrt_version_old = 0;
+  static PortFsmStates port_fsm = PORT_RESET;
 
 #ifndef __SYNTHESIS__
   static ap_uint<16>  mmio_stabilize_counter = 1;
@@ -543,74 +874,136 @@ void pPortAndResetLogic(
   static ap_uint<16>  mmio_stabilize_counter = NAL_MMIO_STABILIZE_TIME;
 #endif
 
-#pragma HLS reset variable=pr_was_done_flag
 
 #pragma HLS reset variable=mmio_stabilize_counter
 #pragma HLS reset variable=processed_FMC_listen_port
-#pragma HLS reset variable=fmc_port_opened
+//#pragma HLS reset variable=fmc_port_opened
 #pragma HLS reset variable=udp_rx_ports_processed
 #pragma HLS reset variable=tcp_rx_ports_processed
-#pragma HLS reset variable=wait_for_udp_port_open
-#pragma HLS reset variable=wait_for_tcp_port_open
-#pragma HLS reset variable=need_write_sMarkToDel_unpriv
-#pragma HLS reset variable=mrt_version_old
+#pragma HLS reset variable=port_fsm
 
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-  static ap_uint<16> new_relative_port_to_req_udp = 0;
-  static ap_uint<16> new_relative_port_to_req_tcp = 0;
-
+  static ap_uint<16> new_relative_port_to_req_udp;
+  static ap_uint<16> new_relative_port_to_req_tcp;
+  static ap_uint<16> current_requested_port;
+  static NalPortUpdate current_port_update;
 
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
-  //===========================================================
-  // restore saved states
 
-  *start_tcp_cls_fsm = false;
-  *detected_cache_invalidation = false;
-
-  if(!sConfigUpdate.empty())
+  switch(port_fsm)
   {
-    NalConfigUpdate ca = sConfigUpdate.read();
-    switch(ca.config_addr)
-    {
-      case NAL_CONFIG_SAVED_FMC_PORTS:
-        processed_FMC_listen_port = (ap_uint<16>) ca.update_value;
-        break;
-      case NAL_CONFIG_SAVED_UDP_PORTS:
-        udp_rx_ports_processed = ca.update_value;
-        break;
-      case NAL_CONFIG_SAVED_TCP_PORTS:
-        tcp_rx_ports_processed = ca.update_value;
-        break;
-      default:
-        printf("[ERROR] invalid config update received!\n");
-        break;
-    }
+    default:
+    case PORT_RESET:
+      if(mmio_stabilize_counter > 0)
+      {
+        mmio_stabilize_counter--;
+      } else {
+        port_fsm = PORT_IDLE;
+      }
+      break;
+    case PORT_IDLE:
+      if(!sConfigUpdate.empty())
+      {
+        // restore saved states (after NAL got reset)
+        NalConfigUpdate ca = sConfigUpdate.read();
+        switch(ca.config_addr)
+        {
+          case NAL_CONFIG_SAVED_FMC_PORTS:
+            if(processed_FMC_listen_port == 0)
+            {
+              processed_FMC_listen_port = (ap_uint<16>) ca.update_value;
+            }
+            break;
+          case NAL_CONFIG_SAVED_UDP_PORTS:
+            if(udp_rx_ports_processed == 0)
+            {
+              udp_rx_ports_processed = ca.update_value;
+            }
+            break;
+          case NAL_CONFIG_SAVED_TCP_PORTS:
+            if(tcp_rx_ports_processed == 0)
+            {
+              tcp_rx_ports_processed = ca.update_value;
+            }
+            break;
+          default:
+            printf("[ERROR] invalid config update received!\n");
+            break;
+        }
 
-  } else if(*layer_4_enabled == 0)
-  {
-    //if layer 4 is reset, ports will be closed
-    processed_FMC_listen_port = 0x0;
-    udp_rx_ports_processed = 0x0;
-    tcp_rx_ports_processed = 0x0;
-    //also, all sessions should be lost
-    //tables_initalized = false;
-    //we don't need to close ports any more
-    //clsFsmState_Tcp = CLS_IDLE;
-    //clsFsmState_Udp = CLS_IDLE;
-    //and we shouldn't expect smth
-    //expect_FMC_response = false;
-    //invalidate cache
-    //cached_udp_rx_ipaddr = 0;
-    //cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
-    //cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
-    *detected_cache_invalidation = true;
-    need_write_sMarkToDel_unpriv = false;
-  } else if (*layer_7_enabled == 0 || *role_decoupled == 1 )
-  {
-
-    if(*layer_4_enabled == 1 && *piNTS_ready == 1)
-    {
-      if(udp_rx_ports_processed > 0 && !sUdpPortsToClose.full())
+      } else if(*layer_4_enabled == 0 || *piNTS_ready == 0)
+      {
+        port_fsm = PORT_L4_RESET;
+      } else if (*layer_7_enabled == 0 || *role_decoupled == 1 )
+      {
+        port_fsm = PORT_L7_RESET;
+      } else {
+        //  port requests
+        if(udp_rx_ports_processed != *pi_udp_rx_ports)
+        {
+          port_fsm = PORT_NEW_UDP_REQ;
+        }
+        else if(processed_FMC_listen_port != *piMMIO_FmcLsnPort)
+        {
+          port_fsm = PORT_NEW_FMC_REQ;
+        }
+        else if(tcp_rx_ports_processed != *pi_tcp_rx_ports)
+        {
+          port_fsm = PORT_NEW_TCP_REQ;
+        }
+      }
+      break;
+    case PORT_L4_RESET:
+      if(!sPortUpdate.full() 
+        && (processed_FMC_listen_port != 0 || udp_rx_ports_processed != 0 || tcp_rx_ports_processed !=0 )
+        )
+      {//first, notify
+        if(processed_FMC_listen_port != 0)
+        {
+          sPortUpdate.write(NalPortUpdate(FMC, 0));
+          processed_FMC_listen_port = 0;
+        } 
+        else if(udp_rx_ports_processed != 0)
+        {
+          sPortUpdate.write(NalPortUpdate(UDP, 0));
+          udp_rx_ports_processed = 0;
+        }
+        else if(tcp_rx_ports_processed != 0)
+        {
+          sPortUpdate.write(NalPortUpdate(TCP, 0));
+          tcp_rx_ports_processed = 0;
+        }
+      }
+      else if(*layer_4_enabled == 1 && *piNTS_ready == 1)
+      {
+        //if layer 4 is reset, ports will be closed
+        //in all cases
+        processed_FMC_listen_port = 0x0;
+        udp_rx_ports_processed = 0x0;
+        tcp_rx_ports_processed = 0x0;
+        port_fsm = PORT_IDLE;
+        //no need for PORT_RESET (everything should still be "stable")
+      }
+      break;
+    case PORT_L7_RESET:
+      if(*layer_4_enabled == 1 && *piNTS_ready == 1)
+      {
+        if(udp_rx_ports_processed > 0)
+        {
+          port_fsm = PORT_START_UDP_CLS;
+        } else if(tcp_rx_ports_processed > 0)
+        {
+          port_fsm = PORT_START_TCP_CLS_1;
+        } else {
+          port_fsm = PORT_IDLE;
+        }
+      } else {
+        port_fsm = PORT_L4_RESET;
+      }
+      break;
+    case PORT_START_UDP_CLS:
+      //if(udp_rx_ports_processed > 0 && !sUdpPortsToClose.full())
+      if(!sUdpPortsToClose.full())
       {
 
         //mark all UDP ports as to be deleted
@@ -619,7 +1012,8 @@ void pPortAndResetLogic(
         ap_uint<16> newAbsolutePortToClose = 0;
         newRelativePortToClose = getRightmostBitPos(udp_rx_ports_processed);
         //while(newRelativePortToClose != 0 && !sUdpPortsToClose.full())
-        if(newRelativePortToClose != 0 && !sUdpPortsToClose.full())
+        //if(newRelativePortToClose != 0 && !sUdpPortsToClose.full())
+        if(newRelativePortToClose != 0)
         {
           newAbsolutePortToClose = NAL_RX_MIN_PORT + newRelativePortToClose;
           sUdpPortsToClose.write(newAbsolutePortToClose);
@@ -627,176 +1021,245 @@ void pPortAndResetLogic(
           udp_rx_ports_processed &= one_cold_closed_port;
           printf("new UDP port ports to close: %#04x\n",(unsigned int) udp_rx_ports_processed);
           //newRelativePortToClose = getRightmostBitPos(udp_rx_ports_processed);
-        }
-        //start closing FSM UDP
-        //clsFsmState_Udp = CLS_NEXT;
-        //start_udp_cls_fsm = true;
-      } else if(tcp_rx_ports_processed > 0)
-      {
-        //mark all TCP ports as to be deleted
-        //markCurrentRowsAsToDelete_unprivileged();
-        need_write_sMarkToDel_unpriv = true;
-
-        tcp_rx_ports_processed = 0x0;
-        if( *role_decoupled == 0 )
-        {//start closing FSM TCP
-          //clsFsmState_Tcp = CLS_NEXT;
-          *start_tcp_cls_fsm = true;
         } else {
-          //FMC is using TCP!
-          pr_was_done_flag = true;
+          udp_rx_ports_processed = 0x0;
+        }
+        if(udp_rx_ports_processed == 0)
+        {
+          current_port_update = NalPortUpdate(UDP, 0);
+          port_fsm = PORT_SEND_UPDATE;
         }
       }
-    } else {
-      udp_rx_ports_processed = 0x0;
-      tcp_rx_ports_processed = 0x0;
-    }
-
-    if( *role_decoupled == 0)
-    { //invalidate cache
-      //cached_udp_rx_ipaddr = 0;
-      //cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
-      //cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
-      *detected_cache_invalidation = true;
-    } else {
-      //FMC is using TCP!
-      pr_was_done_flag = true;
-    }
-  } else if(pr_was_done_flag && *role_decoupled == 0)
-  {//so, after the PR was done
-    //invalidate cache
-    //cached_udp_rx_ipaddr = 0;
-    //cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
-    //cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
-    //start closing FSM TCP
-    //ports have been marked earlier
-    //clsFsmState_Tcp = CLS_NEXT;
-    *start_tcp_cls_fsm = true;
-    //FSM will wait until RDP and WRP are done
-    pr_was_done_flag = false;
-  } else if(*piNTS_ready == 1 && *layer_4_enabled == 1)
-  {
-    //===========================================================
-    //  port requests
-    //  only if a user application is running...
-    if((udp_rx_ports_processed != *pi_udp_rx_ports) && *layer_7_enabled == 1
-        && *role_decoupled == 0 && !wait_for_udp_port_open
-        && !sUdpPortsToOpen.full() )
-    {
-      //we close ports only if layer 7 is reset, so only look for new ports
-      ap_uint<32> tmp = udp_rx_ports_processed | *pi_udp_rx_ports;
-      ap_uint<32> diff = udp_rx_ports_processed ^ tmp;
-      //printf("rx_ports IN: %#04x\n",(int) *pi_udp_rx_ports);
-      //printf("udp_rx_ports_processed: %#04x\n",(int) udp_rx_ports_processed);
-      printf("UDP port diff: %#04x\n",(unsigned int) diff);
-      if(diff != 0)
-      {//we have to open new ports, one after another
-        //new_relative_port_to_req_udp = getRightmostBitPos(diff);
-        //need_udp_port_req = true;
-        new_relative_port_to_req_udp = getRightmostBitPos(diff);
-        UdpPort new_port_to_open = NAL_RX_MIN_PORT + new_relative_port_to_req_udp;
-        sUdpPortsToOpen.write(new_port_to_open);
-        wait_for_udp_port_open = true;
-      }
-    } else if(wait_for_udp_port_open && !sUdpPortsOpenFeedback.empty())
-    {
-      bool fed = sUdpPortsOpenFeedback.read();
-      if(fed)
+      break;
+    case PORT_START_TCP_CLS_1:
+      if(!sMarkToDel_unpriv.full())
       {
-        udp_rx_ports_processed |= ((ap_uint<32>) 1) << (new_relative_port_to_req_udp);
-        printf("new udp_rx_ports_processed: %#03x\n",(int) udp_rx_ports_processed);
-      } else {
-        printf("[ERROR] UDP port opening failed.\n");
-        //TODO: add block list for ports? otherwise we will try it again and again
+        sMarkToDel_unpriv.write(true);
+        if(*role_decoupled == 1)
+        {
+          port_fsm = PORT_WAIT_PR;
+        } else {
+          port_fsm = PORT_START_TCP_CLS_2;
+        }
       }
-      //in all cases
-      wait_for_udp_port_open = false;
-    } else if(processed_FMC_listen_port != *piMMIO_FmcLsnPort
-        && !wait_for_tcp_port_open
-        && !sTcpPortsToOpen.full())
-    {
-      if(mmio_stabilize_counter == 0 && !sTcpPortsToOpen.full())
+      break;
+    case PORT_WAIT_PR:
+      if(*role_decoupled == 0)
       {
-        fmc_port_opened = false;
-        //need_tcp_port_req = true;
-#ifndef __SYNTHESIS__
-        mmio_stabilize_counter = 1;
-#else
-        mmio_stabilize_counter = NAL_MMIO_STABILIZE_TIME;
-#endif
+        port_fsm = PORT_START_TCP_CLS_2;
+      }
+      break;
+    case PORT_START_TCP_CLS_2:
+      if(!sStartTclCls.full())
+      {
+        sStartTclCls.write(true);
+        tcp_rx_ports_processed = 0x0;
+        current_port_update = NalPortUpdate(TCP, 0);
+        port_fsm = PORT_SEND_UPDATE;
+      }
+      break;
+    case PORT_NEW_FMC_REQ:
+      //TODO: if processed_FMC_listen_port != 0, we should actually close it?
+      if(!sTcpPortsToOpen.full())
+      {
         printf("Need FMC port request: %#02x\n",(unsigned int) *piMMIO_FmcLsnPort);
         sTcpPortsToOpen.write(*piMMIO_FmcLsnPort);
-        wait_for_tcp_port_open = true;
-      } else {
-        mmio_stabilize_counter--;
+        current_requested_port = *piMMIO_FmcLsnPort;
+        port_fsm = PORT_NEW_FMC_REP;
       }
-
-    } else if((tcp_rx_ports_processed != *pi_tcp_rx_ports) && *layer_7_enabled == 1
-        && *role_decoupled == 0 && !wait_for_tcp_port_open  && !sTcpPortsToOpen.full() )
-    { //  only if a user application is running...
-      //we close ports only if layer 7 is reset, so only look for new ports
-      ap_uint<32> tmp = tcp_rx_ports_processed | *pi_tcp_rx_ports;
-      ap_uint<32> diff = tcp_rx_ports_processed ^ tmp;
-      //printf("rx_ports IN: %#04x\n",(int) *pi_tcp_rx_ports);
-      //printf("tcp_rx_ports_processed: %#04x\n",(int) tcp_rx_ports_processed);
-      printf("TCP port diff: %#04x\n",(unsigned int) diff);
-      if(diff != 0)
-      {//we have to open new ports, one after another
-        new_relative_port_to_req_tcp = getRightmostBitPos(diff);
-        TcpPort new_port = NAL_RX_MIN_PORT + new_relative_port_to_req_tcp;
-        sTcpPortsToOpen.write(new_port);
-        wait_for_tcp_port_open = true;
-        //need_tcp_port_req = true;
-      }
-    } else if(wait_for_tcp_port_open && !fmc_port_opened && !sTcpPortsOpenFeedback.empty())
-    {
-      bool fed = sTcpPortsOpenFeedback.read();
-      if(fed)
+      break;
+    case PORT_NEW_FMC_REP:
+      if(!sTcpPortsOpenFeedback.empty())
       {
-        processed_FMC_listen_port = *piMMIO_FmcLsnPort;
-        printf("FMC Port opened: %#03x\n",(int) processed_FMC_listen_port);
-        fmc_port_opened = true;
-      } else {
-        printf("[ERROR] FMC TCP port opening failed.\n");
-        //TODO: add block list for ports? otherwise we will try it again and again
+        bool fed = sTcpPortsOpenFeedback.read();
+        if(fed)
+        {
+          processed_FMC_listen_port = current_requested_port;
+          printf("FMC Port opened: %#03x\n",(int) processed_FMC_listen_port);
+        } else {
+          printf("[ERROR] FMC TCP port opening failed.\n");
+          //TODO: add block list for ports? otherwise we will try it again and again
+        }
+        current_port_update = NalPortUpdate(FMC, processed_FMC_listen_port);
+        port_fsm = PORT_SEND_UPDATE;
       }
-      //in all cases
-      wait_for_tcp_port_open = false;
-    } else if(wait_for_tcp_port_open && !sTcpPortsOpenFeedback.empty())
-    {
-      bool fed = sTcpPortsOpenFeedback.read();
-      if(fed)
+      break;
+    case PORT_NEW_UDP_REQ:
+      if(!sUdpPortsToOpen.full())
       {
-        tcp_rx_ports_processed |= ((ap_uint<32>) 1) << (new_relative_port_to_req_tcp);
-        printf("new tcp_rx_ports_processed: %#03x\n",(int) tcp_rx_ports_processed);
-      } else {
-        printf("[ERROR] TCP port opening failed.\n");
-        //TODO: add block list for ports? otherwise we will try it again and again
+        ap_uint<32> tmp = udp_rx_ports_processed | *pi_udp_rx_ports;
+        ap_uint<32> diff = udp_rx_ports_processed ^ tmp;
+        //printf("rx_ports IN: %#04x\n",(int) *pi_udp_rx_ports);
+        //printf("udp_rx_ports_processed: %#04x\n",(int) udp_rx_ports_processed);
+        printf("UDP port diff: %#04x\n",(unsigned int) diff);
+        if(diff != 0)
+        {//we have to open new ports, one after another
+          //new_relative_port_to_req_udp = getRightmostBitPos(diff);
+          //need_udp_port_req = true;
+          new_relative_port_to_req_udp = getRightmostBitPos(diff);
+          UdpPort new_port_to_open = NAL_RX_MIN_PORT + new_relative_port_to_req_udp;
+          sUdpPortsToOpen.write(new_port_to_open);
+          port_fsm = PORT_NEW_UDP_REP;
+        } else {
+          udp_rx_ports_processed = *pi_udp_rx_ports;
+          port_fsm = PORT_IDLE;
+        }
       }
-      //in all cases
-      wait_for_tcp_port_open = false;
-    } else if(need_write_sMarkToDel_unpriv && !sMarkToDel_unpriv.full())
-    {
-      sMarkToDel_unpriv.write(true);
-      need_write_sMarkToDel_unpriv = false;
-    }
+      break;
+    case PORT_NEW_UDP_REP:
+      if(!sUdpPortsOpenFeedback.empty())
+      {
+        bool fed = sUdpPortsOpenFeedback.read();
+        if(fed)
+        {
+          udp_rx_ports_processed |= ((ap_uint<32>) 1) << (new_relative_port_to_req_udp);
+          printf("new udp_rx_ports_processed: %#03x\n",(int) udp_rx_ports_processed);
+        } else {
+          printf("[ERROR] UDP port opening failed.\n");
+          //TODO: add block list for ports? otherwise we will try it again and again
+        }
+        //in all cases
+        current_port_update = NalPortUpdate(UDP, udp_rx_ports_processed);
+        port_fsm = PORT_SEND_UPDATE;
+      }
+      break;
+    case PORT_NEW_TCP_REQ:
+      if( !sTcpPortsToOpen.full() )
+      {
+        ap_uint<32> tmp = tcp_rx_ports_processed | *pi_tcp_rx_ports;
+        ap_uint<32> diff = tcp_rx_ports_processed ^ tmp;
+        //printf("rx_ports IN: %#04x\n",(int) *pi_tcp_rx_ports);
+        //printf("tcp_rx_ports_processed: %#04x\n",(int) tcp_rx_ports_processed);
+        printf("TCP port diff: %#04x\n",(unsigned int) diff);
+        if(diff != 0)
+        {//we have to open new ports, one after another
+          new_relative_port_to_req_tcp = getRightmostBitPos(diff);
+          TcpPort new_port = NAL_RX_MIN_PORT + new_relative_port_to_req_tcp;
+          sTcpPortsToOpen.write(new_port);
+          port_fsm = PORT_NEW_TCP_REP;
+        } else {
+          tcp_rx_ports_processed = *pi_tcp_rx_ports;
+          port_fsm = PORT_IDLE;
+        }
+      }
+      break;
+    case PORT_NEW_TCP_REP:
+      if(!sTcpPortsOpenFeedback.empty())
+      {
+        bool fed = sTcpPortsOpenFeedback.read();
+        if(fed)
+        {
+          tcp_rx_ports_processed |= ((ap_uint<32>) 1) << (new_relative_port_to_req_tcp);
+          printf("new tcp_rx_ports_processed: %#03x\n",(int) tcp_rx_ports_processed);
+        } else {
+          printf("[ERROR] TCP port opening failed.\n");
+          //TODO: add block list for ports? otherwise we will try it again and again
+        }
+        //in all cases
+        current_port_update = NalPortUpdate(TCP, tcp_rx_ports_processed);
+        port_fsm = PORT_SEND_UPDATE;
+      }
+      break;
+    case PORT_SEND_UPDATE:
+      if(!sPortUpdate.full())
+      {
+        sPortUpdate.write(current_port_update);
+        port_fsm = PORT_IDLE;
+      }
+      break;
   }
+}
+
+
+void pCacheInvalDetection(
+    ap_uint<1>        *layer_4_enabled,
+    ap_uint<1>        *role_decoupled,
+    ap_uint<1>        *piNTS_ready,
+    stream<uint32_t>  &mrt_version_update,
+    stream<bool>      &cache_inval_0,
+    stream<bool>      &cache_inval_1,
+    stream<bool>      &cache_inval_2,
+    stream<bool>      &cache_inval_3
+    )
+{
+  //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+#pragma HLS INLINE off
+#pragma HLS pipeline II=1
+
+  //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+  static CacheInvalFsmStates cache_fsm = CACHE_WAIT_FOR_VALID;
+  static uint32_t mrt_version_current = 0;
+
+#pragma HLS RESET variable=cache_fsm
+#pragma HLS RESET variable=mrt_version_current
+
+  //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+  static ap_uint<1> role_state;
+  //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
   
-  //-- always --------------------------------------------
-  if(mrt_version_old != *mrt_version_processed)
+  //===========================================================
+
+  switch (cache_fsm)
   {
-    mrt_version_old = *mrt_version_processed;
-    *detected_cache_invalidation = true;
+    default:
+    case CACHE_WAIT_FOR_VALID:
+      if(*layer_4_enabled == 1 && *piNTS_ready == 1)
+      {
+        role_state = *role_decoupled;
+        cache_fsm = CACHE_VALID;
+      }
+      break;
+    case CACHE_VALID:
+      if(*layer_4_enabled == 0 || *piNTS_ready == 0 || *role_decoupled != role_state )
+      {
+        if(*role_decoupled == 1 || *layer_4_enabled == 0 || *piNTS_ready == 0)
+        {
+          //i.e. after a PR
+          cache_fsm = CACHE_INV_SEND_0;
+          printf("[pCacheInvalDetection] Detected cache invalidation condition!\n");
+        } else {
+        //not yet invalid
+        role_state = *role_decoupled;
+        }
+      } else if(!mrt_version_update.empty())
+      {
+        uint32_t tmp = mrt_version_update.read();
+        if(tmp != mrt_version_current)
+        {
+          mrt_version_current = tmp;
+          cache_fsm = CACHE_INV_SEND_0;
+        }
+      }
+        break;
+    case CACHE_INV_SEND_0:
+      if(!cache_inval_0.full())
+      {
+        cache_inval_0.write(true);
+        cache_fsm = CACHE_INV_SEND_1;
+      }
+      break;
+    case CACHE_INV_SEND_1:
+      if(!cache_inval_1.full())
+      {
+        cache_inval_1.write(true);
+        cache_fsm = CACHE_INV_SEND_2;
+      }
+      break;
+    case CACHE_INV_SEND_2:
+      if(!cache_inval_2.full())
+      {
+        cache_inval_2.write(true);
+        cache_fsm = CACHE_INV_SEND_3;
+      }
+      break;
+    case CACHE_INV_SEND_3:
+      if(!cache_inval_3.full())
+      {
+        cache_inval_3.write(true);
+        cache_fsm = CACHE_WAIT_FOR_VALID;
+      }
+      break;
   }
-  *mrt_version_used = mrt_version_old;
-  
-  *nts_ready_and_enabled = (*piNTS_ready == 1 && *layer_4_enabled == 1);
-
-  //"publish" current processed ports
-  *status_udp_ports = udp_rx_ports_processed;
-  *status_tcp_ports = tcp_rx_ports_processed;
-  *status_fmc_ports = processed_FMC_listen_port;
-
 }
 
 
@@ -811,8 +1274,8 @@ void pTcpAgency(
     stream<SessionId>     &sMarkAsPriv,
     stream<bool>        &sMarkToDel_unpriv,
     stream<bool>        &sGetNextDelRow_Req,
-    stream<SessionId>     &sGetNextDelRow_Rep,
-    const bool              *nts_ready_and_enabled
+    stream<SessionId>     &sGetNextDelRow_Rep
+    //const bool              *nts_ready_and_enabled
     )
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -841,11 +1304,12 @@ void pTcpAgency(
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
 
 
-  if(!*nts_ready_and_enabled)
-  {
-    //agencyFsm = TAB_FSM_READ;
-    tables_initialized = false;
-  } else if (!tables_initialized)
+ // if(!*nts_ready_and_enabled)
+ // {
+ //   //agencyFsm = TAB_FSM_READ;
+ //   tables_initialized = false;
+ // } else 
+  if (!tables_initialized)
   {
     printf("init tables...\n");
     for(int i = 0; i<MAX_NAL_SESSIONS; i++)

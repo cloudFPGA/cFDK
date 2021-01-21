@@ -41,7 +41,6 @@
 #include <stdint.h>
 
 #include "nal.hpp"
-#include "hss.hpp"
 #include "cam8.hpp"
 
 using namespace hls;
@@ -50,15 +49,15 @@ void pTcpLsn(
     stream<TcpAppLsnReq>      &soTOE_LsnReq,
     stream<TcpAppLsnRep>      &siTOE_LsnRep,
     stream<TcpPort>       &sTcpPortsToOpen,
-    stream<bool>        &sTcpPortsOpenFeedback,
-    const bool          *nts_ready_and_enabled
+    stream<bool>        &sTcpPortsOpenFeedback
+    //const bool          *nts_ready_and_enabled
     );
 
 
 void pTcpRxNotifEnq(
     stream<TcpAppNotif>       &siTOE_Notif,
-    stream<TcpAppNotif>     &sTcpNotif_buffer,
-    const bool                *nts_ready_and_enabled
+    stream<TcpAppNotif>     &sTcpNotif_buffer
+    //const bool                *nts_ready_and_enabled
     );
 
 void pTcpRRh(
@@ -69,8 +68,9 @@ void pTcpRRh(
     stream<TcpAppRdReq>       &sRDp_ReqNotif,
     ap_uint<1>                *piFMC_Tcp_data_FIFO_prog_full,
     ap_uint<1>                *piFMC_Tcp_sessid_FIFO_prog_full,
-    const bool          *role_fifo_empty,
-    const bool                *nts_ready_and_enabled
+    //const bool          *role_fifo_empty,
+    //const bool                *nts_ready_and_enabled
+    stream<bool>                &role_fifo_empty_sig
     );
 
 void pTcpRDp(
@@ -88,13 +88,15 @@ void pTcpRDp(
     stream<NalTriple>   &sGetTripleFromSid_Rep,
     stream<SessionId>   &sMarkAsPriv,
     ap_uint<32>         *piMMIO_CfrmIp4Addr,
-    const ap_uint<16>       *processed_FMC_listen_port,
+    ap_uint<16>       *piMMIO_FmcLsnPort,
+    //const ap_uint<16>       *processed_FMC_listen_port,
     ap_uint<1>          *layer_7_enabled,
     ap_uint<1>          *role_decoupled,
     //SessionId         *cached_tcp_rx_session_id,
-    bool            *expect_FMC_response,
-    const bool          *nts_ready_and_enabled,
-    const bool          *detected_cache_invalidation,
+    //bool            *expect_FMC_response,
+    //const bool          *nts_ready_and_enabled,
+    //const bool          *detected_cache_invalidation,
+    stream<bool>          &cache_inval_sig,
     stream<NalEventNotif>     &internal_event_fifo
     );
 
@@ -105,7 +107,8 @@ void pRoleTcpRxDeq(
     stream<NetworkMetaStream>   &sRoleTcpMetaRx_buffer,
     stream<NetworkWord>         &soTcp_data,
     stream<NetworkMetaStream>   &soTcp_meta,
-    bool                        *role_fifo_empty
+    stream<bool>                &role_fifo_empty_sig
+    //bool                        *role_fifo_empty
     );
 
 void pTcpWRp(
@@ -124,9 +127,10 @@ void pTcpWRp(
     stream<SessionId>     &sGetSidFromTriple_Rep,
     stream<NalTriple>     &sNewTcpCon_Req,
     stream<NalNewTcpConRep>    &sNewTcpCon_Rep,
-    const bool          *expect_FMC_response,
-    const bool          *nts_ready_and_enabled,
-    const bool          *detected_cache_invalidation,
+    //const bool          *expect_FMC_response,
+    //const bool          *nts_ready_and_enabled,
+    //const bool          *detected_cache_invalidation,
+    stream<bool>          &cache_inval_sig,
     stream<NalEventNotif>     &internal_event_fifo
     );
 
@@ -137,25 +141,27 @@ void pTcpWBu(
     stream<TcpDatLen>     &siWrp_len,
     stream<TcpAppData>      &soTOE_Data,
     stream<TcpAppSndReq>    &soTOE_SndReq,
-    stream<TcpAppSndRep>    &siTOE_SndRep,
-    const bool            *nts_ready_and_enabled
+    stream<TcpAppSndRep>    &siTOE_SndRep
+    //const bool            *nts_ready_and_enabled
     );
 
-void pTcpCOn(stream<TcpAppOpnReq>        &soTOE_OpnReq,
+void pTcpCOn(
+    stream<TcpAppOpnReq>        &soTOE_OpnReq,
     stream<TcpAppOpnRep>      &siTOE_OpnRep,
     //stream<TcpAppClsReq>      &soTOE_ClsReq,
     stream<NalNewTableEntry>   &sAddNewTriple_TcpCon,
     stream<NalTriple>     &sNewTcpCon_Req,
-    stream<NalNewTcpConRep>    &sNewTcpCon_Rep,
-    const bool          *nts_ready_and_enabled
+    stream<NalNewTcpConRep>    &sNewTcpCon_Rep
+    //const bool          *nts_ready_and_enabled
     );
 
 void pTcpCls(
     stream<TcpAppClsReq>      &soTOE_ClsReq,
     stream<bool>              &sGetNextDelRow_Req,
     stream<SessionId>         &sGetNextDelRow_Rep,
-    const bool            *start_tcp_cls_fsm,
-    const bool            *nts_ready_and_enabled
+    stream<bool>              &sStartTclCls
+    //const bool            *start_tcp_cls_fsm,
+    //const bool            *nts_ready_and_enabled
     );
 
 #endif

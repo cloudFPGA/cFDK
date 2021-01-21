@@ -152,7 +152,7 @@ enum LsnFsmStates {LSN_IDLE = 0, LSN_SEND_REQ, LSN_WAIT_ACK, LSN_DONE};
 //#define RrhFsmStates uint8_t
 //#define RRH_WAIT_NOTIF 0
 //#define RRH_SEND_DREQ 1
-enum RrhFsmStates {RRH_WAIT_NOTIF = 0, RRH_PROCESS_NOTIF, RRH_SEND_DREQ};
+enum RrhFsmStates {RRH_RESET = 0, RRH_WAIT_NOTIF, RRH_PROCESS_NOTIF, RRH_SEND_DREQ};
 
 //#define RdpFsmStates uint8_t
 //#define RDP_WAIT_META 0
@@ -177,6 +177,7 @@ enum WbuFsmStates {WBU_WAIT_META = 0, WBU_SND_REQ, WBU_WAIT_REP, WBU_STREAM, WBU
 
 enum FiveStateFsm {FSM_STATE_0 = 0, FSM_STATE_1, FSM_STATE_2, FSM_STATE_3, FSM_STATE_4};
 
+enum CacheInvalFsmStates {CACHE_WAIT_FOR_VALID = 0, CACHE_VALID, CACHE_INV_SEND_0, CACHE_INV_SEND_1, CACHE_INV_SEND_2, CACHE_INV_SEND_3};
 
 //#define ClsFsmStates uint8_t
 //#define CLS_IDLE 0
@@ -184,7 +185,7 @@ enum FiveStateFsm {FSM_STATE_0 = 0, FSM_STATE_1, FSM_STATE_2, FSM_STATE_3, FSM_S
 //#define CLS_WAIT4RESP 2
 enum ClsFsmStates {CLS_IDLE = 0, CLS_NEXT, CLS_WAIT4RESP};
 
-enum DeqFsmStates {DEQ_WAIT_META = 0, DEQ_STREAM_DATA};
+enum DeqFsmStates {DEQ_WAIT_META = 0, DEQ_STREAM_DATA, DEQ_SEND_NOTIF};
 
 enum TableFsmStates {TAB_FSM_READ = 0, TAB_FSM_WRITE};
 
@@ -193,6 +194,17 @@ enum AxiLiteFsmStates {A4L_COPY_CONFIG = 0, \
   A4L_COPY_MRT, A4L_COPY_STATUS, A4L_COPY_FINISH};
 
 enum ConfigBcastStates {CB_WAIT = 0, CB_START, CB_1, CB_2, CB_3_0, CB_3_1, CB_3_2};
+
+
+enum PortFsmStates {PORT_RESET = 0, PORT_IDLE, PORT_L4_RESET, PORT_NEW_UDP_REQ, PORT_NEW_UDP_REP, \
+                PORT_NEW_FMC_REQ, PORT_NEW_FMC_REP, PORT_NEW_TCP_REQ, PORT_NEW_TCP_REP, PORT_L7_RESET, \
+                PORT_WAIT_PR, PORT_START_TCP_CLS_1, PORT_START_TCP_CLS_2, PORT_START_UDP_CLS, PORT_SEND_UPDATE};
+
+enum PortType {FMC = 0, UDP, TCP};
+
+enum NalCntIncType {NID_MISS_RX = 0, NID_MISS_TX, PCOR_TX, TCP_CON_FAIL, LAST_RX_PORT, \
+  LAST_RX_NID, LAST_TX_PORT, LAST_TX_NID, PACKET_RX, PACKET_TX, UNAUTH_ACCESS, \
+    AUTH_ACCESS, FMC_TCP_BYTES};
 
 
 #define MAX_NAL_SESSIONS (TOE_MAX_SESSIONS)
@@ -272,10 +284,6 @@ typedef UdpLen       UdpAppDLen;
 typedef UdpAppMeta  UdpMeta;
 typedef UdpAppDLen  UdpPLen;
 
-enum NalCntIncType {NID_MISS_RX = 0, NID_MISS_TX, PCOR_TX, TCP_CON_FAIL, LAST_RX_PORT, \
-  LAST_RX_NID, LAST_TX_PORT, LAST_TX_NID, PACKET_RX, PACKET_TX, UNAUTH_ACCESS, \
-    AUTH_ACCESS, FMC_TCP_BYTES};
-
 
 struct NalEventNotif {
   NalCntIncType type;
@@ -304,13 +312,43 @@ struct NalNewTcpConRep {
   NalNewTcpConRep(NalTriple nt, SessionId ns, bool fail): new_triple(nt), newSessionId(ns), failure(fail) {}
 };
 
-//INLINE METHODs
+struct NalConfigUpdate {
+  ap_uint<16>   config_addr;
+  ap_uint<32>   update_value;
+  NalConfigUpdate() {}
+  NalConfigUpdate(ap_uint<16> ca, ap_uint<32> uv): config_addr(ca), update_value(uv) {}
+};
+
+struct NalMrtUpdate {
+  NodeId    nid;
+  Ip4Addr   ip4a;
+  NalMrtUpdate() {}
+  NalMrtUpdate(NodeId node, Ip4Addr addr): nid(node), ip4a(addr) {}
+};
+
+struct NalStatusUpdate {
+  ap_uint<16>   status_addr;
+  ap_uint<32>   new_value;
+  NalStatusUpdate() {}
+  NalStatusUpdate(ap_uint<16> sa, ap_uint<32> nv): status_addr(sa), new_value(nv) {}
+};
+
+struct NalPortUpdate {
+  PortType    port_type;
+  ap_uint<32> new_value;
+  NalPortUpdate () {}
+  NalPortUpdate(PortType pt, ap_uint<32> nv): port_type(pt), new_value(nv) {}
+};
+
+
+//INLINE METHODS
 ap_uint<32> getRightmostBitPos(ap_uint<32> num);
 NalTriple newTriple(Ip4Addr ipRemoteAddres, TcpPort tcpRemotePort, TcpPort tcpLocalPort);
 Ip4Addr getRemoteIpAddrFromTriple(NalTriple triple);
 TcpPort getRemotePortFromTriple(NalTriple triple);
 TcpPort getLocalPortFromTriple(NalTriple triple);
 uint8_t extractByteCnt(Axis<64> currWord);
+
 
 #include "uss.hpp"
 #include "tss.hpp"

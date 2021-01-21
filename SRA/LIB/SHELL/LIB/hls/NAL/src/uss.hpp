@@ -41,7 +41,6 @@
 #include <stdint.h>
 
 #include "nal.hpp"
-#include "hss.hpp"
 
 using namespace hls;
 
@@ -54,8 +53,9 @@ void pUdpTX(
     stream<NodeId>        &sGetIpReq_UdpTx,
     stream<Ip4Addr>       &sGetIpRep_UdpTx,
     const ap_uint<32>       *ipAddrBE,
-    const bool          *nts_ready_and_enabled,
-    const bool          *detected_cache_invalidation,
+    //const bool          *nts_ready_and_enabled,
+    //const bool          *detected_cache_invalidation,
+    stream<bool>          &cache_inval_sig,
     stream<NalEventNotif>     &internal_event_fifo
     );
 
@@ -68,8 +68,9 @@ void pUdpRx(
     stream<NalConfigUpdate>   &sConfigUpdate,
     stream<Ip4Addr>       &sGetNidReq_UdpRx,
     stream<NodeId>        &sGetNidRep_UdpRx,
-    const bool          *nts_ready_and_enabled,
-    const bool          *detected_cache_invalidation,
+    //const bool          *nts_ready_and_enabled,
+    //const bool          *detected_cache_invalidation,
+    stream<bool>          &cache_inval_sig,
     stream<NalEventNotif>     &internal_event_fifo
     );
 
@@ -78,15 +79,15 @@ void pUdpLsn(
       stream<UdpPort>             &soUOE_LsnReq,
       stream<StsBool>             &siUOE_LsnRep,
       stream<UdpPort>       &sUdpPortsToOpen,
-      stream<bool>        &sUdpPortsOpenFeedback,
-      const bool                *nts_ready_and_enabled
+      stream<bool>        &sUdpPortsOpenFeedback
+      //const bool                *nts_ready_and_enabled
     );
 
 void pUdpCls(
       stream<UdpPort>             &soUOE_ClsReq,
       stream<StsBool>             &siUOE_ClsRep,
-    stream<UdpPort>       &sUdpPortsToClose,
-    const bool          *nts_ready_and_enabled
+    stream<UdpPort>       &sUdpPortsToClose
+    //const bool          *nts_ready_and_enabled
     );
 
 

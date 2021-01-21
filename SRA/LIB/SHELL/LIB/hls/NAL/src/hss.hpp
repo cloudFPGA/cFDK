@@ -45,32 +45,10 @@
 using namespace hls;
 
 
-struct NalConfigUpdate {
-  ap_uint<16>   config_addr;
-  ap_uint<32>   update_value;
-  NalConfigUpdate() {}
-  NalConfigUpdate(ap_uint<16> ca, ap_uint<32> uv): config_addr(ca), update_value(uv) {}
-};
-
-struct NalMrtUpdate {
-  NodeId    nid;
-  Ip4Addr   ip4a;
-  NalMrtUpdate() {}
-  NalMrtUpdate(NodeId node, Ip4Addr addr): nid(node), ip4a(addr) {}
-};
-
-struct NalStatusUpdate {
-  ap_uint<16>   status_addr;
-  ap_uint<32>   new_value;
-  NalStatusUpdate() {}
-  NalStatusUpdate(ap_uint<16> sa, ap_uint<32> nv): status_addr(sa), new_value(nv) {}
-};
-
-
 void axi4liteProcessing(
-    ap_uint<1>          *layer_4_enabled,
+    //ap_uint<1>          *layer_4_enabled,
     ap_uint<32>   ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
-    ap_uint<32>   *mrt_version_processed,
+    //ap_uint<32>   *mrt_version_processed,
     //stream<NalConfigUpdate>   &sToTcpAgency, //(currently not used)
     stream<NalConfigUpdate>   &sToPortLogic,
     stream<NalConfigUpdate>   &sToUdpRx,
@@ -78,6 +56,8 @@ void axi4liteProcessing(
     stream<NalConfigUpdate>   &sToStatusProc,
     //stream<NalMrtUpdate>    &sMrtUpdate,
     ap_uint<32> localMRT[MAX_MRT_SIZE],
+    stream<uint32_t>          &mrt_version_update_0,
+    stream<uint32_t>          &mrt_version_update_1,
     stream<NalStatusUpdate>   &sStatusUpdate
     );
 
@@ -97,7 +77,32 @@ void pMrtAgency(
     //stream<NodeId>        &sGetNidRep_TcpTx
     );
 
-void pPortAndResetLogic(
+//void pPortAndResetLogic(
+//    ap_uint<1>        *layer_4_enabled,
+//    ap_uint<1>        *layer_7_enabled,
+//    ap_uint<1>        *role_decoupled,
+//    ap_uint<1>        *piNTS_ready,
+//    ap_uint<16>       *piMMIO_FmcLsnPort,
+//    ap_uint<32>           *pi_udp_rx_ports,
+//    ap_uint<32>         *pi_tcp_rx_ports,
+//    stream<NalConfigUpdate> &sConfigUpdate,
+//    stream<UdpPort>     &sUdpPortsToOpen,
+//    stream<UdpPort>     &sUdpPortsToClose,
+//    stream<TcpPort>     &sTcpPortsToOpen,
+//    stream<bool>      &sUdpPortsOpenFeedback,
+//    stream<bool>      &sTcpPortsOpenFeedback,
+//    stream<bool>      &sMarkToDel_unpriv,
+//    bool          *detected_cache_invalidation,
+//    bool          *nts_ready_and_enabled,
+//    ap_uint<32>       *status_udp_ports,
+//    ap_uint<32>       *status_tcp_ports,
+//    ap_uint<16>       *status_fmc_ports,
+//    bool          *start_tcp_cls_fsm,
+//    const ap_uint<32>   *mrt_version_processed,
+//    ap_uint<32>   *mrt_version_used
+//    );
+
+void pPortLogic(
     ap_uint<1>        *layer_4_enabled,
     ap_uint<1>        *layer_7_enabled,
     ap_uint<1>        *role_decoupled,
@@ -112,14 +117,19 @@ void pPortAndResetLogic(
     stream<bool>      &sUdpPortsOpenFeedback,
     stream<bool>      &sTcpPortsOpenFeedback,
     stream<bool>      &sMarkToDel_unpriv,
-    bool          *detected_cache_invalidation,
-    bool          *nts_ready_and_enabled,
-    ap_uint<32>       *status_udp_ports,
-    ap_uint<32>       *status_tcp_ports,
-    ap_uint<16>       *status_fmc_ports,
-    bool          *start_tcp_cls_fsm,
-    const ap_uint<32>   *mrt_version_processed,
-    ap_uint<32>   *mrt_version_used
+    stream<NalPortUpdate> &sPortUpdate,
+    stream<bool>              &sStartTclCls
+    );
+
+void pCacheInvalDetection(
+    ap_uint<1>        *layer_4_enabled,
+    ap_uint<1>        *role_decoupled,
+    ap_uint<1>        *piNTS_ready,
+    stream<uint32_t>  &mrt_version_update,
+    stream<bool>      &cache_inval_0,
+    stream<bool>      &cache_inval_1,
+    stream<bool>      &cache_inval_2,
+    stream<bool>      &cache_inval_3
     );
 
 void pTcpAgency(
@@ -133,8 +143,8 @@ void pTcpAgency(
     stream<SessionId>     &sMarkAsPriv,
     stream<bool>        &sMarkToDel_unpriv,
     stream<bool>        &sGetNextDelRow_Req,
-    stream<SessionId>     &sGetNextDelRow_Rep,
-    const bool              *nts_ready_and_enabled
+    stream<SessionId>     &sGetNextDelRow_Rep
+    //const bool              *nts_ready_and_enabled
     );
 
 

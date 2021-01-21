@@ -153,14 +153,16 @@ uint8_t extractByteCnt(Axis<64> currWord)
 
 void pStatusMemory(
     stream<NalEventNotif>  &internal_event_fifo,
-    const ap_uint<1>       *layer_7_enabled,
-    const ap_uint<1>       *role_decoupled,
+    ap_uint<1>       *layer_7_enabled,
+    ap_uint<1>       *role_decoupled,
     //const NodeId       *own_rank,
     stream<NalConfigUpdate>   &sConfigUpdate,
-    const ap_uint<32>      *mrt_version_processed,
-    const ap_uint<32>    *udp_rx_ports_processed,
-    const ap_uint<32>    *tcp_rx_ports_processed,
-    const ap_uint<16>    *processed_FMC_listen_port,
+    //const ap_uint<32>      *mrt_version_processed,
+    stream<uint32_t>      &mrt_version_update,
+    //const ap_uint<32>    *udp_rx_ports_processed,
+    //const ap_uint<32>    *tcp_rx_ports_processed,
+    //const ap_uint<16>    *processed_FMC_listen_port,
+    stream<NalPortUpdate>     &sNalPortUpdate,
     stream<NalStatusUpdate>   &sStatusUpdate
 
     )
@@ -242,7 +244,27 @@ void pStatusMemory(
       own_rank = ca.update_value;
       status[NAL_STATUS_OWN_RANK] = (ap_uint<32>) own_rank;
     }
-  } else if(!internal_event_fifo.empty())
+  } else if(!mrt_version_update.empty())
+  {
+    status[NAL_STATUS_MRT_VERSION] = mrt_version_update.read();
+  }
+  else if(!sNalPortUpdate.empty())
+  {
+    NalPortUpdate update = sNalPortUpdate.read();
+    switch(update.port_type)
+    {
+      case FMC:
+        status[NAL_STATUS_FMC_PORT_PROCESSED] = update.new_value;
+        break;
+      case UDP:
+        status[NAL_STATUS_OPEN_UDP_PORTS] = update.new_value;
+        break;
+      case TCP:
+        status[NAL_STATUS_OPEN_TCP_PORTS] = update.new_value;
+        break;
+    }
+  }
+  else if(!internal_event_fifo.empty())
   {
     NalEventNotif nevs = internal_event_fifo.read();
     //printf("[DEBUG] Process event %d with update value %d\n", \
@@ -298,10 +320,10 @@ void pStatusMemory(
   } else {
 
     //update status entries
-    status[NAL_STATUS_MRT_VERSION] = *mrt_version_processed;
-    status[NAL_STATUS_OPEN_UDP_PORTS] = *udp_rx_ports_processed;
-    status[NAL_STATUS_OPEN_TCP_PORTS] = *tcp_rx_ports_processed;
-    status[NAL_STATUS_FMC_PORT_PROCESSED] = (ap_uint<32>) *processed_FMC_listen_port;
+    //status[NAL_STATUS_MRT_VERSION] = *mrt_version_processed;
+    //status[NAL_STATUS_OPEN_UDP_PORTS] = *udp_rx_ports_processed;
+    //status[NAL_STATUS_OPEN_TCP_PORTS] = *tcp_rx_ports_processed;
+    //status[NAL_STATUS_FMC_PORT_PROCESSED] = (ap_uint<32>) *processed_FMC_listen_port;
     //status[NAL_STATUS_OWN_RANK] = (ap_uint<32>) *own_rank;
 
     //udp
@@ -639,11 +661,11 @@ void nal_main(
   //===========================================================
   //  core wide STATIC variables
 
-  static ap_uint<32> mrt_version_processed = 0;
-  static ap_uint<32> mrt_version_used = 0; //no reset needed
+  //static ap_uint<32> mrt_version_processed = 0;
+  //static ap_uint<32> mrt_version_used = 0; //no reset needed
 
-  static bool expect_FMC_response = false; //pTcpRDP and pTcpWRp need this
-  static bool start_tcp_cls_fsm = false;
+  //static bool expect_FMC_response = false; //pTcpRDP and pTcpWRp need this
+  //static bool start_tcp_cls_fsm = false;
 
   static stream<NalEventNotif> internal_event_fifo_0 ("internal_event_fifo_0");
   static stream<NalEventNotif> internal_event_fifo_1 ("internal_event_fifo_1");
@@ -700,6 +722,20 @@ void nal_main(
 
   static ap_uint<32> localMRT[MAX_MRT_SIZE];
 
+  static stream<uint32_t>           sMrtVersionUpdate_0 ("sMrtVersionUpdate_0");
+  static stream<uint32_t>           sMrtVersionUpdate_1 ("sMrtVersionUpdate_1");
+    
+  static stream<bool>      sCacheInvalSig_0      ("sCacheInvalSig_0");
+  static stream<bool>      sCacheInvalSig_1      ("sCacheInvalSig_1");
+  static stream<bool>      sCacheInvalSig_2      ("sCacheInvalSig_2");
+  static stream<bool>      sCacheInvalSig_3      ("sCacheInvalSig_3");
+
+  static stream<bool>      sRoleFifoEmptySig     ("sRoleFifoEmptySig");
+
+  static stream<bool>      sStartTclCls_sig      ("sStartTclCls_sig");
+  static stream<NalPortUpdate> sNalPortUpdate    ("sNalPortUpdate");
+
+
 #pragma HLS STREAM variable=internal_event_fifo_0 depth=32
 #pragma HLS STREAM variable=internal_event_fifo_1 depth=32
 #pragma HLS STREAM variable=internal_event_fifo_2 depth=32
@@ -712,8 +748,8 @@ void nal_main(
 #pragma HLS STREAM variable=sA4lToTcpRx      depth=16
 #pragma HLS STREAM variable=sA4lToStatusProc depth=16
 //#pragma HLS STREAM variable=sA4lMrtUpdate    depth=16
-#pragma HLS STREAM variable=sStatusUpdate    depth=16
-#pragma HLS STREAM variable=sGetIpReq_UdpTx  depth=16
+#pragma HLS STREAM variable=sStatusUpdate    depth=32
+#pragma HLS STREAM variable=sGetIpReq_UdpTx  depth=16 //MRT process takes longer -> better more buffer
 #pragma HLS STREAM variable=sGetIpRep_UdpTx  depth=16
 #pragma HLS STREAM variable=sGetIpReq_TcpTx  depth=16
 #pragma HLS STREAM variable=sGetIpRep_TcpTx  depth=16
@@ -724,11 +760,11 @@ void nal_main(
 #pragma HLS STREAM variable=sGetNidReq_TcpTx depth=16
 #pragma HLS STREAM variable=sGetNidRep_TcpTx depth=16
 
-#pragma HLS STREAM variable=sUdpPortsToClose depth=32  //needs to be as depth as many ports the user can open
-#pragma HLS STREAM variable=sUdpPortsToOpen  depth=32
-#pragma HLS STREAM variable=sUdpPortsOpenFeedback depth=32
-#pragma HLS STREAM variable=sTcpPortsToOpen  depth=32
-#pragma HLS STREAM variable=sTcpPortsOpenFeedback depth=32
+#pragma HLS STREAM variable=sUdpPortsToClose      depth=8
+#pragma HLS STREAM variable=sUdpPortsToOpen       depth=8
+#pragma HLS STREAM variable=sUdpPortsOpenFeedback depth=8
+#pragma HLS STREAM variable=sTcpPortsToOpen       depth=8
+#pragma HLS STREAM variable=sTcpPortsOpenFeedback depth=8
 
 
 #pragma HLS STREAM variable=sRoleTcpDataRx_buffer depth=252 //NAL_MAX_FIFO_DEPTS_BYTES/8 (+2)
@@ -739,44 +775,57 @@ void nal_main(
 #pragma HLS STREAM variable=sTcpWrp2Wbu_len       depth=32
 
 
-#pragma HLS STREAM variable=sGetTripleFromSid_Req    depth=16
-#pragma HLS STREAM variable=sGetTripleFromSid_Rep    depth=16
-#pragma HLS STREAM variable=sGetSidFromTriple_Req    depth=16
-#pragma HLS STREAM variable=sGetSidFromTriple_Rep    depth=16
-#pragma HLS STREAM variable=sAddNewTriple_TcpRrh     depth=16
-#pragma HLS STREAM variable=sAddNewTriple_TcpCon     depth=16
-#pragma HLS STREAM variable=sDeleteEntryBySid        depth=16
-#pragma HLS STREAM variable=sMarkAsPriv              depth=16
-#pragma HLS STREAM variable=sMarkToDel_unpriv        depth=16
-#pragma HLS STREAM variable=sGetNextDelRow_Req       depth=16
-#pragma HLS STREAM variable=sGetNextDelRow_Rep       depth=16
-#pragma HLS STREAM variable=sRDp_ReqNotif            depth=16
+#pragma HLS STREAM variable=sGetTripleFromSid_Req    depth=8
+#pragma HLS STREAM variable=sGetTripleFromSid_Rep    depth=8
+#pragma HLS STREAM variable=sGetSidFromTriple_Req    depth=8
+#pragma HLS STREAM variable=sGetSidFromTriple_Rep    depth=8
+#pragma HLS STREAM variable=sAddNewTriple_TcpRrh     depth=8
+#pragma HLS STREAM variable=sAddNewTriple_TcpCon     depth=8
+#pragma HLS STREAM variable=sDeleteEntryBySid        depth=8
+#pragma HLS STREAM variable=sMarkAsPriv              depth=8
+#pragma HLS STREAM variable=sMarkToDel_unpriv        depth=8
+#pragma HLS STREAM variable=sGetNextDelRow_Req       depth=8
+#pragma HLS STREAM variable=sGetNextDelRow_Rep       depth=8
+#pragma HLS STREAM variable=sRDp_ReqNotif            depth=8
 
-#pragma HLS STREAM variable=sNewTcpCon_Req       depth=16
-#pragma HLS STREAM variable=sNewTcpCon_Rep       depth=16
+#pragma HLS STREAM variable=sNewTcpCon_Req       depth=8
+#pragma HLS STREAM variable=sNewTcpCon_Rep       depth=8
 
 #pragma HLS STREAM variable=sTcpNotif_buffer     depth=1024
 
 #pragma HLS RESOURCE variable=localMRT core=RAM_2P_BRAM
 
+#pragma HLS STREAM variable=sMrtVersionUpdate_0  depth=8
+#pragma HLS STREAM variable=sMrtVersionUpdate_1  depth=8
+
+#pragma HLS STREAM variable=sCacheInvalSig_0 depth=8
+#pragma HLS STREAM variable=sCacheInvalSig_1 depth=8
+#pragma HLS STREAM variable=sCacheInvalSig_2 depth=8
+#pragma HLS STREAM variable=sCacheInvalSig_3 depth=8
+
+#pragma HLS STREAM variable=sRoleFifoEmptySig depth=8
+
+#pragma HLS STREAM variable=sStartTclCls_sig depth=8
+#pragma HLS STREAM variable=sNalPortUpdate   depth=8
+
 
   //=================================================================================================
   // Reset static variables
 
-#pragma HLS reset variable=mrt_version_processed
-
-#pragma HLS reset variable=expect_FMC_response
-#pragma HLS reset variable=start_tcp_cls_fsm
+//#pragma HLS reset variable=mrt_version_processed
+//
+//#pragma HLS reset variable=expect_FMC_response
+//#pragma HLS reset variable=start_tcp_cls_fsm
 
   //===========================================================
   //  core wide STATIC DATAFLOW variables
   
-  static bool role_fifo_empty;
-  static ap_uint<32>   status_udp_ports;
-  static ap_uint<32> status_tcp_ports;
-  static ap_uint<16> status_fmc_ports;
-  static bool detected_cache_invalidation;
-  static bool nts_ready_and_enabled;
+  //static bool role_fifo_empty;
+  //static ap_uint<32>   status_udp_ports;
+  //static ap_uint<32> status_tcp_ports;
+  //static ap_uint<16> status_fmc_ports;
+  //static bool detected_cache_invalidation;
+  //static bool nts_ready_and_enabled;
 
   //===========================================================
   //  core wide variables (for one iteration)
@@ -791,43 +840,51 @@ void nal_main(
   //===========================================================
   // restore saved states and ports handling & check for resets
 
-  pPortAndResetLogic(layer_4_enabled, layer_7_enabled, role_decoupled, piNTS_ready, piMMIO_FmcLsnPort,
+//  pPortAndResetLogic(layer_4_enabled, layer_7_enabled, role_decoupled, piNTS_ready, piMMIO_FmcLsnPort,
+//      pi_udp_rx_ports, pi_tcp_rx_ports, sA4lToPortLogic, sUdpPortsToOpen, sUdpPortsToClose,
+//      sTcpPortsToOpen, sUdpPortsOpenFeedback, sTcpPortsOpenFeedback, sMarkToDel_unpriv, &detected_cache_invalidation, &nts_ready_and_enabled,
+//      &status_udp_ports, &status_tcp_ports, &status_fmc_ports, &start_tcp_cls_fsm, &mrt_version_processed, &mrt_version_used);
+
+  pCacheInvalDetection(layer_4_enabled, role_decoupled, piNTS_ready, sMrtVersionUpdate_0, 
+      sCacheInvalSig_0, sCacheInvalSig_1, sCacheInvalSig_2, sCacheInvalSig_3);
+
+  pPortLogic(layer_4_enabled, layer_7_enabled, role_decoupled, piNTS_ready, piMMIO_FmcLsnPort,
       pi_udp_rx_ports, pi_tcp_rx_ports, sA4lToPortLogic, sUdpPortsToOpen, sUdpPortsToClose,
-      sTcpPortsToOpen, sUdpPortsOpenFeedback, sTcpPortsOpenFeedback, sMarkToDel_unpriv, &detected_cache_invalidation, &nts_ready_and_enabled,
-      &status_udp_ports, &status_tcp_ports, &status_fmc_ports, &start_tcp_cls_fsm, &mrt_version_processed, &mrt_version_used);
+      sTcpPortsToOpen, sUdpPortsOpenFeedback, sTcpPortsOpenFeedback, sMarkToDel_unpriv,
+      sNalPortUpdate, sStartTclCls_sig);
 
   //=================================================================================================
   // TX UDP
 
   pUdpTX(siUdp_data, siUdp_meta, soUOE_Data, soUOE_Meta, soUOE_DLen,
       sGetIpReq_UdpTx, sGetIpRep_UdpTx,
-      myIpAddress, &nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo_0);
+      myIpAddress, sCacheInvalSig_0, internal_event_fifo_0);
 
   //=================================================================================================
   // RX UDP
 
-  pUdpLsn(soUOE_LsnReq, siUOE_LsnRep, sUdpPortsToOpen, sUdpPortsOpenFeedback, &nts_ready_and_enabled);
+  pUdpLsn(soUOE_LsnReq, siUOE_LsnRep, sUdpPortsToOpen, sUdpPortsOpenFeedback);
 
   pUdpRx(soUdp_data, soUdp_meta, siUOE_Data, siUOE_Meta,
       sA4lToUdpRx, sGetNidReq_UdpRx, sGetNidRep_UdpRx,
-      &nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo_1);
+      sCacheInvalSig_1, internal_event_fifo_1);
 
   //=================================================================================================
   // UDP Port Close
 
-  pUdpCls(soUOE_ClsReq, siUOE_ClsRep, sUdpPortsToClose, &nts_ready_and_enabled);
+  pUdpCls(soUOE_ClsReq, siUOE_ClsRep, sUdpPortsToClose);
 
   //=================================================================================================
   // TCP pListen
-  pTcpLsn(soTOE_LsnReq, siTOE_LsnRep, sTcpPortsToOpen, sTcpPortsOpenFeedback, &nts_ready_and_enabled);
+  pTcpLsn(soTOE_LsnReq, siTOE_LsnRep, sTcpPortsToOpen, sTcpPortsOpenFeedback);
 
   //=================================================================================================
   // TCP Read Request Handler
 
-  pTcpRxNotifEnq(siTOE_Notif, sTcpNotif_buffer, &nts_ready_and_enabled);
+  pTcpRxNotifEnq(siTOE_Notif, sTcpNotif_buffer);
 
   pTcpRRh(sTcpNotif_buffer, soTOE_DReq, sAddNewTriple_TcpRrh, sDeleteEntryBySid,  sRDp_ReqNotif,
-      piFMC_Tcp_data_FIFO_prog_full, piFMC_Tcp_sessid_FIFO_prog_full, &role_fifo_empty, &nts_ready_and_enabled);
+      piFMC_Tcp_data_FIFO_prog_full, piFMC_Tcp_sessid_FIFO_prog_full, sRoleFifoEmptySig);
 
   //=================================================================================================
   // TCP Read Path
@@ -835,12 +892,11 @@ void nal_main(
       //soTcp_data, soTcp_meta,
       sRoleTcpDataRx_buffer, sRoleTcpMetaRx_buffer,
       sA4lToTcpRx, sGetNidReq_TcpRx, sGetNidRep_TcpRx, sGetTripleFromSid_Req, sGetTripleFromSid_Rep,
-      sMarkAsPriv, piMMIO_CfrmIp4Addr,
-      &status_fmc_ports, layer_7_enabled, role_decoupled, &expect_FMC_response,
-      &nts_ready_and_enabled, &detected_cache_invalidation, internal_event_fifo_2);
+      sMarkAsPriv, piMMIO_CfrmIp4Addr, piMMIO_FmcLsnPort, layer_7_enabled, role_decoupled,
+      sCacheInvalSig_2, internal_event_fifo_2);
 
 
-  pRoleTcpRxDeq(layer_7_enabled, role_decoupled, sRoleTcpDataRx_buffer, sRoleTcpMetaRx_buffer, soTcp_data, soTcp_meta, &role_fifo_empty);
+  pRoleTcpRxDeq(layer_7_enabled, role_decoupled, sRoleTcpDataRx_buffer, sRoleTcpMetaRx_buffer, soTcp_data, soTcp_meta, sRoleFifoEmptySig);
 
   //=================================================================================================
   // TCP Write Path
@@ -849,44 +905,44 @@ void nal_main(
       sGetIpReq_TcpTx, sGetIpRep_TcpTx,
       //sGetNidReq_TcpTx, sGetNidRep_TcpTx,
       sGetSidFromTriple_Req, sGetSidFromTriple_Rep, sNewTcpCon_Req, sNewTcpCon_Rep,
-      &expect_FMC_response, &nts_ready_and_enabled,
-      &detected_cache_invalidation, internal_event_fifo_3);
+      sCacheInvalSig_3, internal_event_fifo_3);
 
   pTcpWBu(sTcpWrp2Wbu_data, sTcpWrp2Wbu_sessId, sTcpWrp2Wbu_len,
-      soTOE_Data, soTOE_SndReq, siTOE_SndRep, &nts_ready_and_enabled);
+      soTOE_Data, soTOE_SndReq, siTOE_SndRep);
 
   //=================================================================================================
   // TCP start remote connection
-  pTcpCOn(soTOE_OpnReq, siTOE_OpnRep, sAddNewTriple_TcpCon, sNewTcpCon_Req, sNewTcpCon_Rep,
-      &nts_ready_and_enabled);
+  pTcpCOn(soTOE_OpnReq, siTOE_OpnRep, sAddNewTriple_TcpCon, sNewTcpCon_Req, sNewTcpCon_Rep);
 
   //=================================================================================================
   // TCP connection close
-  pTcpCls(soTOE_ClsReq, sGetNextDelRow_Req, sGetNextDelRow_Rep, &start_tcp_cls_fsm, &nts_ready_and_enabled);
-
-  //===========================================================
-  //  update status, config, MRT
+  pTcpCls(soTOE_ClsReq, sGetNextDelRow_Req, sGetNextDelRow_Rep, sStartTclCls_sig);
 
   //=================================================================================================
   // TCP Table Management
 
   pTcpAgency(sGetTripleFromSid_Req, sGetTripleFromSid_Rep, sGetSidFromTriple_Req, sGetSidFromTriple_Rep,
       sAddNewTriple_TcpRrh, sAddNewTriple_TcpCon, sDeleteEntryBySid, sMarkAsPriv, sMarkToDel_unpriv,
-      sGetNextDelRow_Req, sGetNextDelRow_Rep, &nts_ready_and_enabled);
+      sGetNextDelRow_Req, sGetNextDelRow_Rep);
+
+  //===========================================================
+  //  update status, config, MRT
 
   //eventFifoMerge(layer_4_enabled, layer_7_enabled, role_decoupled, &mrt_version_used, &status_udp_ports, &status_tcp_ports,
   //    &status_fmc_ports, sA4lToStatusProc, internal_event_fifo_0, internal_event_fifo_1, internal_event_fifo_2, internal_event_fifo_3, sStatusUpdate);
 
   eventFifoMerge( internal_event_fifo_0, internal_event_fifo_1, internal_event_fifo_2, internal_event_fifo_3, merged_fifo);
 
-  pStatusMemory(merged_fifo, layer_7_enabled, role_decoupled, sA4lToStatusProc, &mrt_version_used, &status_udp_ports, &status_tcp_ports, &status_fmc_ports, sStatusUpdate);
+  pStatusMemory(merged_fifo, layer_7_enabled, role_decoupled, sA4lToStatusProc, sMrtVersionUpdate_1, sNalPortUpdate, sStatusUpdate);
 
 
-  axi4liteProcessing(layer_4_enabled, ctrlLink, &mrt_version_processed,
+  axi4liteProcessing(ctrlLink,
       //sA4lToTcpAgency, //(currently not used)
       sA4lToPortLogic, sA4lToUdpRx,
       sA4lToTcpRx, sA4lToStatusProc,
-      localMRT, sStatusUpdate);
+      localMRT, 
+      sMrtVersionUpdate_0, sMrtVersionUpdate_1,
+      sStatusUpdate);
 
 
   pMrtAgency(localMRT, sGetIpReq_UdpTx, sGetIpRep_UdpTx, sGetIpReq_TcpTx, sGetIpRep_TcpTx, sGetNidReq_UdpRx, sGetNidRep_UdpRx, sGetNidReq_TcpRx, sGetNidRep_TcpRx);

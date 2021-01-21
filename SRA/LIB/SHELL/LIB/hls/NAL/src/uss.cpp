@@ -29,7 +29,6 @@
 
 #include "uss.hpp"
 #include "nal.hpp"
-#include "hss.hpp"
 
 using namespace hls;
 
@@ -42,8 +41,9 @@ void pUdpTX(
     stream<NodeId>        &sGetIpReq_UdpTx,
     stream<Ip4Addr>       &sGetIpRep_UdpTx,
     const ap_uint<32>       *ipAddrBE,
-    const bool          *nts_ready_and_enabled,
-    const bool          *detected_cache_invalidation,
+    //const bool          *nts_ready_and_enabled,
+    //const bool          *detected_cache_invalidation,
+    stream<bool>          &cache_inval_sig,
     stream<NalEventNotif>     &internal_event_fifo
     )
 {
@@ -84,19 +84,19 @@ void pUdpTX(
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
   NalEventNotif new_ev_not;
 
-  if(!*nts_ready_and_enabled)
-  {
-    fsmStateTX_Udp = FSM_RESET;
-    cached_nodeid_udp_tx = UNUSED_SESSION_ENTRY_VALUE;
-    cached_ip4addr_udp_tx = 0;
-    cache_init = false;
-  } else if(*detected_cache_invalidation)
-  {
-    cached_nodeid_udp_tx = UNUSED_SESSION_ENTRY_VALUE;
-    cached_ip4addr_udp_tx = 0;
-    cache_init = false;
-  } else {
-
+//  if(!*nts_ready_and_enabled)
+//  {
+//    fsmStateTX_Udp = FSM_RESET;
+//    cached_nodeid_udp_tx = UNUSED_SESSION_ENTRY_VALUE;
+//    cached_ip4addr_udp_tx = 0;
+//    cache_init = false;
+//  } else if(*detected_cache_invalidation)
+//  {
+//    cached_nodeid_udp_tx = UNUSED_SESSION_ENTRY_VALUE;
+//    cached_ip4addr_udp_tx = 0;
+//    cache_init = false;
+//  } else {
+//
     switch(fsmStateTX_Udp) {
 
       default:
@@ -104,10 +104,20 @@ void pUdpTX(
         fsmStateTX_Udp = FSM_W8FORMETA;
         udpTX_packet_length = 0;
         udpTX_current_packet_length = 0;
+        cache_init = false;
         break;
 
       case FSM_W8FORMETA:
-        if ( !siUdp_meta.empty() &&
+        if( !cache_inval_sig.empty() )
+        {
+          if(cache_inval_sig.read())
+          {
+            cache_init = false; 
+            cached_nodeid_udp_tx = UNUSED_SESSION_ENTRY_VALUE;
+            cached_ip4addr_udp_tx = 0;
+          }
+        } 
+        else if ( !siUdp_meta.empty() &&
             //!soUOE_Meta.full() &&
             //!siUdp_data.empty() &&
             //!soUOE_Data.full() &&
@@ -321,15 +331,15 @@ void pUdpTX(
         evs_loop_i = 0;
       }
     }
-  } //else
+  //} //else
 }
 
 void pUdpLsn(
     stream<UdpPort>             &soUOE_LsnReq,
     stream<StsBool>             &siUOE_LsnRep,
     stream<UdpPort>       &sUdpPortsToOpen,
-    stream<bool>        &sUdpPortsOpenFeedback,
-    const bool                *nts_ready_and_enabled
+    stream<bool>        &sUdpPortsOpenFeedback
+    //const bool                *nts_ready_and_enabled
     )
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -353,16 +363,16 @@ void pUdpLsn(
   ap_uint<16> new_absolute_port = 0;
 
 
-  if(!*nts_ready_and_enabled)
-  {
-    lsnFsmState = LSN_IDLE;
-#ifdef __SYNTHESIS_
-  startupDelay = 0x8000;
-#else
-  startupDelay = 10;
-#endif
-
-  } else {
+//  if(!*nts_ready_and_enabled)
+//  {
+//    lsnFsmState = LSN_IDLE;
+//#ifdef __SYNTHESIS_
+//  startupDelay = 0x8000;
+//#else
+//  startupDelay = 10;
+//#endif
+//
+//  } else {
 
 
     switch (lsnFsmState) {
@@ -441,7 +451,7 @@ void pUdpLsn(
       //  }
       //  break;
     }
-  }
+  //}
 }
 
 
@@ -454,8 +464,9 @@ void pUdpRx(
     stream<NalConfigUpdate>   &sConfigUpdate,
     stream<Ip4Addr>       &sGetNidReq_UdpRx,
     stream<NodeId>        &sGetNidRep_UdpRx,
-    const bool          *nts_ready_and_enabled,
-    const bool          *detected_cache_invalidation,
+    //const bool          *nts_ready_and_enabled,
+    //const bool          *detected_cache_invalidation,
+    stream<bool>          &cache_inval_sig,
     stream<NalEventNotif>     &internal_event_fifo
     )
 {
@@ -494,26 +505,26 @@ void pUdpRx(
   NalEventNotif new_ev_not;
   NetworkMetaStream in_meta_udp_stream;
 
-  if(!*nts_ready_and_enabled)
-  {
-    fsmStateRX_Udp = FSM_RESET;
-    cached_udp_rx_id = 0;
-    cached_udp_rx_ipaddr = 0;
-    cache_init = false;
-  } else if(*detected_cache_invalidation)
-  {
-    cached_udp_rx_id = 0;
-    cached_udp_rx_ipaddr = 0;
-    cache_init = false;
-  } else if(!sConfigUpdate.empty())
-  {
-    NalConfigUpdate ca = sConfigUpdate.read();
-    if(ca.config_addr == NAL_CONFIG_OWN_RANK)
-    {
-      own_rank = (NodeId) ca.update_value;
-      cache_init = false;
-    }
-  } else {
+//  if(!*nts_ready_and_enabled)
+//  {
+//    fsmStateRX_Udp = FSM_RESET;
+//    cached_udp_rx_id = 0;
+//    cached_udp_rx_ipaddr = 0;
+//    cache_init = false;
+//  } else if(*detected_cache_invalidation)
+//  {
+//    cached_udp_rx_id = 0;
+//    cached_udp_rx_ipaddr = 0;
+//    cache_init = false;
+//  } else if(!sConfigUpdate.empty())
+//  {
+//    NalConfigUpdate ca = sConfigUpdate.read();
+//    if(ca.config_addr == NAL_CONFIG_OWN_RANK)
+//    {
+//      own_rank = (NodeId) ca.update_value;
+//      cache_init = false;
+//    }
+//  } else {
 
 
     switch(fsmStateRX_Udp) {
@@ -523,11 +534,29 @@ void pUdpRx(
         fsmStateRX_Udp = FSM_W8FORMETA;
         //NO break;
       case FSM_W8FORMETA:
-        // Wait until both the first data chunk and the first metadata are received from UDP
-        if ( !siUOE_Meta.empty()
+        if( !cache_inval_sig.empty() )
+        {
+          if(cache_inval_sig.read())
+          {
+            cached_udp_rx_id = 0;
+            cached_udp_rx_ipaddr = 0;
+            cache_init = false;
+          }
+        } else if(!sConfigUpdate.empty())
+        {
+          NalConfigUpdate ca = sConfigUpdate.read();
+          if(ca.config_addr == NAL_CONFIG_OWN_RANK)
+          {
+            own_rank = (NodeId) ca.update_value;
+            cache_init = false;
+            cached_udp_rx_id = 0;
+            cached_udp_rx_ipaddr = 0;
+          }
+        } else if ( !siUOE_Meta.empty()
             //&& !soUdp_data.full() && !soUdp_meta.full()
             && !sGetNidReq_UdpRx.full())
         {
+          // Wait until both the first data chunk and the first metadata are received from UDP
           //ongoing_first_transaction = true;
           //extract src ip address
           siUOE_Meta.read(udpRxMeta);
@@ -688,14 +717,14 @@ void pUdpRx(
         evs_loop_i = 0;
       }
     }
-  } // else
+  //} // else
 }
 
 void pUdpCls(
     stream<UdpPort>             &soUOE_ClsReq,
     stream<StsBool>             &siUOE_ClsRep,
-    stream<UdpPort>       &sUdpPortsToClose,
-    const bool          *nts_ready_and_enabled
+    stream<UdpPort>       &sUdpPortsToClose
+    //const bool          *nts_ready_and_enabled
     )
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -713,39 +742,39 @@ void pUdpCls(
   static ap_uint<16> newAbsolutePortToClose = 0;
 
 
-  if(!*nts_ready_and_enabled)
-  {
-    clsFsmState_Udp = CLS_IDLE;
-  } else {
+//  if(!*nts_ready_and_enabled)
+//  {
+//    clsFsmState_Udp = CLS_IDLE;
+//  } else {
 
-    switch (clsFsmState_Udp) {
+    switch (clsFsmState_Udp) 
+    {
       default:
       case CLS_IDLE:
-        //we wait until we are activated;
-        //newRelativePortToClose = 0;
-        newAbsolutePortToClose = 0;
-        //if(*start_udp_cls_fsm)
-        if(!sUdpPortsToClose.empty())
-        {
-          clsFsmState_Udp = CLS_NEXT;
-          //*start_udp_cls_fsm = false;
-        }
-        break;
+        ////we wait until we are activated;
+        ////newRelativePortToClose = 0;
+        //newAbsolutePortToClose = 0;
+        ////if(*start_udp_cls_fsm)
+        //if(!sUdpPortsToClose.empty())
+        //{
+         clsFsmState_Udp = CLS_NEXT;
+        //  //*start_udp_cls_fsm = false;
+        //}
+        //break;
       case CLS_NEXT:
         //if( *udp_rx_ports_to_close != 0 )
-        if(!sUdpPortsToClose.empty())
+        if(!sUdpPortsToClose.empty() && !soUOE_ClsReq.full() )
         {
           //we have to close opened ports, one after another
           //newRelativePortToClose = getRightmostBitPos(*udp_rx_ports_to_close);
           //newAbsolutePortToClose = NAL_RX_MIN_PORT + newRelativePortToClose;
           newAbsolutePortToClose = sUdpPortsToClose.read();
-          if(!soUOE_ClsReq.full()) {
             soUOE_ClsReq.write(newAbsolutePortToClose);
             clsFsmState_Udp = CLS_WAIT4RESP;
-          } //else: just tay here
-        } else {
-          clsFsmState_Udp = CLS_IDLE;
-        }
+        } 
+        //else {
+        //  clsFsmState_Udp = CLS_IDLE;
+        //}
         break;
       case CLS_WAIT4RESP:
         if(!siUOE_ClsRep.empty())
@@ -769,7 +798,7 @@ void pUdpCls(
         }
         break;
     }
-  }
+  //}
 }
 
 
