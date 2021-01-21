@@ -939,13 +939,13 @@ void pPortLogic(
         port_fsm = PORT_L7_RESET;
       } else {
         //  port requests
-        if(udp_rx_ports_processed != *pi_udp_rx_ports)
-        {
-          port_fsm = PORT_NEW_UDP_REQ;
-        }
-        else if(processed_FMC_listen_port != *piMMIO_FmcLsnPort)
+        if(processed_FMC_listen_port != *piMMIO_FmcLsnPort)
         {
           port_fsm = PORT_NEW_FMC_REQ;
+        }
+        else if(udp_rx_ports_processed != *pi_udp_rx_ports)
+        {
+          port_fsm = PORT_NEW_UDP_REQ;
         }
         else if(tcp_rx_ports_processed != *pi_tcp_rx_ports)
         {
@@ -954,7 +954,7 @@ void pPortLogic(
       }
       break;
     case PORT_L4_RESET:
-      if(!sPortUpdate.full() 
+      if(!sPortUpdate.full()
         && (processed_FMC_listen_port != 0 || udp_rx_ports_processed != 0 || tcp_rx_ports_processed !=0 )
         )
       {//first, notify
@@ -962,7 +962,7 @@ void pPortLogic(
         {
           sPortUpdate.write(NalPortUpdate(FMC, 0));
           processed_FMC_listen_port = 0;
-        } 
+        }
         else if(udp_rx_ports_processed != 0)
         {
           sPortUpdate.write(NalPortUpdate(UDP, 0));

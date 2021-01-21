@@ -360,7 +360,7 @@ void pUdpLsn(
 #pragma HLS RESET variable=startupDelay
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
   static ap_uint<8>   watchDogTimer_plisten = 0;
-  ap_uint<16> new_absolute_port = 0;
+  static UdpPort new_absolute_port = 0;
 
 
 //  if(!*nts_ready_and_enabled)
@@ -397,7 +397,7 @@ void pUdpLsn(
         if ( !soUOE_LsnReq.full() && !sUdpPortsToOpen.empty())
         {
           //ap_uint<16> new_absolute_port = NAL_RX_MIN_PORT + *new_relative_port_to_req_udp;
-          UdpPort new_absolute_port = sUdpPortsToOpen.read();
+          new_absolute_port = sUdpPortsToOpen.read();
           soUOE_LsnReq.write(new_absolute_port);
           if (DEBUG_LEVEL & TRACE_LSN) {
             printInfo(myName, "Requesting to listen on port #%d (0x%4.4X).\n",
@@ -434,7 +434,6 @@ void pUdpLsn(
           }
         } else if (watchDogTimer_plisten == 0 && !sUdpPortsOpenFeedback.full() )
         {
-          ap_uint<16> new_absolute_port = 0;
           printError(myName, "Timeout: Server failed to listen on port %d %d (0x%4.4X).\n",
               (int)  new_absolute_port, (int) new_absolute_port);
           sUdpPortsOpenFeedback.write(false);

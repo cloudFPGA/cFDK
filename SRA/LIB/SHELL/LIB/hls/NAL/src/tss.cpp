@@ -65,7 +65,7 @@ void pTcpLsn(
 #ifdef __SYNTHESIS_
   static ap_uint<16>         startupDelay = 0x8000;
 #else
-  static ap_uint<16>         startupDelay = 30;
+  static ap_uint<16>         startupDelay = 5;
 #endif
 
 #pragma HLS RESET variable=lsnFsmState

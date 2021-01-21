@@ -767,9 +767,9 @@ void pROLE(
             meta_stream_out.tdata.src_port = NAL_RX_MIN_PORT;
             if(meta_stream_in.tdata.dst_port == 2718)
             {
-            	meta_stream_out.tdata.len = meta_stream_in.tdata.len;
+              meta_stream_out.tdata.len = meta_stream_in.tdata.len;
             } else {
-            	meta_stream_out.tdata.len = 0; //test streaming mode
+              meta_stream_out.tdata.len = 0; //test streaming mode
             }
             printf("ROLE received stream from Node %d:%d (recv. port %d, length %d)\n", (int) meta_stream_in.tdata.src_rank, (int) meta_stream_in.tdata.src_port, (int) meta_stream_in.tdata.dst_port, (int) meta_stream_in.tdata.len);
             soTRIF_meta.write(meta_stream_out);
@@ -978,13 +978,13 @@ void pTOE(
                     data += 8;
                     if(last == 1)
                     {
-                    	segCnt++;
-                    	tcp_packets_send++;
-                    	if (segCnt >= nrSegToSend) {
-                    	    rxpState = RXP_DONE;
-                    	} else {
-                    	    rxpState = RXP_SEND_NOTIF;
-                    	}
+                      segCnt++;
+                      tcp_packets_send++;
+                      if (segCnt >= nrSegToSend) {
+                          rxpState = RXP_DONE;
+                      } else {
+                          rxpState = RXP_SEND_NOTIF;
+                      }
                     }
                 }
             }
@@ -1108,52 +1108,52 @@ int main() {
     //------------------------------------------------------
     //-- STEP-1 : OPEN PORT REQUEST
     //------------------------------------------------------
-    printf("========================= BEGIN UDP Port Opening =========================\n");
-    for (int i=0; i<32; ++i) {
-      //we need ~18 cycles to copy all configs, and then a few more to copy the MRT
-        stepDut();
-        if ( !sNRC_UOE_LsnReq.empty() ) {
-            sNRC_UOE_LsnReq.read();
-            printf("[%4.4d] NRC->UOE_OpnReq : DUT is requesting to open a port.\n", simCnt);
-            stepDut();
-            sUOE_NRC_LsnRep.write(true);
-            printf("[%4.4d] NRC->UOE_OpnAck : TB  acknowledges the port opening.\n", simCnt);
-        }
-    }
-    printf("========================= END   UDP Port Opening =========================\n");
+    //printf("========================= BEGIN UDP Port Opening =========================\n");
+    //for (int i=0; i<32; ++i) {
+    //  //we need ~18 cycles to copy all configs, and then a few more to copy the MRT
+    //    stepDut();
+    //    if ( !sNRC_UOE_LsnReq.empty() ) {
+    //        sNRC_UOE_LsnReq.read();
+    //        printf("[%4.4d] NRC->UOE_OpnReq : DUT is requesting to open a port.\n", simCnt);
+    //        stepDut();
+    //        sUOE_NRC_LsnRep.write(true);
+    //        printf("[%4.4d] NRC->UOE_OpnAck : TB  acknowledges the port opening.\n", simCnt);
+    //    }
+    //}
+    //printf("========================= END   UDP Port Opening =========================\n");
 
-    //------------------------------------------------------
-    //-- STEP-2 : CREATE TRAFFIC AS INPUT STREAMS
-    //------------------------------------------------------
-    if (nrErr == 0) {
-        if (!setInputDataStream(sROLE_NRC_Data, "sROLE_NRC_Data", "ifsROLE_Urif_Data.dat")) {
-            printf("### ERROR : Failed to set input data stream \"sROLE_DataStream\". \n");
-            nrErr++;
-        }
-        
-        //there are 2 streams from the ROLE to UDMX
-        NetworkMeta tmp_meta = NetworkMeta(1,DEFAULT_RX_PORT,2,DEFAULT_RX_PORT,0);
-        siUdp_meta.write(NetworkMetaStream(tmp_meta));
-        siUdp_meta.write(NetworkMetaStream(tmp_meta));
+    ////------------------------------------------------------
+    ////-- STEP-2 : CREATE TRAFFIC AS INPUT STREAMS
+    ////------------------------------------------------------
+    //if (nrErr == 0) {
+    //    if (!setInputDataStream(sROLE_NRC_Data, "sROLE_NRC_Data", "ifsROLE_Urif_Data.dat")) {
+    //        printf("### ERROR : Failed to set input data stream \"sROLE_DataStream\". \n");
+    //        nrErr++;
+    //    }
+    //    
+    //    //there are 2 streams from the ROLE to UDMX
+    //    NetworkMeta tmp_meta = NetworkMeta(1,DEFAULT_RX_PORT,2,DEFAULT_RX_PORT,0);
+    //    siUdp_meta.write(NetworkMetaStream(tmp_meta));
+    //    siUdp_meta.write(NetworkMetaStream(tmp_meta));
 
-        if (!setInputDataStream(sUOE_NRC_Data, "sUOE_NRC_Data", "ifsUDMX_Urif_Data.dat")) {
-            printf("### ERROR : Failed to set input data stream \"sUOE_DataStream\". \n");
-            nrErr++;
-        }
-        //if (!setInputMetaStream(sUDMX_Urif_Meta, "sUDMX_Urif_Meta", "ifsUDMX_Urif_Data.dat")) {
-        //    printf("### ERROR : Failed to set input meta stream \"sUDMX_MetaStream\". \n");
-        //    nrErr++;
-        //}
-        //there are 3 streams from the UDMX to NRC
-        //UdpMeta     socketPair = SocketPair({DEFAULT_RX_PORT, 0x0A0B0C0E}, {DEFAULT_RX_PORT, 0x0A0B0C01});
-        UdpMeta     socketPair = SocketPair({0x0A0B0C0E, DEFAULT_RX_PORT}, {0x0A0B0C01, DEFAULT_RX_PORT});
-        sUOE_NRC_Meta.write(socketPair);
-        sUOE_NRC_Meta.write(socketPair);
-        sUOE_NRC_Meta.write(socketPair);
-        // Print Metadata to console
-        printf("[%4.4d] TB is filling input stream [Meta] - Metadata = {{SP=0x%4.4X,SA=0x%8.8X} {DP=0x%4.4X,DA=0x%8.8X}} \n",
-        simCnt, socketPair.src.port.to_int(), socketPair.src.addr.to_int(), socketPair.dst.port.to_int(), socketPair.dst.addr.to_int());
-    }
+    //    if (!setInputDataStream(sUOE_NRC_Data, "sUOE_NRC_Data", "ifsUDMX_Urif_Data.dat")) {
+    //        printf("### ERROR : Failed to set input data stream \"sUOE_DataStream\". \n");
+    //        nrErr++;
+    //    }
+    //    //if (!setInputMetaStream(sUDMX_Urif_Meta, "sUDMX_Urif_Meta", "ifsUDMX_Urif_Data.dat")) {
+    //    //    printf("### ERROR : Failed to set input meta stream \"sUDMX_MetaStream\". \n");
+    //    //    nrErr++;
+    //    //}
+    //    //there are 3 streams from the UDMX to NRC
+    //    //UdpMeta     socketPair = SocketPair({DEFAULT_RX_PORT, 0x0A0B0C0E}, {DEFAULT_RX_PORT, 0x0A0B0C01});
+    //    UdpMeta     socketPair = SocketPair({0x0A0B0C0E, DEFAULT_RX_PORT}, {0x0A0B0C01, DEFAULT_RX_PORT});
+    //    sUOE_NRC_Meta.write(socketPair);
+    //    sUOE_NRC_Meta.write(socketPair);
+    //    sUOE_NRC_Meta.write(socketPair);
+    //    // Print Metadata to console
+    //    printf("[%4.4d] TB is filling input stream [Meta] - Metadata = {{SP=0x%4.4X,SA=0x%8.8X} {DP=0x%4.4X,DA=0x%8.8X}} \n",
+    //    simCnt, socketPair.src.port.to_int(), socketPair.src.addr.to_int(), socketPair.dst.port.to_int(), socketPair.dst.addr.to_int());
+    //}
 
     //------------------------------------------------------
     //-- STEP-3 : MAIN TRAFFIC LOOP
@@ -1173,11 +1173,60 @@ int main() {
     fpgaLsnPort = 8803;
 
 
-    while (!nrErr) {
+    while (!nrErr) 
+    {
 
-        //if (simCnt < 42)
-        if (gSimCycCnt < MAX_SIM_CYCLES)
+      //if (simCnt < 42)
+      if (gSimCycCnt < MAX_SIM_CYCLES)
+      {
+
+        if(simCnt < 32)
         {
+          //UDP port logic
+          if ( !sNRC_UOE_LsnReq.empty() ) {
+            sNRC_UOE_LsnReq.read();
+            printf("[%4.4d] NRC->UOE_OpnReq : DUT is requesting to open a port.\n", simCnt);
+            sUOE_NRC_LsnRep.write(true);
+            printf("[%4.4d] NRC->UOE_OpnAck : TB  acknowledges the port opening.\n", simCnt);
+          }
+        }
+
+        //------------------------------------------------------
+        //-- CREATE UDP TRAFFIC AS INPUT STREAMS
+        //------------------------------------------------------
+        if (simCnt == 32) 
+        {
+          //by now, the config should have been copied
+
+          if (!setInputDataStream(sROLE_NRC_Data, "sROLE_NRC_Data", "ifsROLE_Urif_Data.dat")) {
+            printf("### ERROR : Failed to set input data stream \"sROLE_DataStream\". \n");
+            nrErr++;
+          }
+
+          //there are 2 streams from the ROLE to UDMX
+          NetworkMeta tmp_meta = NetworkMeta(1,DEFAULT_RX_PORT,2,DEFAULT_RX_PORT,0);
+          siUdp_meta.write(NetworkMetaStream(tmp_meta));
+          siUdp_meta.write(NetworkMetaStream(tmp_meta));
+
+          if (!setInputDataStream(sUOE_NRC_Data, "sUOE_NRC_Data", "ifsUDMX_Urif_Data.dat")) {
+            printf("### ERROR : Failed to set input data stream \"sUOE_DataStream\". \n");
+            nrErr++;
+          }
+          //if (!setInputMetaStream(sUDMX_Urif_Meta, "sUDMX_Urif_Meta", "ifsUDMX_Urif_Data.dat")) {
+          //    printf("### ERROR : Failed to set input meta stream \"sUDMX_MetaStream\". \n");
+          //    nrErr++;
+          //}
+          //there are 3 streams from the UDMX to NRC
+          //UdpMeta     socketPair = SocketPair({DEFAULT_RX_PORT, 0x0A0B0C0E}, {DEFAULT_RX_PORT, 0x0A0B0C01});
+          UdpMeta     socketPair = SocketPair({0x0A0B0C0E, DEFAULT_RX_PORT}, {0x0A0B0C01, DEFAULT_RX_PORT});
+          sUOE_NRC_Meta.write(socketPair);
+          sUOE_NRC_Meta.write(socketPair);
+          sUOE_NRC_Meta.write(socketPair);
+          // Print Metadata to console
+          //printf("[%4.4d] TB is filling input stream [Meta] - Metadata = {{SP=0x%4.4X,SA=0x%8.8X} {DP=0x%4.4X,DA=0x%8.8X}} \n",
+          //simCnt, socketPair.src.port.to_int(), socketPair.src.addr.to_int(), socketPair.dst.port.to_int(), socketPair.dst.addr.to_int());
+        }
+
         //-------------------------------------------------
         //-- EMULATE TOE
         //-------------------------------------------------
@@ -1194,7 +1243,7 @@ int main() {
             //-- TOE / Tx Data Interfaces
             sNRC_Toe_Data,
             sNRC_Toe_SndReq,
-      sTOE_Nrc_SndRep,
+            sTOE_Nrc_SndRep,
             //sTOE_Nrc_DSts,
             //-- TOE / Open Interfaces
             sNRC_Toe_OpnReq,
@@ -1204,13 +1253,14 @@ int main() {
         //-------------------------------------------------
         //-- RUN DUT
         //-------------------------------------------------
-            stepDut();
+        stepDut();
 
-            if( !soUdp_meta.empty())
-            {
-              NetworkMetaStream tmp_meta = soUdp_meta.read();
-              printf("Role received NRCmeta stream from rank %d.\n", (int) tmp_meta.tdata.src_rank);
-            }
+        //UDP meta
+        if( !soUdp_meta.empty())
+        {
+          NetworkMetaStream tmp_meta = soUdp_meta.read();
+          printf("Role received NRCmeta stream from rank %d.\n", (int) tmp_meta.tdata.src_rank);
+        }
 
         //-------------------------------------------------
         //-- EMULATE APP 1 (FMC)
@@ -1222,9 +1272,9 @@ int main() {
             //-- TRIF / Tx Data Interface
             sFMC_Nrc_Tcp_data,
             sFMC_Nrc_Tcp_sessId);
-        
+
         //-------------------------------------------------
-        //-- EMULATE APP 2 (ROLE)
+        //-- EMULATE APP 2 (ROLE-TCP)
         //-------------------------------------------------
         pROLE(
             //-- TRIF / Rx Data Interface
@@ -1246,11 +1296,11 @@ int main() {
         }
         if(simCnt == 180)
         {
-        	if(rxpState != RXP_DONE)
-        	{
-        		nrErr++;
-        		printf("[TB-ERROR] RXP engine is not in expected state!\n");
-        	}
+          if(rxpState != RXP_DONE)
+          {
+            nrErr++;
+            printf("[TB-ERROR] RXP engine is not in expected state!\n");
+          }
         //now test ROLE
         sessionId   = DEFAULT_SESSION_ID + 1;
         tcpSegLen   = DEFAULT_SESSION_LEN;
@@ -1266,11 +1316,11 @@ int main() {
         }
         if(simCnt == 223)
         {
-        	if(rxpState != RXP_DONE)
-        	{
-        		nrErr++;
-        		printf("[TB-ERROR] RXP engine is not in expected state!\n");
-        	}
+          if(rxpState != RXP_DONE)
+          {
+            nrErr++;
+            printf("[TB-ERROR] RXP engine is not in expected state!\n");
+          }
           sessionId   = DEFAULT_SESSION_ID + 2;
           sessionId_reply   = DEFAULT_SESSION_ID + 3;
           tcpSegLen   = DEFAULT_SESSION_LEN;
@@ -1286,12 +1336,12 @@ int main() {
         //}
         if(simCnt == 269)
         {
-        	if(rxpState != RXP_DONE)
-        	{
-        		nrErr++;
-        		printf("[TB-ERROR] RXP engine is not in expected state!\n");
-        	}
-        	//test again, but this time with connection timeout
+          if(rxpState != RXP_DONE)
+          {
+            nrErr++;
+            printf("[TB-ERROR] RXP engine is not in expected state!\n");
+          }
+          //test again, but this time with connection timeout
           sessionId   = DEFAULT_SESSION_ID + 4;
           sessionId_reply   = DEFAULT_SESSION_ID + 5;
           tcpSegLen   = DEFAULT_SESSION_LEN;
@@ -1391,5 +1441,5 @@ int main() {
 }
 
 
-
 /*! \} */
+
