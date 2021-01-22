@@ -576,6 +576,7 @@ void pTcpRDp(
           cached_src_id = INVALID_MRT_VALUE;
           cache_init = false;
         }
+        break;
       } else if(!sConfigUpdate.empty())
       {
         NalConfigUpdate ca = sConfigUpdate.read();
@@ -584,6 +585,7 @@ void pTcpRDp(
           own_rank = (NodeId) ca.update_value;
           cache_init = false;
         }
+        break;
       }
       else if (!sRDp_ReqNotif.empty()
           //!siTOE_SessId.empty()
@@ -1055,6 +1057,7 @@ void pTcpWRp(
           cached_dst_ip_addr = 0x0;
           cache_init = false;
         }
+        break;
       } 
       //else if (*expect_FMC_response && !siFMC_Tcp_SessId.empty() && !soTOE_SessId.full() && !soTOE_len.full() )
       else if (!siFMC_Tcp_SessId.empty() && !soTOE_SessId.full() && !soTOE_len.full() )

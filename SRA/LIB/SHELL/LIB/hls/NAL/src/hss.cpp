@@ -905,6 +905,8 @@ void pPortLogic(
       if(!sConfigUpdate.empty())
       {
         // restore saved states (after NAL got reset)
+        // TODO: apparently, this isn't working in time...for this we have to have a bigger "stabilizing count"
+        // at the other side: to request ports twice is apparently not harmful
         NalConfigUpdate ca = sConfigUpdate.read();
         switch(ca.config_addr)
         {
@@ -993,6 +995,7 @@ void pPortLogic(
           port_fsm = PORT_START_UDP_CLS;
         } else if(tcp_rx_ports_processed > 0)
         {
+          //port_fsm = PORT_START_TCP_CLS_0;
           port_fsm = PORT_START_TCP_CLS_1;
         } else {
           port_fsm = PORT_IDLE;
@@ -1010,20 +1013,22 @@ void pPortLogic(
         //udp_rx_ports_to_close = udp_rx_ports_processed;
         ap_uint<16> newRelativePortToClose = 0;
         ap_uint<16> newAbsolutePortToClose = 0;
-        newRelativePortToClose = getRightmostBitPos(udp_rx_ports_processed);
         //while(newRelativePortToClose != 0 && !sUdpPortsToClose.full())
         //if(newRelativePortToClose != 0 && !sUdpPortsToClose.full())
-        if(newRelativePortToClose != 0)
+        //if(newRelativePortToClose != 0)
+        if(udp_rx_ports_processed != 0)
         {
+          newRelativePortToClose = getRightmostBitPos(udp_rx_ports_processed);
           newAbsolutePortToClose = NAL_RX_MIN_PORT + newRelativePortToClose;
           sUdpPortsToClose.write(newAbsolutePortToClose);
           ap_uint<32> one_cold_closed_port = ~(((ap_uint<32>) 1) << (newRelativePortToClose));
           udp_rx_ports_processed &= one_cold_closed_port;
           printf("new UDP port ports to close: %#04x\n",(unsigned int) udp_rx_ports_processed);
           //newRelativePortToClose = getRightmostBitPos(udp_rx_ports_processed);
-        } else {
-          udp_rx_ports_processed = 0x0;
         }
+        //else {
+        //  udp_rx_ports_processed = 0x0;
+        //}
         if(udp_rx_ports_processed == 0)
         {
           current_port_update = NalPortUpdate(UDP, 0);
@@ -1031,6 +1036,10 @@ void pPortLogic(
         }
       }
       break;
+    //case PORT_START_TCP_CLS_0:
+    //to close the open Role ports (not connections)
+    //TODO, add if TOE supports it
+    //  break;
     case PORT_START_TCP_CLS_1:
       if(!sMarkToDel_unpriv.full())
       {

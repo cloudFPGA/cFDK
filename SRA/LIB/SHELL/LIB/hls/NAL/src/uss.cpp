@@ -116,7 +116,8 @@ void pUdpTX(
             cached_nodeid_udp_tx = UNUSED_SESSION_ENTRY_VALUE;
             cached_ip4addr_udp_tx = 0;
           }
-        } 
+          break;
+        }
         else if ( !siUdp_meta.empty() &&
             //!soUOE_Meta.full() &&
             //!siUdp_data.empty() &&
@@ -262,7 +263,7 @@ void pUdpTX(
           //          } else {
           //            fsmStateTX_Udp = FSM_ACC;
           //          }
-          fsmStateTX_Udp = FSM_ACC;
+          fsmStateTX_Udp = FSM_ACC; //BUG, META in clean way //TODO
         }
         break;
 
@@ -530,7 +531,7 @@ void pUdpRx(
     switch(fsmStateRX_Udp) {
 
       default:
-      case FSM_RESET:
+      //case FSM_RESET:
         //fsmStateRX_Udp = FSM_W8FORMETA;
         //NO break;
       case FSM_W8FORMETA:
@@ -542,6 +543,7 @@ void pUdpRx(
             cached_udp_rx_ipaddr = 0;
             cache_init = false;
           }
+          break;
         } else if(!sConfigUpdate.empty())
         {
           NalConfigUpdate ca = sConfigUpdate.read();
@@ -552,6 +554,7 @@ void pUdpRx(
             cached_udp_rx_id = 0;
             cached_udp_rx_ipaddr = 0;
           }
+          break;
         } else if ( !siUOE_Meta.empty()
             //&& !soUdp_data.full() && !soUdp_meta.full()
             && !sGetNidReq_UdpRx.full())
