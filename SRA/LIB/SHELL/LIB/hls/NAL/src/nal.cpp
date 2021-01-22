@@ -940,7 +940,7 @@ void nal_main(
       //sA4lToTcpAgency, //(currently not used)
       sA4lToPortLogic, sA4lToUdpRx,
       sA4lToTcpRx, sA4lToStatusProc,
-      localMRT, 
+      localMRT,
       sMrtVersionUpdate_0, sMrtVersionUpdate_1,
       sStatusUpdate);
 

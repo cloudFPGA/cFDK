@@ -476,7 +476,7 @@ void pUdpRx(
   char   *myName  = concat3(THIS_NAME, "/", "Udp_RX");
 
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-  static FsmStateUdp fsmStateRX_Udp = FSM_RESET;
+  static FsmStateUdp fsmStateRX_Udp = FSM_W8FORMETA;
   static NodeId cached_udp_rx_id = 0;
   static Ip4Addr cached_udp_rx_ipaddr = 0;
   static NodeId own_rank = 0;
@@ -498,6 +498,7 @@ void pUdpRx(
   static NetworkMeta in_meta;
 
   static stream<NalEventNotif> evsStreams[4];
+  //static bool go_to_start;
 
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
   //bool ongoing_first_transaction = false;
@@ -530,7 +531,7 @@ void pUdpRx(
 
       default:
       case FSM_RESET:
-        fsmStateRX_Udp = FSM_W8FORMETA;
+        //fsmStateRX_Udp = FSM_W8FORMETA;
         //NO break;
       case FSM_W8FORMETA:
         if( !cache_inval_sig.empty() )
@@ -634,6 +635,7 @@ void pUdpRx(
 
         //write metadata
         meta_written = false;
+        //go_to_start = false;
         //soUdp_meta.write(in_meta_udp);
         //packet_count_RX++;
         new_ev_not = NalEventNotif(PACKET_RX, 1);
@@ -652,7 +654,8 @@ void pUdpRx(
         //            //we are already done, stay here
         //            fsmStateRX_Udp = FSM_W8FORMETA;
         //          }
-        fsmStateRX_Udp = FSM_ACC;
+        //fsmStateRX_Udp = FSM_ACC;
+        fsmStateRX_Udp = FSM_WRITE_META;
         //}
         break;
 
@@ -667,15 +670,23 @@ void pUdpRx(
           // Until LAST bit is set
           if (udpWord.tlast == 1)
           {
-            if(!meta_written)
-            {
-              fsmStateRX_Udp = FSM_WRITE_META;
-            } else {
+            //if(!meta_written)
+            //{
+            //  fsmStateRX_Udp = FSM_WRITE_META;
+            //} else {
+            //  fsmStateRX_Udp = FSM_W8FORMETA;
+            //}
+            //if(meta_written)
+            //{
               fsmStateRX_Udp = FSM_W8FORMETA;
-            }
+            //} else {
+            //  fsmStateRX_Udp = FSM_WRITE_META;
+            //  go_to_start = true;
+            //}
           }
         }
         //NO break;
+        break;
       case FSM_WRITE_META:
         //split due to timing...
         if( !soUdp_meta.full() && !meta_written)
@@ -683,10 +694,12 @@ void pUdpRx(
           in_meta_udp_stream = NetworkMetaStream(in_meta);
           soUdp_meta.write(in_meta_udp_stream);
           meta_written = true;
-          if(fsmStateRX_Udp == FSM_WRITE_META)
-          {
-            fsmStateRX_Udp = FSM_W8FORMETA;
-          }
+          //if(fsmStateRX_Udp == FSM_WRITE_META)
+          //if(go_to_start)
+          //{
+          //  fsmStateRX_Udp = FSM_W8FORMETA;
+          //}
+          fsmStateRX_Udp = FSM_ACC;
         }
         break;
 

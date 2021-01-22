@@ -89,7 +89,7 @@ void axi4liteProcessing(
 #pragma HLS reset variable=tables_initialized
 #pragma HLS reset variable=a4lFsm
 #pragma HLS reset variable=cbFsm
-#pragma HLS reset variable=procssed_mrt_version
+#pragma HLS reset variable=processed_mrt_version
 #pragma HLS reset variable=mbFsm
 
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
