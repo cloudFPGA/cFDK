@@ -495,7 +495,7 @@ void pTcpRDp(
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
   static RdpFsmStates rdpFsmState = RDP_WAIT_META;
   static ap_uint<64> cached_tcp_rx_triple = UNUSED_TABLE_ENTRY_VALUE;
-  static bool Tcp_RX_metaWritten = false;
+  //static bool Tcp_RX_metaWritten = false;
   static SessionId cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
   static NodeId own_rank = 0;
   static NodeId cached_src_id = INVALID_MRT_VALUE;
@@ -505,7 +505,7 @@ void pTcpRDp(
 
 #pragma HLS RESET variable=rdpFsmState
 #pragma HLS RESET variable=cached_tcp_rx_triple
-#pragma HLS RESET variable=Tcp_RX_metaWritten
+//#pragma HLS RESET variable=Tcp_RX_metaWritten
 #pragma HLS RESET variable=cached_tcp_rx_session_id
 #pragma HLS RESET variable=cached_src_id
 #pragma HLS RESET variable=cache_init
@@ -611,15 +611,16 @@ void pTcpRDp(
           rdpFsmState = RDP_W8FORREQS_1;
           cache_init = false;
           printf("[Tcp-RDP:INFO] Need to request session and node id.\n");
-          break;
+          //break;
         }
-      } else {
-        break;
       }
-      //NO break;
+      //else {
+        break;
+      //}
+      ////NO break;
     case RDP_W8FORREQS_1:
-      if(!cache_init)
-      {
+      //if(!cache_init)
+      //{
         if(!sGetTripleFromSid_Rep.empty() && !sGetNidReq_TcpRx.full())
         {
           //triple_in = getTrippleFromSessionId(sessId);
@@ -631,7 +632,7 @@ void pTcpRDp(
             sGetNidReq_TcpRx.write(remoteAddr);
             printf("[TCP-RX:INFO] need to ask for Node ID.\n");
             rdpFsmState = RDP_W8FORREQS_2;
-            break;
+            //break;
           } else {
             printf("[TCP-RX:INFO] found possible FMC connection, write to cache.\n");
             cache_init = true;
@@ -640,18 +641,19 @@ void pTcpRDp(
             cached_tcp_rx_triple = triple_in;
             rdpFsmState = RDP_FILTER_META;
           }
-          rdpFsmState = RDP_W8FORREQS_2;
-        } else {
-          break;
+          //rdpFsmState = RDP_W8FORREQS_2;
         }
+        //else {
+          break;
+        //}
 
-      } else {
+      //} else {
         rdpFsmState = RDP_W8FORREQS_2;
-      }
+      //}
       //NO break;
     case RDP_W8FORREQS_2:
-      if(!cache_init)
-      {
+      //if(!cache_init)
+      //{
         if(!sGetNidRep_TcpRx.empty())
         {
 
@@ -662,15 +664,18 @@ void pTcpRDp(
           cached_tcp_rx_session_id = sessId;
           cached_tcp_rx_triple = triple_in;
           rdpFsmState = RDP_FILTER_META;
-        } else {
-          break;
         }
-      } else {
-        rdpFsmState = RDP_FILTER_META;
-      }
-      //NO break;
+        //else {
+          break;
+        //}
+      //} else {
+      //  rdpFsmState = RDP_FILTER_META;
+      //}
+      ////NO break;
     case RDP_FILTER_META:
-      if(!sMarkAsPriv.full() && !siTOE_SessId.empty())
+      if(!sMarkAsPriv.full() && !siTOE_SessId.empty()
+        && !soTcp_meta.full() //&& !soFMC_Tcp_SessId.full()
+        )
       {
         TcpAppMeta controll_id = siTOE_SessId.read();
         if(controll_id != sessId)
@@ -699,9 +704,12 @@ void pTcpRDp(
           if(remoteAddr == *piMMIO_CfrmIp4Addr)
           {//valid connection to FMC
             printf("found valid FMC connection.\n");
-            Tcp_RX_metaWritten = false;
+            //Tcp_RX_metaWritten = false;
             session_toFMC = sessId;
+            //blocking write, because it is a FIFO
+            soFMC_Tcp_SessId.write(session_toFMC);
             rdpFsmState = RDP_STREAM_FMC;
+            //rdpFsmState = RDP_WRITE_META_FMC;
             //authorized_access_cnt++;
             new_ev_not = NalEventNotif(AUTH_ACCESS, 1);
             //internal_event_fifo.write(new_ev_not);
@@ -750,8 +758,16 @@ void pTcpRDp(
         evsStreams[4].write(new_ev_not);
         tmp_meta = NetworkMeta(own_rank, dstPort, src_id, srcPort, current_length);
         in_meta_tcp = NetworkMetaStream(tmp_meta);
-        Tcp_RX_metaWritten = false;
+        //Tcp_RX_metaWritten = false;
+        
+        //write meta
+        soTcp_meta.write(in_meta_tcp);
+        //packet_count_RX++;
+        new_ev_not = NalEventNotif(PACKET_RX, 1);
+        //internal_event_fifo.write(new_ev_not);
+        evsStreams[5].write(new_ev_not);
         rdpFsmState  = RDP_STREAM_ROLE;
+        //rdpFsmState = RDP_WRITE_META_ROLE;
       }
       break;
     case RDP_STREAM_ROLE:
@@ -770,19 +786,20 @@ void pTcpRDp(
           rdpFsmState  = RDP_WAIT_META;
         }
       }
-      // NO break;
-    case RDP_WRITE_META_ROLE:
-      if( !Tcp_RX_metaWritten && !soTcp_meta.full())
-      {
-        soTcp_meta.write(in_meta_tcp);
-        //packet_count_RX++;
-        new_ev_not = NalEventNotif(PACKET_RX, 1);
-        //internal_event_fifo.write(new_ev_not);
-        evsStreams[5].write(new_ev_not);
-        Tcp_RX_metaWritten = true;
-      }
       break;
-
+      //// NO break;
+    //case RDP_WRITE_META_ROLE:
+    //  if(!soTcp_meta.full())
+    //  {
+    //    soTcp_meta.write(in_meta_tcp);
+    //    //packet_count_RX++;
+    //    new_ev_not = NalEventNotif(PACKET_RX, 1);
+    //    //internal_event_fifo.write(new_ev_not);
+    //    evsStreams[5].write(new_ev_not);
+    //    //Tcp_RX_metaWritten = true;
+    //    rdpFsmState = RDP_STREAM_ROLE;
+    //  }
+    //  break;
     case RDP_STREAM_FMC:
       if (!siTOE_Data.empty() )
       {
@@ -802,17 +819,17 @@ void pTcpRDp(
         //internal_event_fifo.write(new_ev_not);
         evsStreams[6].write(new_ev_not);
       }
-      // NO break;
-    case RDP_WRITE_META_FMC:
-      if( !Tcp_RX_metaWritten )
-      {
-        //blocking write, because it is a FIFO
-        soFMC_Tcp_SessId.write(session_toFMC);
-        //TODO: count incoming FMC packets?
-        Tcp_RX_metaWritten = true;
-      }
       break;
-
+      //// NO break;
+    //case RDP_WRITE_META_FMC:
+    //  if(!soFMC_Tcp_SessId.full())
+    //  {
+    //    //blocking write, because it is a FIFO
+    //    soFMC_Tcp_SessId.write(session_toFMC);
+    //    //TODO: count incoming FMC packets?
+    //    rdpFsmState = RDP_STREAM_FMC;
+    //  }
+    //  break;
     case RDP_DROP_PACKET:
       if( !siTOE_Data.empty())
       {
@@ -993,7 +1010,7 @@ void pTcpWRp(
   static NetworkMetaStream out_meta_tcp = NetworkMetaStream(); //DON'T FORGET to initilize!
   static NetworkDataLength tcpTX_packet_length = 0;
   static NetworkDataLength tcpTX_current_packet_length = 0;
-  static   TcpAppMeta   tcpSessId = TcpAppMeta();
+  static TcpAppMeta   tcpSessId = TcpAppMeta();
   static NodeId dst_rank = INVALID_MRT_VALUE;
   static Ip4Addr dst_ip_addr = 0x0;
   static NrcPort src_port = 0x0;
@@ -1058,7 +1075,7 @@ void pTcpWRp(
           cache_init = false;
         }
         break;
-      } 
+      }
       //else if (*expect_FMC_response && !siFMC_Tcp_SessId.empty() && !soTOE_SessId.full() && !soTOE_len.full() )
       else if (!siFMC_Tcp_SessId.empty() && !soTOE_SessId.full() && !soTOE_len.full() )
       {
@@ -1081,7 +1098,7 @@ void pTcpWRp(
         }
         wrpFsmState = WRP_STREAM_FMC;
         break;
-      } 
+      }
       else if (!siTcp_meta.empty() && !soTOE_SessId.full() && !sGetIpReq_TcpTx.full() && !soTOE_len.full() )
       {
         //now ask the ROLE
@@ -1131,7 +1148,7 @@ void pTcpWRp(
           sGetIpReq_TcpTx.write(dst_rank);
           cache_init = false;
           wrpFsmState = WRP_W8FORREQS_1;
-          break;
+          //break;
         }
 
 
@@ -1142,20 +1159,21 @@ void pTcpWRp(
       // NO break;
 
     case WRP_W8FORREQS_1:
-      if(!cache_init)
-      {
+      //if(!cache_init)
+      //{
         if(!sGetIpRep_TcpTx.empty())
         {
           dst_ip_addr = sGetIpRep_TcpTx.read();
           wrpFsmState = WRP_W8FORREQS_11;
         }
-        break; //to meet timing
+        break;
 
-      }
+      //}
       // NO break;
     case WRP_W8FORREQS_11:
       //both cases
-      if(cache_init || !sGetSidFromTriple_Req.full())
+      if(//cache_init || i
+         !sGetSidFromTriple_Req.full())
       {
         //not else, in both cases
         wrpFsmState = WRP_W8FORREQS_2;
@@ -1181,20 +1199,21 @@ void pTcpWRp(
         {
           printf("used TCP TX tripple chache.\n");
           sessId = cached_tcp_tx_session_id;
+          wrpFsmState = WRP_W8FORREQS_22;
         } else {
           //need request
           sGetSidFromTriple_Req.write(new_triple);
           cache_init = false;
           wrpFsmState = WRP_W8FORREQS_2;
-          break;
+          //break;
         }
-      } else {
+      } //else {
         break;
-      }
-      //NO break;
+      //}
+      ////NO break;
     case WRP_W8FORREQS_2:
-      if(!cache_init )
-      {
+      //if(!cache_init )
+      //{
         if(!sGetSidFromTriple_Rep.empty())
         {
           //sessId = getSessionIdFromTriple(new_triple);
@@ -1204,10 +1223,13 @@ void pTcpWRp(
           cached_dst_ip_addr = dst_ip_addr;
           cached_dst_rank = dst_rank;
           cache_init = true;
-        } else {
-          break;
+          wrpFsmState = WRP_W8FORREQS_22;
         }
-      }
+        // else {
+          break;
+        //}
+      //}
+    case WRP_W8FORREQS_22:
       if(!soTOE_SessId.full() && !sNewTcpCon_Req.full() && !soTOE_len.full() )
       {
         //both cases
@@ -1474,6 +1496,8 @@ void pTcpWRp(
  *
  ******************************************************************************/
 void pTcpWBu(
+    ap_uint<1>        *layer_4_enabled,
+    ap_uint<1>        *piNTS_ready,
     stream<TcpAppData>        &siWrp_Data,
     stream<TcpAppMeta>        &siWrp_SessId,
     stream<TcpDatLen>     &siWrp_len,
@@ -1531,8 +1555,6 @@ void pTcpWBu(
   switch(wbuState) {
     default:
     case WBU_WAIT_META:
-      //reset remaining variables
-      dequeue_cnt = 0;
       //wait for meta
       if(!siWrp_SessId.empty() && !siWrp_len.empty())
       {
@@ -1541,7 +1563,12 @@ void pTcpWBu(
         original_requested_length = new_len;
 
         current_requested_length = new_len;
+        dequeue_cnt = 0;
         wbuState = WBU_SND_REQ;
+      }
+      if(*layer_4_enabled == 0 || *piNTS_ready == 0)
+      {
+        wbuState = WBU_DRAIN;
       }
       break;
     case WBU_SND_REQ:
@@ -1556,6 +1583,10 @@ void pTcpWBu(
         }
         wbuState = WBU_WAIT_REP;
 
+      }
+      if(*layer_4_enabled == 0 || *piNTS_ready == 0)
+      {
+        wbuState = WBU_DRAIN;
       }
       break;
     case WBU_WAIT_REP:
@@ -1598,6 +1629,10 @@ void pTcpWBu(
             break;
         }
       }
+      if(*layer_4_enabled == 0 || *piNTS_ready == 0)
+      {
+        wbuState = WBU_DRAIN;
+      }
       break;
     case WBU_STREAM:
       //dequeue data
@@ -1629,6 +1664,10 @@ void pTcpWBu(
         //}
         soTOE_Data.write(tmp);
       }
+      if(*layer_4_enabled == 0 || *piNTS_ready == 0)
+      {
+        wbuState = WBU_DRAIN;
+      }
       break;
     case WBU_DROP:
       //TODO: delete, because WRP ensures this should not happen?
@@ -1646,6 +1685,26 @@ void pTcpWBu(
             wbuState = WBU_WAIT_META;
           }
         }
+      }
+      break;
+    case WBU_DRAIN:
+      //drain all streams
+      if(*layer_4_enabled == 0 || *piNTS_ready == 0)
+      {
+        if(!siWrp_Data.empty())
+        {
+          siWrp_Data.read();
+        }
+        if(!siWrp_SessId.empty())
+        {
+          siWrp_SessId.read();
+        }
+        if(!siWrp_len.empty())
+        {
+          siWrp_len.read();
+        }
+      } else {
+        wbuState = WBU_WAIT_META;
       }
       break;
   } //switch

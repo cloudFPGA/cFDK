@@ -136,6 +136,8 @@ void pTcpWRp(
 
 
 void pTcpWBu(
+    ap_uint<1>        *layer_4_enabled,
+    ap_uint<1>        *piNTS_ready,
     stream<TcpAppData>        &siWrp_Data,
     stream<TcpAppMeta>        &siWrp_SessId,
     stream<TcpDatLen>     &siWrp_len,

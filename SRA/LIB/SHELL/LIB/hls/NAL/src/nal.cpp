@@ -907,7 +907,7 @@ void nal_main(
       sGetSidFromTriple_Req, sGetSidFromTriple_Rep, sNewTcpCon_Req, sNewTcpCon_Rep,
       sCacheInvalSig_3, internal_event_fifo_3);
 
-  pTcpWBu(sTcpWrp2Wbu_data, sTcpWrp2Wbu_sessId, sTcpWrp2Wbu_len,
+  pTcpWBu(layer_4_enabled, piNTS_ready, sTcpWrp2Wbu_data, sTcpWrp2Wbu_sessId, sTcpWrp2Wbu_len,
       soTOE_Data, soTOE_SndReq, siTOE_SndRep);
 
   //=================================================================================================

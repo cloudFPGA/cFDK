@@ -59,14 +59,14 @@ void pUdpTX(
   static Ip4Addr cached_ip4addr_udp_tx = 0;
   static bool cache_init = false;
   static uint8_t evs_loop_i = 0;
-  bool meta_written = false;
+  //static bool meta_written = false;
 
 #pragma HLS RESET variable=fsmStateTX_Udp
 #pragma HLS RESET variable=cached_nodeid_udp_tx
 #pragma HLS RESET variable=cached_ip4addr_udp_tx
 #pragma HLS RESET variable=cache_init
 #pragma HLS RESET variable=evs_loop_i
-#pragma HLS RESET variable=meta_written
+//#pragma HLS RESET variable=meta_written
 
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
   static UdpAppDLen udpTX_packet_length = 0;
@@ -176,13 +176,14 @@ void pUdpTX(
             fsmStateTX_Udp = FSM_W8FORREQS;
             //break;
           }
-        } else {
+        } 
+        //else {
           break;
-        }
-        //NO break;
+        //}
+        ////NO break;
       case FSM_W8FORREQS:
-        if(!cache_init)
-        {//so in case we have a cache hit, we skip this state
+        //if(!cache_init)
+        //{//so in case we have a cache hit, we skip this state
 
           if(!sGetIpRep_UdpTx.empty())
           {
@@ -192,20 +193,20 @@ void pUdpTX(
             cached_ip4addr_udp_tx = dst_ip_addr;
             cache_init = true;
             fsmStateTX_Udp = FSM_FIRST_ACC;
-          } else {
+          } //else {
             break;
-          }
+          //}
 
-        } else {
-          fsmStateTX_Udp = FSM_FIRST_ACC;
-        }
+        //} else {
+        //  fsmStateTX_Udp = FSM_FIRST_ACC;
+        //}
         //NO break;
 
       case FSM_FIRST_ACC:
         if (//!soUOE_Meta.full() //&& !soUOE_Data.full() &&
             //!siUdp_data.empty()
-            //&&
-            !soUOE_DLen.full() )
+            !soUOE_Meta.full()
+            && !soUOE_DLen.full() )
         {
           if(dst_ip_addr == 0)
           {
@@ -237,8 +238,8 @@ void pUdpTX(
           txMeta.dst.addr = dst_ip_addr;
 
           // Forward data chunk, metadata and payload length
-          //soUOE_Meta.write(txMeta);
-          meta_written = false;
+          soUOE_Meta.write(txMeta);
+          //meta_written = false;
 
           //we can forward the length, even if 0
           //the UOE handles this as streaming mode
@@ -263,7 +264,7 @@ void pUdpTX(
           //          } else {
           //            fsmStateTX_Udp = FSM_ACC;
           //          }
-          fsmStateTX_Udp = FSM_ACC; //BUG, META in clean way //TODO
+          fsmStateTX_Udp = FSM_ACC;
         }
         break;
 
@@ -283,27 +284,28 @@ void pUdpTX(
           // Until LAST bit is set
           if (aWord.getTLast() == 1)
           {
-            if(!meta_written)
-            {
-              fsmStateTX_Udp = FSM_WRITE_META;
-            } else {
+            //if(!meta_written)
+            //{
+            //  fsmStateTX_Udp = FSM_WRITE_META;
+            //} else {
               fsmStateTX_Udp = FSM_W8FORMETA;
-            }
+            //}
           }
         }
         //NO break;
-      case FSM_WRITE_META:
-        //split due to timing...
-        if(!soUOE_Meta.full() && !meta_written)
-        {
-          soUOE_Meta.write(txMeta);
-          meta_written = true;
-          if(fsmStateTX_Udp == FSM_WRITE_META)
-          {
-            fsmStateTX_Udp = FSM_W8FORMETA;
-          }
-        }
         break;
+      //case FSM_WRITE_META:
+      //  //split due to timing...
+      //  if(!soUOE_Meta.full() && !meta_written)
+      //  {
+      //    soUOE_Meta.write(txMeta);
+      //    meta_written = true;
+      //    if(fsmStateTX_Udp == FSM_WRITE_META)
+      //    {
+      //      fsmStateTX_Udp = FSM_W8FORMETA;
+      //    }
+      //  }
+      //  break;
 
       case FSM_DROP_PACKET:
         if ( !siUdp_data.empty() )
@@ -483,7 +485,7 @@ void pUdpRx(
   static NodeId own_rank = 0;
   static bool cache_init = false;
   static uint8_t evs_loop_i = 0;
-  static bool meta_written = false;
+  //static bool meta_written = false;
 
 #pragma HLS RESET variable=fsmStateRX_Udp
 #pragma HLS RESET variable=cached_udp_rx_id
@@ -491,7 +493,7 @@ void pUdpRx(
 #pragma HLS RESET variable=own_rank
 #pragma HLS RESET variable=cache_init
 #pragma HLS RESET variable=evs_loop_i
-#pragma HLS RESET variable=meta_written
+//#pragma HLS RESET variable=meta_written
 
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
   static UdpMeta udpRxMeta;
@@ -579,16 +581,17 @@ void pUdpRx(
             //src_id = getNodeIdFromIpAddress(udpRxMeta.src.addr);
             sGetNidReq_UdpRx.write(udpRxMeta.src.addr);
             fsmStateRX_Udp = FSM_W8FORREQS;
-            break;
+            //break;
           }
-        }  else {
-          break;
         }
-        //NO break;
+        //else {
+          break;
+        //}
+        ////NO break;
 
       case FSM_W8FORREQS:
-        if(!cache_init)
-        {
+        //if(!cache_init)
+        //{
           if(!sGetNidRep_UdpRx.empty())
           {
             src_id = sGetNidRep_UdpRx.read();
@@ -596,19 +599,20 @@ void pUdpRx(
             cached_udp_rx_id = src_id;
             cache_init = true;
             fsmStateRX_Udp = FSM_FIRST_ACC;
-          } else {
-            break;
           }
+         // else {
+            break;
+         // }
 
-        } else {
-          fsmStateRX_Udp = FSM_FIRST_ACC;
-        }
-        //NO break;
+        //} else {
+        //  fsmStateRX_Udp = FSM_FIRST_ACC;
+        //}
+        ////NO break;
 
       case FSM_FIRST_ACC:
-        //if( //!siUOE_Data.empty() && !soUdp_data.full() &&
-        //    !soUdp_meta.full())
-        //{
+        if( //!siUOE_Data.empty() && !soUdp_data.full() &&
+            !soUdp_meta.full())
+        {
         if(src_id == ((NodeId) INVALID_MRT_VALUE))
         {
           //SINK packet
@@ -637,8 +641,10 @@ void pUdpRx(
         in_meta.src_rank = src_id;
 
         //write metadata
-        meta_written = false;
+        //meta_written = false;
         //go_to_start = false;
+        in_meta_udp_stream = NetworkMetaStream(in_meta);
+        soUdp_meta.write(in_meta_udp_stream);
         //soUdp_meta.write(in_meta_udp);
         //packet_count_RX++;
         new_ev_not = NalEventNotif(PACKET_RX, 1);
@@ -657,9 +663,9 @@ void pUdpRx(
         //            //we are already done, stay here
         //            fsmStateRX_Udp = FSM_W8FORMETA;
         //          }
-        //fsmStateRX_Udp = FSM_ACC;
-        fsmStateRX_Udp = FSM_WRITE_META;
-        //}
+        fsmStateRX_Udp = FSM_ACC;
+        //fsmStateRX_Udp = FSM_WRITE_META;
+        }
         break;
 
       case FSM_ACC:
@@ -690,21 +696,21 @@ void pUdpRx(
         }
         //NO break;
         break;
-      case FSM_WRITE_META:
-        //split due to timing...
-        if( !soUdp_meta.full() && !meta_written)
-        {
-          in_meta_udp_stream = NetworkMetaStream(in_meta);
-          soUdp_meta.write(in_meta_udp_stream);
-          meta_written = true;
-          //if(fsmStateRX_Udp == FSM_WRITE_META)
-          //if(go_to_start)
-          //{
-          //  fsmStateRX_Udp = FSM_W8FORMETA;
-          //}
-          fsmStateRX_Udp = FSM_ACC;
-        }
-        break;
+      //case FSM_WRITE_META:
+      //  //split due to timing...
+      //  if( !soUdp_meta.full() && !meta_written)
+      //  {
+      //    in_meta_udp_stream = NetworkMetaStream(in_meta);
+      //    soUdp_meta.write(in_meta_udp_stream);
+      //    meta_written = true;
+      //    //if(fsmStateRX_Udp == FSM_WRITE_META)
+      //    //if(go_to_start)
+      //    //{
+      //    //  fsmStateRX_Udp = FSM_W8FORMETA;
+      //    //}
+      //    fsmStateRX_Udp = FSM_ACC;
+      //  }
+      //  break;
 
       case FSM_DROP_PACKET:
         if( !siUOE_Data.empty() )
