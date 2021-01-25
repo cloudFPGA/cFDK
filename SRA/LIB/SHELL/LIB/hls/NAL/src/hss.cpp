@@ -76,6 +76,7 @@ void axi4liteProcessing(
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
   //no pipeline, isn't compatible to AXI4Lite bus
+#pragma HLS pipeline II=1
 
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
   static uint16_t tableCopyVariable = 0;
@@ -99,10 +100,16 @@ void axi4liteProcessing(
 
   static ap_uint<16> configProp = 0x0;
   static NalConfigUpdate cu_toCB = NalConfigUpdate();
+  static ap_uint<32> new_word;
 
+  //static bool enalbe_sub_fsms = false;
+
+#pragma HLS ARRAY_PARTITION variable=status cyclic factor=4 dim=1
+#pragma HLS ARRAY_PARTITION variable=config cyclic factor=4 dim=1
 
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
   NalConfigUpdate cu = NalConfigUpdate();
+  uint32_t new_mrt_version;
 
   /* if(*layer_4_enabled == 0)
      {
@@ -110,10 +117,10 @@ void axi4liteProcessing(
   tables_initialized = false;
   }
   */
-  // ----- tables init -----
 
   if(!tables_initialized)
   {
+    // ----- tables init -----
     for(int i = 0; i < MAX_MRT_SIZE; i++)
     {
       localMRT[i] = 0x0;
@@ -128,56 +135,75 @@ void axi4liteProcessing(
     }
     tables_initialized = true;
   }
-  // ----- always apply and serve updates -----
-
-  if(!sStatusUpdate.empty())
+  else if(!sStatusUpdate.empty())
   {
+    // ----- apply updates -----
     NalStatusUpdate su = sStatusUpdate.read();
     status[su.status_addr] = su.new_value;
     printf("[A4l] got status update for address %d with value %d\n", (int) su.status_addr, (int) su.new_value);
-  }
+  } else {
 
-  // ----- AXI4Lite Processing -----
+    // ----- AXI4Lite Processing -----
 
 
-  switch(a4lFsm)
-  {
-    default:
-    case A4L_COPY_CONFIG:
-      //TODO: necessary? Or does this AXI4Lite anyways "in the background"?
-      //or do we need to copy it explicetly, but could do this also every ~2 seconds?
-      if(tableCopyVariable < NUMBER_CONFIG_WORDS)
-      {
-        ap_uint<16> new_word = ctrlLink[tableCopyVariable];
-        if(new_word != config[tableCopyVariable])
+    switch(a4lFsm)
+    {
+      default:
+      case A4L_COPY_CONFIG:
+        //TODO: necessary? Or does this AXI4Lite anyways "in the background"?
+        //or do we need to copy it explicetly, but could do this also every ~2 seconds?
+        if(tableCopyVariable < NUMBER_CONFIG_WORDS)
         {
-          configProp = selectConfigUpdatePropagation(tableCopyVariable);
-          cu = NalConfigUpdate(tableCopyVariable, new_word);
-          cbFsm = CB_START;
-          config[tableCopyVariable] = new_word;
-        }
-        tableCopyVariable++;
-        if(tableCopyVariable >= NUMBER_CONFIG_WORDS)
-        {
+          //printf("[A4l] copy config %d\n", tableCopyVariable);
+          new_word = ctrlLink[tableCopyVariable];
+          if(new_word != config[tableCopyVariable])
+          {
+            configProp = selectConfigUpdatePropagation(tableCopyVariable);
+            cu = NalConfigUpdate(tableCopyVariable, new_word);
+            cbFsm = CB_START;
+            //config[tableCopyVariable] = new_word;
+            a4lFsm = A4L_COPY_CONFIG_2;
+          } else {
+          tableCopyVariable++;
+          }
+          //if(tableCopyVariable >= NUMBER_CONFIG_WORDS)
+          //{
+          //  tableCopyVariable = 0;
+          //  a4lFsm = A4L_COPY_MRT;
+          //}
+        } else {
           tableCopyVariable = 0;
           a4lFsm = A4L_COPY_MRT;
         }
-      } else {
-        tableCopyVariable = 0;
-        a4lFsm = A4L_COPY_MRT;
-      }
-      break;
-    case A4L_COPY_MRT:
-      //if(!sMrtUpdate.full())
-      //{
+        break;
+      case A4L_COPY_CONFIG_2:
+        printf("[A4l] waiting CB broadcast\n");
+        if(cbFsm == CB_WAIT)
+        {
+          config[tableCopyVariable] = new_word;
+          tableCopyVariable++;
+          if(tableCopyVariable >= NUMBER_CONFIG_WORDS)
+          {
+            tableCopyVariable = 0;
+            a4lFsm = A4L_COPY_MRT;
+          } else {
+          a4lFsm = A4L_COPY_CONFIG;
+          }
+        }
+        break;
+      case A4L_COPY_MRT:
+        //if(!sMrtUpdate.full())
+        //{
         if(tableCopyVariable < MAX_MRT_SIZE)
         {
+          //printf("[A4l] copy MRT %d\n", tableCopyVariable);
           ap_uint<32> new_ip4node = ctrlLink[tableCopyVariable + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS];
           //if (new_ip4node != localMRT[tableCopyVariable])
           //{
-            //NalMrtUpdate mu = NalMrtUpdate(tableCopyVariable, new_ip4node);
-            //sMrtUpdate.write(mu);
-            localMRT[tableCopyVariable] = new_ip4node;
+          //NalMrtUpdate mu = NalMrtUpdate(tableCopyVariable, new_ip4node);
+          //sMrtUpdate.write(mu);
+          localMRT[tableCopyVariable] = new_ip4node;
+          //printf("[A4l] update MRT at %d with %d\n", tableCopyVariable, (int) new_ip4node);
           //  NalMrtUpdate mrt_update = NalMrtUpdate(tableCopyVariable, new_ip4node);
           //  sMrtUpdate.write(mrt_update);
           //}
@@ -191,153 +217,193 @@ void axi4liteProcessing(
           tableCopyVariable = 0;
           a4lFsm = A4L_COPY_STATUS;
         }
-      //}
-      break;
-    case A4L_COPY_STATUS:
-      if(tableCopyVariable < NUMBER_STATUS_WORDS)
-      {
-        ctrlLink[NUMBER_CONFIG_WORDS + tableCopyVariable] = status[tableCopyVariable];
-        tableCopyVariable++;
-        if(tableCopyVariable >= NUMBER_STATUS_WORDS)
+        //}
+        break;
+      case A4L_COPY_STATUS:
+        if(tableCopyVariable < NUMBER_STATUS_WORDS)
         {
+          ctrlLink[NUMBER_CONFIG_WORDS + tableCopyVariable] = status[tableCopyVariable];
+          tableCopyVariable++;
+          if(tableCopyVariable >= NUMBER_STATUS_WORDS)
+          {
+            //tableCopyVariable = 0;
+            a4lFsm = A4L_COPY_FINISH;
+          }
+        } else {
           //tableCopyVariable = 0;
           a4lFsm = A4L_COPY_FINISH;
         }
-      } else {
-        //tableCopyVariable = 0;
-        a4lFsm = A4L_COPY_FINISH;
-      }
-      break;
-    case A4L_COPY_FINISH:
-      tableCopyVariable = 0;
-      //acknowledge the processed version
-      uint32_t new_mrt_version = (uint32_t) config[NAL_CONFIG_MRT_VERSION];
-      printf("\t\t\t[A4L:CtrlLink:Info] Acknowledged MRT version %d.\n", (int) new_mrt_version);
-      //*mrt_version_processed = new_mrt_version;
-      if(new_mrt_version != processed_mrt_version)
-      {
-        mbFsm = CB_START;
-        processed_mrt_version = new_mrt_version;
-      }
-      a4lFsm = A4L_COPY_CONFIG;
-      break;
-  }
+        break;
+      case A4L_COPY_FINISH:
+        tableCopyVariable = 0;
+        //acknowledge the processed version
+        new_mrt_version = (uint32_t) config[NAL_CONFIG_MRT_VERSION];
+        printf("\t\t\t[A4L:CtrlLink:Info] Acknowledged MRT version %d.\n", (int) new_mrt_version);
+        //*mrt_version_processed = new_mrt_version;
+        if(new_mrt_version != processed_mrt_version)
+        {
+          mbFsm = CB_START;
+          processed_mrt_version = new_mrt_version;
+        }
+        //a4lFsm = A4L_COPY_CONFIG;
+        a4lFsm = A4L_WAIT_FOR_SUB_FSMS;
+        //enalbe_sub_fsms = true;
+        break;
+      case A4L_WAIT_FOR_SUB_FSMS:
+        printf("[A4l] SubFSMs state mb: %d; cb: %d\n", (int) mbFsm, (int) cbFsm);
+        if(mbFsm == CB_WAIT && cbFsm == CB_WAIT)
+        {
+          a4lFsm = A4L_COPY_CONFIG;
+          //enalbe_sub_fsms = false;
+          printf("[A4l] SubFSMs done...continue\n");
+        }
+        break;
+    }
 
 
-  //
-  //  if(tableCopyVariable >= MAX_MRT_SIZE)
-  //  {
-  //    tableCopyVariable = 0;
-  //    //acknowledge the processed version
-  //    ap_uint<32> new_mrt_version = config[NAL_CONFIG_MRT_VERSION];
-  //    // if(new_mrt_version > mrt_version_processed)
-  //    // {
-  //    //invalidate cache
-  //    //cached_udp_rx_ipaddr = 0;
-  //    //cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
-  //    //cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
-  //    //   detected_cache_invalidation = true;
-  //    //moved to outer process
-  //    //}
-  //    *mrt_version_processed = new_mrt_version;
-  //  }  else {
-  //    tableCopyVariable++;
-  //  }
+    //
+    //  if(tableCopyVariable >= MAX_MRT_SIZE)
+    //  {
+    //    tableCopyVariable = 0;
+    //    //acknowledge the processed version
+    //    ap_uint<32> new_mrt_version = config[NAL_CONFIG_MRT_VERSION];
+    //    // if(new_mrt_version > mrt_version_processed)
+    //    // {
+    //    //invalidate cache
+    //    //cached_udp_rx_ipaddr = 0;
+    //    //cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
+    //    //cached_tcp_tx_tripple = UNUSED_TABLE_ENTRY_VALUE;
+    //    //   detected_cache_invalidation = true;
+    //    //moved to outer process
+    //    //}
+    //    *mrt_version_processed = new_mrt_version;
+    //  }  else {
+    //    tableCopyVariable++;
+    //  }
 
-  // ----- Config Broadcast -----
+    //if(enalbe_sub_fsms)
+    //{
+    // ----- Config Broadcast -----
 
-  switch(cbFsm)
-  {
-    default:
-    case CB_WAIT:
-      break;
-    case CB_START:
-      cu_toCB = cu;
-      switch (configProp) {
-        default:
-        case 0:
-          //NOP
-          break;
-        case 1:
-          cbFsm = CB_1;
-          break;
-        case 2:
-          cbFsm = CB_2;
-          break;
-        case 3:
-          cbFsm = CB_3_0;
-          printf("[A4l] Issued rank update: %d\n", (int) cu.update_value);
-          break;
-      }
-      break;
-    case CB_1:
-      //(currently not used)
-      //if(!sToTcpAgency.full())
-      //{
-      //      sToTcpAgency.write(cu_toCB);
-      cbFsm = CB_WAIT;
-      //}
-      break;
-    case CB_2:
-      if(!sToPortLogic.full())
-      {
-        sToPortLogic.write(cu_toCB);
+    switch(cbFsm)
+    {
+      default:
+      case CB_WAIT:
+        //NOP
+        break;
+      case CB_START:
+        cu_toCB = cu;
+        switch (configProp) {
+          default:
+          case 0:
+            cbFsm = CB_WAIT; //currently not used
+            break;
+          case 1:
+            cbFsm = CB_1;
+            break;
+          case 2:
+            cbFsm = CB_2;
+            break;
+          case 3:
+            cbFsm = CB_3_0;
+            printf("[A4l] Issued rank update: %d\n", (int) cu.update_value);
+            break;
+        }
+        break;
+      case CB_1:
+        //(currently not used)
+        //if(!sToTcpAgency.full())
+        //{
+        //      sToTcpAgency.write(cu_toCB);
         cbFsm = CB_WAIT;
-      }
-      break;
-    case CB_3_0:
-      if(!sToUdpRx.full())
-      {
-        sToUdpRx.write(cu_toCB);
-        cbFsm = CB_3_1;
-      }
-      break;
-    case CB_3_1:
-      if(!sToTcpRx.full())
-      {
-        sToTcpRx.write(cu_toCB);
-        cbFsm = CB_3_2;
-      }
-      break;
-    case CB_3_2:
-      if(!sToStatusProc.full())
-      {
-        sToStatusProc.write(cu_toCB);
-        cbFsm = CB_WAIT;
-      }
-      break;
-  }
+        //}
+        break;
+      case CB_2:
+        if(!sToPortLogic.full())
+        {
+          sToPortLogic.write(cu_toCB);
+          cbFsm = CB_WAIT;
+        }
+        break;
+      case CB_3_0:
+        if(!sToUdpRx.full())
+        {
+          sToUdpRx.write(cu_toCB);
+          cbFsm = CB_3_1;
+        }
+        break;
+      case CB_3_1:
+        if(!sToTcpRx.full())
+        {
+          sToTcpRx.write(cu_toCB);
+          cbFsm = CB_3_2;
+        }
+        break;
+      case CB_3_2:
+        if(!sToStatusProc.full())
+        {
+          sToStatusProc.write(cu_toCB);
+          cbFsm = CB_WAIT;
+        }
+        break;
+    }
 
 
-  // ----- MRT version broadcast ----
+    // ----- MRT version broadcast ----
 
-  switch(mbFsm)
-  {
-    default:
-    case CB_WAIT:
-      //NOP
-      break;
-    case CB_START:
-      mbFsm = CB_1;
-      break;
-    case CB_1:
-      if(!mrt_version_update_0.full())
-      {
-        mrt_version_update_0.write(processed_mrt_version);
-        mbFsm = CB_2;
-      }
-      break;
-    case CB_2:
-      if(!mrt_version_update_1.full())
-      {
-        mrt_version_update_1.write(processed_mrt_version);
-        mbFsm = CB_WAIT;
-      }
-      break;
-  }
+    switch(mbFsm)
+    {
+      default:
+      case CB_WAIT:
+        //NOP
+        break;
+      case CB_START:
+        mbFsm = CB_1;
+        printf("[A4l] Issued Mrt update: %d\n", (int) processed_mrt_version);
+        break;
+      case CB_1:
+        if(!mrt_version_update_0.full())
+        {
+          mrt_version_update_0.write(processed_mrt_version);
+          mbFsm = CB_2;
+        }
+        break;
+      case CB_2:
+        if(!mrt_version_update_1.full())
+        {
+          mrt_version_update_1.write(processed_mrt_version);
+          mbFsm = CB_WAIT;
+        }
+        break;
+    }
+    //}
 
+    }
 
 }
+
+ap_uint<32> tableReverseLookup(
+    const ap_uint<32> localMRT[MAX_MRT_SIZE],
+    ap_uint<32>   &ipAddr
+    )
+{
+  //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+#pragma HLS INLINE off
+#pragma HLS pipeline II=1
+    NodeId rep = INVALID_MRT_VALUE;
+    for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
+    {
+#pragma HLS unroll factor=8
+      if(localMRT[i] == ipAddr)
+      {
+        rep = (NodeId) i;
+        break;
+      }
+    }
+    return rep;
+}
+
+
 
 
 void pMrtAgency(
@@ -357,180 +423,187 @@ void pMrtAgency(
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-//#pragma HLS pipeline II=1
+#pragma HLS pipeline II=1
 
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
   //static bool tables_initialized = false;
 
-//#pragma HLS reset variable=tables_initialized
+  //#pragma HLS reset variable=tables_initialized
 
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
   //static ap_uint<32> localMRT[MAX_MRT_SIZE];
 
-//#define CAM_SIZE 8
-//#define CAM_NUM 16
-//  static Cam8<NodeId,Ip4Addr> mrt_cam_arr[CAM_NUM];
-//#ifndef __SYNTHESIS__
-//  if(MAX_MRT_SIZE != 128)
-//  {
-//    printf("\n\t\tERROR: pMrtAgency is currently configured to support only a MRT size up to 128! Abort.\n(Currently, the use of \'mrt_cam_arr\' must be updated accordingly by hand.)\n");
-//    exit(-1);
-//  }
-//#endif
+  //#define CAM_SIZE 8
+  //#define CAM_NUM 16
+  //  static Cam8<NodeId,Ip4Addr> mrt_cam_arr[CAM_NUM];
+  //#ifndef __SYNTHESIS__
+  //  if(MAX_MRT_SIZE != 128)
+  //  {
+  //    printf("\n\t\tERROR: pMrtAgency is currently configured to support only a MRT size up to 128! Abort.\n(Currently, the use of \'mrt_cam_arr\' must be updated accordingly by hand.)\n");
+  //    exit(-1);
+  //  }
+  //#endif
 
 
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
 
-//  if(!tables_initialized)
-//  {
-//    for(int i = 0; i < MAX_MRT_SIZE; i++)
-//    {
-//#pragma HLS unroll factor=8
-//      localMRT[i] = (NodeId) INVALID_MRT_VALUE;
-//    }
-//    //for(int i = 0; i < CAM_NUM; i++)
-//    //{
-//    //  mrt_cam_arr[i].reset();
-//    //}
-//    tables_initialized = true;
-//  } else if(!sMrtUpdate.empty())
-//  {
-//    NalMrtUpdate mrt_update = sMrtUpdate.read();
-//    //uint8_t cam_select = mrt_update.nid / CAM_SIZE;
-//    //if(mrt_update.nid < MAX_MRT_SIZE && cam_select < CAM_NUM)
-//    if(mrt_update.nid < MAX_MRT_SIZE)
-//    {
-//      localMRT[mrt_update.nid] = mrt_update.ip4a;
-//      //Ip4Addr old_addr = 0;
-//      //if(mrt_cam_arr[cam_select].lookup(mrt_update.nid, old_addr))
-//      //{
-//      //  mrt_cam_arr[cam_select].update(mrt_update.nid, mrt_update.ip4a);
-//      //} else {
-//      //  mrt_cam_arr[cam_select].insert(mrt_update.nid, mrt_update.ip4a);
-//      //}
-//      //printf("[pMrtAgency] got status update for node %d with address %d (on CAM #%d)\n",
-//      //    (int) mrt_update.nid, (int) mrt_update.ip4a, cam_select);
-//      printf("[pMrtAgency] got status update for node %d with address %d\n",
-//          (int) mrt_update.nid, (int) mrt_update.ip4a);
-//    }
-//  } else {
-    if( (!sGetIpReq_UdpTx.empty() || !sGetIpReq_TcpTx.empty())
-        && !sGetIpRep_TcpTx.full() && !sGetIpRep_UdpTx.full())
-    {
-      bool answer_udp = false;
-      NodeId rank;
-      if(!sGetIpReq_UdpTx.empty())
-      {
-        rank = sGetIpReq_UdpTx.read();
-        answer_udp = true;
-      } else {
-        rank = sGetIpReq_TcpTx.read();
-      }
-      //uint8_t cam_select = rank / CAM_SIZE;
-      Ip4Addr rep = 0;  //return zero on failure
-      //if(rank < MAX_MRT_SIZE && cam_select < CAM_NUM)
-      if(rank < MAX_MRT_SIZE)
-      {
-        //mrt_cam_arr[cam_select].lookup(rank, rep);
-        rep = localMRT[rank];
-      }
-      if(answer_udp)
-      {
-        sGetIpRep_UdpTx.write(rep);
-      } else {
-        sGetIpRep_TcpTx.write(rep);
-      }
-      //         if(rank > MAX_MRT_SIZE || cam_select > CAM_NUM)
-      //         {
-      //           //return zero on failure
-      //           sGetIpRep_UdpTx.write(0);
-      //         } else {
-      //           sGetIpRep_UdpTx.write(localMRT[rank]);
-      //           //if request is issued, requester should be ready to read --> "blocking" write
-      //         }
-    }
-    //       else if(!sGetIpReq_TcpTx.empty() && !sGetIpRep_TcpTx.full())
-    //       {
-    //         NodeId rank = sGetIpReq_TcpTx.read();
-    //         if(rank > MAX_MRT_SIZE)
+  //  if(!tables_initialized)
+  //  {
+  //    for(int i = 0; i < MAX_MRT_SIZE; i++)
+  //    {
+  //#pragma HLS unroll factor=8
+  //      localMRT[i] = (NodeId) INVALID_MRT_VALUE;
+  //    }
+  //    //for(int i = 0; i < CAM_NUM; i++)
+  //    //{
+  //    //  mrt_cam_arr[i].reset();
+  //    //}
+  //    tables_initialized = true;
+  //  } else if(!sMrtUpdate.empty())
+  //  {
+  //    NalMrtUpdate mrt_update = sMrtUpdate.read();
+  //    //uint8_t cam_select = mrt_update.nid / CAM_SIZE;
+  //    //if(mrt_update.nid < MAX_MRT_SIZE && cam_select < CAM_NUM)
+  //    if(mrt_update.nid < MAX_MRT_SIZE)
+  //    {
+  //      localMRT[mrt_update.nid] = mrt_update.ip4a;
+  //      //Ip4Addr old_addr = 0;
+  //      //if(mrt_cam_arr[cam_select].lookup(mrt_update.nid, old_addr))
+  //      //{
+  //      //  mrt_cam_arr[cam_select].update(mrt_update.nid, mrt_update.ip4a);
+  //      //} else {
+  //      //  mrt_cam_arr[cam_select].insert(mrt_update.nid, mrt_update.ip4a);
+  //      //}
+  //      //printf("[pMrtAgency] got status update for node %d with address %d (on CAM #%d)\n",
+  //      //    (int) mrt_update.nid, (int) mrt_update.ip4a, cam_select);
+  //      printf("[pMrtAgency] got status update for node %d with address %d\n",
+  //          (int) mrt_update.nid, (int) mrt_update.ip4a);
+  //    }
+  //  } else {
+    //         if(rank > MAX_MRT_SIZE || cam_select > CAM_NUM)
     //         {
     //           //return zero on failure
-    //           sGetIpRep_TcpTx.write(0);
+    //           sGetIpRep_UdpTx.write(0);
     //         } else {
-    //           sGetIpRep_TcpTx.write(localMRT[rank]);
+    //           sGetIpRep_UdpTx.write(localMRT[rank]);
+    //           //if request is issued, requester should be ready to read --> "blocking" write
     //         }
-    //       }
-    else if( (!sGetNidReq_UdpRx.empty() || !sGetNidReq_TcpRx.empty() )
-        && !sGetNidRep_TcpRx.full()&& !sGetNidRep_UdpRx.full())
+  if( !sGetIpReq_UdpTx.empty() && !sGetIpRep_UdpTx.full())
+  {
+    NodeId rank;
+    rank = sGetIpReq_UdpTx.read();
+    //uint8_t cam_select = rank / CAM_SIZE;
+    Ip4Addr rep = 0;  //return zero on failure
+    //if(rank < MAX_MRT_SIZE && cam_select < CAM_NUM)
+    if(rank < MAX_MRT_SIZE)
     {
-      bool answer_udp = false;
-      ap_uint<32> ipAddr;
-      if(!sGetNidReq_UdpRx.empty())
-      {
-        ipAddr =  sGetNidReq_UdpRx.read();
-        answer_udp = true;
-      } else {
-        ipAddr = sGetNidReq_TcpRx.read();
-      }
-      printf("[HSS-INFO] Searching for Node ID of IP %d.\n", (int) ipAddr);
-      NodeId rep = INVALID_MRT_VALUE;
-      for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
-      {
-#pragma HLS unroll factor=8
-        if(localMRT[i] == ipAddr)
-        {
-          rep = (NodeId) i;
-          break;
-        }
-      }
-      //for(int i = 0; i < CAM_NUM; i++)
-      //{
-      //  if(mrt_cam_arr[i].reverse_lookup(ipAddr, rep))
-      //  {
-      //    break;
-      //  }
-      //}
-      if(answer_udp)
-      {
-        sGetNidRep_UdpRx.write(rep);
-      } else {
-        sGetNidRep_TcpRx.write(rep);
-      }
+      //mrt_cam_arr[cam_select].lookup(rank, rep);
+      rep = localMRT[rank];
     }
-    //       else if(!sGetNidReq_TcpRx.empty() && !sGetNidRep_TcpRx.full())
-    //       {
-    //         ap_uint<32> ipAddr = sGetNidReq_TcpRx.read();
-    //         printf("[HSS-INFO] Searching for Node ID of IP %d.\n", (int) ipAddr);
-    //         NodeId rep = INVALID_MRT_VALUE;
-    //         for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
-    //         {
-    //           //#pragma HLS unroll factor=8
-    //           if(localMRT[i] == ipAddr)
-    //           {
-    //             rep = (NodeId) i;
-    //             break;
-    //           }
-    //         }
-    //         sGetNidRep_TcpRx.write(rep);
-    //       }
-    //  else if(!sGetNidReq_TcpTx.empty() && !sGetNidRep_TcpTx.full())
+      sGetIpRep_UdpTx.write(rep);
+  }
+  else if( !sGetIpReq_TcpTx.empty() && !sGetIpRep_TcpTx.full())
+  {
+    NodeId rank;
+    rank = sGetIpReq_TcpTx.read();
+    //uint8_t cam_select = rank / CAM_SIZE;
+    Ip4Addr rep = 0;  //return zero on failure
+    //if(rank < MAX_MRT_SIZE && cam_select < CAM_NUM)
+    if(rank < MAX_MRT_SIZE)
+    {
+      //mrt_cam_arr[cam_select].lookup(rank, rep);
+      rep = localMRT[rank];
+    }
+      sGetIpRep_TcpTx.write(rep);
+  }
+  //       else if(!sGetIpReq_TcpTx.empty() && !sGetIpRep_TcpTx.full())
+  //       {
+  //         NodeId rank = sGetIpReq_TcpTx.read();
+  //         if(rank > MAX_MRT_SIZE)
+  //         {
+  //           //return zero on failure
+  //           sGetIpRep_TcpTx.write(0);
+  //         } else {
+  //           sGetIpRep_TcpTx.write(localMRT[rank]);
+  //         }
+  //       }
+  else if( !sGetNidReq_UdpRx.empty() && !sGetNidRep_UdpRx.full())
+  {
+    ap_uint<32> ipAddr =  sGetNidReq_UdpRx.read();
+    printf("[HSS-INFO] Searching for Node ID of IP %d.\n", (int) ipAddr);
+//    NodeId rep = INVALID_MRT_VALUE;
+//    for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
+//    {
+//#pragma HLS unroll factor=8
+//      if(localMRT[i] == ipAddr)
+//      {
+//        rep = (NodeId) i;
+//        break;
+//      }
+//    }
+    NodeId rep = tableReverseLookup(localMRT, ipAddr);
+    printf("[HSS-INFO] found Node Id %d.\n", (int) rep);
+      sGetNidRep_UdpRx.write(rep);
+  }
+  else if( !sGetNidReq_TcpRx.empty() && !sGetNidRep_TcpRx.full())
+  {
+    ap_uint<32> ipAddr =  sGetNidReq_TcpRx.read();
+    printf("[HSS-INFO] Searching for Node ID of IP %d.\n", (int) ipAddr);
+//    NodeId rep = INVALID_MRT_VALUE;
+//    for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
+//    {
+//#pragma HLS unroll factor=8
+//      if(localMRT[i] == ipAddr)
+//      {
+//        rep = (NodeId) i;
+//        break;
+//      }
+//    }
+    NodeId rep = tableReverseLookup(localMRT, ipAddr);
+    printf("[HSS-INFO] found Node Id %d.\n", (int) rep);
+      sGetNidRep_TcpRx.write(rep);
+  }
+    //for(int i = 0; i < CAM_NUM; i++)
+    //{
+    //  if(mrt_cam_arr[i].reverse_lookup(ipAddr, rep))
     //  {
-    //    ap_uint<32> ipAddr = sGetNidReq_TcpTx.read();
-    //    printf("[HSS-INFO] Searching for Node ID of IP %d.\n", (int) ipAddr);
-    //    NodeId rep = INVALID_MRT_VALUE;
-    //    for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
-    //    {
-    ////#pragma HLS unroll factor=8
-    //      if(localMRT[i] == ipAddr)
-    //      {
-    //        rep = (NodeId) i;
-    //        break;
-    //      }
-    //    }
-    //    sGetNidRep_TcpTx.write(rep);
+    //    break;
     //  }
+    //}
+  //       else if(!sGetNidReq_TcpRx.empty() && !sGetNidRep_TcpRx.full())
+  //       {
+  //         ap_uint<32> ipAddr = sGetNidReq_TcpRx.read();
+  //         printf("[HSS-INFO] Searching for Node ID of IP %d.\n", (int) ipAddr);
+  //         NodeId rep = INVALID_MRT_VALUE;
+  //         for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
+  //         {
+  //           //#pragma HLS unroll factor=8
+  //           if(localMRT[i] == ipAddr)
+  //           {
+  //             rep = (NodeId) i;
+  //             break;
+  //           }
+  //         }
+  //         sGetNidRep_TcpRx.write(rep);
+  //       }
+  //  else if(!sGetNidReq_TcpTx.empty() && !sGetNidRep_TcpTx.full())
+  //  {
+  //    ap_uint<32> ipAddr = sGetNidReq_TcpTx.read();
+  //    printf("[HSS-INFO] Searching for Node ID of IP %d.\n", (int) ipAddr);
+  //    NodeId rep = INVALID_MRT_VALUE;
+  //    for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
+  //    {
+  ////#pragma HLS unroll factor=8
+  //      if(localMRT[i] == ipAddr)
+  //      {
+  //        rep = (NodeId) i;
+  //        break;
+  //      }
+  //    }
+  //    sGetNidRep_TcpTx.write(rep);
+  //  }
 
-//  } //else
+  //  } //else
 }
 
 
@@ -877,7 +950,7 @@ void pPortLogic(
 
 #pragma HLS reset variable=mmio_stabilize_counter
 #pragma HLS reset variable=processed_FMC_listen_port
-//#pragma HLS reset variable=fmc_port_opened
+  //#pragma HLS reset variable=fmc_port_opened
 #pragma HLS reset variable=udp_rx_ports_processed
 #pragma HLS reset variable=tcp_rx_ports_processed
 #pragma HLS reset variable=port_fsm
@@ -957,7 +1030,7 @@ void pPortLogic(
       break;
     case PORT_L4_RESET:
       if(!sPortUpdate.full()
-        && (processed_FMC_listen_port != 0 || udp_rx_ports_processed != 0 || tcp_rx_ports_processed !=0 )
+          && (processed_FMC_listen_port != 0 || udp_rx_ports_processed != 0 || tcp_rx_ports_processed !=0 )
         )
       {//first, notify
         if(processed_FMC_listen_port != 0)
@@ -1036,10 +1109,10 @@ void pPortLogic(
         }
       }
       break;
-    //case PORT_START_TCP_CLS_0:
-    //to close the open Role ports (not connections)
-    //TODO, add if TOE supports it
-    //  break;
+      //case PORT_START_TCP_CLS_0:
+      //to close the open Role ports (not connections)
+      //TODO, add if TOE supports it
+      //  break;
     case PORT_START_TCP_CLS_1:
       if(!sMarkToDel_unpriv.full())
       {
@@ -1205,7 +1278,7 @@ void pCacheInvalDetection(
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
   static ap_uint<1> role_state;
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
-  
+
   //===========================================================
 
   switch (cache_fsm)
@@ -1227,8 +1300,8 @@ void pCacheInvalDetection(
           cache_fsm = CACHE_INV_SEND_0;
           printf("[pCacheInvalDetection] Detected cache invalidation condition!\n");
         } else {
-        //not yet invalid
-        role_state = *role_decoupled;
+          //not yet invalid
+          role_state = *role_decoupled;
         }
       } else if(!mrt_version_update.empty())
       {
@@ -1239,7 +1312,7 @@ void pCacheInvalDetection(
           cache_fsm = CACHE_INV_SEND_0;
         }
       }
-        break;
+      break;
     case CACHE_INV_SEND_0:
       if(!cache_inval_0.full())
       {
@@ -1313,11 +1386,11 @@ void pTcpAgency(
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
 
 
- // if(!*nts_ready_and_enabled)
- // {
- //   //agencyFsm = TAB_FSM_READ;
- //   tables_initialized = false;
- // } else 
+  // if(!*nts_ready_and_enabled)
+  // {
+  //   //agencyFsm = TAB_FSM_READ;
+  //   tables_initialized = false;
+  // } else 
   if (!tables_initialized)
   {
     printf("init tables...\n");

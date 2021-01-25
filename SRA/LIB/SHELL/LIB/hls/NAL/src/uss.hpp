@@ -75,6 +75,16 @@ void pUdpRx(
     );
 
 
+void pRoleUdpRxDeq(
+    ap_uint<1>          *layer_7_enabled,
+    ap_uint<1>          *role_decoupled,
+    stream<NetworkWord>         &sRoleUdpDataRx_buffer,
+    stream<NetworkMetaStream>   &sRoleUdpMetaRx_buffer,
+    stream<NetworkWord>         &soUdp_data,
+    stream<NetworkMetaStream>   &soUdp_meta
+    );
+
+
 void pUdpLsn(
       stream<UdpPort>             &soUOE_LsnReq,
       stream<StsBool>             &siUOE_LsnRep,

@@ -589,7 +589,9 @@ void pTcpRDp(
       }
       else if (!sRDp_ReqNotif.empty()
           //!siTOE_SessId.empty()
-          && !sGetNidReq_TcpRx.full() && !sGetTripleFromSid_Req.full() && !sMarkAsPriv.full()
+          //&& !sGetNidReq_TcpRx.full() 
+          && !sGetTripleFromSid_Req.full() 
+          //&& !sMarkAsPriv.full()
           )
       {
         //siTOE_SessId.read(sessId);
@@ -648,7 +650,7 @@ void pTcpRDp(
         //}
 
       //} else {
-        rdpFsmState = RDP_W8FORREQS_2;
+        //rdpFsmState = RDP_W8FORREQS_2;
       //}
       //NO break;
     case RDP_W8FORREQS_2:
@@ -1077,7 +1079,9 @@ void pTcpWRp(
         break;
       }
       //else if (*expect_FMC_response && !siFMC_Tcp_SessId.empty() && !soTOE_SessId.full() && !soTOE_len.full() )
-      else if (!siFMC_Tcp_SessId.empty() && !soTOE_SessId.full() && !soTOE_len.full() )
+      else if (!siFMC_Tcp_SessId.empty() 
+          && !soTOE_SessId.full() //&& !soTOE_len.full() 
+          )
       {
         //FMC must come first
         tcpSessId = (AppMeta) siFMC_Tcp_SessId.read();
@@ -1099,7 +1103,11 @@ void pTcpWRp(
         wrpFsmState = WRP_STREAM_FMC;
         break;
       }
-      else if (!siTcp_meta.empty() && !soTOE_SessId.full() && !sGetIpReq_TcpTx.full() && !soTOE_len.full() )
+      else if (!siTcp_meta.empty()
+          //&& !soTOE_SessId.full()
+          && !sGetIpReq_TcpTx.full()
+          //&& !soTOE_len.full() 
+          )
       {
         //now ask the ROLE
         out_meta_tcp = siTcp_meta.read();
@@ -1150,9 +1158,7 @@ void pTcpWRp(
           wrpFsmState = WRP_W8FORREQS_1;
           //break;
         }
-
-
-      } 
+      }
       //else {
         break;
       //}
@@ -1371,8 +1377,9 @@ void pTcpWRp(
       break;
 
     case WRP_STREAM_ROLE:
-      if (!siTcp_data.empty() && !soTOE_Data.full()  && !soTOE_len.full() ) {
-        siTcp_data.read(currWordIn);
+      if (!siTcp_data.empty() && !soTOE_Data.full()  && !soTOE_len.full() )
+      {
+        currWordIn = siTcp_data.read();
         tcpTX_current_packet_length += extractByteCnt(currWordIn);
         //if (DEBUG_LEVEL & TRACE_WRP) {
         //     printAxiWord(myName, currWordIn);
@@ -1382,29 +1389,32 @@ void pTcpWRp(
           currWordIn.tlast = 0; // we ignore users tlast if the length is known
         }
         printf("streaming from ROLE to TOE: tcpTX_packet_length: %d, tcpTX_current_packet_length: %d \n", (int) tcpTX_packet_length, (int) tcpTX_current_packet_length);
-        if(!streaming_mode && tcpTX_packet_length > 0 && tcpTX_current_packet_length >= tcpTX_packet_length)
+        if(!streaming_mode && tcpTX_current_packet_length >= tcpTX_packet_length) //&& tcpTX_packet_length > 0
         {
           currWordIn.tlast = 1;
         }
-        soTOE_Data.write((TcpAppData) currWordIn);
-        if(currWordIn.tlast == 1)
+        if(currWordIn.tlast == 1) //either by the user, or by us
         {
           wrpFsmState = WRP_WAIT_META;
           if(streaming_mode)
           {
             soTOE_len.write(tcpTX_current_packet_length);
           }
-        } else if (streaming_mode)
+        }
+        else if (streaming_mode)
         {
           if(tcpTX_current_packet_length >= NAL_STREAMING_SPLIT_TCP)
           {
             soTOE_len.write(tcpTX_current_packet_length);
             tcpTX_current_packet_length = 0;
+            currWordIn.tlast = 1; //to be sure? (actually, unecessary)
           }
         }
-      } else {
-        printf("ERROR: can't stream to TOE!\n");
+        soTOE_Data.write((TcpAppData) currWordIn);
       }
+      //else {
+      //  printf("ERROR: can't stream to TOE!\n");
+      //}
       break;
 
     case WRP_DROP_PACKET:
@@ -1556,7 +1566,11 @@ void pTcpWBu(
     default:
     case WBU_WAIT_META:
       //wait for meta
-      if(!siWrp_SessId.empty() && !siWrp_len.empty())
+      if(*layer_4_enabled == 0 || *piNTS_ready == 0)
+      {
+        wbuState = WBU_DRAIN;
+      }
+      else if(!siWrp_SessId.empty() && !siWrp_len.empty())
       {
         TcpDatLen new_len = siWrp_len.read();
         current_sessId = siWrp_SessId.read();
@@ -1566,31 +1580,31 @@ void pTcpWBu(
         dequeue_cnt = 0;
         wbuState = WBU_SND_REQ;
       }
+      break;
+    case WBU_SND_REQ:
       if(*layer_4_enabled == 0 || *piNTS_ready == 0)
       {
         wbuState = WBU_DRAIN;
       }
-      break;
-    case WBU_SND_REQ:
-      if(!soTOE_SndReq.full())
+      else if(!soTOE_SndReq.full())
       {
         toe_sendReq.sessId = current_sessId;
         toe_sendReq.length = current_requested_length;
         soTOE_SndReq.write(toe_sendReq);
-        if (DEBUG_LEVEL & TRACE_WRP) {
+        if (DEBUG_LEVEL & TRACE_WRP) 
+        {
           printInfo(myName, "Received a data forward request from [NAL/WRP] for sessId=%d and nrBytes=%d (repeating request %d).\n",
               toe_sendReq.sessId.to_uint(), toe_sendReq.length.to_uint(), (int) need_to_request_again);
         }
         wbuState = WBU_WAIT_REP;
-
       }
+      break;
+    case WBU_WAIT_REP:
       if(*layer_4_enabled == 0 || *piNTS_ready == 0)
       {
         wbuState = WBU_DRAIN;
       }
-      break;
-    case WBU_WAIT_REP:
-      if(!siTOE_SndRep.empty())
+      else if(!siTOE_SndRep.empty())
       {
         //-- Read the request-to-send reply and continue accordingly
         TcpAppSndRep appSndRep = siTOE_SndRep.read();
@@ -1629,14 +1643,14 @@ void pTcpWBu(
             break;
         }
       }
+      break;
+    case WBU_STREAM:
+      //dequeue data
       if(*layer_4_enabled == 0 || *piNTS_ready == 0)
       {
         wbuState = WBU_DRAIN;
       }
-      break;
-    case WBU_STREAM:
-      //dequeue data
-      if(!soTOE_Data.full() && !siWrp_Data.empty() )
+      else if(!soTOE_Data.full() && !siWrp_Data.empty() )
       {
         TcpAppData tmp = siWrp_Data.read();
         dequeue_cnt += extractByteCnt((Axis<64>) tmp);
@@ -1663,10 +1677,6 @@ void pTcpWBu(
         //    wbuState = WBU_WAIT_META;
         //}
         soTOE_Data.write(tmp);
-      }
-      if(*layer_4_enabled == 0 || *piNTS_ready == 0)
-      {
-        wbuState = WBU_DRAIN;
       }
       break;
     case WBU_DROP:

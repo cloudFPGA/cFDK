@@ -697,11 +697,11 @@ void nal_main(
   static stream<bool>       sTcpPortsOpenFeedback ("sTcpPortsOpenFeedback");
 
 
-  static stream<NetworkWord>        sRoleTcpDataRx_buffer ("sRoleTcpDataRx_buffer");
+  static stream<NetworkWord>          sRoleTcpDataRx_buffer ("sRoleTcpDataRx_buffer");
   static stream<NetworkMetaStream>    sRoleTcpMetaRx_buffer ("sRoleTcpMetaRx_buffer");
-  static stream<TcpAppData>     sTcpWrp2Wbu_data  ("sTcpWrp2Wbu_data");
-  static stream<TcpAppMeta>     sTcpWrp2Wbu_sessId ("sTcpWrp2Wbu_sessId");
-  static stream<TcpDatLen>      sTcpWrp2Wbu_len  ("sTcpWrp2Wbu_len");
+  static stream<TcpAppData>           sTcpWrp2Wbu_data  ("sTcpWrp2Wbu_data");
+  static stream<TcpAppMeta>           sTcpWrp2Wbu_sessId ("sTcpWrp2Wbu_sessId");
+  static stream<TcpDatLen>            sTcpWrp2Wbu_len  ("sTcpWrp2Wbu_len");
 
   static stream<SessionId>          sGetTripleFromSid_Req    ("sGetTripleFromSid_Req");
   static stream<NalTriple>          sGetTripleFromSid_Rep    ("sGetTripleFromSid_Rep");
@@ -734,6 +734,9 @@ void nal_main(
 
   static stream<bool>      sStartTclCls_sig      ("sStartTclCls_sig");
   static stream<NalPortUpdate> sNalPortUpdate    ("sNalPortUpdate");
+  
+  static stream<NetworkWord>          sRoleUdpDataRx_buffer ("sRoleUdpDataRx_buffer");
+  static stream<NetworkMetaStream>    sRoleUdpMetaRx_buffer ("sRoleUdpMetaRx_buffer");
 
 
 #pragma HLS STREAM variable=internal_event_fifo_0 depth=32
@@ -793,7 +796,9 @@ void nal_main(
 
 #pragma HLS STREAM variable=sTcpNotif_buffer     depth=1024
 
-#pragma HLS RESOURCE variable=localMRT core=RAM_2P_BRAM
+//#pragma HLS RESOURCE variable=localMRT core=RAM_2P_BRAM
+//#pragma HLS ARRAY_PARTITION variable=localMRT cyclic factor=8 dim=1
+#pragma HLS ARRAY_PARTITION variable=localMRT complete dim=1
 
 #pragma HLS STREAM variable=sMrtVersionUpdate_0  depth=8
 #pragma HLS STREAM variable=sMrtVersionUpdate_1  depth=8
@@ -807,6 +812,10 @@ void nal_main(
 
 #pragma HLS STREAM variable=sStartTclCls_sig depth=8
 #pragma HLS STREAM variable=sNalPortUpdate   depth=8
+
+#pragma HLS STREAM variable=sRoleUdpDataRx_buffer depth=252 //NAL_MAX_FIFO_DEPTS_BYTES/8 (+2)
+#pragma HLS STREAM variable=sRoleUdpMetaRx_buffer depth=32
+
 
 
   //=================================================================================================
@@ -865,9 +874,12 @@ void nal_main(
 
   pUdpLsn(soUOE_LsnReq, siUOE_LsnRep, sUdpPortsToOpen, sUdpPortsOpenFeedback);
 
-  pUdpRx(soUdp_data, soUdp_meta, siUOE_Data, siUOE_Meta,
+  pUdpRx(sRoleUdpDataRx_buffer, sRoleUdpMetaRx_buffer, siUOE_Data, siUOE_Meta,
       sA4lToUdpRx, sGetNidReq_UdpRx, sGetNidRep_UdpRx,
       sCacheInvalSig_1, internal_event_fifo_1);
+
+  pRoleUdpRxDeq(layer_7_enabled, role_decoupled, sRoleUdpDataRx_buffer, sRoleUdpMetaRx_buffer,
+      soUdp_data, soUdp_meta);
 
   //=================================================================================================
   // UDP Port Close

@@ -142,10 +142,12 @@ using namespace hls;
 #define MAX_HWICAP_DATA_CHUNK_BYTES ((4*HWICAP_FIFO_DEPTH) - 24)
 #define HWICAP_FIFO_NEARLY_FULL_TRIGGER 4
 
+#include "../../NAL/src/nal.hpp" 
 //MAX CLUSTER/MAX RANK
-#define MAX_CLUSTER_SIZE 128 //only one limit is enough, there is no rank > clusterSize...
+//only one limit is enough, there is no rank > clusterSize...
+//#define MAX_CLUSTER_SIZE 128
+#define MAX_CLUSTER_SIZE (MAX_MRT_SIZE)
 
-#include "../../NAL/src/nal.hpp" //is dependent on MAX_CLUSTER_SIZE, so must be after it... 
 
 #define MIN_ROUTING_TABLE_LINE (1+1+4+1) //1: rank, 1: space, 4: IPv4-Address, 1: \n 
 

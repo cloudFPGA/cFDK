@@ -6,13 +6,13 @@
 // ==============================================================
 
 // piFMC_NAL_ctrlLink_AXI
-// 0x400 ~
-// 0x7ff : Memory 'ctrlLink_V' (160 * 32b)
+// 0x200 ~
+// 0x3ff : Memory 'ctrlLink_V' (96 * 32b)
 //         Word n : bit [31:0] - ctrlLink_V[n]
 // (SC = Self Clear, COR = Clear on Read, TOW = Toggle on Write, COH = Clear on Handshake)
 
-#define XNAL_MAIN_PIFMC_NAL_CTRLLINK_AXI_ADDR_CTRLLINK_V_BASE 0x400
-#define XNAL_MAIN_PIFMC_NAL_CTRLLINK_AXI_ADDR_CTRLLINK_V_HIGH 0x7ff
+#define XNAL_MAIN_PIFMC_NAL_CTRLLINK_AXI_ADDR_CTRLLINK_V_BASE 0x200
+#define XNAL_MAIN_PIFMC_NAL_CTRLLINK_AXI_ADDR_CTRLLINK_V_HIGH 0x3ff
 #define XNAL_MAIN_PIFMC_NAL_CTRLLINK_AXI_WIDTH_CTRLLINK_V     32
-#define XNAL_MAIN_PIFMC_NAL_CTRLLINK_AXI_DEPTH_CTRLLINK_V     160
+#define XNAL_MAIN_PIFMC_NAL_CTRLLINK_AXI_DEPTH_CTRLLINK_V     96
 

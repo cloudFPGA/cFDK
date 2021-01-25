@@ -1094,12 +1094,12 @@ int main() {
     nrErr  = 0;
   
     //prepare MRT (routing table)
-    for(int i = 0; i < MAX_CLUSTER_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS; i++)
+    for(int i = 0; i < MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS; i++)
     {
         ctrlLink[i] = 0;
     }
 
-    ctrlLink[0] = 1; //own rank 
+    //ctrlLink[0] = 1; //own rank 
     ctrlLink[NAL_CONFIG_MRT_VERSION] = 1;
     ctrlLink[NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS + 0] = 0x0a0b0c01; //10.11.12.1
     ctrlLink[NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS + 1] = 0x0a0b0c0d; //10.11.12.13

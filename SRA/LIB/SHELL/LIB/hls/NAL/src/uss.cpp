@@ -741,6 +741,73 @@ void pUdpRx(
   //} // else
 }
 
+
+void pRoleUdpRxDeq(
+    ap_uint<1>          *layer_7_enabled,
+    ap_uint<1>          *role_decoupled,
+    stream<NetworkWord>         &sRoleUdpDataRx_buffer,
+    stream<NetworkMetaStream>   &sRoleUdpMetaRx_buffer,
+    stream<NetworkWord>         &soUdp_data,
+    stream<NetworkMetaStream>   &soUdp_meta
+    )
+{
+  //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+#pragma HLS INLINE off
+#pragma HLS pipeline II=1
+  //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+  static DeqFsmStates deqFsmState = DEQ_WAIT_META;
+#pragma HLS RESET variable=deqFsmState
+  //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+  //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
+  NetworkWord cur_word = NetworkWord();
+  NetworkMetaStream cur_meta = NetworkMetaStream();
+  bool role_disabled = (*layer_7_enabled == 0 && *role_decoupled == 1);
+
+  switch(deqFsmState)
+  {
+    default:
+    case DEQ_WAIT_META:
+      if(!sRoleUdpDataRx_buffer.empty() && !sRoleUdpMetaRx_buffer.empty()
+          && ( (!soUdp_data.full() && !soUdp_meta.full()) ||  //user can read
+            (role_disabled) //role is disabled -> drain FIFOs
+            )
+        )
+      {
+        cur_word = sRoleUdpDataRx_buffer.read();
+        cur_meta = sRoleUdpMetaRx_buffer.read();
+        if(!role_disabled)
+        {
+          soUdp_data.write(cur_word);
+          soUdp_meta.write(cur_meta);
+        }
+        if(cur_word.tlast == 0)
+        {
+          deqFsmState = DEQ_STREAM_DATA;
+        }
+      }
+      break;
+    case DEQ_STREAM_DATA:
+      if(!sRoleUdpDataRx_buffer.empty()
+          && (!soUdp_data.full() || role_disabled)
+        )
+      {
+        cur_word = sRoleUdpDataRx_buffer.read();
+        if(!role_disabled)
+        {
+          soUdp_data.write(cur_word);
+        }
+        if(cur_word.tlast == 1)
+        {
+          deqFsmState = DEQ_WAIT_META;
+        }
+      }
+      break;
+  }
+
+}
+
+
+
 void pUdpCls(
     stream<UdpPort>             &soUOE_ClsReq,
     stream<StsBool>             &siUOE_ClsRep,
