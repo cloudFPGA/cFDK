@@ -76,18 +76,18 @@ void axi4liteProcessing(
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
   //no pipeline, isn't compatible to AXI4Lite bus
-#pragma HLS pipeline II=1
+//#pragma HLS pipeline II=1
 
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
   static uint16_t tableCopyVariable = 0;
-  //static bool tables_initialized = false;
-  static AxiLiteFsmStates a4lFsm = A4L_RESET;
+  static bool tables_initialized = false;
+  static AxiLiteFsmStates a4lFsm = A4L_COPY_CONFIG; //start with config after reset
   static ConfigBcastStates cbFsm = CB_WAIT;
   static uint32_t processed_mrt_version = 0;
   static ConfigBcastStates mbFsm = CB_WAIT;
 
 #pragma HLS reset variable=tableCopyVariable
-//#pragma HLS reset variable=tables_initialized
+#pragma HLS reset variable=tables_initialized
 #pragma HLS reset variable=a4lFsm
 #pragma HLS reset variable=cbFsm
 #pragma HLS reset variable=processed_mrt_version
@@ -104,8 +104,8 @@ void axi4liteProcessing(
 
   //static bool enalbe_sub_fsms = false;
 
-#pragma HLS ARRAY_PARTITION variable=status cyclic factor=4 dim=1
-#pragma HLS ARRAY_PARTITION variable=config cyclic factor=4 dim=1
+//#pragma HLS ARRAY_PARTITION variable=status cyclic factor=4 dim=1
+//#pragma HLS ARRAY_PARTITION variable=config cyclic factor=4 dim=1
 
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
   NalConfigUpdate cu = NalConfigUpdate();
@@ -119,30 +119,30 @@ void axi4liteProcessing(
   }
   */
 
-//  if(!tables_initialized)
-//  {
-//    // ----- tables init -----
-//    for(int i = 0; i < MAX_MRT_SIZE; i++)
-//    {
-//      localMRT[i] = 0x0;
-//    }
-//    for(int i = 0; i < NUMBER_CONFIG_WORDS; i++)
-//    {
-//      config[i] = 0x0;
-//    }
-//    for(int i = 0; i < NUMBER_STATUS_WORDS; i++)
-//    {
-//      status[i] = 0x0;
-//    }
-//    tables_initialized = true;
-//  }
-//  else if(!sStatusUpdate.empty())
-//  {
-//    // ----- apply updates -----
-//    NalStatusUpdate su = sStatusUpdate.read();
-//    status[su.status_addr] = su.new_value;
-//    printf("[A4l] got status update for address %d with value %d\n", (int) su.status_addr, (int) su.new_value);
-//  } else {
+  if(!tables_initialized)
+  {
+    // ----- tables init -----
+    for(int i = 0; i < MAX_MRT_SIZE; i++)
+    {
+      localMRT[i] = 0x0;
+    }
+    for(int i = 0; i < NUMBER_CONFIG_WORDS; i++)
+    {
+      config[i] = 0x0;
+    }
+    for(int i = 0; i < NUMBER_STATUS_WORDS; i++)
+    {
+      status[i] = 0x0;
+    }
+    tables_initialized = true;
+  //}
+  //else if(!sStatusUpdate.empty())
+  //{
+  //  // ----- apply updates -----
+  //  NalStatusUpdate su = sStatusUpdate.read();
+  //  status[su.status_addr] = su.new_value;
+  //  printf("[A4l] got status update for address %d with value %d\n", (int) su.status_addr, (int) su.new_value);
+  } else {
 
     // ----- AXI4Lite Processing -----
 
@@ -150,23 +150,23 @@ void axi4liteProcessing(
     switch(a4lFsm)
     {
       default:
-      case A4L_RESET:
-        // ----- tables init -----
-        for(int i = 0; i < MAX_MRT_SIZE; i++)
-        {
-          localMRT[i] = 0x0;
-        }
-        for(int i = 0; i < NUMBER_CONFIG_WORDS; i++)
-        {
-          config[i] = 0x0;
-        }
-        for(int i = 0; i < NUMBER_STATUS_WORDS; i++)
-        {
-          status[i] = 0x0;
-        }
-        tableCopyVariable = 0;
-        a4lFsm = A4L_STATUS_UPDATE;
-        break;
+      //case A4L_RESET:
+      //  // ----- tables init -----
+      //  for(int i = 0; i < MAX_MRT_SIZE; i++)
+      //  {
+      //    localMRT[i] = 0x0;
+      //  }
+      //  for(int i = 0; i < NUMBER_CONFIG_WORDS; i++)
+      //  {
+      //    config[i] = 0x0;
+      //  }
+      //  for(int i = 0; i < NUMBER_STATUS_WORDS; i++)
+      //  {
+      //    status[i] = 0x0;
+      //  }
+      //  tableCopyVariable = 0;
+      //  a4lFsm = A4L_STATUS_UPDATE;
+      //  break;
       case A4L_STATUS_UPDATE:
         if(!sStatusUpdate.empty())
         {
@@ -408,30 +408,30 @@ void axi4liteProcessing(
     }
     //}
 
-    //}
-
-}
-
-ap_uint<32> tableReverseLookup(
-    const ap_uint<32> localMRT[MAX_MRT_SIZE],
-    ap_uint<32>   &ipAddr
-    )
-{
-  //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-#pragma HLS INLINE off
-#pragma HLS pipeline II=1
-    NodeId rep = INVALID_MRT_VALUE;
-    for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
-    {
-#pragma HLS unroll factor=8
-      if(localMRT[i] == ipAddr)
-      {
-        rep = (NodeId) i;
-        break;
-      }
     }
-    return rep;
+
 }
+
+//ap_uint<32> tableReverseLookup(
+//    const ap_uint<32> localMRT[MAX_MRT_SIZE],
+//    ap_uint<32>   &ipAddr
+//    )
+//{
+//  //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+//#pragma HLS INLINE off
+//#pragma HLS pipeline II=1
+//    NodeId rep = INVALID_MRT_VALUE;
+//    for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
+//    {
+//#pragma HLS unroll factor=8
+//      if(localMRT[i] == ipAddr)
+//      {
+//        rep = (NodeId) i;
+//        break;
+//      }
+//    }
+//    return rep;
+//}
 
 
 
@@ -453,7 +453,7 @@ void pMrtAgency(
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-#pragma HLS pipeline II=1
+//#pragma HLS pipeline II=1
 
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
   //static bool tables_initialized = false;
@@ -561,17 +561,17 @@ void pMrtAgency(
   {
     ap_uint<32> ipAddr =  sGetNidReq_UdpRx.read();
     printf("[HSS-INFO] Searching for Node ID of IP %d.\n", (int) ipAddr);
-//    NodeId rep = INVALID_MRT_VALUE;
-//    for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
-//    {
-//#pragma HLS unroll factor=8
-//      if(localMRT[i] == ipAddr)
-//      {
-//        rep = (NodeId) i;
-//        break;
-//      }
-//    }
-    NodeId rep = tableReverseLookup(localMRT, ipAddr);
+    NodeId rep = INVALID_MRT_VALUE;
+    for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
+    {
+#pragma HLS unroll factor=8
+      if(localMRT[i] == ipAddr)
+      {
+        rep = (NodeId) i;
+        break;
+      }
+    }
+    //NodeId rep = tableReverseLookup(localMRT, ipAddr);
     printf("[HSS-INFO] found Node Id %d.\n", (int) rep);
       sGetNidRep_UdpRx.write(rep);
   }
@@ -579,17 +579,17 @@ void pMrtAgency(
   {
     ap_uint<32> ipAddr =  sGetNidReq_TcpRx.read();
     printf("[HSS-INFO] Searching for Node ID of IP %d.\n", (int) ipAddr);
-//    NodeId rep = INVALID_MRT_VALUE;
-//    for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
-//    {
-//#pragma HLS unroll factor=8
-//      if(localMRT[i] == ipAddr)
-//      {
-//        rep = (NodeId) i;
-//        break;
-//      }
-//    }
-    NodeId rep = tableReverseLookup(localMRT, ipAddr);
+    NodeId rep = INVALID_MRT_VALUE;
+    for(uint32_t i = 0; i< MAX_MRT_SIZE; i++)
+    {
+#pragma HLS unroll factor=8
+      if(localMRT[i] == ipAddr)
+      {
+        rep = (NodeId) i;
+        break;
+      }
+    }
+    //NodeId rep = tableReverseLookup(localMRT, ipAddr);
     printf("[HSS-INFO] found Node Id %d.\n", (int) rep);
       sGetNidRep_TcpRx.write(rep);
   }
