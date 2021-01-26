@@ -737,6 +737,10 @@ void nal_main(
   
   static stream<NetworkWord>          sRoleUdpDataRx_buffer ("sRoleUdpDataRx_buffer");
   static stream<NetworkMetaStream>    sRoleUdpMetaRx_buffer ("sRoleUdpMetaRx_buffer");
+    
+  static stream<UdpAppData>          sUoeTxBuffer_Data ("sUoeTxBuffer_Data");
+  static stream<UdpAppMeta>          sUoeTxBuffer_Meta ("sUoeTxBuffer_Meta");
+  static stream<UdpAppDLen>          sUoeTxBuffer_DLen ("sUoeTxBuffer_DLen");
 
 
 #pragma HLS STREAM variable=internal_event_fifo_0 depth=16
@@ -817,6 +821,10 @@ void nal_main(
 #pragma HLS STREAM variable=sRoleUdpDataRx_buffer depth=252 //NAL_MAX_FIFO_DEPTS_BYTES/8 (+2)
 #pragma HLS STREAM variable=sRoleUdpMetaRx_buffer depth=32
 
+#pragma HLS STREAM variable=sUoeTxBuffer_Data  depth=252 //NAL_MAX_FIFO_DEPTS_BYTES/8 (+2)
+#pragma HLS STREAM variable=sUoeTxBuffer_Meta  depth=32
+#pragma HLS STREAM variable=sUoeTxBuffer_DLen  depth=32
+
 
 
   //=================================================================================================
@@ -866,9 +874,12 @@ void nal_main(
   //=================================================================================================
   // TX UDP
 
-  pUdpTX(siUdp_data, siUdp_meta, soUOE_Data, soUOE_Meta, soUOE_DLen,
+  pUdpTX(siUdp_data, siUdp_meta, sUoeTxBuffer_Data, sUoeTxBuffer_Meta, sUoeTxBuffer_DLen,
       sGetIpReq_UdpTx, sGetIpRep_UdpTx,
       myIpAddress, sCacheInvalSig_0, internal_event_fifo_0);
+
+  pUoeUdpTxDeq(layer_4_enabled, piNTS_ready, sUoeTxBuffer_Data, sUoeTxBuffer_Meta, sUoeTxBuffer_DLen,
+                soUOE_Data, soUOE_Meta, soUOE_DLen);
 
   //=================================================================================================
   // RX UDP

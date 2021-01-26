@@ -337,6 +337,80 @@ void pUdpTX(
   //} //else
 }
 
+
+
+void pUoeUdpTxDeq(
+    ap_uint<1>          *layer_4_enabled,
+    ap_uint<1>          *piNTS_ready,
+    stream<UdpAppData>          &sUoeTxBuffer_Data,
+    stream<UdpAppMeta>          &sUoeTxBuffer_Meta,
+    stream<UdpAppDLen>          &sUoeTxBuffer_DLen,
+    stream<UdpAppData>          &soUOE_Data,
+    stream<UdpAppMeta>          &soUOE_Meta,
+    stream<UdpAppDLen>          &soUOE_DLen
+    )
+{
+  //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+#pragma HLS INLINE off
+#pragma HLS pipeline II=1
+  //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+  static DeqFsmStates deqFsmState = DEQ_WAIT_META;
+#pragma HLS RESET variable=deqFsmState
+  //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+  //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
+  UdpAppData cur_word;
+  UdpAppMeta cur_meta;
+  UdpAppDLen cur_dlen;
+  bool uoe_disabled = (*layer_4_enabled == 0 || *piNTS_ready == 0);
+
+  switch(deqFsmState)
+  {
+    default:
+    case DEQ_WAIT_META:
+      if(!sUoeTxBuffer_Data.empty() && !sUoeTxBuffer_Meta.empty() && !sUoeTxBuffer_DLen.empty()
+          && ( (!soUOE_Data.full() && !soUOE_Meta.full() && !soUOE_DLen.full() ) || //UOE can read
+            (uoe_disabled) //UOE is disabled -> drain FIFOs
+            )
+        )
+      {
+        cur_word = sUoeTxBuffer_Data.read();
+        cur_meta = sUoeTxBuffer_Meta.read();
+        cur_dlen = sUoeTxBuffer_DLen.read();
+        if(!uoe_disabled)
+        {
+          soUOE_Data.write(cur_word);
+          soUOE_Meta.write(cur_meta);
+          soUOE_DLen.write(cur_dlen);
+        }
+        if(cur_word.getTLast() == 0)
+        {
+          deqFsmState = DEQ_STREAM_DATA;
+        }
+      }
+      break;
+    case DEQ_STREAM_DATA:
+      if(!sUoeTxBuffer_Data.empty()
+          && (!soUOE_Data.full() || uoe_disabled)
+        )
+      {
+        cur_word = sUoeTxBuffer_Data.read();
+        if(!uoe_disabled)
+        {
+          soUOE_Data.write(cur_word);
+        }
+        if(cur_word.getTLast() == 1)
+        {
+          deqFsmState = DEQ_WAIT_META;
+        }
+      }
+      break;
+  }
+
+}
+
+
+
+
 void pUdpLsn(
     stream<UdpPort>             &soUOE_LsnReq,
     stream<StsBool>             &siUOE_LsnRep,

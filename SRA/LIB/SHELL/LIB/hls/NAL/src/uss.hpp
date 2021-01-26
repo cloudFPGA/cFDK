@@ -59,6 +59,16 @@ void pUdpTX(
     stream<NalEventNotif>     &internal_event_fifo
     );
 
+void pUoeUdpTxDeq(
+    ap_uint<1>          *layer_4_enabled,
+    ap_uint<1>          *piNTS_ready,
+    stream<UdpAppData>          &sUoeTxBuffer_Data,
+    stream<UdpAppMeta>          &sUoeTxBuffer_Meta,
+    stream<UdpAppDLen>          &sUoeTxBuffer_DLen,
+    stream<UdpAppData>          &soUOE_Data,
+    stream<UdpAppMeta>          &soUOE_Meta,
+    stream<UdpAppDLen>          &soUOE_DLen
+    );
 
 void pUdpRx(
     stream<NetworkWord>         &soUdp_data,

@@ -1526,11 +1526,11 @@ void pTcpWBu(
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
   static WbuFsmStates wbuState = WBU_WAIT_META;
   static uint16_t dequeue_cnt = 0; //in BYTES!!
-  static TcpDatLen original_requested_length = 0;
+  //static TcpDatLen original_requested_length = 0;
 
 #pragma HLS RESET variable=wbuState
 #pragma HLS RESET variable=dequeue_cnt
-#pragma HLS RESET variable=original_requested_length
+//#pragma HLS RESET variable=original_requested_length
 
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
   static TcpAppMeta current_sessId;
@@ -1574,7 +1574,7 @@ void pTcpWBu(
       {
         TcpDatLen new_len = siWrp_len.read();
         current_sessId = siWrp_SessId.read();
-        original_requested_length = new_len;
+        //original_requested_length = new_len;
 
         current_requested_length = new_len;
         dequeue_cnt = 0;
@@ -1612,7 +1612,7 @@ void pTcpWBu(
           case NO_ERROR:
             //fifo_fillstand = enqueue_cnt;
             wbuState = WBU_STREAM;
-            current_approved_length = appSndRep.spaceLeft;
+            current_approved_length = current_requested_length; //not spaceLeft(!), because this could be bigger!
             need_to_request_again = false;
             dequeue_cnt = 0;
             break;
@@ -1665,7 +1665,7 @@ void pTcpWBu(
             //done
             wbuState = WBU_WAIT_META;
             printInfo(myName, "Done with packet (#%d, %d)\n",
-                current_sessId.to_uint(), original_requested_length.to_uint());
+                current_sessId.to_uint(), current_requested_length.to_uint());
           }
         } else {
           tmp.setTLast(0); //to be sure
@@ -1698,7 +1698,7 @@ void pTcpWBu(
       }
       break;
     case WBU_DRAIN:
-      //drain all streams
+      //drain all streams as long as NTS disabled
       if(*layer_4_enabled == 0 || *piNTS_ready == 0)
       {
         if(!siWrp_Data.empty())
