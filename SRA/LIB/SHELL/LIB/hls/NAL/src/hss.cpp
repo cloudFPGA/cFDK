@@ -80,14 +80,14 @@ void axi4liteProcessing(
 
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
   static uint16_t tableCopyVariable = 0;
-  static bool tables_initialized = false;
-  static AxiLiteFsmStates a4lFsm = A4L_COPY_CONFIG;
+  //static bool tables_initialized = false;
+  static AxiLiteFsmStates a4lFsm = A4L_RESET;
   static ConfigBcastStates cbFsm = CB_WAIT;
   static uint32_t processed_mrt_version = 0;
   static ConfigBcastStates mbFsm = CB_WAIT;
 
 #pragma HLS reset variable=tableCopyVariable
-#pragma HLS reset variable=tables_initialized
+//#pragma HLS reset variable=tables_initialized
 #pragma HLS reset variable=a4lFsm
 #pragma HLS reset variable=cbFsm
 #pragma HLS reset variable=processed_mrt_version
@@ -110,6 +110,7 @@ void axi4liteProcessing(
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
   NalConfigUpdate cu = NalConfigUpdate();
   uint32_t new_mrt_version;
+  ap_uint<32> new_ip4node;
 
   /* if(*layer_4_enabled == 0)
      {
@@ -118,30 +119,30 @@ void axi4liteProcessing(
   }
   */
 
-  if(!tables_initialized)
-  {
-    // ----- tables init -----
-    for(int i = 0; i < MAX_MRT_SIZE; i++)
-    {
-      localMRT[i] = 0x0;
-    }
-    for(int i = 0; i < NUMBER_CONFIG_WORDS; i++)
-    {
-      config[i] = 0x0;
-    }
-    for(int i = 0; i < NUMBER_STATUS_WORDS; i++)
-    {
-      status[i] = 0x0;
-    }
-    tables_initialized = true;
-  }
-  else if(!sStatusUpdate.empty())
-  {
-    // ----- apply updates -----
-    NalStatusUpdate su = sStatusUpdate.read();
-    status[su.status_addr] = su.new_value;
-    printf("[A4l] got status update for address %d with value %d\n", (int) su.status_addr, (int) su.new_value);
-  } else {
+//  if(!tables_initialized)
+//  {
+//    // ----- tables init -----
+//    for(int i = 0; i < MAX_MRT_SIZE; i++)
+//    {
+//      localMRT[i] = 0x0;
+//    }
+//    for(int i = 0; i < NUMBER_CONFIG_WORDS; i++)
+//    {
+//      config[i] = 0x0;
+//    }
+//    for(int i = 0; i < NUMBER_STATUS_WORDS; i++)
+//    {
+//      status[i] = 0x0;
+//    }
+//    tables_initialized = true;
+//  }
+//  else if(!sStatusUpdate.empty())
+//  {
+//    // ----- apply updates -----
+//    NalStatusUpdate su = sStatusUpdate.read();
+//    status[su.status_addr] = su.new_value;
+//    printf("[A4l] got status update for address %d with value %d\n", (int) su.status_addr, (int) su.new_value);
+//  } else {
 
     // ----- AXI4Lite Processing -----
 
@@ -149,32 +150,60 @@ void axi4liteProcessing(
     switch(a4lFsm)
     {
       default:
+      case A4L_RESET:
+        // ----- tables init -----
+        for(int i = 0; i < MAX_MRT_SIZE; i++)
+        {
+          localMRT[i] = 0x0;
+        }
+        for(int i = 0; i < NUMBER_CONFIG_WORDS; i++)
+        {
+          config[i] = 0x0;
+        }
+        for(int i = 0; i < NUMBER_STATUS_WORDS; i++)
+        {
+          status[i] = 0x0;
+        }
+        tableCopyVariable = 0;
+        a4lFsm = A4L_STATUS_UPDATE;
+        break;
+      case A4L_STATUS_UPDATE:
+        if(!sStatusUpdate.empty())
+        {
+          // ----- apply updates -----
+          NalStatusUpdate su = sStatusUpdate.read();
+          status[su.status_addr] = su.new_value;
+          printf("[A4l] got status update for address %d with value %d\n", (int) su.status_addr, (int) su.new_value);
+        } else {
+          a4lFsm = A4L_COPY_CONFIG;
+        }
+        break;
       case A4L_COPY_CONFIG:
         //TODO: necessary? Or does this AXI4Lite anyways "in the background"?
         //or do we need to copy it explicetly, but could do this also every ~2 seconds?
-        if(tableCopyVariable < NUMBER_CONFIG_WORDS)
+        //if(tableCopyVariable < NUMBER_CONFIG_WORDS)
+        //{
+        //printf("[A4l] copy config %d\n", tableCopyVariable);
+        new_word = ctrlLink[tableCopyVariable];
+        if(new_word != config[tableCopyVariable])
         {
-          //printf("[A4l] copy config %d\n", tableCopyVariable);
-          new_word = ctrlLink[tableCopyVariable];
-          if(new_word != config[tableCopyVariable])
-          {
-            configProp = selectConfigUpdatePropagation(tableCopyVariable);
-            cu = NalConfigUpdate(tableCopyVariable, new_word);
-            cbFsm = CB_START;
-            //config[tableCopyVariable] = new_word;
-            a4lFsm = A4L_COPY_CONFIG_2;
-          } else {
-          tableCopyVariable++;
-          }
-          //if(tableCopyVariable >= NUMBER_CONFIG_WORDS)
-          //{
-          //  tableCopyVariable = 0;
-          //  a4lFsm = A4L_COPY_MRT;
-          //}
+          configProp = selectConfigUpdatePropagation(tableCopyVariable);
+          cu = NalConfigUpdate(tableCopyVariable, new_word);
+          cbFsm = CB_START;
+          //config[tableCopyVariable] = new_word;
+          a4lFsm = A4L_COPY_CONFIG_2;
         } else {
-          tableCopyVariable = 0;
-          a4lFsm = A4L_COPY_MRT;
+          tableCopyVariable++;
+          if(tableCopyVariable >= NUMBER_CONFIG_WORDS)
+          {
+            tableCopyVariable = 0;
+            a4lFsm = A4L_COPY_MRT;
+          }
         }
+        //} else {
+        //  tableCopyVariable = 0;
+        //  a4lFsm = A4L_COPY_MRT;
+        // }
         break;
       case A4L_COPY_CONFIG_2:
         printf("[A4l] waiting CB broadcast\n");
@@ -187,17 +216,17 @@ void axi4liteProcessing(
             tableCopyVariable = 0;
             a4lFsm = A4L_COPY_MRT;
           } else {
-          a4lFsm = A4L_COPY_CONFIG;
+            a4lFsm = A4L_COPY_CONFIG;
           }
         }
         break;
       case A4L_COPY_MRT:
         //if(!sMrtUpdate.full())
         //{
-        if(tableCopyVariable < MAX_MRT_SIZE)
-        {
+        //if(tableCopyVariable < MAX_MRT_SIZE)
+        //{
           //printf("[A4l] copy MRT %d\n", tableCopyVariable);
-          ap_uint<32> new_ip4node = ctrlLink[tableCopyVariable + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS];
+          new_ip4node = ctrlLink[tableCopyVariable + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS];
           //if (new_ip4node != localMRT[tableCopyVariable])
           //{
           //NalMrtUpdate mu = NalMrtUpdate(tableCopyVariable, new_ip4node);
@@ -213,15 +242,15 @@ void axi4liteProcessing(
             tableCopyVariable = 0;
             a4lFsm = A4L_COPY_STATUS;
           }
-        } else {
-          tableCopyVariable = 0;
-          a4lFsm = A4L_COPY_STATUS;
-        }
+        //} else {
+        //  tableCopyVariable = 0;
+        //  a4lFsm = A4L_COPY_STATUS;
+       // }
         //}
         break;
       case A4L_COPY_STATUS:
-        if(tableCopyVariable < NUMBER_STATUS_WORDS)
-        {
+        //if(tableCopyVariable < NUMBER_STATUS_WORDS)
+        //{
           ctrlLink[NUMBER_CONFIG_WORDS + tableCopyVariable] = status[tableCopyVariable];
           tableCopyVariable++;
           if(tableCopyVariable >= NUMBER_STATUS_WORDS)
@@ -229,10 +258,10 @@ void axi4liteProcessing(
             //tableCopyVariable = 0;
             a4lFsm = A4L_COPY_FINISH;
           }
-        } else {
+        //} else {
           //tableCopyVariable = 0;
-          a4lFsm = A4L_COPY_FINISH;
-        }
+        //  a4lFsm = A4L_COPY_FINISH;
+        //}
         break;
       case A4L_COPY_FINISH:
         tableCopyVariable = 0;
@@ -253,7 +282,8 @@ void axi4liteProcessing(
         printf("[A4l] SubFSMs state mb: %d; cb: %d\n", (int) mbFsm, (int) cbFsm);
         if(mbFsm == CB_WAIT && cbFsm == CB_WAIT)
         {
-          a4lFsm = A4L_COPY_CONFIG;
+          //a4lFsm = A4L_COPY_CONFIG;
+          a4lFsm = A4L_STATUS_UPDATE;
           //enalbe_sub_fsms = false;
           printf("[A4l] SubFSMs done...continue\n");
         }
@@ -378,7 +408,7 @@ void axi4liteProcessing(
     }
     //}
 
-    }
+    //}
 
 }
 

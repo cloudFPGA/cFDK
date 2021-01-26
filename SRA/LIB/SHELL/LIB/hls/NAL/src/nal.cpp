@@ -739,35 +739,36 @@ void nal_main(
   static stream<NetworkMetaStream>    sRoleUdpMetaRx_buffer ("sRoleUdpMetaRx_buffer");
 
 
-#pragma HLS STREAM variable=internal_event_fifo_0 depth=32
-#pragma HLS STREAM variable=internal_event_fifo_1 depth=32
-#pragma HLS STREAM variable=internal_event_fifo_2 depth=32
-#pragma HLS STREAM variable=internal_event_fifo_3 depth=32
-#pragma HLS STREAM variable=merged_fifo depth=128
+#pragma HLS STREAM variable=internal_event_fifo_0 depth=16
+#pragma HLS STREAM variable=internal_event_fifo_1 depth=16
+#pragma HLS STREAM variable=internal_event_fifo_2 depth=16
+#pragma HLS STREAM variable=internal_event_fifo_3 depth=16
+#pragma HLS STREAM variable=merged_fifo depth=64
 
   //#pragma HLS STREAM variable=sA4lToTcpAgency  depth=16 //(currently not used)
-#pragma HLS STREAM variable=sA4lToPortLogic  depth=16
-#pragma HLS STREAM variable=sA4lToUdpRx      depth=16
-#pragma HLS STREAM variable=sA4lToTcpRx      depth=16
-#pragma HLS STREAM variable=sA4lToStatusProc depth=16
+#pragma HLS STREAM variable=sA4lToPortLogic  depth=8
+#pragma HLS STREAM variable=sA4lToUdpRx      depth=8
+#pragma HLS STREAM variable=sA4lToTcpRx      depth=8
+#pragma HLS STREAM variable=sA4lToStatusProc depth=8
 //#pragma HLS STREAM variable=sA4lMrtUpdate    depth=16
-#pragma HLS STREAM variable=sStatusUpdate    depth=32
-#pragma HLS STREAM variable=sGetIpReq_UdpTx  depth=16 //MRT process takes longer -> better more buffer
-#pragma HLS STREAM variable=sGetIpRep_UdpTx  depth=16
-#pragma HLS STREAM variable=sGetIpReq_TcpTx  depth=16
-#pragma HLS STREAM variable=sGetIpRep_TcpTx  depth=16
-#pragma HLS STREAM variable=sGetNidReq_UdpRx depth=16
-#pragma HLS STREAM variable=sGetNidRep_UdpRx depth=16
-#pragma HLS STREAM variable=sGetNidReq_TcpRx depth=16
-#pragma HLS STREAM variable=sGetNidRep_TcpRx depth=16
-#pragma HLS STREAM variable=sGetNidReq_TcpTx depth=16
-#pragma HLS STREAM variable=sGetNidRep_TcpTx depth=16
+#pragma HLS STREAM variable=sStatusUpdate    depth=128 //should be larger than ctrlLink size
 
-#pragma HLS STREAM variable=sUdpPortsToClose      depth=8
-#pragma HLS STREAM variable=sUdpPortsToOpen       depth=8
-#pragma HLS STREAM variable=sUdpPortsOpenFeedback depth=8
-#pragma HLS STREAM variable=sTcpPortsToOpen       depth=8
-#pragma HLS STREAM variable=sTcpPortsOpenFeedback depth=8
+#pragma HLS STREAM variable=sGetIpReq_UdpTx  depth=8 //MRT process takes longer -> better more buffer
+#pragma HLS STREAM variable=sGetIpRep_UdpTx  depth=8
+#pragma HLS STREAM variable=sGetIpReq_TcpTx  depth=8
+#pragma HLS STREAM variable=sGetIpRep_TcpTx  depth=8
+#pragma HLS STREAM variable=sGetNidReq_UdpRx depth=8
+#pragma HLS STREAM variable=sGetNidRep_UdpRx depth=8
+#pragma HLS STREAM variable=sGetNidReq_TcpRx depth=8
+#pragma HLS STREAM variable=sGetNidRep_TcpRx depth=8
+#pragma HLS STREAM variable=sGetNidReq_TcpTx depth=8
+#pragma HLS STREAM variable=sGetNidRep_TcpTx depth=8
+
+#pragma HLS STREAM variable=sUdpPortsToClose      depth=4
+#pragma HLS STREAM variable=sUdpPortsToOpen       depth=4
+#pragma HLS STREAM variable=sUdpPortsOpenFeedback depth=4
+#pragma HLS STREAM variable=sTcpPortsToOpen       depth=4
+#pragma HLS STREAM variable=sTcpPortsOpenFeedback depth=4
 
 
 #pragma HLS STREAM variable=sRoleTcpDataRx_buffer depth=252 //NAL_MAX_FIFO_DEPTS_BYTES/8 (+2)
@@ -778,21 +779,21 @@ void nal_main(
 #pragma HLS STREAM variable=sTcpWrp2Wbu_len       depth=32
 
 
-#pragma HLS STREAM variable=sGetTripleFromSid_Req    depth=8
-#pragma HLS STREAM variable=sGetTripleFromSid_Rep    depth=8
-#pragma HLS STREAM variable=sGetSidFromTriple_Req    depth=8
-#pragma HLS STREAM variable=sGetSidFromTriple_Rep    depth=8
-#pragma HLS STREAM variable=sAddNewTriple_TcpRrh     depth=8
-#pragma HLS STREAM variable=sAddNewTriple_TcpCon     depth=8
-#pragma HLS STREAM variable=sDeleteEntryBySid        depth=8
-#pragma HLS STREAM variable=sMarkAsPriv              depth=8
-#pragma HLS STREAM variable=sMarkToDel_unpriv        depth=8
-#pragma HLS STREAM variable=sGetNextDelRow_Req       depth=8
-#pragma HLS STREAM variable=sGetNextDelRow_Rep       depth=8
-#pragma HLS STREAM variable=sRDp_ReqNotif            depth=8
+#pragma HLS STREAM variable=sGetTripleFromSid_Req    depth=4
+#pragma HLS STREAM variable=sGetTripleFromSid_Rep    depth=4
+#pragma HLS STREAM variable=sGetSidFromTriple_Req    depth=4
+#pragma HLS STREAM variable=sGetSidFromTriple_Rep    depth=4
+#pragma HLS STREAM variable=sAddNewTriple_TcpRrh     depth=4
+#pragma HLS STREAM variable=sAddNewTriple_TcpCon     depth=4
+#pragma HLS STREAM variable=sDeleteEntryBySid        depth=4
+#pragma HLS STREAM variable=sMarkAsPriv              depth=4
+#pragma HLS STREAM variable=sMarkToDel_unpriv        depth=4
+#pragma HLS STREAM variable=sGetNextDelRow_Req       depth=4
+#pragma HLS STREAM variable=sGetNextDelRow_Rep       depth=4
+#pragma HLS STREAM variable=sRDp_ReqNotif            depth=4
 
-#pragma HLS STREAM variable=sNewTcpCon_Req       depth=8
-#pragma HLS STREAM variable=sNewTcpCon_Rep       depth=8
+#pragma HLS STREAM variable=sNewTcpCon_Req       depth=4
+#pragma HLS STREAM variable=sNewTcpCon_Rep       depth=4
 
 #pragma HLS STREAM variable=sTcpNotif_buffer     depth=1024
 
@@ -800,17 +801,17 @@ void nal_main(
 //#pragma HLS ARRAY_PARTITION variable=localMRT cyclic factor=8 dim=1
 #pragma HLS ARRAY_PARTITION variable=localMRT complete dim=1
 
-#pragma HLS STREAM variable=sMrtVersionUpdate_0  depth=8
-#pragma HLS STREAM variable=sMrtVersionUpdate_1  depth=8
+#pragma HLS STREAM variable=sMrtVersionUpdate_0  depth=4
+#pragma HLS STREAM variable=sMrtVersionUpdate_1  depth=4
 
-#pragma HLS STREAM variable=sCacheInvalSig_0 depth=8
-#pragma HLS STREAM variable=sCacheInvalSig_1 depth=8
-#pragma HLS STREAM variable=sCacheInvalSig_2 depth=8
-#pragma HLS STREAM variable=sCacheInvalSig_3 depth=8
+#pragma HLS STREAM variable=sCacheInvalSig_0 depth=4
+#pragma HLS STREAM variable=sCacheInvalSig_1 depth=4
+#pragma HLS STREAM variable=sCacheInvalSig_2 depth=4
+#pragma HLS STREAM variable=sCacheInvalSig_3 depth=4
 
 #pragma HLS STREAM variable=sRoleFifoEmptySig depth=8
 
-#pragma HLS STREAM variable=sStartTclCls_sig depth=8
+#pragma HLS STREAM variable=sStartTclCls_sig depth=4
 #pragma HLS STREAM variable=sNalPortUpdate   depth=8
 
 #pragma HLS STREAM variable=sRoleUdpDataRx_buffer depth=252 //NAL_MAX_FIFO_DEPTS_BYTES/8 (+2)
