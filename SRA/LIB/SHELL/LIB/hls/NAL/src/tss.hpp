@@ -66,8 +66,8 @@ void pTcpRRh(
     stream<NalNewTableEntry>  &sAddNewTripple_TcpRrh,
     stream<SessionId>     &sDeleteEntryBySid,
     stream<TcpAppRdReq>       &sRDp_ReqNotif,
-    ap_uint<1>                *piFMC_Tcp_data_FIFO_prog_full,
-    ap_uint<1>                *piFMC_Tcp_sessid_FIFO_prog_full,
+    ap_uint<1>                *piFMC_data_FIFO_prog_full,
+    ap_uint<1>                *piFMC_sessid_FIFO_prog_full,
     //const bool          *role_fifo_empty,
     //const bool                *nts_ready_and_enabled
     stream<bool>                &role_fifo_empty_sig
@@ -77,8 +77,8 @@ void pTcpRDp(
     stream<TcpAppRdReq>       &sRDp_ReqNotif,
     stream<TcpAppData>        &siTOE_Data,
     stream<TcpAppMeta>        &siTOE_SessId,
-    stream<TcpAppData>          &soFMC_Tcp_data,
-    stream<TcpAppMeta>          &soFMC_Tcp_SessId,
+    stream<TcpAppData>          &soFMC_data,
+    stream<TcpAppMeta>          &soFMC_SessId,
     stream<NetworkWord>         &soTcp_data,
     stream<NetworkMetaStream>   &soTcp_meta,
     stream<NalConfigUpdate>   &sConfigUpdate,
@@ -112,8 +112,8 @@ void pRoleTcpRxDeq(
     );
 
 void pTcpWRp(
-    stream<TcpAppData>          &siFMC_Tcp_data,
-    stream<TcpAppMeta>          &siFMC_Tcp_SessId,
+    stream<TcpAppData>          &siFMC_data,
+    stream<TcpAppMeta>          &siFMC_SessId,
     stream<NetworkWord>         &siTcp_data,
     stream<NetworkMetaStream>   &siTcp_meta,
     stream<TcpAppData>        &soTOE_Data,

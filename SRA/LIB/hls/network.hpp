@@ -52,6 +52,7 @@ struct NetworkWord {
   NetworkWord()      {}
   NetworkWord(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
     tdata(tdata), tkeep(tkeep), tlast(tlast) {}
+  NetworkWord(ap_uint<64> single_data) : tdata(single_data), tkeep(0xFFF), tlast(1) {}
 };
 
 
@@ -62,7 +63,10 @@ typedef NetworkWord TcpWord;
 typedef ap_uint<16>     NrcPort; // UDP/TCP Port Number
 typedef ap_uint<8>      NodeId;  // Cluster Node Id
 
-#define MAX_CF_NODE_ID 128
+//#define MAX_CF_NODE_ID (128-1)
+#define MAX_CF_NODE_ID (64-1)
+
+#define NAL_THIS_FPGA_PSEUDO_NID (MAX_CF_NODE_ID + 1)
 
 #define NAL_RX_MIN_PORT 2718
 #define NAL_RX_MAX_PORT 2749
@@ -82,9 +86,9 @@ struct NetworkMeta {
     dst_rank(d_id), dst_port(d_port), src_rank(s_id), src_port(s_port), len(length) {}
 };
 
-//split between NetworkMeta and NetworkMetaStream to not make the Shell Role interface depend on "DATA_PACK"
+//split between NetworkMeta and NetworkMetaStream to not make the Shell Role interface depend of "DATA_PACK"
 struct NetworkMetaStream {
-  NetworkMeta tdata; 
+  NetworkMeta tdata;
   //ap_uint<(sizeof(NetworkMeta)+7)/8> tkeep; TODO: sizeof seems not to work?
   ap_uint<8> tkeep;
   ap_uint<1> tlast;

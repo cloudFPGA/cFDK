@@ -467,12 +467,12 @@ void nal_main(
     stream<NetworkMetaStream>   &soTcp_meta,
 
     // -- FMC TCP connection
-    stream<TcpAppData>          &siFMC_Tcp_data,
-    stream<TcpAppMeta>          &siFMC_Tcp_SessId,
-    ap_uint<1>                  *piFMC_Tcp_data_FIFO_prog_full,
-    stream<TcpAppData>          &soFMC_Tcp_data,
-    ap_uint<1>                  *piFMC_Tcp_sessid_FIFO_prog_full,
-    stream<TcpAppMeta>          &soFMC_Tcp_SessId,
+    stream<TcpAppData>          &siFMC_data,
+    stream<TcpAppMeta>          &siFMC_SessId,
+    ap_uint<1>                  *piFMC_data_FIFO_prog_full,
+    stream<TcpAppData>          &soFMC_data,
+    ap_uint<1>                  *piFMC_sessid_FIFO_prog_full,
+    stream<TcpAppMeta>          &soFMC_SessId,
 
     //-- UOE / Control Port Interfaces
     stream<UdpPort>             &soUOE_LsnReq,
@@ -633,12 +633,12 @@ void nal_main(
 
 #pragma HLS INTERFACE ap_vld register port=pi_tcp_rx_ports name=piROL_Tcp_Rx_ports
 
-#pragma HLS INTERFACE ap_fifo port=siFMC_Tcp_data
-#pragma HLS INTERFACE ap_fifo port=soFMC_Tcp_data
-#pragma HLS INTERFACE ap_fifo port=siFMC_Tcp_SessId
-#pragma HLS INTERFACE ap_fifo port=soFMC_Tcp_SessId
-#pragma HLS INTERFACE ap_vld register port=piFMC_Tcp_data_FIFO_prog_full name=piFMC_Tcp_data_FIFO_prog_full
-#pragma HLS INTERFACE ap_vld register port=piFMC_Tcp_sessid_FIFO_prog_full name=piFMC_Tcp_sessid_FIFO_prog_full
+#pragma HLS INTERFACE ap_fifo port=siFMC_data
+#pragma HLS INTERFACE ap_fifo port=soFMC_data
+#pragma HLS INTERFACE ap_fifo port=siFMC_SessId
+#pragma HLS INTERFACE ap_fifo port=soFMC_SessId
+#pragma HLS INTERFACE ap_vld register port=piFMC_data_FIFO_prog_full name=piFMC_data_FIFO_prog_full
+#pragma HLS INTERFACE ap_vld register port=piFMC_sessid_FIFO_prog_full name=piFMC_sessid_FIFO_prog_full
 
   //TODO: add internal streams
 
@@ -908,11 +908,11 @@ void nal_main(
   pTcpRxNotifEnq(siTOE_Notif, sTcpNotif_buffer);
 
   pTcpRRh(sTcpNotif_buffer, soTOE_DReq, sAddNewTriple_TcpRrh, sDeleteEntryBySid,  sRDp_ReqNotif,
-      piFMC_Tcp_data_FIFO_prog_full, piFMC_Tcp_sessid_FIFO_prog_full, sRoleFifoEmptySig);
+      piFMC_data_FIFO_prog_full, piFMC_sessid_FIFO_prog_full, sRoleFifoEmptySig);
 
   //=================================================================================================
   // TCP Read Path
-  pTcpRDp(sRDp_ReqNotif, siTOE_Data, siTOE_SessId, soFMC_Tcp_data, soFMC_Tcp_SessId,
+  pTcpRDp(sRDp_ReqNotif, siTOE_Data, siTOE_SessId, soFMC_data, soFMC_SessId,
       //soTcp_data, soTcp_meta,
       sRoleTcpDataRx_buffer, sRoleTcpMetaRx_buffer,
       sA4lToTcpRx, sGetNidReq_TcpRx, sGetNidRep_TcpRx, sGetTripleFromSid_Req, sGetTripleFromSid_Rep,
@@ -924,7 +924,7 @@ void nal_main(
 
   //=================================================================================================
   // TCP Write Path
-  pTcpWRp(siFMC_Tcp_data, siFMC_Tcp_SessId, siTcp_data, siTcp_meta,
+  pTcpWRp(siFMC_data, siFMC_SessId, siTcp_data, siTcp_meta,
       sTcpWrp2Wbu_data, sTcpWrp2Wbu_sessId, sTcpWrp2Wbu_len,
       sGetIpReq_TcpTx, sGetIpRep_TcpTx,
       //sGetNidReq_TcpTx, sGetNidRep_TcpTx,

@@ -60,7 +60,7 @@ using namespace std;
 //------------------------------------------------------
 //-- TESTBENCH GLOBAL VARIABLES
 //------------------------------------------------------
-#define MAX_SIM_CYCLES   350
+#define MAX_SIM_CYCLES   450
 //---------------------------------------------------------
 //-- DEFAULT LOCAL FPGA AND FOREIGN HOST SOCKETS
 //--  By default, the following sockets will be used by the
@@ -1272,6 +1272,12 @@ int main() {
             //-- TRIF / Tx Data Interface
             sFMC_Nrc_Tcp_data,
             sFMC_Nrc_Tcp_sessId);
+        
+        //if(simCnt % 50 == 0)
+        //{
+        //  //to update MRT version
+        //  ctrlLink[NAL_CONFIG_MRT_VERSION] = ctrlLink[NAL_NUMBER_CONFIG_WORDS + NAL_STATUS_MRT_VERSION];
+        //}
 
         //-------------------------------------------------
         //-- EMULATE APP 2 (ROLE-TCP)

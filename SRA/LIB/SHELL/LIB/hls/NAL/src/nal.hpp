@@ -399,12 +399,12 @@ void nal_main(
     stream<NetworkMetaStream>   &soTcp_meta,
 
     // -- FMC TCP connection
-    stream<TcpAppData>          &siFMC_Tcp_data,
-    stream<TcpAppMeta>          &siFMC_Tcp_SessId,
-    ap_uint<1>                  *piFMC_Tcp_data_FIFO_prog_full,
-    stream<TcpAppData>          &soFMC_Tcp_data,
-    ap_uint<1>                  *piFMC_Tcp_sessid_FIFO_prog_full,
-    stream<TcpAppMeta>          &soFMC_Tcp_SessId,
+    stream<TcpAppData>          &siFMC_data,
+    stream<TcpAppMeta>          &siFMC_SessId,
+    ap_uint<1>                  *piFMC_data_FIFO_prog_full,
+    stream<TcpAppData>          &soFMC_data,
+    ap_uint<1>                  *piFMC_sessid_FIFO_prog_full,
+    stream<TcpAppMeta>          &soFMC_SessId,
 
     //-- UOE / Control Port Interfaces
     stream<UdpPort>             &soUOE_LsnReq,

@@ -205,8 +205,8 @@ void pTcpRRh(
     stream<NalNewTableEntry>  &sAddNewTripple_TcpRrh,
     stream<SessionId>     &sDeleteEntryBySid,
     stream<TcpAppRdReq>       &sRDp_ReqNotif,
-    ap_uint<1>                *piFMC_Tcp_data_FIFO_prog_full,
-    ap_uint<1>                *piFMC_Tcp_sessid_FIFO_prog_full,
+    ap_uint<1>                *piFMC_data_FIFO_prog_full,
+    ap_uint<1>                *piFMC_sessid_FIFO_prog_full,
     //stream<bool>                &role_fifo_full_sig,
     stream<bool>                &role_fifo_empty_sig
     //const bool          *role_fifo_empty,
@@ -382,7 +382,7 @@ void pTcpRRh(
       }
       break;
     case RRH_SEND_DREQ:
-      if((*piFMC_Tcp_data_FIFO_prog_full == 0 && *piFMC_Tcp_sessid_FIFO_prog_full == 0 )
+      if((*piFMC_data_FIFO_prog_full == 0 && *piFMC_sessid_FIFO_prog_full == 0 )
           //&& *role_fifo_empty
           //&& !role_fifo_empty_sig.empty()
           && role_fifo_still_empty
@@ -461,8 +461,8 @@ void pTcpRDp(
     stream<TcpAppRdReq>       &sRDp_ReqNotif,
     stream<TcpAppData>        &siTOE_Data,
     stream<TcpAppMeta>        &siTOE_SessId,
-    stream<TcpAppData>          &soFMC_Tcp_data,
-    stream<TcpAppMeta>          &soFMC_Tcp_SessId,
+    stream<TcpAppData>          &soFMC_data,
+    stream<TcpAppMeta>          &soFMC_SessId,
     stream<NetworkWord>         &soTcp_data,
     stream<NetworkMetaStream>   &soTcp_meta,
     stream<NalConfigUpdate>   &sConfigUpdate,
@@ -525,12 +525,12 @@ void pTcpRDp(
   static bool found_in_cache = false;
   static  AppMeta     sessId = 0x0;
   static NetworkDataLength current_length = 0;
+  static ap_uint<32> fmc_tcp_bytes_cnt = 0;
 
   static stream<NalEventNotif> evsStreams[7];
 
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
   TcpAppData currWord;
-  ap_uint<32> fmc_tcp_bytes_cnt = 0; //just temporary
   NalEventNotif new_ev_not;
   NetworkMeta tmp_meta;
 
@@ -676,7 +676,7 @@ void pTcpRDp(
       ////NO break;
     case RDP_FILTER_META:
       if(!sMarkAsPriv.full() && !siTOE_SessId.empty()
-        && !soTcp_meta.full() //&& !soFMC_Tcp_SessId.full()
+        && !soTcp_meta.full() //&& !soFMC_SessId.full() //blocking write, because it is a FIFO
         )
       {
         TcpAppMeta controll_id = siTOE_SessId.read();
@@ -709,7 +709,8 @@ void pTcpRDp(
             //Tcp_RX_metaWritten = false;
             session_toFMC = sessId;
             //blocking write, because it is a FIFO
-            soFMC_Tcp_SessId.write(session_toFMC);
+            soFMC_SessId.write(session_toFMC);
+            fmc_tcp_bytes_cnt = 0;
             rdpFsmState = RDP_STREAM_FMC;
             //rdpFsmState = RDP_WRITE_META_FMC;
             //authorized_access_cnt++;
@@ -803,31 +804,33 @@ void pTcpRDp(
     //  }
     //  break;
     case RDP_STREAM_FMC:
-      if (!siTOE_Data.empty() )
+      if (!siTOE_Data.empty() 
+          //&& soFMC_data.full() //blocking write, because it is a FIFO
+        )
       {
         siTOE_Data.read(currWord);
         //if (DEBUG_LEVEL & TRACE_RDP) { TODO: type management
         //  printAxiWord(myName, (AxiWord) currWord);
         //}
         //blocking write, because it is a FIFO
-        soFMC_Tcp_data.write(currWord);
+        soFMC_data.write(currWord);
+        fmc_tcp_bytes_cnt += extractByteCnt((Axis<64>) currWord);
         if (currWord.getTLast() == 1)
         {
           //*expect_FMC_response = true;
+          new_ev_not = NalEventNotif(FMC_TCP_BYTES, fmc_tcp_bytes_cnt);
+          //internal_event_fifo.write(new_ev_not);
+          evsStreams[6].write(new_ev_not);
           rdpFsmState  = RDP_WAIT_META;
         }
-        fmc_tcp_bytes_cnt = extractByteCnt((Axis<64>) currWord);
-        new_ev_not = NalEventNotif(FMC_TCP_BYTES, fmc_tcp_bytes_cnt);
-        //internal_event_fifo.write(new_ev_not);
-        evsStreams[6].write(new_ev_not);
       }
       break;
       //// NO break;
-    //case RDP_WRITE_META_FMC:
-    //  if(!soFMC_Tcp_SessId.full())
-    //  {
+      //case RDP_WRITE_META_FMC:
+      //  if(!soFMC_SessId.full())
+      //  {
     //    //blocking write, because it is a FIFO
-    //    soFMC_Tcp_SessId.write(session_toFMC);
+    //    soFMC_SessId.write(session_toFMC);
     //    //TODO: count incoming FMC packets?
     //    rdpFsmState = RDP_STREAM_FMC;
     //  }
@@ -958,8 +961,8 @@ void pRoleTcpRxDeq(
  *
  ******************************************************************************/
 void pTcpWRp(
-    stream<TcpAppData>          &siFMC_Tcp_data,
-    stream<TcpAppMeta>          &siFMC_Tcp_SessId,
+    stream<TcpAppData>          &siFMC_data,
+    stream<TcpAppMeta>          &siFMC_SessId,
     stream<NetworkWord>         &siTcp_data,
     stream<NetworkMetaStream>   &siTcp_meta,
     stream<TcpAppData>        &soTOE_Data,
@@ -1078,13 +1081,13 @@ void pTcpWRp(
         }
         break;
       }
-      //else if (*expect_FMC_response && !siFMC_Tcp_SessId.empty() && !soTOE_SessId.full() && !soTOE_len.full() )
-      else if (!siFMC_Tcp_SessId.empty() 
+      //else if (*expect_FMC_response && !siFMC_SessId.empty() && !soTOE_SessId.full() && !soTOE_len.full() )
+      else if (!siFMC_SessId.empty() 
           && !soTOE_SessId.full() //&& !soTOE_len.full() 
           )
       {
         //FMC must come first
-        tcpSessId = (AppMeta) siFMC_Tcp_SessId.read();
+        tcpSessId = (AppMeta) siFMC_SessId.read();
         soTOE_SessId.write(tcpSessId);
         //soTOE_len.write(0); //always streaming mode
         streaming_mode = true;
@@ -1354,9 +1357,9 @@ void pTcpWRp(
       break;
 
     case WRP_STREAM_FMC:
-      if (!siFMC_Tcp_data.empty() && !soTOE_Data.full() && !soTOE_len.full() )
+      if (!siFMC_data.empty() && !soTOE_Data.full() && !soTOE_len.full() )
       {
-        TcpAppData tcpWord = siFMC_Tcp_data.read();
+        TcpAppData tcpWord = siFMC_data.read();
         tcpTX_current_packet_length += extractByteCnt((Axis<64>) tcpWord);
         //if (DEBUG_LEVEL & TRACE_WRP) {
         //     printAxiWord(myName, currWordIn);

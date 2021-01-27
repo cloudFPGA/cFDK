@@ -267,10 +267,10 @@ void axi4liteProcessing(
         tableCopyVariable = 0;
         //acknowledge the processed version
         new_mrt_version = (uint32_t) config[NAL_CONFIG_MRT_VERSION];
-        printf("\t\t\t[A4L:CtrlLink:Info] Acknowledged MRT version %d.\n", (int) new_mrt_version);
         //*mrt_version_processed = new_mrt_version;
         if(new_mrt_version != processed_mrt_version)
         {
+          printf("\t\t\t[A4L:CtrlLink:Info] Acknowledged MRT version %d.\n", (int) new_mrt_version);
           mbFsm = CB_START;
           processed_mrt_version = new_mrt_version;
         }
