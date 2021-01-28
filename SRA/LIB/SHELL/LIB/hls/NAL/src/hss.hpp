@@ -123,13 +123,15 @@ void pPortLogic(
 
 void pCacheInvalDetection(
     ap_uint<1>        *layer_4_enabled,
+    ap_uint<1>        *layer_7_enabled,
     ap_uint<1>        *role_decoupled,
     ap_uint<1>        *piNTS_ready,
     stream<uint32_t>  &mrt_version_update,
+    stream<bool>      &inval_del_sig,
     stream<bool>      &cache_inval_0,
     stream<bool>      &cache_inval_1,
-    stream<bool>      &cache_inval_2,
-    stream<bool>      &cache_inval_3
+    stream<bool>      &cache_inval_2, //MUST be connected to TCP
+    stream<bool>      &cache_inval_3  //MUST be connected to TCP
     );
 
 void pTcpAgency(
@@ -140,6 +142,7 @@ void pTcpAgency(
     stream<NalNewTableEntry>  &sAddNewTriple_TcpRrh,
     stream<NalNewTableEntry>  &sAddNewTriple_TcpCon,
     stream<SessionId>     &sDeleteEntryBySid,
+    stream<bool>          &inval_del_sig,
     stream<SessionId>     &sMarkAsPriv,
     stream<bool>        &sMarkToDel_unpriv,
     stream<bool>        &sGetNextDelRow_Req,

@@ -742,6 +742,8 @@ void nal_main(
   static stream<UdpAppMeta>          sUoeTxBuffer_Meta ("sUoeTxBuffer_Meta");
   static stream<UdpAppDLen>          sUoeTxBuffer_DLen ("sUoeTxBuffer_DLen");
 
+  static stream<bool>                 sCacheInvalDel_Notif ("sCacheInvalDel_Notif");
+
 
 #pragma HLS STREAM variable=internal_event_fifo_0 depth=16
 #pragma HLS STREAM variable=internal_event_fifo_1 depth=16
@@ -825,6 +827,7 @@ void nal_main(
 #pragma HLS STREAM variable=sUoeTxBuffer_Meta  depth=32
 #pragma HLS STREAM variable=sUoeTxBuffer_DLen  depth=32
 
+#pragma HLS STREAM variable=sCacheInvalDel_Notif  depth=4
 
 
   //=================================================================================================
@@ -863,8 +866,8 @@ void nal_main(
 //      sTcpPortsToOpen, sUdpPortsOpenFeedback, sTcpPortsOpenFeedback, sMarkToDel_unpriv, &detected_cache_invalidation, &nts_ready_and_enabled,
 //      &status_udp_ports, &status_tcp_ports, &status_fmc_ports, &start_tcp_cls_fsm, &mrt_version_processed, &mrt_version_used);
 
-  pCacheInvalDetection(layer_4_enabled, role_decoupled, piNTS_ready, sMrtVersionUpdate_0, 
-      sCacheInvalSig_0, sCacheInvalSig_1, sCacheInvalSig_2, sCacheInvalSig_3);
+  pCacheInvalDetection(layer_4_enabled, layer_7_enabled, role_decoupled, piNTS_ready, sMrtVersionUpdate_0,
+      sCacheInvalDel_Notif, sCacheInvalSig_0, sCacheInvalSig_1, sCacheInvalSig_2, sCacheInvalSig_3);
 
   pPortLogic(layer_4_enabled, layer_7_enabled, role_decoupled, piNTS_ready, piMMIO_FmcLsnPort,
       pi_udp_rx_ports, pi_tcp_rx_ports, sA4lToPortLogic, sUdpPortsToOpen, sUdpPortsToClose,
@@ -946,8 +949,8 @@ void nal_main(
   // TCP Table Management
 
   pTcpAgency(sGetTripleFromSid_Req, sGetTripleFromSid_Rep, sGetSidFromTriple_Req, sGetSidFromTriple_Rep,
-      sAddNewTriple_TcpRrh, sAddNewTriple_TcpCon, sDeleteEntryBySid, sMarkAsPriv, sMarkToDel_unpriv,
-      sGetNextDelRow_Req, sGetNextDelRow_Rep);
+      sAddNewTriple_TcpRrh, sAddNewTriple_TcpCon, sDeleteEntryBySid, sCacheInvalDel_Notif,
+      sMarkAsPriv, sMarkToDel_unpriv, sGetNextDelRow_Req, sGetNextDelRow_Rep);
 
   //===========================================================
   //  update status, config, MRT

@@ -1285,13 +1285,15 @@ void pPortLogic(
 
 void pCacheInvalDetection(
     ap_uint<1>        *layer_4_enabled,
+    ap_uint<1>        *layer_7_enabled,
     ap_uint<1>        *role_decoupled,
     ap_uint<1>        *piNTS_ready,
     stream<uint32_t>  &mrt_version_update,
+    stream<bool>      &inval_del_sig,
     stream<bool>      &cache_inval_0,
     stream<bool>      &cache_inval_1,
-    stream<bool>      &cache_inval_2,
-    stream<bool>      &cache_inval_3
+    stream<bool>      &cache_inval_2, //MUST be connected to TCP
+    stream<bool>      &cache_inval_3  //MUST be connected to TCP
     )
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -1322,10 +1324,13 @@ void pCacheInvalDetection(
       }
       break;
     case CACHE_VALID:
-      if(*layer_4_enabled == 0 || *piNTS_ready == 0 || *role_decoupled != role_state )
+      if(*layer_4_enabled == 0 || *piNTS_ready == 0 || *role_decoupled != role_state || *layer_7_enabled == 0)
       {
-        if(*role_decoupled == 1 || *layer_4_enabled == 0 || *piNTS_ready == 0)
-        {
+        if(*role_decoupled == 0 || *layer_4_enabled == 0 || *piNTS_ready == 0)
+        { //not layer_7_enabled == 0, since this would also be valid during PR
+          //role_decoupled == 0, if layer_7_enabled == 0 but no PR, so we invalidate the cache
+          //but wait until a PR is done
+
           //i.e. after a PR
           cache_fsm = CACHE_INV_SEND_0;
           printf("[pCacheInvalDetection] Detected cache invalidation condition!\n");
@@ -1341,9 +1346,19 @@ void pCacheInvalDetection(
           mrt_version_current = tmp;
           cache_fsm = CACHE_INV_SEND_0;
         }
+      } else if(!inval_del_sig.empty())
+      {
+        bool sig = inval_del_sig.read();
+        if(sig)
+        {
+          cache_fsm = CACHE_INV_SEND_2;
+          //we only need to invalidate the Cache of the TCP processes
+          //(2 and 3)
+        }
       }
       break;
     case CACHE_INV_SEND_0:
+      //UDP RX
       if(!cache_inval_0.full())
       {
         cache_inval_0.write(true);
@@ -1351,6 +1366,7 @@ void pCacheInvalDetection(
       }
       break;
     case CACHE_INV_SEND_1:
+      //UDP TX
       if(!cache_inval_1.full())
       {
         cache_inval_1.write(true);
@@ -1358,6 +1374,7 @@ void pCacheInvalDetection(
       }
       break;
     case CACHE_INV_SEND_2:
+      //TCP RDp
       if(!cache_inval_2.full())
       {
         cache_inval_2.write(true);
@@ -1365,6 +1382,7 @@ void pCacheInvalDetection(
       }
       break;
     case CACHE_INV_SEND_3:
+      //TCP WRp
       if(!cache_inval_3.full())
       {
         cache_inval_3.write(true);
@@ -1383,6 +1401,7 @@ void pTcpAgency(
     stream<NalNewTableEntry>  &sAddNewTriple_TcpRrh,
     stream<NalNewTableEntry>  &sAddNewTriple_TcpCon,
     stream<SessionId>     &sDeleteEntryBySid,
+    stream<bool>          &inval_del_sig,
     stream<SessionId>     &sMarkAsPriv,
     stream<bool>        &sMarkToDel_unpriv,
     stream<bool>        &sGetNextDelRow_Req,
@@ -1546,7 +1565,7 @@ void pTcpAgency(
             printf("[TcpAgency:ERROR] no free space left in table!\n");
           }
         }
-      } else if(!sDeleteEntryBySid.empty())
+      } else if(!sDeleteEntryBySid.empty() && !inval_del_sig.full())
       {
         SessionId sessionID = sDeleteEntryBySid.read();
         printf("try to delete session: %d\n", (int) sessionID);
@@ -1560,6 +1579,8 @@ void pTcpAgency(
             printf("found and deleting session: %d\n", (int) sessionID);
             //printf("invalidating TCP RX cache\n");
             //cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
+            //notify cache invalidation
+            inval_del_sig.write(true);
             break;
           }
         }
