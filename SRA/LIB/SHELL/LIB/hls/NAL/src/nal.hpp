@@ -233,6 +233,7 @@ enum NalCntIncType {NID_MISS_RX = 0, NID_MISS_TX, PCOR_TX, TCP_CON_FAIL, LAST_RX
 #define NAL_NUMBER_STATUS_WORDS NUMBER_STATUS_WORDS
 //#define NAL_READ_TIMEOUT 160000000 //is a little more than one second with 156Mhz
 #define NAL_CONNECTION_TIMEOUT 160000000 //is a little more than one second with 156Mhz
+#define NAL_TCP_RX_DATA_DELAY_CYCLES  80  //based on chipscope
 
 #define NAL_MMIO_STABILIZE_TIME 150 //based on chipscope...
 

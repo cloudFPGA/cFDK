@@ -122,6 +122,7 @@ ap_uint<1> flag_check_xmem_pattern = 0;
 ap_uint<1> flag_silent_skip = 0;
 ap_uint<1> last_xmem_page_received_persistent = 0;
 ap_uint<1> flag_continuous_tcp_rx = 0;
+ap_uint<1> flag_enable_fake_hwicap = 0;
 
 //TCP FSMs
 TcpFsmState fsmTcpSessId_RX = TCP_FSM_RESET;
@@ -647,6 +648,7 @@ void fmc(
 #pragma HLS reset variable=target_http_nl_cnt
 #pragma HLS reset variable=hwicap_hangover_present
 #pragma HLS reset variable=hwicap_hangover_size
+#pragma HLS reset variable=flag_enable_fake_hwicap
 
 
 
@@ -765,6 +767,8 @@ void fmc(
   ap_uint<1> CR_isWriting = CR_value & CR_WRITE;
 
   ap_uint<1> reset_from_psoc = (MMIO_in_LE >> RST_SHIFT) & 0b1;
+
+  ap_uint<1> flag_enable_fake_hwicap = (MMIO_in_LE >> ENABLE_FAKE_HWICAP_SHIFT) & 0b1;
 
 #ifdef INCLUDE_PYROLINK
   if(*disable_pyro_link == 0)
@@ -2089,7 +2093,7 @@ void fmc(
           break;
         }
         CR_isWriting = CR_value & CR_WRITE;
-        if (CR_isWriting != 1)
+        if (CR_isWriting != 1 && flag_enable_fake_hwicap == 0)
         {
           HWICAP[CR_OFFSET] = CR_WRITE;
         }
@@ -2114,9 +2118,12 @@ void fmc(
               break;
             }
 #endif
-            //update FIFO vaccancies
-            WFV = HWICAP[WFV_OFFSET];
-            WFV_value = WFV & 0x7FF;
+            if(flag_enable_fake_hwicap == 0)
+            {
+              //update FIFO vaccancies
+              WFV = HWICAP[WFV_OFFSET];
+              WFV_value = WFV & 0x7FF;
+            }
             max_words_to_write = WFV_value;
             printf("UPDATE: max_words_to_write %d\n", (int) max_words_to_write);
             if(max_words_to_write == 0)
@@ -2189,26 +2196,33 @@ void fmc(
               printf("Poison Pill received...\n");
               fsmHwicap = ICAP_FSM_DONE;
               break;
-            } else { 
-#ifndef __SYNTHESIS__
-              if(use_sequential_hwicap)
+            } else {
+              if(flag_enable_fake_hwicap == 0)
               {
-                HWICAP[sequential_hwicap_address] = tmp;
-                sequential_hwicap_address++;
-              }
-              //TODO: decrement WFV value of testbench
-              //for debugging reasons, we write it twice
-              HWICAP[WF_OFFSET] = tmp;
+#ifndef __SYNTHESIS__
+                if(use_sequential_hwicap)
+                {
+                  HWICAP[sequential_hwicap_address] = tmp;
+                  sequential_hwicap_address++;
+                }
+                //TODO: decrement WFV value of testbench
+                //for debugging reasons, we write it twice
+                HWICAP[WF_OFFSET] = tmp;
 #else
-              HWICAP[WF_OFFSET] = tmp;
+                HWICAP[WF_OFFSET] = tmp;
 #endif
+              } else {
+                //we do NOT write it to HWICAP
+                //but update the WFV
+                WFV_value--;
+              }
               wordsWrittenToIcapCnt++;
               max_words_to_write--;
               printf("writing to HWICAP: %#010x\n",(int) tmp);
             }
           }
         } //while
-        
+
         WFV = HWICAP[WFV_OFFSET];
         WFV_value = WFV & 0x7FF;
         if (WFV_value >= HWICAP_FIFO_DEPTH && (WFV_value != max_words_to_write) )

@@ -114,6 +114,7 @@ using namespace hls;
 #define PYRO_MODE_SHIFT 15
 #define PYRO_READ_REQUEST_SHIFT 3
 #define ENABLE_TCP_MODE_SHIFT 4
+#define ENABLE_FAKE_HWICAP_SHIFT 5
 #define LAST_PAGE_CNT_SHIFT 17 //until 23, including
 
 //XMEM

@@ -326,6 +326,7 @@ void pTcpRRh(
       else if(!role_fifo_empty_sig.empty())
       {
         role_fifo_still_empty = role_fifo_empty_sig.read();
+        rrhFsmState = RRH_SEND_DREQ;
       }
       else if(!session_reinsert.empty() && !waitingSessions.full())
       {
@@ -432,8 +433,11 @@ void pTcpRRh(
           //            read_request_watchDogTimer = 100;
           //#endif
           //we need this delay so that the FIFO fillstands can be updated...
-          read_request_watchDogTimer = (requested_length/(8*2)) + 1; //8 -> bytes/word, 2 -> by then, the fillstands should be up-to-date
-
+#ifdef __SYNTHESIS_
+          read_request_watchDogTimer = (requested_length/(8*2)) + NAL_TCP_RX_DATA_DELAY_CYCLES; //8 -> bytes/word, 2 -> by then, the fillstands should be up-to-date
+#else
+          read_request_watchDogTimer = (requested_length/(8*2)) + 5;
+#endif
         }
       } else if(read_request_watchDogTimer > 0)
       {
