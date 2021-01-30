@@ -189,6 +189,268 @@ void pTcpRxNotifEnq(
 
 }
 
+///*****************************************************************************
+// * @brief ReadRequestHandler (RRh).
+// *  Waits for a notification indicating the availability of new data for
+// *  the ROLE. If the TCP segment length is greater than 0, the notification
+// *  is accepted.
+// *
+// * @param[in]  siTOE_Notif, a new Rx data notification from TOE.
+// * @param[out] soTOE_DReq,  a Rx data request to TOE.
+// *
+// ******************************************************************************/
+//void pTcpRRh(
+//    stream<TcpAppNotif>       &siTOE_Notif,
+//    stream<TcpAppRdReq>       &soTOE_DReq,
+//    stream<NalNewTableEntry>  &sAddNewTripple_TcpRrh,
+//    stream<SessionId>     &sDeleteEntryBySid,
+//    stream<TcpAppRdReq>       &sRDp_ReqNotif,
+//    ap_uint<1>                *piFMC_data_FIFO_prog_full,
+//    ap_uint<1>                *piFMC_sessid_FIFO_prog_full,
+//    //stream<bool>                &role_fifo_full_sig,
+//    stream<bool>                &role_fifo_empty_sig
+//    //const bool          *role_fifo_empty,
+//    //const bool                *nts_ready_and_enabled
+//    )
+//{
+//  //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+//#pragma HLS INLINE off
+//#pragma HLS pipeline II=1
+//
+//  char* myName  = concat3(THIS_NAME, "/", "Tcp_RRh");
+//
+//  //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+//  static RrhFsmStates rrhFsmState = RRH_RESET;
+//  static ap_uint<8>   read_request_watchDogTimer = 0;
+//  static bool role_fifo_still_empty = true; //after reset --> true
+//
+//#pragma HLS RESET variable=rrhFsmState
+//#pragma HLS RESET variable=read_request_watchDogTimer
+//#pragma HLS RESET variable=role_fifo_still_empty
+//  //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+//  static Cam8<SessionId,TcpDatLen> sessionLength = Cam8<SessionId,TcpDatLen>();
+//#ifndef __SYNTHESIS__
+//  if(MAX_NAL_SESSIONS != 8)
+//  {
+//    printf("\n\t\tERROR: pTcpRRh is currently configured to support only 8 parallel sessions! Abort.\n(Currently, the use of \'Cam8\' must be updated accordingly by hand.)\n");
+//    exit(-1);
+//  }
+//#endif
+//
+//  static stream<SessionId> waitingSessions ("sTcpRRh_WaitingSessions");
+//  static stream<SessionId> session_reinsert ("sTcpRRh_sessions_to_reinsert");
+//#pragma HLS STREAM variable=waitingSessions  depth=8
+//#pragma HLS STREAM variable=session_reinsert  depth=8
+//
+//  static TcpDatLen waiting_length = 0;
+//  static bool already_waiting = false;
+//  static TcpAppNotif notif_pRrh = TcpAppNotif();
+//
+//  //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
+//
+//
+//  // if(!*nts_ready_and_enabled)
+//  // {
+//  //   rrhFsmState = RRH_WAIT_NOTIF;
+//  //   sessionLength.reset();
+//  //   read_request_watchDogTimer = 0;
+//  //   //drain stream
+//  //   if(!waitingSessions.empty())
+//  //   {
+//  //     waitingSessions.read();
+//  //   }
+//  //   if(!session_reinsert.empty())
+//  //   {
+//  //     session_reinsert.read();
+//  //   }
+//  // } else {
+//
+//  switch(rrhFsmState) 
+//  {
+//    default:
+//    case RRH_RESET:
+//      rrhFsmState = RRH_WAIT_NOTIF;
+//      sessionLength.reset();
+//      read_request_watchDogTimer = 0;
+//      //TODO drain internal streams?
+//      break;
+//
+//    case RRH_WAIT_NOTIF:
+//      if(!siTOE_Notif.empty()  && !sDeleteEntryBySid.full()
+//          //&& !waitingSessions.full() && !sAddNewTripple_TcpRrh.full()
+//        )
+//      {
+//        //siTOE_Notif.read(notif_pRrh);
+//        siTOE_Notif.read(notif_pRrh);
+//        if (notif_pRrh.tcpDatLen != 0)
+//        {
+//
+//          waiting_length = 0;
+//          already_waiting = sessionLength.lookup(notif_pRrh.sessionID, waiting_length);
+//          //if(already_waiting)
+//          //{
+//          //  //KeyValuePair<SessionId,TcpDatLen> new_KVp = KeyValuePair<SessionId,TcpDatLen>(
+//          //  //    notif_pRrh.sessionID, notif_pRrh.tcpDatLen+waiting_length);
+//          //  sessionLength.update(notif_pRrh.sessionID, notif_pRrh.tcpDatLen + waiting_length);
+//          //  printf("[TCP-RRH] adding %d to waiting sessions for session %d.\n",(int) notif_pRrh.tcpDatLen, (int) notif_pRrh.sessionID);
+//
+//          //} else {
+//          //  bool found_slot = sessionLength.insert(notif_pRrh.sessionID, notif_pRrh.tcpDatLen);
+//          //  if(!found_slot)
+//          //  {
+//          //    //we have a problem...
+//          //    //but shouldn't happen actually since we have the same size as the table in TOE...
+//          //    printf("[TCP-RRH:PANIC] We don't have space left in the waiting table...\n");
+//          //    break;
+//          //  } else {
+//          //    NalNewTableEntry ne_struct = NalNewTableEntry(newTriple(notif_pRrh.ip4SrcAddr, notif_pRrh.tcpSrcPort, notif_pRrh.tcpDstPort),
+//          //        notif_pRrh.sessionID);
+//          //    sAddNewTripple_TcpRrh.write(ne_struct);
+//          //    waitingSessions.write(notif_pRrh.sessionID);
+//          //    printf("[TCP-RRH] adding %d with %d bytes as new waiting session.\n", (int) notif_pRrh.sessionID, (int) notif_pRrh.tcpDatLen);
+//          //  }
+//          //}
+//
+//          //rrhFsmState = RRH_SEND_DREQ;
+//          rrhFsmState = RRH_PROCESS_NOTIF;
+//
+//        } else if(notif_pRrh.tcpState == FIN_WAIT_1 || notif_pRrh.tcpState == FIN_WAIT_2
+//            || notif_pRrh.tcpState == CLOSING || notif_pRrh.tcpState == TIME_WAIT
+//            || notif_pRrh.tcpState == LAST_ACK || notif_pRrh.tcpState == CLOSED)
+//        {
+//          // we were notified about a closing connection
+//          //deleteSessionFromTables(notif_pRrh.sessionID);
+//          sDeleteEntryBySid.write(notif_pRrh.sessionID);
+//        }
+//      }
+//      else if(!role_fifo_empty_sig.empty())
+//      {
+//        role_fifo_still_empty = role_fifo_empty_sig.read();
+//        rrhFsmState = RRH_SEND_DREQ;
+//      }
+//      else if(!session_reinsert.empty() && !waitingSessions.full())
+//      {
+//        waitingSessions.write(session_reinsert.read());
+//        rrhFsmState = RRH_SEND_DREQ;
+//
+//      } else if(!waitingSessions.empty())
+//      {
+//        rrhFsmState = RRH_SEND_DREQ;
+//      }
+//
+//      //always
+//      if(read_request_watchDogTimer > 0)
+//      {
+//        //we are waiting here too
+//        read_request_watchDogTimer--;
+//      }
+//      break;
+//    case RRH_PROCESS_NOTIF:
+//      if( !waitingSessions.full() && !sAddNewTripple_TcpRrh.full() )
+//      {
+//        if(already_waiting)
+//        {
+//          //KeyValuePair<SessionId,TcpDatLen> new_KVp = KeyValuePair<SessionId,TcpDatLen>(
+//          //    notif_pRrh.sessionID, notif_pRrh.tcpDatLen+waiting_length);
+//          sessionLength.update(notif_pRrh.sessionID, notif_pRrh.tcpDatLen + waiting_length);
+//          printf("[TCP-RRH] adding %d to waiting sessions for session %d.\n",(int) notif_pRrh.tcpDatLen, (int) notif_pRrh.sessionID);
+//
+//        } else {
+//          bool found_slot = sessionLength.insert(notif_pRrh.sessionID, notif_pRrh.tcpDatLen);
+//          if(!found_slot)
+//          {
+//            //we have a problem...
+//            //but shouldn't happen actually since we have the same size as the table in TOE...
+//            printf("[TCP-RRH:PANIC] We don't have space left in the waiting table...\n");
+//            break;
+//          } else {
+//            NalNewTableEntry ne_struct = NalNewTableEntry(newTriple(notif_pRrh.ip4SrcAddr, notif_pRrh.tcpSrcPort, notif_pRrh.tcpDstPort),
+//                notif_pRrh.sessionID);
+//            sAddNewTripple_TcpRrh.write(ne_struct);
+//            waitingSessions.write(notif_pRrh.sessionID);
+//            printf("[TCP-RRH] adding %d with %d bytes as new waiting session.\n", (int) notif_pRrh.sessionID, (int) notif_pRrh.tcpDatLen);
+//          }
+//        }
+//        //in all cases
+//        rrhFsmState = RRH_SEND_DREQ;
+//      }
+//
+//      //always
+//      if(read_request_watchDogTimer > 0)
+//      {
+//        //we are waiting here too
+//        read_request_watchDogTimer--;
+//      }
+//      break;
+//    case RRH_SEND_DREQ:
+//      if((*piFMC_data_FIFO_prog_full == 0 && *piFMC_sessid_FIFO_prog_full == 0 )
+//          //&& *role_fifo_empty
+//          //&& !role_fifo_empty_sig.empty()
+//          && role_fifo_still_empty
+//          && !soTOE_DReq.full() && !sRDp_ReqNotif.full()
+//          && !waitingSessions.empty() && !session_reinsert.full()
+//          && read_request_watchDogTimer == 0
+//        )
+//      {
+//        //bool role_empty = role_fifo_empty_sig.read();
+//        //if(!role_empty)
+//        //{
+//        //  //shouldn't happen actually since the stream is filled by ourselve
+//        //  printf("[TCP-RRH:PANIC] pRoleTcpRxDeq is signalling strange things...\n");
+//        //  break;
+//        //}
+//        SessionId found_ID = waitingSessions.read();
+//        TcpDatLen found_length = 0;
+//
+//        bool found_smth = sessionLength.lookup(found_ID, found_length);
+//        if(!found_smth)
+//        {
+//          //we have a problem...
+//          //but shouldn't happen actually since the stream is filled by ourselve
+//          printf("[TCP-RRH:PANIC] We received a sessionID that is not in the CAM...\n");
+//          break;
+//        } else {
+//          TcpDatLen requested_length = 0;
+//          if(found_length > NAL_MAX_FIFO_DEPTHS_BYTES)
+//          {
+//            requested_length = NAL_MAX_FIFO_DEPTHS_BYTES;
+//            sessionLength.update(found_ID, found_length - NAL_MAX_FIFO_DEPTHS_BYTES);
+//            session_reinsert.write(found_ID);
+//          } else {
+//            requested_length = found_length;
+//            sessionLength.deleteEntry(found_ID);
+//          }
+//          //both cases
+//          printf("[TCP-RRH] requesting data for #%d with length %d\n", (int) found_ID, (int) requested_length);
+//          TcpAppRdReq new_req = TcpAppRdReq(found_ID, requested_length);
+//          soTOE_DReq.write(new_req);
+//          sRDp_ReqNotif.write(new_req);
+//
+//          //add delay cnt to not request sessions after sessions...
+//          //#ifndef __SYNTHESIS__
+//          //            read_request_watchDogTimer = 10;
+//          //#else
+//          //            read_request_watchDogTimer = 100;
+//          //#endif
+//          //we need this delay so that the FIFO fillstands can be updated...
+//#ifdef __SYNTHESIS_
+//          read_request_watchDogTimer = (requested_length/(8*2)) + NAL_TCP_RX_DATA_DELAY_CYCLES; //8 -> bytes/word, 2 -> by then, the fillstands should be up-to-date
+//#else
+//          read_request_watchDogTimer = (requested_length/(8*2)) + 5;
+//#endif
+//        }
+//      } else if(read_request_watchDogTimer > 0)
+//      {
+//        read_request_watchDogTimer--;
+//        printf("[TCP-RRH] Waiting for watchDog (%d)\n.", read_request_watchDogTimer.to_uint());
+//      }
+//      //always
+//      rrhFsmState = RRH_WAIT_NOTIF;
+//      break;
+//  } //switch
+//  //} //else
+//}
+
 /*****************************************************************************
  * @brief ReadRequestHandler (RRh).
  *  Waits for a notification indicating the availability of new data for
@@ -205,12 +467,10 @@ void pTcpRRh(
     stream<NalNewTableEntry>  &sAddNewTripple_TcpRrh,
     stream<SessionId>     &sDeleteEntryBySid,
     stream<TcpAppRdReq>       &sRDp_ReqNotif,
-    ap_uint<1>                *piFMC_data_FIFO_prog_full,
-    ap_uint<1>                *piFMC_sessid_FIFO_prog_full,
-    //stream<bool>                &role_fifo_full_sig,
-    stream<bool>                &role_fifo_empty_sig
-    //const bool          *role_fifo_empty,
-    //const bool                *nts_ready_and_enabled
+    //ap_uint<1>                *piFMC_data_FIFO_prog_full,
+    //ap_uint<1>                *piFMC_sessid_FIFO_prog_full,
+    stream<PacketLen>                &fmc_write_cnt_sig,
+    stream<PacketLen>                &role_write_cnt_sig
     )
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -220,13 +480,16 @@ void pTcpRRh(
   char* myName  = concat3(THIS_NAME, "/", "Tcp_RRh");
 
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-  static RrhFsmStates rrhFsmState = RRH_RESET;
-  static ap_uint<8>   read_request_watchDogTimer = 0;
-  static bool role_fifo_still_empty = true; //after reset --> true
+  //static RrhFsmStates rrhFsmState = RRH_RESET;
+  //static ap_uint<8>   read_request_watchDogTimer = 0;
+  //static bool role_fifo_still_empty = true; //after reset --> true
+  static bool cam_init = false;
 
-#pragma HLS RESET variable=rrhFsmState
-#pragma HLS RESET variable=read_request_watchDogTimer
-#pragma HLS RESET variable=role_fifo_still_empty
+  //#pragma HLS RESET variable=rrhFsmState
+  //#pragma HLS RESET variable=read_request_watchDogTimer
+  //#pragma HLS RESET variable=role_fifo_still_empty
+#pragma HLS RESET variable=cam_init
+
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
   static Cam8<SessionId,TcpDatLen> sessionLength = Cam8<SessionId,TcpDatLen>();
 #ifndef __SYNTHESIS__
@@ -243,213 +506,159 @@ void pTcpRRh(
 #pragma HLS STREAM variable=session_reinsert  depth=8
 
   static TcpDatLen waiting_length = 0;
-  static bool already_waiting = false;
   static TcpAppNotif notif_pRrh = TcpAppNotif();
+  static bool already_waiting = false;
+  static bool need_notif_process = false;
+  static bool need_request_process = false;
+  static TcpDatLen requested_length = 0;
+  static TcpDatLen length_update_value = 0;
+  static SessionId found_ID = 0;
+  static bool need_cam_update = false;
+
+  //static PacketLen role_fifo_free_cnt = NAL_MAX_FIFO_DEPTHS_BYTES;
+  //static PacketLen fmc_fifo_free_cnt = NAL_MAX_FIFO_DEPTHS_BYTES;
+  static PacketLen both_fifo_free_cnt = NAL_MAX_FIFO_DEPTHS_BYTES;
+  //FIXME: move detection if Role or FMC here and then split between Fifos
 
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
 
-
-  // if(!*nts_ready_and_enabled)
-  // {
-  //   rrhFsmState = RRH_WAIT_NOTIF;
-  //   sessionLength.reset();
-  //   read_request_watchDogTimer = 0;
-  //   //drain stream
-  //   if(!waitingSessions.empty())
-  //   {
-  //     waitingSessions.read();
-  //   }
-  //   if(!session_reinsert.empty())
-  //   {
-  //     session_reinsert.read();
-  //   }
-  // } else {
-
-  switch(rrhFsmState) 
+  if(!cam_init)
   {
-    default:
-    case RRH_RESET:
-      rrhFsmState = RRH_WAIT_NOTIF;
-      sessionLength.reset();
-      read_request_watchDogTimer = 0;
-      //TODO drain internal streams?
-      break;
-
-    case RRH_WAIT_NOTIF:
-      if(!siTOE_Notif.empty()  && !sDeleteEntryBySid.full()
-          //&& !waitingSessions.full() && !sAddNewTripple_TcpRrh.full()
-        )
+    sessionLength.reset();
+    need_notif_process = false;
+    need_request_process = false;
+    cam_init = true;
+  }
+  else if(need_notif_process
+      && !waitingSessions.full() && !sAddNewTripple_TcpRrh.full()
+      )
+  {
+      if(already_waiting)
       {
-        //siTOE_Notif.read(notif_pRrh);
-        siTOE_Notif.read(notif_pRrh);
-        if (notif_pRrh.tcpDatLen != 0)
-        {
+        sessionLength.update(notif_pRrh.sessionID, notif_pRrh.tcpDatLen + waiting_length);
+        printf("[TCP-RRH] adding %d to waiting sessions for session %d.\n",(int) notif_pRrh.tcpDatLen, (int) notif_pRrh.sessionID);
 
-          waiting_length = 0;
-          already_waiting = sessionLength.lookup(notif_pRrh.sessionID, waiting_length);
-          //if(already_waiting)
-          //{
-          //  //KeyValuePair<SessionId,TcpDatLen> new_KVp = KeyValuePair<SessionId,TcpDatLen>(
-          //  //    notif_pRrh.sessionID, notif_pRrh.tcpDatLen+waiting_length);
-          //  sessionLength.update(notif_pRrh.sessionID, notif_pRrh.tcpDatLen + waiting_length);
-          //  printf("[TCP-RRH] adding %d to waiting sessions for session %d.\n",(int) notif_pRrh.tcpDatLen, (int) notif_pRrh.sessionID);
-
-          //} else {
-          //  bool found_slot = sessionLength.insert(notif_pRrh.sessionID, notif_pRrh.tcpDatLen);
-          //  if(!found_slot)
-          //  {
-          //    //we have a problem...
-          //    //but shouldn't happen actually since we have the same size as the table in TOE...
-          //    printf("[TCP-RRH:PANIC] We don't have space left in the waiting table...\n");
-          //    break;
-          //  } else {
-          //    NalNewTableEntry ne_struct = NalNewTableEntry(newTriple(notif_pRrh.ip4SrcAddr, notif_pRrh.tcpSrcPort, notif_pRrh.tcpDstPort),
-          //        notif_pRrh.sessionID);
-          //    sAddNewTripple_TcpRrh.write(ne_struct);
-          //    waitingSessions.write(notif_pRrh.sessionID);
-          //    printf("[TCP-RRH] adding %d with %d bytes as new waiting session.\n", (int) notif_pRrh.sessionID, (int) notif_pRrh.tcpDatLen);
-          //  }
-          //}
-
-          //rrhFsmState = RRH_SEND_DREQ;
-          rrhFsmState = RRH_PROCESS_NOTIF;
-
-        } else if(notif_pRrh.tcpState == FIN_WAIT_1 || notif_pRrh.tcpState == FIN_WAIT_2
-            || notif_pRrh.tcpState == CLOSING || notif_pRrh.tcpState == TIME_WAIT
-            || notif_pRrh.tcpState == LAST_ACK || notif_pRrh.tcpState == CLOSED)
-        {
-          // we were notified about a closing connection
-          //deleteSessionFromTables(notif_pRrh.sessionID);
-          sDeleteEntryBySid.write(notif_pRrh.sessionID);
-        }
-      }
-      else if(!role_fifo_empty_sig.empty())
-      {
-        role_fifo_still_empty = role_fifo_empty_sig.read();
-        rrhFsmState = RRH_SEND_DREQ;
-      }
-      else if(!session_reinsert.empty() && !waitingSessions.full())
-      {
-        waitingSessions.write(session_reinsert.read());
-        rrhFsmState = RRH_SEND_DREQ;
-
-      } else if(!waitingSessions.empty())
-      {
-        rrhFsmState = RRH_SEND_DREQ;
-      }
-
-      //always
-      if(read_request_watchDogTimer > 0)
-      {
-        //we are waiting here too
-        read_request_watchDogTimer--;
-      }
-      break;
-    case RRH_PROCESS_NOTIF:
-      if( !waitingSessions.full() && !sAddNewTripple_TcpRrh.full() )
-      {
-        if(already_waiting)
-        {
-          //KeyValuePair<SessionId,TcpDatLen> new_KVp = KeyValuePair<SessionId,TcpDatLen>(
-          //    notif_pRrh.sessionID, notif_pRrh.tcpDatLen+waiting_length);
-          sessionLength.update(notif_pRrh.sessionID, notif_pRrh.tcpDatLen + waiting_length);
-          printf("[TCP-RRH] adding %d to waiting sessions for session %d.\n",(int) notif_pRrh.tcpDatLen, (int) notif_pRrh.sessionID);
-
-        } else {
-          bool found_slot = sessionLength.insert(notif_pRrh.sessionID, notif_pRrh.tcpDatLen);
-          if(!found_slot)
-          {
-            //we have a problem...
-            //but shouldn't happen actually since we have the same size as the table in TOE...
-            printf("[TCP-RRH:PANIC] We don't have space left in the waiting table...\n");
-            break;
-          } else {
-            NalNewTableEntry ne_struct = NalNewTableEntry(newTriple(notif_pRrh.ip4SrcAddr, notif_pRrh.tcpSrcPort, notif_pRrh.tcpDstPort),
-                notif_pRrh.sessionID);
-            sAddNewTripple_TcpRrh.write(ne_struct);
-            waitingSessions.write(notif_pRrh.sessionID);
-            printf("[TCP-RRH] adding %d with %d bytes as new waiting session.\n", (int) notif_pRrh.sessionID, (int) notif_pRrh.tcpDatLen);
-          }
-        }
-        //in all cases
-        rrhFsmState = RRH_SEND_DREQ;
-      }
-
-      //always
-      if(read_request_watchDogTimer > 0)
-      {
-        //we are waiting here too
-        read_request_watchDogTimer--;
-      }
-      break;
-    case RRH_SEND_DREQ:
-      if((*piFMC_data_FIFO_prog_full == 0 && *piFMC_sessid_FIFO_prog_full == 0 )
-          //&& *role_fifo_empty
-          //&& !role_fifo_empty_sig.empty()
-          && role_fifo_still_empty
-          && !soTOE_DReq.full() && !sRDp_ReqNotif.full()
-          && !waitingSessions.empty() && !session_reinsert.full()
-          && read_request_watchDogTimer == 0
-        )
-      {
-        //bool role_empty = role_fifo_empty_sig.read();
-        //if(!role_empty)
+      } else {
+        sessionLength.insert(notif_pRrh.sessionID, notif_pRrh.tcpDatLen);
+        //bool found_slot = sessionLength.insert(notif_pRrh.sessionID, notif_pRrh.tcpDatLen);
+        //if(!found_slot)
         //{
-        //  //shouldn't happen actually since the stream is filled by ourselve
-        //  printf("[TCP-RRH:PANIC] pRoleTcpRxDeq is signalling strange things...\n");
+        //  //we have a problem...
+        //  //but shouldn't happen actually since we have the same size as the table in TOE...
+        //  printf("[TCP-RRH:PANIC] We don't have space left in the waiting table...\n");
         //  break;
+        //} else {
+        NalNewTableEntry ne_struct = NalNewTableEntry(newTriple(notif_pRrh.ip4SrcAddr, notif_pRrh.tcpSrcPort, notif_pRrh.tcpDstPort),
+            notif_pRrh.sessionID);
+        sAddNewTripple_TcpRrh.write(ne_struct);
+        waitingSessions.write(notif_pRrh.sessionID);
+        printf("[TCP-RRH] adding %d with %d bytes as new waiting session.\n", (int) notif_pRrh.sessionID, (int) notif_pRrh.tcpDatLen);
         //}
-        SessionId found_ID = waitingSessions.read();
-        TcpDatLen found_length = 0;
-
-        bool found_smth = sessionLength.lookup(found_ID, found_length);
-        if(!found_smth)
-        {
-          //we have a problem...
-          //but shouldn't happen actually since the stream is filled by ourselve
-          printf("[TCP-RRH:PANIC] We received a sessionID that is not in the CAM...\n");
-          break;
-        } else {
-          TcpDatLen requested_length = 0;
-          if(found_length > NAL_MAX_FIFO_DEPTHS_BYTES)
-          {
-            requested_length = NAL_MAX_FIFO_DEPTHS_BYTES;
-            sessionLength.update(found_ID, found_length - NAL_MAX_FIFO_DEPTHS_BYTES);
-            session_reinsert.write(found_ID);
-          } else {
-            requested_length = found_length;
-            sessionLength.deleteEntry(found_ID);
-          }
-          //both cases
-          printf("[TCP-RRH] requesting data for #%d with length %d\n", (int) found_ID, (int) requested_length);
-          TcpAppRdReq new_req = TcpAppRdReq(found_ID, requested_length);
-          soTOE_DReq.write(new_req);
-          sRDp_ReqNotif.write(new_req);
-
-          //add delay cnt to not request sessions after sessions...
-          //#ifndef __SYNTHESIS__
-          //            read_request_watchDogTimer = 10;
-          //#else
-          //            read_request_watchDogTimer = 100;
-          //#endif
-          //we need this delay so that the FIFO fillstands can be updated...
-#ifdef __SYNTHESIS_
-          read_request_watchDogTimer = (requested_length/(8*2)) + NAL_TCP_RX_DATA_DELAY_CYCLES; //8 -> bytes/word, 2 -> by then, the fillstands should be up-to-date
-#else
-          read_request_watchDogTimer = (requested_length/(8*2)) + 5;
-#endif
-        }
-      } else if(read_request_watchDogTimer > 0)
-      {
-        read_request_watchDogTimer--;
-        printf("[TCP-RRH] Waiting for watchDog (%d)\n.", read_request_watchDogTimer.to_uint());
       }
-      //always
-      rrhFsmState = RRH_WAIT_NOTIF;
-      break;
-  } //switch
-  //} //else
+      need_notif_process = false;
+  }
+  else if(!siTOE_Notif.empty()  && !sDeleteEntryBySid.full()
+      && !need_notif_process
+      )
+  {
+    siTOE_Notif.read(notif_pRrh);
+    if (notif_pRrh.tcpDatLen != 0)
+    {
+
+      //waiting_length = 0;
+      already_waiting = sessionLength.lookup(notif_pRrh.sessionID, waiting_length);
+      need_notif_process = true;
+
+    } else if(notif_pRrh.tcpState == FIN_WAIT_1 || notif_pRrh.tcpState == FIN_WAIT_2
+        || notif_pRrh.tcpState == CLOSING || notif_pRrh.tcpState == TIME_WAIT
+        || notif_pRrh.tcpState == LAST_ACK || notif_pRrh.tcpState == CLOSED)
+    {
+      // we were notified about a closing connection
+      sDeleteEntryBySid.write(notif_pRrh.sessionID);
+    }
+  }
+  else if(!fmc_write_cnt_sig.empty())
+  {
+    PacketLen fmc_new_free = fmc_write_cnt_sig.read();
+    both_fifo_free_cnt += fmc_new_free;
+    if(both_fifo_free_cnt > NAL_MAX_FIFO_DEPTHS_BYTES)
+    {
+      //to be sure
+      both_fifo_free_cnt = NAL_MAX_FIFO_DEPTHS_BYTES;
+    }
+    printf("[TCP-RRH] FMC FIFO completed write of %d bytes; In total %d bytes are free in BOTH FIFOs.\n", (int) fmc_new_free, (int) both_fifo_free_cnt);
+  }
+  else if(!role_write_cnt_sig.empty())
+  {
+    PacketLen role_new_free = role_write_cnt_sig.read();
+    both_fifo_free_cnt += role_new_free;
+    if(both_fifo_free_cnt > NAL_MAX_FIFO_DEPTHS_BYTES)
+    {
+      //to be sure
+      both_fifo_free_cnt = NAL_MAX_FIFO_DEPTHS_BYTES;
+    }
+    printf("[TCP-RRH] ROLE FIFO completed write of %d bytes; In total %d bytes are free in BOTH FIFOs.\n", (int) role_new_free, (int) both_fifo_free_cnt);
+  }
+  else if(!session_reinsert.empty() && !waitingSessions.full())
+  {
+    waitingSessions.write(session_reinsert.read());
+  }
+  else if(need_request_process
+      && !soTOE_DReq.full() && !sRDp_ReqNotif.full()
+      )
+  {
+    if(need_cam_update)
+    {
+      sessionLength.update(found_ID, length_update_value);
+      session_reinsert.write(found_ID);
+      both_fifo_free_cnt = 0;
+    } else {
+      sessionLength.deleteEntry(found_ID);
+      both_fifo_free_cnt -= requested_length;
+    }
+    printf("[TCP-RRH] requesting data for #%d with length %d\n", (int) found_ID, (int) requested_length);
+    TcpAppRdReq new_req = TcpAppRdReq(found_ID, requested_length);
+    soTOE_DReq.write(new_req);
+    sRDp_ReqNotif.write(new_req);
+    
+    need_request_process = false;
+  }
+  else if(!waitingSessions.empty() && !session_reinsert.full()
+      //&& role_fifo_free_cnt > 0
+      //&& fmc_fifo_free_cnt > 0
+      && both_fifo_free_cnt > 0
+      && !need_request_process
+      )
+  {
+    found_ID = waitingSessions.read();
+    TcpDatLen found_length = 0;
+
+    sessionLength.lookup(found_ID, found_length);
+    //bool found_smth = sessionLength.lookup(found_ID, found_length);
+    //if(!found_smth)
+    //{
+    //  //we have a problem...
+    //  //but shouldn't happen actually since the stream is filled by ourselve
+    //  printf("[TCP-RRH:PANIC] We received a sessionID that is not in the CAM...\n");
+    //} else {
+    //requested_length = 0;
+    if(found_length >= both_fifo_free_cnt)
+    {
+      need_cam_update = true;
+      requested_length = both_fifo_free_cnt;
+      length_update_value = found_length - both_fifo_free_cnt;
+    } else {
+      need_cam_update = false;
+      requested_length = found_length;
+    }
+    ////both cases
+    need_request_process = true;
+    //}
+  }
+
 }
+
+
 
 /*****************************************************************************
  * @brief Read Path (RDp) - From TOE to ROLE.
@@ -878,16 +1087,19 @@ void pRoleTcpRxDeq(
     stream<NetworkWord>         &soTcp_data,
     stream<NetworkMetaStream>   &soTcp_meta,
     //bool                        *role_fifo_empty
-    stream<bool>                &role_fifo_empty_sig
+    //stream<bool>                &role_fifo_empty_sig
+    stream<PacketLen>                &role_write_cnt_sig
     )
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
 #pragma HLS pipeline II=1
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-  static DeqFsmStates deqFsmState = DEQ_SEND_NOTIF; //we start with an empty fifo...
+  //static DeqFsmStates deqFsmState = DEQ_SEND_NOTIF; //we start with an empty fifo...
+  static DeqFsmStates deqFsmState = DEQ_WAIT_META;
 #pragma HLS RESET variable=deqFsmState
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+  static PacketLen current_bytes_written = 0;
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
   NetworkWord cur_word = NetworkWord();
   NetworkMetaStream cur_meta = NetworkMetaStream();
@@ -897,22 +1109,30 @@ void pRoleTcpRxDeq(
   {
     default:
     case DEQ_SEND_NOTIF:
-      if(!role_fifo_empty_sig.full())
+      //if(!role_fifo_empty_sig.full())
+      //{
+      //  role_fifo_empty_sig.write(true);
+      //  deqFsmState = DEQ_WAIT_META;
+      //}
+      if(!role_write_cnt_sig.full())
       {
-        role_fifo_empty_sig.write(true);
+        role_write_cnt_sig.write(current_bytes_written);
         deqFsmState = DEQ_WAIT_META;
       }
       break;
     case DEQ_WAIT_META:
       if(!sRoleTcpDataRx_buffer.empty() && !sRoleTcpMetaRx_buffer.empty()
-          && !role_fifo_empty_sig.full()
+          //&& !role_fifo_empty_sig.full()
+          //&& !role_write_cnt_sig.full()
           && ( (!soTcp_data.full() && !soTcp_meta.full()) ||  //user can read
             (role_disabled) //role is disabled -> drain FIFOs
             )
         )
       {
+        //current_bytes_written = 0;
         cur_word = sRoleTcpDataRx_buffer.read();
         cur_meta = sRoleTcpMetaRx_buffer.read();
+        current_bytes_written = extractByteCntNW(cur_word);
         if(!role_disabled)
         {
           soTcp_data.write(cur_word);
@@ -921,7 +1141,9 @@ void pRoleTcpRxDeq(
         if(cur_word.tlast == 0)
         {
           deqFsmState = DEQ_STREAM_DATA;
-          role_fifo_empty_sig.write(false);
+          //role_fifo_empty_sig.write(false);
+        } else {
+          deqFsmState = DEQ_SEND_NOTIF;
         }
       }
       break;
@@ -931,6 +1153,7 @@ void pRoleTcpRxDeq(
         )
       {
         cur_word = sRoleTcpDataRx_buffer.read();
+        current_bytes_written += extractByteCntNW(cur_word);
         if(!role_disabled)
         {
           soTcp_data.write(cur_word);
@@ -951,6 +1174,72 @@ void pRoleTcpRxDeq(
 }
 
 
+void pFmcTcpRxDeq(
+    stream<TcpAppData>    &sFmcTcpDataRx_buffer,
+    stream<TcpAppMeta>    &sFmcTcpMetaRx_buffer,
+    stream<TcpAppData>    &soFmc_data,
+    stream<TcpAppMeta>    &soFmc_meta,
+    stream<PacketLen>     &fmc_write_cnt_sig
+    )
+{
+  //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+#pragma HLS INLINE off
+#pragma HLS pipeline II=1
+  //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+  //static DeqFsmStates deqFsmState = DEQ_SEND_NOTIF; //we start with an empty fifo...
+  static DeqFsmStates deqFsmState = DEQ_WAIT_META;
+#pragma HLS RESET variable=deqFsmState
+  //-- STATIC DATAFLOW VARIABLES --------------------------------------------
+  static PacketLen current_bytes_written = 0;
+  //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
+  TcpAppData cur_word = TcpAppData();
+  TcpAppMeta cur_meta = TcpAppMeta();
+
+  switch(deqFsmState)
+  {
+    default:
+    case DEQ_SEND_NOTIF:
+      if(!fmc_write_cnt_sig.full())
+      {
+        fmc_write_cnt_sig.write(current_bytes_written);
+        deqFsmState = DEQ_WAIT_META;
+      }
+      break;
+    case DEQ_WAIT_META:
+      if(!sFmcTcpDataRx_buffer.empty() && !sFmcTcpMetaRx_buffer.empty()
+          //blocking write, because it is a FIFO
+        )
+      {
+        //current_bytes_written = 0;
+        cur_word = sFmcTcpDataRx_buffer.read();
+        cur_meta = sFmcTcpMetaRx_buffer.read();
+        current_bytes_written = extractByteCnt((Axis<64>) cur_word);
+        soFmc_data.write(cur_word);
+        soFmc_meta.write(cur_meta);
+        if(cur_word.getTLast() == 0)
+        {
+          deqFsmState = DEQ_STREAM_DATA;
+        } else {
+          deqFsmState = DEQ_SEND_NOTIF;
+        }
+      }
+      break;
+    case DEQ_STREAM_DATA:
+      if(!sFmcTcpDataRx_buffer.empty()
+          //blocking write, because it is a FIFO
+        )
+      {
+        cur_word = sFmcTcpDataRx_buffer.read();
+        current_bytes_written += extractByteCnt((Axis<64>) cur_word);
+        soFmc_data.write(cur_word);
+        if(cur_word.getTLast() == 1)
+        {
+          deqFsmState = DEQ_SEND_NOTIF;
+        }
+      }
+      break;
+  }
+}
 
 
 /*****************************************************************************

@@ -151,6 +151,42 @@ uint8_t extractByteCnt(Axis<64> currWord)
   return ret;
 }
 
+uint8_t extractByteCntNW(NetworkWord currWord)
+{
+#pragma HLS INLINE
+
+  uint8_t ret = 0;
+
+  switch (currWord.tkeep) {
+    case 0b11111111:
+      ret = 8;
+      break;
+    case 0b01111111:
+      ret = 7;
+      break;
+    case 0b00111111:
+      ret = 6;
+      break;
+    case 0b00011111:
+      ret = 5;
+      break;
+    case 0b00001111:
+      ret = 4;
+      break;
+    case 0b00000111:
+      ret = 3;
+      break;
+    case 0b00000011:
+      ret = 2;
+      break;
+    default:
+    case 0b00000001:
+      ret = 1;
+      break;
+  }
+  return ret;
+}
+
 void pStatusMemory(
     stream<NalEventNotif>  &internal_event_fifo,
     ap_uint<1>       *layer_7_enabled,
@@ -469,9 +505,9 @@ void nal_main(
     // -- FMC TCP connection
     stream<TcpAppData>          &siFMC_data,
     stream<TcpAppMeta>          &siFMC_SessId,
-    ap_uint<1>                  *piFMC_data_FIFO_prog_full,
+    //ap_uint<1>                  *piFMC_data_FIFO_prog_full,
     stream<TcpAppData>          &soFMC_data,
-    ap_uint<1>                  *piFMC_sessid_FIFO_prog_full,
+    //ap_uint<1>                  *piFMC_sessid_FIFO_prog_full,
     stream<TcpAppMeta>          &soFMC_SessId,
 
     //-- UOE / Control Port Interfaces
@@ -637,10 +673,9 @@ void nal_main(
 #pragma HLS INTERFACE ap_fifo port=soFMC_data
 #pragma HLS INTERFACE ap_fifo port=siFMC_SessId
 #pragma HLS INTERFACE ap_fifo port=soFMC_SessId
-#pragma HLS INTERFACE ap_vld register port=piFMC_data_FIFO_prog_full name=piFMC_data_FIFO_prog_full
-#pragma HLS INTERFACE ap_vld register port=piFMC_sessid_FIFO_prog_full name=piFMC_sessid_FIFO_prog_full
+//#pragma HLS INTERFACE ap_vld register port=piFMC_data_FIFO_prog_full name=piFMC_data_FIFO_prog_full
+//#pragma HLS INTERFACE ap_vld register port=piFMC_sessid_FIFO_prog_full name=piFMC_sessid_FIFO_prog_full
 
-  //TODO: add internal streams
 
 #pragma HLS DATAFLOW
   //#pragma HLS PIPELINE II=1 //FIXME
@@ -730,7 +765,8 @@ void nal_main(
   static stream<bool>      sCacheInvalSig_2      ("sCacheInvalSig_2");
   static stream<bool>      sCacheInvalSig_3      ("sCacheInvalSig_3");
 
-  static stream<bool>      sRoleFifoEmptySig     ("sRoleFifoEmptySig");
+  static stream<PacketLen>      sRoleFifoEmptySig     ("sRoleFifoEmptySig");
+  static stream<PacketLen>      sFmcFifoEmptySig     ("sFmcFifoEmptySig");
 
   static stream<bool>      sStartTclCls_sig      ("sStartTclCls_sig");
   static stream<NalPortUpdate> sNalPortUpdate    ("sNalPortUpdate");
@@ -743,6 +779,9 @@ void nal_main(
   static stream<UdpAppDLen>          sUoeTxBuffer_DLen ("sUoeTxBuffer_DLen");
 
   static stream<bool>                 sCacheInvalDel_Notif ("sCacheInvalDel_Notif");
+  
+  static stream<TcpAppData>          sFmcTcpDataRx_buffer ("sFmcTcpDataRx_buffer");
+  static stream<TcpAppMeta>          sFmcTcpMetaRx_buffer ("sFmcTcpMetaRx_buffer");
 
 
 #pragma HLS STREAM variable=internal_event_fifo_0 depth=16
@@ -816,6 +855,7 @@ void nal_main(
 #pragma HLS STREAM variable=sCacheInvalSig_3 depth=4
 
 #pragma HLS STREAM variable=sRoleFifoEmptySig depth=8
+#pragma HLS STREAM variable=sFmcFifoEmptySig depth=8
 
 #pragma HLS STREAM variable=sStartTclCls_sig depth=4
 #pragma HLS STREAM variable=sNalPortUpdate   depth=8
@@ -828,6 +868,10 @@ void nal_main(
 #pragma HLS STREAM variable=sUoeTxBuffer_DLen  depth=32
 
 #pragma HLS STREAM variable=sCacheInvalDel_Notif  depth=4
+
+#pragma HLS STREAM variable=sFmcTcpDataRx_buffer depth=252 //NAL_MAX_FIFO_DEPTS_BYTES/8 (+2)
+#pragma HLS STREAM variable=sFmcTcpMetaRx_buffer depth=32
+
 
 
   //=================================================================================================
@@ -910,18 +954,21 @@ void nal_main(
 
   pTcpRxNotifEnq(siTOE_Notif, sTcpNotif_buffer);
 
+  //pTcpRRh(sTcpNotif_buffer, soTOE_DReq, sAddNewTriple_TcpRrh, sDeleteEntryBySid,  sRDp_ReqNotif,
+  //    piFMC_data_FIFO_prog_full, piFMC_sessid_FIFO_prog_full, sRoleFifoEmptySig);
   pTcpRRh(sTcpNotif_buffer, soTOE_DReq, sAddNewTriple_TcpRrh, sDeleteEntryBySid,  sRDp_ReqNotif,
-      piFMC_data_FIFO_prog_full, piFMC_sessid_FIFO_prog_full, sRoleFifoEmptySig);
+      sFmcFifoEmptySig, sRoleFifoEmptySig);
 
   //=================================================================================================
   // TCP Read Path
-  pTcpRDp(sRDp_ReqNotif, siTOE_Data, siTOE_SessId, soFMC_data, soFMC_SessId,
-      //soTcp_data, soTcp_meta,
+  pTcpRDp(sRDp_ReqNotif, siTOE_Data, siTOE_SessId, sFmcTcpDataRx_buffer, sFmcTcpMetaRx_buffer,
+      //soFMC_data, soFMC_SessId, soTcp_data, soTcp_meta,
       sRoleTcpDataRx_buffer, sRoleTcpMetaRx_buffer,
       sA4lToTcpRx, sGetNidReq_TcpRx, sGetNidRep_TcpRx, sGetTripleFromSid_Req, sGetTripleFromSid_Rep,
       sMarkAsPriv, piMMIO_CfrmIp4Addr, piMMIO_FmcLsnPort, layer_7_enabled, role_decoupled,
       sCacheInvalSig_2, internal_event_fifo_2);
 
+  pFmcTcpRxDeq(sFmcTcpDataRx_buffer, sFmcTcpMetaRx_buffer, soFMC_data, soFMC_SessId, sFmcFifoEmptySig);
 
   pRoleTcpRxDeq(layer_7_enabled, role_decoupled, sRoleTcpDataRx_buffer, sRoleTcpMetaRx_buffer, soTcp_data, soTcp_meta, sRoleFifoEmptySig);
 

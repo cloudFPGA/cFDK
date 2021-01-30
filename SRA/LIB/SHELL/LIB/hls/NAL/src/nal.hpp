@@ -298,6 +298,9 @@ typedef UdpLen       UdpAppDLen;
 typedef UdpAppMeta  UdpMeta;
 typedef UdpAppDLen  UdpPLen;
 
+typedef ap_uint<16> PacketLen;
+
+
 
 struct NalEventNotif {
   NalCntIncType type;
@@ -362,6 +365,7 @@ Ip4Addr getRemoteIpAddrFromTriple(NalTriple triple);
 TcpPort getRemotePortFromTriple(NalTriple triple);
 TcpPort getLocalPortFromTriple(NalTriple triple);
 uint8_t extractByteCnt(Axis<64> currWord);
+uint8_t extractByteCntNW(NetworkWord currWord);
 
 
 #include "uss.hpp"
@@ -402,9 +406,9 @@ void nal_main(
     // -- FMC TCP connection
     stream<TcpAppData>          &siFMC_data,
     stream<TcpAppMeta>          &siFMC_SessId,
-    ap_uint<1>                  *piFMC_data_FIFO_prog_full,
+    //ap_uint<1>                  *piFMC_data_FIFO_prog_full,
     stream<TcpAppData>          &soFMC_data,
-    ap_uint<1>                  *piFMC_sessid_FIFO_prog_full,
+    //ap_uint<1>                  *piFMC_sessid_FIFO_prog_full,
     stream<TcpAppMeta>          &soFMC_SessId,
 
     //-- UOE / Control Port Interfaces
