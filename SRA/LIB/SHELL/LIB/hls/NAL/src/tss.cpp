@@ -670,13 +670,14 @@ void pTcpRxNotifEnq(
  *
  ******************************************************************************/
 void pTcpRRh(
+    ap_uint<32>         *piMMIO_CfrmIp4Addr,
+    ap_uint<16>       *piMMIO_FmcLsnPort,
     stream<TcpAppNotif>       &siTOE_Notif,
     stream<TcpAppRdReq>       &soTOE_DReq,
     stream<NalNewTableEntry>  &sAddNewTripple_TcpRrh,
+    stream<SessionId>   &sMarkAsPriv,
     stream<SessionId>     &sDeleteEntryBySid,
     stream<TcpAppRdReq>       &sRDp_ReqNotif,
-    //ap_uint<1>                *piFMC_data_FIFO_prog_full,
-    //ap_uint<1>                *piFMC_sessid_FIFO_prog_full,
     stream<PacketLen>                &fmc_write_cnt_sig,
     stream<PacketLen>                &role_write_cnt_sig
     )
@@ -708,8 +709,8 @@ void pTcpRRh(
   }
 #endif
 
-  static stream<SessionId> waitingSessions ("sTcpRRh_WaitingSessions");
-  static stream<SessionId> session_reinsert ("sTcpRRh_sessions_to_reinsert");
+  static stream<NalWaitingData> waitingSessions ("sTcpRRh_WaitingSessions");
+  static stream<NalWaitingData> session_reinsert ("sTcpRRh_sessions_to_reinsert");
 #pragma HLS STREAM variable=waitingSessions  depth=8
 #pragma HLS STREAM variable=session_reinsert  depth=8
 
@@ -721,13 +722,13 @@ void pTcpRRh(
   static TcpDatLen requested_length = 0;
   static TcpDatLen length_update_value = 0;
   static SessionId found_ID = 0;
+  static bool found_fmc_sess = false;
   static bool need_cam_update = false;
-  static bool go_back_to_ack_wait = false;
+  static bool go_back_to_ack_wait_role = false;
+  static bool go_back_to_ack_wait_fmc = false;
 
-  //static PacketLen role_fifo_free_cnt = NAL_MAX_FIFO_DEPTHS_BYTES;
-  //static PacketLen fmc_fifo_free_cnt = NAL_MAX_FIFO_DEPTHS_BYTES;
-  static PacketLen both_fifo_free_cnt = NAL_MAX_FIFO_DEPTHS_BYTES;
-  //FIXME: move detection if Role or FMC here and then split between Fifos
+  static PacketLen role_fifo_free_cnt = NAL_MAX_FIFO_DEPTHS_BYTES;
+  static PacketLen fmc_fifo_free_cnt = NAL_MAX_FIFO_DEPTHS_BYTES;
 
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
 
@@ -736,7 +737,10 @@ void pTcpRRh(
     default:
     case RRH_RESET:
       sessionLength.reset();
-      go_back_to_ack_wait = false;
+      go_back_to_ack_wait_fmc = false;
+      go_back_to_ack_wait_role = false;
+      role_fifo_free_cnt = NAL_MAX_FIFO_DEPTHS_BYTES;
+      fmc_fifo_free_cnt = NAL_MAX_FIFO_DEPTHS_BYTES;
       rrhFsmState = RRH_WAIT_NOTIF;
       break;
     case RRH_WAIT_NOTIF:
@@ -757,22 +761,26 @@ void pTcpRRh(
         {
           // we were notified about a closing connection
           sDeleteEntryBySid.write(notif_pRrh.sessionID);
-          if(go_back_to_ack_wait)
+          if(go_back_to_ack_wait_fmc)
           {
-            rrhFsmState = RRH_WAIT_WRITE_ACK;
+            rrhFsmState = RRH_WAIT_FMC;
+          }
+          else if(go_back_to_ack_wait_role)
+          {
+            rrhFsmState = RRH_WAIT_ROLE;
           }
           //else, stay here...
         }
       }
       else if(!session_reinsert.empty() && !waitingSessions.full()
-          && !go_back_to_ack_wait
+          && !go_back_to_ack_wait_fmc && !go_back_to_ack_wait_role
           )
       {
         waitingSessions.write(session_reinsert.read());
         rrhFsmState = RRH_START_REQUEST;
       }
       else if(!waitingSessions.empty()
-              && !go_back_to_ack_wait
+              && !go_back_to_ack_wait_fmc && !go_back_to_ack_wait_role
           )
       {
         rrhFsmState = RRH_START_REQUEST;
@@ -780,6 +788,7 @@ void pTcpRRh(
       break;
     case RRH_PROCESS_NOTIF:
       if(!waitingSessions.full() && !sAddNewTripple_TcpRrh.full()
+          && !sMarkAsPriv.full()
         )
       {
         if(already_waiting)
@@ -800,13 +809,24 @@ void pTcpRRh(
           NalNewTableEntry ne_struct = NalNewTableEntry(newTriple(notif_pRrh.ip4SrcAddr, notif_pRrh.tcpSrcPort, notif_pRrh.tcpDstPort),
               notif_pRrh.sessionID);
           sAddNewTripple_TcpRrh.write(ne_struct);
-          waitingSessions.write(notif_pRrh.sessionID);
+          bool is_fmc = false;
+          if(notif_pRrh.ip4SrcAddr == *piMMIO_CfrmIp4Addr && notif_pRrh.tcpDstPort == *piMMIO_FmcLsnPort)
+          {
+            is_fmc = true;
+            sMarkAsPriv.write(notif_pRrh.sessionID);
+          }
+          NalWaitingData new_sess = NalWaitingData(notif_pRrh.sessionID, is_fmc);
+          waitingSessions.write(new_sess);
           printf("[TCP-RRH] adding %d with %d bytes as new waiting session.\n", (int) notif_pRrh.sessionID, (int) notif_pRrh.tcpDatLen);
           //}
         }
-        if(go_back_to_ack_wait)
+        if(go_back_to_ack_wait_fmc)
         {
-          rrhFsmState = RRH_WAIT_WRITE_ACK;
+          rrhFsmState = RRH_WAIT_FMC;
+        }
+        else if(go_back_to_ack_wait_role)
+        {
+          rrhFsmState = RRH_WAIT_ROLE;
         } else {
           rrhFsmState = RRH_START_REQUEST;
         }
@@ -816,11 +836,13 @@ void pTcpRRh(
       if(!waitingSessions.empty() && !session_reinsert.full()
           //&& role_fifo_free_cnt > 0
           //&& fmc_fifo_free_cnt > 0
-          //&& both_fifo_free_cnt > 0 //if we are here, we ensured there is space
+          //if we are here, we ensured there is space
         )
       {
-        found_ID = waitingSessions.read();
+        NalWaitingData new_data = waitingSessions.read();
+        found_ID = new_data.sessId;
         TcpDatLen found_length = 0;
+        found_fmc_sess = new_data.fmc_con;
 
         sessionLength.lookup(found_ID, found_length);
         //bool found_smth = sessionLength.lookup(found_ID, found_length);
@@ -831,14 +853,27 @@ void pTcpRRh(
         //  printf("[TCP-RRH:PANIC] We received a sessionID that is not in the CAM...\n");
         //} else {
         //requested_length = 0;
-        if(found_length >= both_fifo_free_cnt)
+        if(found_fmc_sess)
         {
-          need_cam_update = true;
-          requested_length = both_fifo_free_cnt;
-          length_update_value = found_length - both_fifo_free_cnt;
+          if(found_length >= fmc_fifo_free_cnt)
+          {
+            need_cam_update = true;
+            requested_length = fmc_fifo_free_cnt;
+            length_update_value = found_length - fmc_fifo_free_cnt;
+          } else {
+            need_cam_update = false;
+            requested_length = found_length;
+          }
         } else {
-          need_cam_update = false;
-          requested_length = found_length;
+          if(found_length >= role_fifo_free_cnt)
+          {
+            need_cam_update = true;
+            requested_length = role_fifo_free_cnt;
+            length_update_value = found_length - role_fifo_free_cnt;
+          } else {
+            need_cam_update = false;
+            requested_length = found_length;
+          }
         }
         ////both cases
         rrhFsmState = RRH_PROCESS_REQUEST;
@@ -851,60 +886,83 @@ void pTcpRRh(
       break;
     case RRH_PROCESS_REQUEST:
       if(!soTOE_DReq.full() && !sRDp_ReqNotif.full()
+          && !session_reinsert.full()
         )
       {
         if(need_cam_update)
         {
           sessionLength.update(found_ID, length_update_value);
-          session_reinsert.write(found_ID);
-          both_fifo_free_cnt = 0;
+          session_reinsert.write(NalWaitingData(found_ID, found_fmc_sess));
+          if(found_fmc_sess)
+          {
+            fmc_fifo_free_cnt = 0;
+          } else {
+            role_fifo_free_cnt = 0;
+          }
         } else {
           sessionLength.deleteEntry(found_ID);
-          both_fifo_free_cnt -= requested_length;
+          if(found_fmc_sess)
+          {
+            fmc_fifo_free_cnt -= requested_length;
+          } else {
+            role_fifo_free_cnt -= requested_length;
+          }
         }
-        printf("[TCP-RRH] requesting data for #%d with length %d\n", (int) found_ID, (int) requested_length);
+        printf("[TCP-RRH] requesting data for #%d with length %d (FMC: %d)\n", (int) found_ID, (int) requested_length, (int) found_fmc_sess);
         TcpAppRdReq new_req = TcpAppRdReq(found_ID, requested_length);
         soTOE_DReq.write(new_req);
         sRDp_ReqNotif.write(new_req);
-        go_back_to_ack_wait = false;
-        rrhFsmState = RRH_WAIT_WRITE_ACK;
+        go_back_to_ack_wait_fmc  = false;
+        go_back_to_ack_wait_role = false;
+        if(found_fmc_sess)
+        {
+          rrhFsmState = RRH_WAIT_FMC;
+        } else {
+          rrhFsmState = RRH_WAIT_ROLE;
+        }
       }
       break;
-    case RRH_WAIT_WRITE_ACK:
+    case RRH_WAIT_FMC:
       if(!fmc_write_cnt_sig.empty())
       {
         PacketLen fmc_new_free = fmc_write_cnt_sig.read();
-        both_fifo_free_cnt += fmc_new_free;
-        if(both_fifo_free_cnt > NAL_MAX_FIFO_DEPTHS_BYTES)
+        fmc_fifo_free_cnt += fmc_new_free;
+        if(fmc_fifo_free_cnt > NAL_MAX_FIFO_DEPTHS_BYTES)
         {
           //to be sure
-          both_fifo_free_cnt = NAL_MAX_FIFO_DEPTHS_BYTES;
+          fmc_fifo_free_cnt = NAL_MAX_FIFO_DEPTHS_BYTES;
         }
-        printf("[TCP-RRH] FMC FIFO completed write of %d bytes; In total %d bytes are free in BOTH FIFOs.\n", (int) fmc_new_free, (int) both_fifo_free_cnt);
-        go_back_to_ack_wait = false;
-        rrhFsmState = RRH_WAIT_NOTIF;
-      }
-      else if(!role_write_cnt_sig.empty())
-      {
-        PacketLen role_new_free = role_write_cnt_sig.read();
-        both_fifo_free_cnt += role_new_free;
-        if(both_fifo_free_cnt > NAL_MAX_FIFO_DEPTHS_BYTES)
-        {
-          //to be sure
-          both_fifo_free_cnt = NAL_MAX_FIFO_DEPTHS_BYTES;
-        }
-        printf("[TCP-RRH] ROLE FIFO completed write of %d bytes; In total %d bytes are free in BOTH FIFOs.\n", (int) role_new_free, (int) both_fifo_free_cnt);
-        go_back_to_ack_wait = false;
+        printf("[TCP-RRH] FMC FIFO completed write of %d bytes; In total %d bytes are free in FMC FIFO.\n", (int) fmc_new_free, (int) fmc_fifo_free_cnt);
+        go_back_to_ack_wait_fmc = false;
         rrhFsmState = RRH_WAIT_NOTIF;
       }
       else if(!siTOE_Notif.empty())
       {
         rrhFsmState = RRH_WAIT_NOTIF;
-        go_back_to_ack_wait = true;
+        go_back_to_ack_wait_fmc = true;
+      }
+      break;
+    case RRH_WAIT_ROLE:
+      if(!role_write_cnt_sig.empty())
+      {
+        PacketLen role_new_free = role_write_cnt_sig.read();
+        role_fifo_free_cnt += role_new_free;
+        if(role_fifo_free_cnt > NAL_MAX_FIFO_DEPTHS_BYTES)
+        {
+          //to be sure
+          role_fifo_free_cnt = NAL_MAX_FIFO_DEPTHS_BYTES;
+        }
+        printf("[TCP-RRH] ROLE FIFO completed write of %d bytes; In total %d bytes are free in ROLE FIFO.\n", (int) role_new_free, (int) role_fifo_free_cnt);
+        go_back_to_ack_wait_role = false;
+        rrhFsmState = RRH_WAIT_NOTIF;
+      }
+      else if(!siTOE_Notif.empty())
+      {
+        rrhFsmState = RRH_WAIT_NOTIF;
+        go_back_to_ack_wait_role = true;
       }
       break;
   }
-
 
 }
 
@@ -933,7 +991,7 @@ void pTcpRDp(
     stream<NodeId>        &sGetNidRep_TcpRx,
     stream<SessionId>   &sGetTripleFromSid_Req,
     stream<NalTriple>   &sGetTripleFromSid_Rep,
-    stream<SessionId>   &sMarkAsPriv,
+    //stream<SessionId>   &sMarkAsPriv,
     ap_uint<32>         *piMMIO_CfrmIp4Addr,
     ap_uint<16>       *piMMIO_FmcLsnPort,
     //const ap_uint<16>       *processed_FMC_listen_port,
@@ -1138,8 +1196,9 @@ void pTcpRDp(
       //}
       ////NO break;
     case RDP_FILTER_META:
-      if(!sMarkAsPriv.full() && !siTOE_SessId.empty()
-        && !soTcp_meta.full() //&& !soFMC_SessId.full() //blocking write, because it is a FIFO
+      if(//!sMarkAsPriv.full() && 
+        !siTOE_SessId.empty()
+        && !soTcp_meta.full() && !soFMC_SessId.full()
         )
       {
         TcpAppMeta controll_id = siTOE_SessId.read();
@@ -1180,11 +1239,12 @@ void pTcpRDp(
             new_ev_not = NalEventNotif(AUTH_ACCESS, 1);
             //internal_event_fifo.write(new_ev_not);
             evsStreams[0].write(new_ev_not);
-            if(!found_in_cache)
-            {
-              //markSessionAsPrivileged(sessId);
-              sMarkAsPriv.write(sessId);
-            }
+            //done by RRh
+            //if(!found_in_cache)
+            //{
+            //  //markSessionAsPrivileged(sessId);
+            //  sMarkAsPriv.write(sessId);
+            //}
             break;
           } else {
             //unauthorized_access_cnt++;
@@ -1267,8 +1327,8 @@ void pTcpRDp(
     //  }
     //  break;
     case RDP_STREAM_FMC:
-      if (!siTOE_Data.empty() 
-          //&& soFMC_data.full() //blocking write, because it is a FIFO
+      if (!siTOE_Data.empty()
+          && !soFMC_data.full()
         )
       {
         siTOE_Data.read(currWord);
@@ -1299,7 +1359,7 @@ void pTcpRDp(
     //  }
     //  break;
     case RDP_DROP_PACKET:
-      if( !siTOE_Data.empty())
+      if( !siTOE_Data.empty() )
       {
         siTOE_Data.read(currWord);
         if (currWord.getTLast() == 1)
@@ -1462,6 +1522,7 @@ void pFmcTcpRxDeq(
           && !soFmc_data.full() && !soFmc_meta.full()
         )
       {
+        printf("[pFmcTcpRxDeq] Start processing FMC packet\n");
         cur_word = sFmcTcpDataRx_buffer.read();
         cur_meta = sFmcTcpMetaRx_buffer.read();
         current_bytes_written = extractByteCnt((Axis<64>) cur_word);

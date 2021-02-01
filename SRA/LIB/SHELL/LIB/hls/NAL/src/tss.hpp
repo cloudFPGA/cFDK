@@ -61,13 +61,14 @@ void pTcpRxNotifEnq(
     );
 
 void pTcpRRh(
+    ap_uint<32>         *piMMIO_CfrmIp4Addr,
+    ap_uint<16>       *piMMIO_FmcLsnPort,
     stream<TcpAppNotif>       &siTOE_Notif,
     stream<TcpAppRdReq>       &soTOE_DReq,
     stream<NalNewTableEntry>  &sAddNewTripple_TcpRrh,
+    stream<SessionId>   &sMarkAsPriv,
     stream<SessionId>     &sDeleteEntryBySid,
     stream<TcpAppRdReq>       &sRDp_ReqNotif,
-    //ap_uint<1>                *piFMC_data_FIFO_prog_full,
-    //ap_uint<1>                *piFMC_sessid_FIFO_prog_full,
     stream<PacketLen>                &fmc_write_cnt_sig,
     stream<PacketLen>                &role_write_cnt_sig
     );
@@ -85,7 +86,7 @@ void pTcpRDp(
     stream<NodeId>        &sGetNidRep_TcpRx,
     stream<SessionId>   &sGetTripleFromSid_Req,
     stream<NalTriple>   &sGetTripleFromSid_Rep,
-    stream<SessionId>   &sMarkAsPriv,
+    //stream<SessionId>   &sMarkAsPriv,
     ap_uint<32>         *piMMIO_CfrmIp4Addr,
     ap_uint<16>       *piMMIO_FmcLsnPort,
     //const ap_uint<16>       *processed_FMC_listen_port,

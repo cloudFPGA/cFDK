@@ -164,7 +164,7 @@ enum LsnFsmStates {LSN_IDLE = 0, LSN_SEND_REQ, LSN_WAIT_ACK, LSN_DONE};
 //#define RrhFsmStates uint8_t
 //#define RRH_WAIT_NOTIF 0
 //#define RRH_SEND_DREQ 1
-enum RrhFsmStates {RRH_RESET = 0, RRH_WAIT_NOTIF, RRH_PROCESS_NOTIF, RRH_START_REQUEST, RRH_PROCESS_REQUEST, RRH_WAIT_WRITE_ACK};
+enum RrhFsmStates {RRH_RESET = 0, RRH_WAIT_NOTIF, RRH_PROCESS_NOTIF, RRH_START_REQUEST, RRH_PROCESS_REQUEST, RRH_WAIT_FMC, RRH_WAIT_ROLE};
 
 //#define RdpFsmStates uint8_t
 //#define RDP_WAIT_META 0
@@ -355,6 +355,13 @@ struct NalPortUpdate {
   ap_uint<32> new_value;
   NalPortUpdate () {}
   NalPortUpdate(PortType pt, ap_uint<32> nv): port_type(pt), new_value(nv) {}
+};
+
+struct NalWaitingData {
+  SessionId sessId;
+  bool      fmc_con;
+  NalWaitingData () {}
+  NalWaitingData(SessionId si, bool is_fmc): sessId(si), fmc_con(is_fmc) {}
 };
 
 

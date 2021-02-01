@@ -956,7 +956,10 @@ void nal_main(
 
   //pTcpRRh(sTcpNotif_buffer, soTOE_DReq, sAddNewTriple_TcpRrh, sDeleteEntryBySid,  sRDp_ReqNotif,
   //    piFMC_data_FIFO_prog_full, piFMC_sessid_FIFO_prog_full, sRoleFifoEmptySig);
-  pTcpRRh(sTcpNotif_buffer, soTOE_DReq, sAddNewTriple_TcpRrh, sDeleteEntryBySid,  sRDp_ReqNotif,
+  //pTcpRRh(sTcpNotif_buffer, soTOE_DReq, sAddNewTriple_TcpRrh, sDeleteEntryBySid,  sRDp_ReqNotif,
+  //    sFmcFifoEmptySig, sRoleFifoEmptySig);
+  pTcpRRh(piMMIO_CfrmIp4Addr, piMMIO_FmcLsnPort, sTcpNotif_buffer, soTOE_DReq,
+      sAddNewTriple_TcpRrh, sMarkAsPriv, sDeleteEntryBySid,  sRDp_ReqNotif,
       sFmcFifoEmptySig, sRoleFifoEmptySig);
 
   //=================================================================================================
@@ -965,7 +968,8 @@ void nal_main(
       //soFMC_data, soFMC_SessId, soTcp_data, soTcp_meta,
       sRoleTcpDataRx_buffer, sRoleTcpMetaRx_buffer,
       sA4lToTcpRx, sGetNidReq_TcpRx, sGetNidRep_TcpRx, sGetTripleFromSid_Req, sGetTripleFromSid_Rep,
-      sMarkAsPriv, piMMIO_CfrmIp4Addr, piMMIO_FmcLsnPort, layer_7_enabled, role_decoupled,
+      //sMarkAsPriv, 
+      piMMIO_CfrmIp4Addr, piMMIO_FmcLsnPort, layer_7_enabled, role_decoupled,
       sCacheInvalSig_2, internal_event_fifo_2);
 
   pFmcTcpRxDeq(sFmcTcpDataRx_buffer, sFmcTcpMetaRx_buffer, soFMC_data, soFMC_SessId, sFmcFifoEmptySig);
