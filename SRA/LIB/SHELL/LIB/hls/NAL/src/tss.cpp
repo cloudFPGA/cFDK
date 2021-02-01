@@ -816,7 +816,7 @@ void pTcpRRh(
       if(!waitingSessions.empty() && !session_reinsert.full()
           //&& role_fifo_free_cnt > 0
           //&& fmc_fifo_free_cnt > 0
-          && both_fifo_free_cnt > 0
+          //&& both_fifo_free_cnt > 0 //if we are here, we ensured there is space
         )
       {
         found_ID = waitingSessions.read();
@@ -844,10 +844,10 @@ void pTcpRRh(
         rrhFsmState = RRH_PROCESS_REQUEST;
         //}
       }
-      else if(both_fifo_free_cnt == 0)
-      {
-        rrhFsmState = RRH_WAIT_WRITE_ACK;
-      }
+      //else if(both_fifo_free_cnt == 0)
+      //{
+      //  rrhFsmState = RRH_WAIT_WRITE_ACK;
+      //}
       break;
     case RRH_PROCESS_REQUEST:
       if(!soTOE_DReq.full() && !sRDp_ReqNotif.full()
@@ -1367,6 +1367,7 @@ void pRoleTcpRxDeq(
       if(!role_write_cnt_sig.full())
       {
         role_write_cnt_sig.write(current_bytes_written);
+        current_bytes_written = 0;
         deqFsmState = DEQ_WAIT_META;
       }
       break;
@@ -1379,7 +1380,6 @@ void pRoleTcpRxDeq(
             )
         )
       {
-        //current_bytes_written = 0;
         cur_word = sRoleTcpDataRx_buffer.read();
         cur_meta = sRoleTcpMetaRx_buffer.read();
         current_bytes_written = extractByteCntNW(cur_word);
@@ -1452,15 +1452,16 @@ void pFmcTcpRxDeq(
       if(!fmc_write_cnt_sig.full())
       {
         fmc_write_cnt_sig.write(current_bytes_written);
+        current_bytes_written = 0;
         deqFsmState = DEQ_WAIT_META;
       }
       break;
     case DEQ_WAIT_META:
       if(!sFmcTcpDataRx_buffer.empty() && !sFmcTcpMetaRx_buffer.empty()
-          //blocking write, because it is a FIFO
+          ////blocking write, because it is a FIFO
+          && !soFmc_data.full() && !soFmc_meta.full()
         )
       {
-        //current_bytes_written = 0;
         cur_word = sFmcTcpDataRx_buffer.read();
         cur_meta = sFmcTcpMetaRx_buffer.read();
         current_bytes_written = extractByteCnt((Axis<64>) cur_word);
@@ -1476,7 +1477,8 @@ void pFmcTcpRxDeq(
       break;
     case DEQ_STREAM_DATA:
       if(!sFmcTcpDataRx_buffer.empty()
-          //blocking write, because it is a FIFO
+          ////blocking write, because it is a FIFO
+          && !soFmc_data.full()
         )
       {
         cur_word = sFmcTcpDataRx_buffer.read();
