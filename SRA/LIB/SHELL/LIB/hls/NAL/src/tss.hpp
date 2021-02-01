@@ -55,12 +55,15 @@ void pTcpLsn(
 
 
 void pTcpRxNotifEnq(
+    ap_uint<1>        *layer_4_enabled,
+    ap_uint<1>        *piNTS_ready,
     stream<TcpAppNotif>       &siTOE_Notif,
     stream<TcpAppNotif>     &sTcpNotif_buffer
-    //const bool                *nts_ready_and_enabled
     );
 
 void pTcpRRh(
+    ap_uint<1>        *layer_4_enabled,
+    ap_uint<1>        *piNTS_ready,
     ap_uint<32>         *piMMIO_CfrmIp4Addr,
     ap_uint<16>       *piMMIO_FmcLsnPort,
     stream<TcpAppNotif>       &siTOE_Notif,
@@ -74,6 +77,8 @@ void pTcpRRh(
     );
 
 void pTcpRDp(
+    ap_uint<1>        *layer_4_enabled,
+    ap_uint<1>        *piNTS_ready,
     stream<TcpAppRdReq>       &sRDp_ReqNotif,
     stream<TcpAppData>        &siTOE_Data,
     stream<TcpAppMeta>        &siTOE_SessId,
@@ -121,6 +126,8 @@ void pFmcTcpRxDeq(
     );
 
 void pTcpWRp(
+    ap_uint<1>        *layer_4_enabled,
+    ap_uint<1>        *piNTS_ready,
     stream<TcpAppData>          &siFMC_data,
     stream<TcpAppMeta>          &siFMC_SessId,
     stream<NetworkWord>         &siTcp_data,

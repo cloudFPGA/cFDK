@@ -137,8 +137,8 @@ void pUdpTX(
           {
             //node_id_missmatch_TX_cnt++;
             new_ev_not = NalEventNotif(NID_MISS_TX, 1);
-            //internal_event_fifo.write(new_ev_not);
-            evsStreams[0].write(new_ev_not);
+            //internal_event_fifo.write_nb(new_ev_not);
+            evsStreams[0].write_nb(new_ev_not);
             //SINK packet
             fsmStateTX_Udp = FSM_DROP_PACKET;
             break;
@@ -155,8 +155,8 @@ void pUdpTX(
             dst_port = DEFAULT_RX_PORT;
             //port_corrections_TX_cnt++;
             new_ev_not = NalEventNotif(PCOR_TX, 1);
-            //internal_event_fifo.write(new_ev_not);
-            evsStreams[3].write(new_ev_not);
+            //internal_event_fifo.write_nb(new_ev_not);
+            evsStreams[3].write_nb(new_ev_not);
           }
 
           //to create here due to timing...
@@ -212,8 +212,8 @@ void pUdpTX(
           {
             //node_id_missmatch_TX_cnt++;
             new_ev_not = NalEventNotif(NID_MISS_TX, 1);
-            //internal_event_fifo.write(new_ev_not);
-            evsStreams[1].write(new_ev_not);
+            //internal_event_fifo.write_nb(new_ev_not);
+            evsStreams[1].write_nb(new_ev_not);
             //SINK packet
             fsmStateTX_Udp = FSM_DROP_PACKET;
             //            if (first_word.getTLast() == 1)
@@ -226,12 +226,12 @@ void pUdpTX(
           }
           //last_tx_node_id = dst_rank;
           new_ev_not = NalEventNotif(LAST_TX_NID, dst_rank);
-          //internal_event_fifo.write(new_ev_not);
-          evsStreams[2].write(new_ev_not);
+          //internal_event_fifo.write_nb(new_ev_not);
+          evsStreams[2].write_nb(new_ev_not);
           //last_tx_port = dst_port;
           new_ev_not = NalEventNotif(LAST_TX_PORT, dst_port);
-          //internal_event_fifo.write(new_ev_not);
-          evsStreams[4].write(new_ev_not);
+          //internal_event_fifo.write_nb(new_ev_not);
+          evsStreams[4].write_nb(new_ev_not);
           // {{SrcPort, SrcAdd}, {DstPort, DstAdd}}
           //UdpMeta txMeta = {{src_port, ipAddrBE}, {dst_port, dst_ip_addr}};
           //txMeta = SocketPair(SockAddr(*ipAddrBE, src_port), SockAddr(dst_ip_addr, dst_port));
@@ -246,8 +246,8 @@ void pUdpTX(
           soUOE_DLen.write(udpTX_packet_length);
           //packet_count_TX++;
           new_ev_not = NalEventNotif(PACKET_TX, 1);
-          //internal_event_fifo.write(new_ev_not);
-          evsStreams[5].write(new_ev_not);
+          //internal_event_fifo.write_nb(new_ev_not);
+          evsStreams[5].write_nb(new_ev_not);
 
           //          //read first word
           //          UdpAppData first_word = siUdp_data.read();
@@ -692,8 +692,8 @@ void pUdpRx(
           //SINK packet
           //node_id_missmatch_RX_cnt++;
           new_ev_not = NalEventNotif(NID_MISS_RX, 1);
-          //internal_event_fifo.write(new_ev_not);
-          evsStreams[0].write(new_ev_not);
+          //internal_event_fifo.write_nb(new_ev_not);
+          evsStreams[0].write_nb(new_ev_not);
           printf("[UDP-RX:ERROR]invalid src_id, packet will be dropped.\n");
           //blocking write, because in the error case we value debug information
           // more than bandwidth
@@ -704,12 +704,12 @@ void pUdpRx(
         //status
         //last_rx_node_id = src_id;
         new_ev_not = NalEventNotif(LAST_RX_NID, src_id);
-        //internal_event_fifo.write(new_ev_not);
-        evsStreams[1].write(new_ev_not);
+        //internal_event_fifo.write_nb(new_ev_not);
+        evsStreams[1].write_nb(new_ev_not);
         //last_rx_port = udpRxMeta.dst.port;
         new_ev_not = NalEventNotif(LAST_RX_PORT, udpRxMeta.dst.port);
-        //internal_event_fifo.write(new_ev_not);
-        evsStreams[2].write(new_ev_not);
+        //internal_event_fifo.write_nb(new_ev_not);
+        evsStreams[2].write_nb(new_ev_not);
         //in_meta = NetworkMeta(own_rank, udpRxMeta.dst.port, src_id, udpRxMeta.src.port, 0);
         //FIXME: add length here as soon as available from the UOE
         in_meta.src_rank = src_id;
@@ -722,8 +722,8 @@ void pUdpRx(
         //soUdp_meta.write(in_meta_udp);
         //packet_count_RX++;
         new_ev_not = NalEventNotif(PACKET_RX, 1);
-        //internal_event_fifo.write(new_ev_not);
-        evsStreams[3].write(new_ev_not);
+        //internal_event_fifo.write_nb(new_ev_not);
+        evsStreams[3].write_nb(new_ev_not);
         // Forward data chunk to ROLE
         //UdpAppData    udpWord = siUOE_Data.read();
 

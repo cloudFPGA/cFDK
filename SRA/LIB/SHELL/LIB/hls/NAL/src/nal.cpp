@@ -840,7 +840,8 @@ void nal_main(
 #pragma HLS STREAM variable=sNewTcpCon_Req       depth=4
 #pragma HLS STREAM variable=sNewTcpCon_Rep       depth=4
 
-#pragma HLS STREAM variable=sTcpNotif_buffer     depth=1024
+//#pragma HLS STREAM variable=sTcpNotif_buffer     depth=1024
+#pragma HLS STREAM variable=sTcpNotif_buffer     depth=8192
 
 #pragma HLS RESOURCE variable=localMRT core=RAM_2P_BRAM
 //#pragma HLS ARRAY_PARTITION variable=localMRT cyclic factor=8 dim=1
@@ -952,19 +953,20 @@ void nal_main(
   //=================================================================================================
   // TCP Read Request Handler
 
-  pTcpRxNotifEnq(siTOE_Notif, sTcpNotif_buffer);
+  pTcpRxNotifEnq(layer_4_enabled, piNTS_ready, siTOE_Notif, sTcpNotif_buffer);
 
   //pTcpRRh(sTcpNotif_buffer, soTOE_DReq, sAddNewTriple_TcpRrh, sDeleteEntryBySid,  sRDp_ReqNotif,
   //    piFMC_data_FIFO_prog_full, piFMC_sessid_FIFO_prog_full, sRoleFifoEmptySig);
   //pTcpRRh(sTcpNotif_buffer, soTOE_DReq, sAddNewTriple_TcpRrh, sDeleteEntryBySid,  sRDp_ReqNotif,
   //    sFmcFifoEmptySig, sRoleFifoEmptySig);
-  pTcpRRh(piMMIO_CfrmIp4Addr, piMMIO_FmcLsnPort, sTcpNotif_buffer, soTOE_DReq,
-      sAddNewTriple_TcpRrh, sMarkAsPriv, sDeleteEntryBySid,  sRDp_ReqNotif,
+  pTcpRRh(layer_4_enabled, piNTS_ready, piMMIO_CfrmIp4Addr, piMMIO_FmcLsnPort, sTcpNotif_buffer,
+      soTOE_DReq, sAddNewTriple_TcpRrh, sMarkAsPriv, sDeleteEntryBySid,  sRDp_ReqNotif,
       sFmcFifoEmptySig, sRoleFifoEmptySig);
 
   //=================================================================================================
   // TCP Read Path
-  pTcpRDp(sRDp_ReqNotif, siTOE_Data, siTOE_SessId, sFmcTcpDataRx_buffer, sFmcTcpMetaRx_buffer,
+  pTcpRDp(layer_4_enabled, piNTS_ready, sRDp_ReqNotif, siTOE_Data, siTOE_SessId, 
+      sFmcTcpDataRx_buffer, sFmcTcpMetaRx_buffer,
       //soFMC_data, soFMC_SessId, soTcp_data, soTcp_meta,
       sRoleTcpDataRx_buffer, sRoleTcpMetaRx_buffer,
       sA4lToTcpRx, sGetNidReq_TcpRx, sGetNidRep_TcpRx, sGetTripleFromSid_Req, sGetTripleFromSid_Rep,
@@ -978,7 +980,7 @@ void nal_main(
 
   //=================================================================================================
   // TCP Write Path
-  pTcpWRp(siFMC_data, siFMC_SessId, siTcp_data, siTcp_meta,
+  pTcpWRp(layer_4_enabled, piNTS_ready, siFMC_data, siFMC_SessId, siTcp_data, siTcp_meta,
       sTcpWrp2Wbu_data, sTcpWrp2Wbu_sessId, sTcpWrp2Wbu_len,
       sGetIpReq_TcpTx, sGetIpRep_TcpTx,
       //sGetNidReq_TcpTx, sGetNidRep_TcpTx,

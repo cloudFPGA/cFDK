@@ -166,26 +166,48 @@ void pTcpLsn(
 }
 
 void pTcpRxNotifEnq(
+    ap_uint<1>        *layer_4_enabled,
+    ap_uint<1>        *piNTS_ready,
     stream<TcpAppNotif>       &siTOE_Notif,
     stream<TcpAppNotif>     &sTcpNotif_buffer
-    //const bool                *nts_ready_and_enabled
     )
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
 #pragma HLS pipeline II=1
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
+  static RrhEnqFsmStates rrhEngFsm = RRH_ENQ_RESET;
+#pragma HLS RESET variable=rrhEngFsm
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
 
+//This FSM is more or less senseless, but without Vivado HLS removes the 'sTcpNotif_buffer'
 
-  // if(*nts_ready_and_enabled)
-  // {
-  if(!siTOE_Notif.empty() && !sTcpNotif_buffer.full())
+  switch(rrhEngFsm)
   {
-    sTcpNotif_buffer.write(siTOE_Notif.read());
+    default:
+    case RRH_ENQ_RESET:
+      if(*layer_4_enabled == 1 && *piNTS_ready == 1)
+      {
+        rrhEngFsm = RRH_ENQ_STREAM;
+      }
+      else if(!siTOE_Notif.empty())
+      {
+        siTOE_Notif.read();
+      }
+      break;
+    case RRH_ENQ_STREAM:
+      if(*layer_4_enabled == 0 || *piNTS_ready == 0)
+      {
+        rrhEngFsm = RRH_ENQ_RESET;
+      }
+      else if(!siTOE_Notif.empty() && !sTcpNotif_buffer.full())
+      {
+        TcpAppNotif new_notif = siTOE_Notif.read();
+        sTcpNotif_buffer.write(new_notif);
+      }
+      break;
   }
-  // }
 
 }
 
@@ -670,6 +692,8 @@ void pTcpRxNotifEnq(
  *
  ******************************************************************************/
 void pTcpRRh(
+    ap_uint<1>        *layer_4_enabled,
+    ap_uint<1>        *piNTS_ready,
     ap_uint<32>         *piMMIO_CfrmIp4Addr,
     ap_uint<16>       *piMMIO_FmcLsnPort,
     stream<TcpAppNotif>       &siTOE_Notif,
@@ -744,7 +768,11 @@ void pTcpRRh(
       rrhFsmState = RRH_WAIT_NOTIF;
       break;
     case RRH_WAIT_NOTIF:
-      if(!siTOE_Notif.empty()  && !sDeleteEntryBySid.full()
+      if(*layer_4_enabled == 0 || *piNTS_ready == 0)
+      {
+        rrhFsmState = RRH_DRAIN;
+      }
+      else if(!siTOE_Notif.empty()  && !sDeleteEntryBySid.full()
         )
       {
         siTOE_Notif.read(notif_pRrh);
@@ -885,7 +913,11 @@ void pTcpRRh(
       //}
       break;
     case RRH_PROCESS_REQUEST:
-      if(!soTOE_DReq.full() && !sRDp_ReqNotif.full()
+      if(*layer_4_enabled == 0 || *piNTS_ready == 0)
+      {
+        rrhFsmState = RRH_DRAIN;
+      }
+      else if(!soTOE_DReq.full() && !sRDp_ReqNotif.full()
           && !session_reinsert.full()
         )
       {
@@ -923,7 +955,11 @@ void pTcpRRh(
       }
       break;
     case RRH_WAIT_FMC:
-      if(!fmc_write_cnt_sig.empty())
+      if(*layer_4_enabled == 0 || *piNTS_ready == 0)
+      {
+        rrhFsmState = RRH_DRAIN;
+      }
+      else if(!fmc_write_cnt_sig.empty())
       {
         PacketLen fmc_new_free = fmc_write_cnt_sig.read();
         fmc_fifo_free_cnt += fmc_new_free;
@@ -943,7 +979,11 @@ void pTcpRRh(
       }
       break;
     case RRH_WAIT_ROLE:
-      if(!role_write_cnt_sig.empty())
+      if(*layer_4_enabled == 0 || *piNTS_ready == 0)
+      {
+        rrhFsmState = RRH_DRAIN;
+      }
+      else if(!role_write_cnt_sig.empty())
       {
         PacketLen role_new_free = role_write_cnt_sig.read();
         role_fifo_free_cnt += role_new_free;
@@ -960,6 +1000,33 @@ void pTcpRRh(
       {
         rrhFsmState = RRH_WAIT_NOTIF;
         go_back_to_ack_wait_role = true;
+      }
+      break;
+    case RRH_DRAIN:
+      if(*layer_4_enabled == 0 || *piNTS_ready == 0)
+      {
+        if(!siTOE_Notif.empty())
+        {
+          siTOE_Notif.read();
+        }
+        if(!waitingSessions.empty())
+        {
+          waitingSessions.read();
+        }
+        if(!session_reinsert.empty())
+        {
+          session_reinsert.read();
+        }
+        if(!fmc_write_cnt_sig.empty())
+        {
+          fmc_write_cnt_sig.read();
+        }
+        if(!role_write_cnt_sig.empty())
+        {
+          role_write_cnt_sig.read();
+        }
+      } else {
+        rrhFsmState = RRH_RESET;
       }
       break;
   }
@@ -979,6 +1046,8 @@ void pTcpRRh(
  *
  *****************************************************************************/
 void pTcpRDp(
+    ap_uint<1>        *layer_4_enabled,
+    ap_uint<1>        *piNTS_ready,
     stream<TcpAppRdReq>       &sRDp_ReqNotif,
     stream<TcpAppData>        &siTOE_Data,
     stream<TcpAppMeta>        &siTOE_SessId,
@@ -1014,7 +1083,7 @@ void pTcpRDp(
 
 
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-  static RdpFsmStates rdpFsmState = RDP_WAIT_META;
+  static RdpFsmStates rdpFsmState = RDP_RESET;
   static ap_uint<64> cached_tcp_rx_triple = UNUSED_TABLE_ENTRY_VALUE;
   //static bool Tcp_RX_metaWritten = false;
   static SessionId cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
@@ -1058,7 +1127,8 @@ void pTcpRDp(
 
   // if(!*nts_ready_and_enabled)
   // {
-  //   rdpFsmState = RDP_WAIT_META;
+  //   rd
+  //   pFsmState = RDP_WAIT_META;
   //   cached_tcp_rx_session_id = UNUSED_SESSION_ENTRY_VALUE;
   //   cached_tcp_rx_triple = UNUSED_TABLE_ENTRY_VALUE;
   //   cached_src_id = INVALID_MRT_VALUE;
@@ -1083,12 +1153,38 @@ void pTcpRDp(
   //default actions
   // *expect_FMC_response = false;
 
-  switch (rdpFsmState ) 
+  switch (rdpFsmState)
   {
 
     default:
+    case RDP_RESET:
+      if(*layer_4_enabled == 1 && *piNTS_ready == 1)
+      {
+        cache_init = false;
+        fmc_tcp_bytes_cnt = 0;
+        current_length = 0;
+        rdpFsmState = RDP_WAIT_META;
+      } else {
+        if(!sRDp_ReqNotif.empty() )
+        {
+          sRDp_ReqNotif.read();
+        }
+        if(!siTOE_SessId.empty())
+        {
+          siTOE_SessId.read();
+        }
+        if(!siTOE_Data.empty())
+        {
+          siTOE_Data.read();
+        }
+      }
+      break;
     case RDP_WAIT_META:
-      if(!cache_inval_sig.empty())
+      if(*layer_4_enabled == 0 || *piNTS_ready == 0)
+      {
+        rdpFsmState = RDP_RESET;
+      }
+      else if(!cache_inval_sig.empty())
       {
         if(cache_inval_sig.read())
         {
@@ -1196,7 +1292,11 @@ void pTcpRDp(
       //}
       ////NO break;
     case RDP_FILTER_META:
-      if(//!sMarkAsPriv.full() && 
+      if(*layer_4_enabled == 0 || *piNTS_ready == 0)
+      {
+        rdpFsmState = RDP_RESET;
+      }
+      else if(//!sMarkAsPriv.full() && 
         !siTOE_SessId.empty()
         && !soTcp_meta.full() && !soFMC_SessId.full()
         )
@@ -1208,8 +1308,8 @@ void pTcpRDp(
           //SINK packet
           //node_id_missmatch_RX_cnt++;
           //new_ev_not = NalEventNotif(NID_MISS_RX, 1);
-          //internal_event_fifo.write(new_ev_not);
-          //evsStreams[9].write(new_ev_not);
+          //internal_event_fifo.write_nb(new_ev_not);
+          //evsStreams[9].write_nb(new_ev_not);
           rdpFsmState = RDP_DROP_PACKET;
           printf("NRC drops the packet...\n");
           cache_init = false;
@@ -1237,8 +1337,8 @@ void pTcpRDp(
             //rdpFsmState = RDP_WRITE_META_FMC;
             //authorized_access_cnt++;
             new_ev_not = NalEventNotif(AUTH_ACCESS, 1);
-            //internal_event_fifo.write(new_ev_not);
-            evsStreams[0].write(new_ev_not);
+            //internal_event_fifo.write_nb(new_ev_not);
+            evsStreams[0].write_nb(new_ev_not);
             //done by RRh
             //if(!found_in_cache)
             //{
@@ -1249,8 +1349,11 @@ void pTcpRDp(
           } else {
             //unauthorized_access_cnt++;
             new_ev_not = NalEventNotif(UNAUTH_ACCESS, 1);
-            //internal_event_fifo.write(new_ev_not);
-            evsStreams[1].write(new_ev_not);
+            //internal_event_fifo.write_nb(new_ev_not);
+            evsStreams[1].write_nb(new_ev_not);
+            //We won't miss this one
+            //update: we aren't since every event has it's own "slot"
+            //evsStreams[1].write(new_ev_not);
             printf("unauthorized access to FMC!\n");
             rdpFsmState = RDP_DROP_PACKET;
             printf("NRC drops the packet...\n");
@@ -1267,8 +1370,8 @@ void pTcpRDp(
           //SINK packet
           //node_id_missmatch_RX_cnt++;
           new_ev_not = NalEventNotif(NID_MISS_RX, 1);
-          //internal_event_fifo.write(new_ev_not);
-          evsStreams[2].write(new_ev_not);
+          //internal_event_fifo.write_nb(new_ev_not);
+          evsStreams[2].write_nb(new_ev_not);
           rdpFsmState = RDP_DROP_PACKET;
           printf("NRC drops the packet...\n");
           cache_init = false;
@@ -1276,12 +1379,12 @@ void pTcpRDp(
         }
         //last_rx_node_id = src_id;
         new_ev_not = NalEventNotif(LAST_RX_NID, src_id);
-        //internal_event_fifo.write(new_ev_not);
-        evsStreams[3].write(new_ev_not);
+        //internal_event_fifo.write_nb(new_ev_not);
+        evsStreams[3].write_nb(new_ev_not);
         //last_rx_port = dstPort;
         new_ev_not = NalEventNotif(LAST_RX_PORT, dstPort);
-        //internal_event_fifo.write(new_ev_not);
-        evsStreams[4].write(new_ev_not);
+        //internal_event_fifo.write_nb(new_ev_not);
+        evsStreams[4].write_nb(new_ev_not);
         tmp_meta = NetworkMeta(own_rank, dstPort, src_id, srcPort, current_length);
         in_meta_tcp = NetworkMetaStream(tmp_meta);
         //Tcp_RX_metaWritten = false;
@@ -1290,14 +1393,18 @@ void pTcpRDp(
         soTcp_meta.write(in_meta_tcp);
         //packet_count_RX++;
         new_ev_not = NalEventNotif(PACKET_RX, 1);
-        //internal_event_fifo.write(new_ev_not);
-        evsStreams[5].write(new_ev_not);
+        //internal_event_fifo.write_nb(new_ev_not);
+        evsStreams[5].write_nb(new_ev_not);
         rdpFsmState  = RDP_STREAM_ROLE;
         //rdpFsmState = RDP_WRITE_META_ROLE;
       }
       break;
     case RDP_STREAM_ROLE:
-      if (!siTOE_Data.empty() && !soTcp_data.full())
+      if(*layer_4_enabled == 0 || *piNTS_ready == 0)
+      {
+        rdpFsmState = RDP_RESET;
+      }
+      else if (!siTOE_Data.empty() && !soTcp_data.full())
       {
         siTOE_Data.read(currWord);
         //if (DEBUG_LEVEL & TRACE_RDP) { TODO: type management
@@ -1320,14 +1427,18 @@ void pTcpRDp(
     //    soTcp_meta.write(in_meta_tcp);
     //    //packet_count_RX++;
     //    new_ev_not = NalEventNotif(PACKET_RX, 1);
-    //    //internal_event_fifo.write(new_ev_not);
-    //    evsStreams[5].write(new_ev_not);
+    //    //internal_event_fifo.write_nb(new_ev_not);
+    //    evsStreams[5].write_nb(new_ev_not);
     //    //Tcp_RX_metaWritten = true;
     //    rdpFsmState = RDP_STREAM_ROLE;
     //  }
     //  break;
     case RDP_STREAM_FMC:
-      if (!siTOE_Data.empty()
+      if(*layer_4_enabled == 0 || *piNTS_ready == 0)
+      {
+        rdpFsmState = RDP_RESET;
+      }
+      else if (!siTOE_Data.empty()
           && !soFMC_data.full()
         )
       {
@@ -1335,15 +1446,15 @@ void pTcpRDp(
         //if (DEBUG_LEVEL & TRACE_RDP) { TODO: type management
         //  printAxiWord(myName, (AxiWord) currWord);
         //}
-        //blocking write, because it is a FIFO
+        ////blocking write, because it is a FIFO
         soFMC_data.write(currWord);
         fmc_tcp_bytes_cnt += extractByteCnt((Axis<64>) currWord);
         if (currWord.getTLast() == 1)
         {
           //*expect_FMC_response = true;
           new_ev_not = NalEventNotif(FMC_TCP_BYTES, fmc_tcp_bytes_cnt);
-          //internal_event_fifo.write(new_ev_not);
-          evsStreams[6].write(new_ev_not);
+          //internal_event_fifo.write_nb(new_ev_not);
+          evsStreams[6].write_nb(new_ev_not);
           rdpFsmState  = RDP_WAIT_META;
         }
       }
@@ -1359,7 +1470,11 @@ void pTcpRDp(
     //  }
     //  break;
     case RDP_DROP_PACKET:
-      if( !siTOE_Data.empty() )
+      if(*layer_4_enabled == 0 || *piNTS_ready == 0)
+      {
+        rdpFsmState = RDP_RESET;
+      }
+      else if( !siTOE_Data.empty() )
       {
         siTOE_Data.read(currWord);
         if (currWord.getTLast() == 1)
@@ -1567,6 +1682,8 @@ void pFmcTcpRxDeq(
  *
  ******************************************************************************/
 void pTcpWRp(
+    ap_uint<1>        *layer_4_enabled,
+    ap_uint<1>        *piNTS_ready,
     stream<TcpAppData>          &siFMC_data,
     stream<TcpAppMeta>          &siFMC_SessId,
     stream<NetworkWord>         &siTcp_data,
@@ -1597,7 +1714,7 @@ void pTcpWRp(
   char* myName  = concat3(THIS_NAME, "/", "Tcp_WRp");
 
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-  static WrpFsmStates wrpFsmState = WRP_WAIT_META;
+  static WrpFsmStates wrpFsmState = WRP_RESET;
 
   static SessionId cached_tcp_tx_session_id = UNUSED_SESSION_ENTRY_VALUE;
   static ap_uint<64> cached_tcp_tx_triple = UNUSED_TABLE_ENTRY_VALUE;
@@ -1674,8 +1791,37 @@ void pTcpWRp(
 
   switch (wrpFsmState)
   {
+    default:
+    case WRP_RESET:
+      if(*layer_4_enabled == 1 && *piNTS_ready == 1)
+      {
+        cache_init = false;
+        wrpFsmState = WRP_WAIT_META;
+      } else {
+        if(!siFMC_data.empty())
+        {
+          siFMC_data.read();
+        }
+        if(!siFMC_SessId.empty())
+        {
+          siFMC_SessId.read();
+        }
+        if(!siTcp_data.empty())
+        {
+          siTcp_data.read();
+        }
+        if(!siTcp_meta.empty())
+        {
+          siTcp_meta.read();
+        }
+      }
+      break;
     case WRP_WAIT_META:
-      if(!cache_inval_sig.empty())
+      if( *layer_4_enabled == 0 || *piNTS_ready == 0)
+      {
+        wrpFsmState = WRP_RESET;
+      }
+      else if(!cache_inval_sig.empty())
       {
         if(cache_inval_sig.read())
         {
@@ -1728,10 +1874,10 @@ void pTcpWRp(
         {
           //node_id_missmatch_TX_cnt++;
           new_ev_not = NalEventNotif(NID_MISS_TX, 1);
-          //internal_event_fifo.write(new_ev_not);
+          //internal_event_fifo.write_nb(new_ev_not);
           //events_to_send[evs_arr_offset + 0] = NalEventNotif(NID_MISS_TX, 1);
           //evs2snd_valid[evs_arr_offset + 0] = true;
-          evsStreams[0].write(new_ev_not);
+          evsStreams[0].write_nb(new_ev_not);
           //SINK packet
           wrpFsmState = WRP_DROP_PACKET;
           printf("NRC drops the packet...\n");
@@ -1749,10 +1895,10 @@ void pTcpWRp(
           dst_port = DEFAULT_RX_PORT;
           //port_corrections_TX_cnt++;
           new_ev_not = NalEventNotif(PCOR_TX, 1);
-          //internal_event_fifo.write(new_ev_not);
+          //internal_event_fifo.write_nb(new_ev_not);
           //events_to_send[evs_arr_offset + 2] =  NalEventNotif(PCOR_TX, 1);
           //evs2snd_valid[evs_arr_offset + 0] = true;
-          evsStreams[2].write(new_ev_not);
+          evsStreams[2].write_nb(new_ev_not);
         }
 
         if(cache_init && dst_rank == cached_dst_rank)
@@ -1796,10 +1942,10 @@ void pTcpWRp(
         {
           //node_id_missmatch_TX_cnt++;
           new_ev_not = NalEventNotif(NID_MISS_TX, 1);
-          //internal_event_fifo.write(new_ev_not);
+          //internal_event_fifo.write_nb(new_ev_not);
           //events_to_send[evs_arr_offset + 1] = NalEventNotif(NID_MISS_TX, 1);
           //evs2snd_valid[evs_arr_offset + 1] = true;
-          evsStreams[1].write(new_ev_not);
+          evsStreams[1].write_nb(new_ev_not);
           //SINK packet
           wrpFsmState = WRP_DROP_PACKET;
           printf("NRC drops the packet...\n");
@@ -1845,7 +1991,11 @@ void pTcpWRp(
         //}
       //}
     case WRP_W8FORREQS_22:
-      if(!soTOE_SessId.full() && !sNewTcpCon_Req.full() && !soTOE_len.full() )
+      if( *layer_4_enabled == 0 || *piNTS_ready == 0)
+      {
+        wrpFsmState = WRP_RESET;
+      }
+      else if(!soTOE_SessId.full() && !sNewTcpCon_Req.full() && !soTOE_len.full() )
       {
         //both cases
         //"final" preprocessing
@@ -1866,16 +2016,16 @@ void pTcpWRp(
         //events_to_send[evs_arr_offset + 3]
         new_ev_not = NalEventNotif(LAST_TX_NID, dst_rank);
         //evs2snd_valid[evs_arr_offset + 3] = true;
-        evsStreams[3].write(new_ev_not);
+        evsStreams[3].write_nb(new_ev_not);
         //events_to_send[evs_arr_offset + 4]
         new_ev_not = NalEventNotif(LAST_TX_PORT, dst_port);
         //evs2snd_valid[evs_arr_offset + 4] = true;
-        evsStreams[4].write(new_ev_not);
+        evsStreams[4].write_nb(new_ev_not);
         //packet_count_TX++;
         //events_to_send[evs_arr_offset + 5]
         new_ev_not = NalEventNotif(PACKET_TX, 1);
         //evs2snd_valid[evs_arr_offset + 5] = true;
-        evsStreams[5].write(new_ev_not);
+        evsStreams[5].write_nb(new_ev_not);
 
         soTOE_SessId.write(sessId);
         tcpTX_current_packet_length = 0;
@@ -1895,7 +2045,11 @@ void pTcpWRp(
       break;
 
     case WRP_WAIT_CONNECTION:
-      if( !soTOE_SessId.full() && !sNewTcpCon_Rep.empty() && !soTOE_len.full() )
+      if( *layer_4_enabled == 0 || *piNTS_ready == 0)
+      {
+        wrpFsmState = WRP_RESET;
+      }
+      else if( !soTOE_SessId.full() && !sNewTcpCon_Rep.empty() && !soTOE_len.full() )
       {
         //new_triple = *tripple_for_new_connection;
         //SessionId sessId = getSessionIdFromTripple(*tripple_for_new_connection);
@@ -1903,10 +2057,10 @@ void pTcpWRp(
         if(con_rep.failure == true)
         {
           new_ev_not = NalEventNotif(TCP_CON_FAIL, 1);
-          //internal_event_fifo.write(new_ev_not);
+          //internal_event_fifo.write_nb(new_ev_not);
           //events_to_send[evs_arr_offset + 6] = NalEventNotif(TCP_CON_FAIL, 1);
           //evs2snd_valid[evs_arr_offset + 6] = true;
-          evsStreams[6].write(new_ev_not);
+          evsStreams[6].write_nb(new_ev_not);
           // we sink the packet, because otherwise the design will hang
           // and the user is notified with the flight recorder status
           wrpFsmState = WRP_DROP_PACKET;
@@ -1922,21 +2076,21 @@ void pTcpWRp(
         //NodeId dst_rank = sGetNidRep_TcpTx.read();
 
         new_ev_not = NalEventNotif(LAST_TX_NID, dst_rank);
-        //internal_event_fifo.write(new_ev_not); //TODO: blocking?
+        //internal_event_fifo.write_nb(new_ev_not); //TODO: blocking?
         //events_to_send[evs_arr_offset + 7] = NalEventNotif(LAST_TX_NID, dst_rank);
         //evs2snd_valid[evs_arr_offset + 7] = true;
-        evsStreams[7].write(new_ev_not);
+        evsStreams[7].write_nb(new_ev_not);
         new_ev_not = NalEventNotif(LAST_TX_PORT, dst_port);
-        //internal_event_fifo.write(new_ev_not);
+        //internal_event_fifo.write_nb(new_ev_not);
         //events_to_send[evs_arr_offset + 8] =  NalEventNotif(LAST_TX_NID, dst_rank);
         //evs2snd_valid[evs_arr_offset + 8] = true;
-        evsStreams[8].write(new_ev_not);
+        evsStreams[8].write_nb(new_ev_not);
         //packet_count_TX++;
         new_ev_not = NalEventNotif(PACKET_TX, 1);
-        //internal_event_fifo.write(new_ev_not);
+        //internal_event_fifo.write_nb(new_ev_not);
         //events_to_send[evs_arr_offset + 9] =  NalEventNotif(LAST_TX_NID, dst_rank);
         //evs2snd_valid[evs_arr_offset + 9] = true;
-        evsStreams[9].write(new_ev_not);
+        evsStreams[9].write_nb(new_ev_not);
         //skip_events_read = true;
 
         soTOE_SessId.write(sessId);
@@ -1963,7 +2117,11 @@ void pTcpWRp(
       break;
 
     case WRP_STREAM_FMC:
-      if (!siFMC_data.empty() && !soTOE_Data.full() && !soTOE_len.full() )
+      if( *layer_4_enabled == 0 || *piNTS_ready == 0)
+      {
+        wrpFsmState = WRP_RESET;
+      }
+      else if (!siFMC_data.empty() && !soTOE_Data.full() && !soTOE_len.full() )
       {
         TcpAppData tcpWord = siFMC_data.read();
         tcpTX_current_packet_length += extractByteCnt((Axis<64>) tcpWord);
@@ -1986,7 +2144,11 @@ void pTcpWRp(
       break;
 
     case WRP_STREAM_ROLE:
-      if (!siTcp_data.empty() && !soTOE_Data.full()  && !soTOE_len.full() )
+      if( *layer_4_enabled == 0 || *piNTS_ready == 0)
+      {
+        wrpFsmState = WRP_RESET;
+      }
+      else if (!siTcp_data.empty() && !soTOE_Data.full()  && !soTOE_len.full() )
       {
         currWordIn = siTcp_data.read();
         tcpTX_current_packet_length += extractByteCnt(currWordIn);
@@ -2027,7 +2189,11 @@ void pTcpWRp(
       break;
 
     case WRP_DROP_PACKET:
-      if( !siTcp_data.empty())
+      if( *layer_4_enabled == 0 || *piNTS_ready == 0)
+      {
+        wrpFsmState = WRP_RESET;
+      }
+      else if( !siTcp_data.empty())
       {
         siTcp_data.read(currWordIn);
         tcpTX_current_packet_length += extractByteCnt(currWordIn);
