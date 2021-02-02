@@ -1,32 +1,44 @@
-//                              -*- Mode: Verilog -*-
-// *****************************************************************************
-// *
-// *                             cloudFPGA
-// *            All rights reserved -- Property of IBM
-// *
-// *----------------------------------------------------------------------------
-// *
-// * Title : UDP Application Register Slice (UARS)
-// *
-// * Created : Apr. 2020
-// * Authors : Francois Abel <fab@zurich.ibm.com>
-// *
-// * Tools   : Vivado v2016.4 (64-bit)
-// * Depends : None
-// *
-// * Description : A placeholder containing the Axis Register Slice (ARS) 
-// *    components involved in the UDP application interface of the Network
-// *    Transport Stack (NTS). The use of such an Axis register slice is not
-// *    a prerequisit but it is used here to provide timing isolation and to
-// *    ease the place and routing phase.
-// *
-// *          +-----+     +----+     +---+
-// *          |     <-----+    <-----+   |
-// *          | NTS |     |UARS|     |APP|
-// *          |     +----->    +----->   |
-// *          +-----+     +----+     +---+
-// *
-// *****************************************************************************
+/*******************************************************************************
+ * Copyright 2016 -- 2020 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *******************************************************************************/
+
+
+/*******************************************************************************
+ * @file       : udpAppRegisterSlice.v
+ * @brief      : UDP Application Register Slice (UARS)
+ *
+ * System:     : cloudFPGA
+ * Component   : Shell, Network Transport Stack (NTS)
+ * Language    : Vivado HLS
+ *
+ * @details:
+ *  A placeholder containing the Axis Register Slice (ARS) components involved
+ *  in the UDP application interface of the Network Transport Stack (NTS). 
+ *  The use of such an Axis register slice is not a prerequisit but it is used
+ *  here to provide timing isolation and to ease the place and routing phase.
+ *
+ *          +-----+     +----+     +---+
+ *          |     <-----+    <-----+   |
+ *          | NTS |     |UARS|     |APP|
+ *          |     +----->    +----->   |
+ *          +-----+     +----+     +---+
+ *
+ * \ingroup NTS
+ * \addtogroup SHELL
+ * \{
+ *******************************************************************************
 
 `timescale 1ns / 1ps
 
@@ -295,3 +307,5 @@ module UdpApplicationRegisterSlice
     );
 
 endmodule
+
+/*! \} */
