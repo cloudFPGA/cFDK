@@ -161,72 +161,92 @@ set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 
-##------------------------------------------------------------------------------  
-## VIVADO-IP : FIFO Generator
-##------------------------------------------------------------------------------
-#set ipModName "FifoNetwork_Data_Large"
-#set ipName    "fifo_generator"
-#set ipVendor  "xilinx.com"
-#set ipLibrary "ip"
-#set ipVersion "13.2"
+#------------------------------------------------------------------------------  
+# VIVADO-IP : FIFO Generator
+#------------------------------------------------------------------------------
+set ipModName "FifoNetwork_Data_Large"
+set ipName    "fifo_generator"
+set ipVendor  "xilinx.com"
+set ipLibrary "ip"
+set ipVersion "13.2"
+# 8K
 #set ipCfgList [ list CONFIG.Performance_Options {First_Word_Fall_Through} CONFIG.Input_Data_Width {64} CONFIG.Output_Data_Width {64} \
 #                CONFIG.Input_Depth {8192} CONFIG.Output_Depth {8192} CONFIG.Data_Count_Width {13} CONFIG.Write_Data_Count_Width {13} CONFIG.Read_Data_Count_Width {13} \
 #                CONFIG.Programmable_Full_Type {Single_Programmable_Full_Threshold_Constant} CONFIG.Full_Threshold_Assert_Value {8063} CONFIG.Full_Threshold_Negate_Value {8062} ]
-#
-#set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-#
-#if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-#
-#
-##------------------------------------------------------------------------------  
-## VIVADO-IP : FIFO Generator
-##------------------------------------------------------------------------------
-#set ipModName "FifoNetwork_Keep_Large"
-#set ipName    "fifo_generator"
-#set ipVendor  "xilinx.com"
-#set ipLibrary "ip"
-#set ipVersion "13.2"
+# 32K
+set ipCfgList [ list CONFIG.Performance_Options {First_Word_Fall_Through} CONFIG.Input_Data_Width {64} CONFIG.Output_Data_Width {64} \
+                CONFIG.Input_Depth {32768} CONFIG.Output_Depth {32768} CONFIG.Data_Count_Width {15} CONFIG.Write_Data_Count_Width {15} CONFIG.Read_Data_Count_Width {15} \
+                CONFIG.Programmable_Full_Type {No_Programmable_Full_Threshold} CONFIG.Full_Threshold_Assert_Value {32764} CONFIG.Full_Threshold_Negate_Value {32763} ]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
+
+#------------------------------------------------------------------------------  
+# VIVADO-IP : FIFO Generator
+#------------------------------------------------------------------------------
+set ipModName "FifoNetwork_Keep_Large"
+set ipName    "fifo_generator"
+set ipVendor  "xilinx.com"
+set ipLibrary "ip"
+set ipVersion "13.2"
+# 8K
 #set ipCfgList [ list CONFIG.Performance_Options {First_Word_Fall_Through} CONFIG.Input_Data_Width {8} CONFIG.Output_Data_Width {8} \
 #                CONFIG.Input_Depth {8192} CONFIG.Output_Depth {8192} CONFIG.Data_Count_Width {13} CONFIG.Write_Data_Count_Width {13} CONFIG.Read_Data_Count_Width {13} \
 #                CONFIG.Programmable_Full_Type {Single_Programmable_Full_Threshold_Constant} CONFIG.Full_Threshold_Assert_Value {8063} CONFIG.Full_Threshold_Negate_Value {8062} ]
-#
-#set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-#
-#if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-#
-#
-##------------------------------------------------------------------------------  
-## VIVADO-IP : FIFO Generator
-##------------------------------------------------------------------------------
-#set ipModName "FifoNetwork_Last_Large"
-#set ipName    "fifo_generator"
-#set ipVendor  "xilinx.com"
-#set ipLibrary "ip"
-#set ipVersion "13.2"
+# 32K
+set ipCfgList [ list CONFIG.Performance_Options {First_Word_Fall_Through} CONFIG.Input_Data_Width {8} CONFIG.Output_Data_Width {8} \
+                CONFIG.Input_Depth {32768} CONFIG.Output_Depth {32768} CONFIG.Data_Count_Width {15} CONFIG.Write_Data_Count_Width {15} CONFIG.Read_Data_Count_Width {15} \
+                CONFIG.Programmable_Full_Type {No_Programmable_Full_Threshold} CONFIG.Full_Threshold_Assert_Value {32764} CONFIG.Full_Threshold_Negate_Value {32763} ]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
+
+#------------------------------------------------------------------------------  
+# VIVADO-IP : FIFO Generator
+#------------------------------------------------------------------------------
+set ipModName "FifoNetwork_Last_Large"
+set ipName    "fifo_generator"
+set ipVendor  "xilinx.com"
+set ipLibrary "ip"
+set ipVersion "13.2"
+# 8K
 #set ipCfgList [ list CONFIG.Performance_Options {First_Word_Fall_Through} CONFIG.Input_Data_Width {1} CONFIG.Output_Data_Width {1} \
 #                CONFIG.Input_Depth {8192} CONFIG.Output_Depth {8192} CONFIG.Data_Count_Width {13} CONFIG.Write_Data_Count_Width {13} CONFIG.Read_Data_Count_Width {13} \
 #                CONFIG.Programmable_Full_Type {Single_Programmable_Full_Threshold_Constant} CONFIG.Full_Threshold_Assert_Value {8063} CONFIG.Full_Threshold_Negate_Value {8062} ]
-#
-#set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-#
-#if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-#
-#
-##------------------------------------------------------------------------------  
-## VIVADO-IP : FIFO Generator
-##------------------------------------------------------------------------------
-#set ipModName "FifoSession_Data_Large"
-#set ipName    "fifo_generator"
-#set ipVendor  "xilinx.com"
-#set ipLibrary "ip"
-#set ipVersion "13.2"
+# 32K
+set ipCfgList [ list CONFIG.Performance_Options {First_Word_Fall_Through} CONFIG.Input_Data_Width {1} CONFIG.Output_Data_Width {1} \
+                CONFIG.Input_Depth {32768} CONFIG.Output_Depth {32768} CONFIG.Data_Count_Width {15} CONFIG.Write_Data_Count_Width {15} CONFIG.Read_Data_Count_Width {15} \
+                CONFIG.Programmable_Full_Type {No_Programmable_Full_Threshold} CONFIG.Full_Threshold_Assert_Value {32764} CONFIG.Full_Threshold_Negate_Value {32763} ]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
+
+#------------------------------------------------------------------------------  
+# VIVADO-IP : FIFO Generator
+#------------------------------------------------------------------------------
+set ipModName "FifoSession_Data_Large"
+set ipName    "fifo_generator"
+set ipVendor  "xilinx.com"
+set ipLibrary "ip"
+set ipVersion "13.2"
+# 8K with prog full
 #set ipCfgList [ list CONFIG.Performance_Options {First_Word_Fall_Through} CONFIG.Input_Data_Width {16} CONFIG.Output_Data_Width {16} \
 #                CONFIG.Input_Depth {8192} CONFIG.Output_Depth {8192} CONFIG.Data_Count_Width {13} CONFIG.Write_Data_Count_Width {13} CONFIG.Read_Data_Count_Width {13} \
 #                CONFIG.Programmable_Full_Type {Single_Programmable_Full_Threshold_Constant} CONFIG.Full_Threshold_Assert_Value {8063} CONFIG.Full_Threshold_Negate_Value {8062} ]
-#
-#set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-#
-#if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+# 8K without prog full
+set ipCfgList [ list CONFIG.Performance_Options {First_Word_Fall_Through} CONFIG.Input_Data_Width {16} CONFIG.Output_Data_Width {16} \
+                CONFIG.Input_Depth {8192} CONFIG.Output_Depth {8192} CONFIG.Data_Count_Width {13} CONFIG.Write_Data_Count_Width {13} CONFIG.Read_Data_Count_Width {13} \
+                CONFIG.Programmable_Full_Type {No_Programmable_Full_Threshold} CONFIG.Full_Threshold_Assert_Value {8188} CONFIG.Full_Threshold_Negate_Value {8187} ]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 
 ##------------------------------------------------------------------------------  

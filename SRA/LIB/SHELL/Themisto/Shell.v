@@ -1786,8 +1786,8 @@ module Shell_Themisto # (
   //);
 
 
-  FifoNetwork_Data FIFO_DD_1 (
-  //FifoNetwork_Data_Large FIFO_DD_1 (
+  //FifoNetwork_Data FIFO_DD_1 (
+  FifoNetwork_Data_Large FIFO_DD_1 (
     .clk        (sETH0_ShlClk),
     .srst       (sMMIO_LayerRst[6]),
     .din        (ssNRC_Fifo_Tcp_Data_tdata_V_din    ),
@@ -1799,8 +1799,8 @@ module Shell_Themisto # (
   //  .prog_full  (ssNRC_Fifo_Tcp_Data_tdata_V_prog_full )
   );
   
-  FifoNetwork_Keep FIFO_DK_1 (
-  //FifoNetwork_Keep_Large FIFO_DK_1 (
+  //FifoNetwork_Keep FIFO_DK_1 (
+  FifoNetwork_Keep_Large FIFO_DK_1 (
     .clk        (sETH0_ShlClk),
     .srst       (sMMIO_LayerRst[6]),
     .din        (ssNRC_Fifo_Tcp_Data_tkeep_V_din    ),
@@ -1812,8 +1812,8 @@ module Shell_Themisto # (
   //  .prog_full  (ssNRC_Fifo_Tcp_Data_tkeep_V_prog_full )
   );
 
-  FifoNetwork_Last FIFO_DL_1 (
-  //FifoNetwork_Last_Large FIFO_DL_1 (
+  //FifoNetwork_Last FIFO_DL_1 (
+  FifoNetwork_Last_Large FIFO_DL_1 (
     .clk        (sETH0_ShlClk),
     .srst       (sMMIO_LayerRst[6]),
     .din        (ssNRC_Fifo_Tcp_Data_tlast_V_din    ),
@@ -1826,8 +1826,8 @@ module Shell_Themisto # (
   );
 
 
-  FifoSession_Data FIFO_SD_1 (
-  //FifoSession_Data_Large FIFO_SD_1 (
+  //FifoSession_Data FIFO_SD_1 (
+  FifoSession_Data_Large FIFO_SD_1 (
     .clk        (sETH0_ShlClk),
     .srst       (sMMIO_LayerRst[6]),
     .din        (ssNRC_Fifo_Tcp_SessId_tdata_V_din    ),
