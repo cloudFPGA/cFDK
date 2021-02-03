@@ -123,7 +123,6 @@ stream<TcpAppLsnRep>        sTOE_Nrc_LsnAck ("sTOE_Nrc_LsnAck");
 stream<TcpAppData>          sNRC_Toe_Data   ("sNRC_TOE_Data");
 stream<TcpAppSndReq>      sNRC_Toe_SndReq   ("sNRC_TOE_SndReq");
 stream<TcpAppSndRep>      sTOE_Nrc_SndRep   ("sTOE_NRC_SndRep");
-//stream<AppWrSts>            sTOE_Nrc_DSts   ("sTOE_Nrc_DSts");
 stream<TcpAppOpnReq>        sNRC_Toe_OpnReq ("sNRC_Toe_OpnReq");
 stream<TcpAppOpnRep>        sTOE_Nrc_OpnRep ("sTOE_NRC_OpenRep");
 stream<TcpAppClsReq>        sNRC_Toe_ClsReq ("sNRC_TOE_ClsReq");
@@ -195,7 +194,6 @@ void stepDut() {
         sTOE_Nrc_Notif, sNRC_Toe_DReq, sTOE_Nrc_Data, sTOE_Nrc_SessId,
         sNRC_Toe_LsnReq, sTOE_Nrc_LsnAck,
         sNRC_Toe_Data, sNRC_Toe_SndReq, sTOE_Nrc_SndRep,
-    //sTOE_Nrc_DSts,
         sNRC_Toe_OpnReq, sTOE_Nrc_OpnRep,
         sNRC_Toe_ClsReq
         );
@@ -851,7 +849,6 @@ void pTOE(
         stream<TcpAppData>     &siTRIF_Data,
       stream<TcpAppSndReq>   &siTRIF_SndReq,
       stream<TcpAppSndRep>   &soTRIF_SndRep,
-        //stream<AppWrSts>    &soTRIF_DSts,
         //-- TOE / Open Interfaces
         stream<TcpAppOpnReq>    &siTRIF_OpnReq,
         stream<TcpAppOpnRep> &soTRIF_OpnRep)

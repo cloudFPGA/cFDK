@@ -89,7 +89,6 @@ struct NetworkMeta {
 //split between NetworkMeta and NetworkMetaStream to not make the Shell Role interface depend of "DATA_PACK"
 struct NetworkMetaStream {
   NetworkMeta tdata;
-  //ap_uint<(sizeof(NetworkMeta)+7)/8> tkeep; TODO: sizeof seems not to work?
   ap_uint<8> tkeep;
   ap_uint<1> tlast;
   NetworkMetaStream() {}

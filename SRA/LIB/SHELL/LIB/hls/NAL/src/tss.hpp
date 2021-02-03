@@ -48,141 +48,125 @@ using namespace hls;
 void pTcpLsn(
     stream<TcpAppLsnReq>      &soTOE_LsnReq,
     stream<TcpAppLsnRep>      &siTOE_LsnRep,
-    stream<TcpPort>       &sTcpPortsToOpen,
-    stream<bool>        &sTcpPortsOpenFeedback
-    //const bool          *nts_ready_and_enabled
+    stream<TcpPort>           &sTcpPortsToOpen,
+    stream<bool>              &sTcpPortsOpenFeedback
     );
 
 
 void pTcpRxNotifEnq(
-    ap_uint<1>        *layer_4_enabled,
-    ap_uint<1>        *piNTS_ready,
+    ap_uint<1>                *layer_4_enabled,
+    ap_uint<1>                *piNTS_ready,
     stream<TcpAppNotif>       &siTOE_Notif,
-    stream<TcpAppNotif>     &sTcpNotif_buffer
+    stream<TcpAppNotif>       &sTcpNotif_buffer
     );
 
 void pTcpRRh(
-    ap_uint<1>        *layer_4_enabled,
-    ap_uint<1>        *piNTS_ready,
-    ap_uint<32>         *piMMIO_CfrmIp4Addr,
-    ap_uint<16>       *piMMIO_FmcLsnPort,
+    ap_uint<1>                *layer_4_enabled,
+    ap_uint<1>                *piNTS_ready,
+    ap_uint<32>               *piMMIO_CfrmIp4Addr,
+    ap_uint<16>               *piMMIO_FmcLsnPort,
     stream<TcpAppNotif>       &siTOE_Notif,
     stream<TcpAppRdReq>       &soTOE_DReq,
     stream<NalNewTableEntry>  &sAddNewTripple_TcpRrh,
-    stream<SessionId>   &sMarkAsPriv,
-    stream<SessionId>     &sDeleteEntryBySid,
+    stream<SessionId>         &sMarkAsPriv,
+    stream<SessionId>         &sDeleteEntryBySid,
     stream<TcpAppRdReq>       &sRDp_ReqNotif,
-    stream<PacketLen>                &fmc_write_cnt_sig,
-    stream<PacketLen>                &role_write_cnt_sig
+    stream<PacketLen>         &fmc_write_cnt_sig,
+    stream<PacketLen>         &role_write_cnt_sig
     );
 
 void pTcpRDp(
-    ap_uint<1>        *layer_4_enabled,
-    ap_uint<1>        *piNTS_ready,
+    ap_uint<1>                *layer_4_enabled,
+    ap_uint<1>                *piNTS_ready,
     stream<TcpAppRdReq>       &sRDp_ReqNotif,
     stream<TcpAppData>        &siTOE_Data,
     stream<TcpAppMeta>        &siTOE_SessId,
-    stream<TcpAppData>          &soFMC_data,
-    stream<TcpAppMeta>          &soFMC_SessId,
-    stream<NetworkWord>         &soTcp_data,
-    stream<NetworkMetaStream>   &soTcp_meta,
+    stream<TcpAppData>        &soFMC_data,
+    stream<TcpAppMeta>        &soFMC_SessId,
+    stream<NetworkWord>       &soTcp_data,
+    stream<NetworkMetaStream> &soTcp_meta,
     stream<NalConfigUpdate>   &sConfigUpdate,
-    stream<Ip4Addr>       &sGetNidReq_TcpRx,
-    stream<NodeId>        &sGetNidRep_TcpRx,
-    stream<SessionId>   &sGetTripleFromSid_Req,
-    stream<NalTriple>   &sGetTripleFromSid_Rep,
-    //stream<SessionId>   &sMarkAsPriv,
-    ap_uint<32>         *piMMIO_CfrmIp4Addr,
-    ap_uint<16>       *piMMIO_FmcLsnPort,
-    //const ap_uint<16>       *processed_FMC_listen_port,
-    ap_uint<1>          *layer_7_enabled,
-    ap_uint<1>          *role_decoupled,
-    //SessionId         *cached_tcp_rx_session_id,
-    //bool            *expect_FMC_response,
-    //const bool          *nts_ready_and_enabled,
-    //const bool          *detected_cache_invalidation,
-    stream<bool>          &cache_inval_sig,
+    stream<Ip4Addr>           &sGetNidReq_TcpRx,
+    stream<NodeId>            &sGetNidRep_TcpRx,
+    stream<SessionId>         &sGetTripleFromSid_Req,
+    stream<NalTriple>         &sGetTripleFromSid_Rep,
+    //stream<SessionId>       &sMarkAsPriv,
+    ap_uint<32>               *piMMIO_CfrmIp4Addr,
+    ap_uint<16>               *piMMIO_FmcLsnPort,
+    ap_uint<1>                *layer_7_enabled,
+    ap_uint<1>                *role_decoupled,
+    stream<bool>              &cache_inval_sig,
     stream<NalEventNotif>     &internal_event_fifo
     );
 
-void pRoleTcpRxDeq(
-    ap_uint<1>          *layer_7_enabled,
-    ap_uint<1>          *role_decoupled,
-    stream<NetworkWord>       &sRoleTcpDataRx_buffer,
-    stream<NetworkMetaStream>   &sRoleTcpMetaRx_buffer,
-    stream<NetworkWord>         &soTcp_data,
-    stream<NetworkMetaStream>   &soTcp_meta,
-    //bool                        *role_fifo_empty
-    //stream<bool>                &role_fifo_empty_sig
-    stream<PacketLen>                &role_write_cnt_sig
-    );
+    void pRoleTcpRxDeq(
+        ap_uint<1>                *layer_7_enabled,
+        ap_uint<1>                *role_decoupled,
+        stream<NetworkWord>       &sRoleTcpDataRx_buffer,
+        stream<NetworkMetaStream> &sRoleTcpMetaRx_buffer,
+        stream<NetworkWord>       &soTcp_data,
+        stream<NetworkMetaStream> &soTcp_meta,
+        stream<PacketLen>         &role_write_cnt_sig
+        );
 
-void pFmcTcpRxDeq(
-    stream<TcpAppData>    &sFmcTcpDataRx_buffer,
-    stream<TcpAppMeta>    &sFmcTcpMetaRx_buffer,
-    stream<TcpAppData>    &soFmc_data,
-    stream<TcpAppMeta>    &soFmc_meta,
-    stream<PacketLen>     &fmc_write_cnt_sig
-    );
+    void pFmcTcpRxDeq(
+        stream<TcpAppData>        &sFmcTcpDataRx_buffer,
+        stream<TcpAppMeta>        &sFmcTcpMetaRx_buffer,
+        stream<TcpAppData>        &soFmc_data,
+        stream<TcpAppMeta>        &soFmc_meta,
+        stream<PacketLen>         &fmc_write_cnt_sig
+        );
 
-void pTcpWRp(
-    ap_uint<1>        *layer_4_enabled,
-    ap_uint<1>        *piNTS_ready,
-    stream<TcpAppData>          &siFMC_data,
-    stream<TcpAppMeta>          &siFMC_SessId,
-    stream<NetworkWord>         &siTcp_data,
-    stream<NetworkMetaStream>   &siTcp_meta,
-    stream<TcpAppData>        &soTOE_Data,
-    stream<TcpAppMeta>        &soTOE_SessId,
-    stream<TcpDatLen>     &soTOE_len,
-    stream<NodeId>        &sGetIpReq_TcpTx,
-    stream<Ip4Addr>       &sGetIpRep_TcpTx,
-    //stream<Ip4Addr>       &sGetNidReq_TcpTx,
-    //stream<NodeId>        &sGetNidRep_TcpTx,
-    stream<NalTriple>   &sGetSidFromTriple_Req,
-    stream<SessionId>     &sGetSidFromTriple_Rep,
-    stream<NalTriple>     &sNewTcpCon_Req,
-    stream<NalNewTcpConRep>    &sNewTcpCon_Rep,
-    //const bool          *expect_FMC_response,
-    //const bool          *nts_ready_and_enabled,
-    //const bool          *detected_cache_invalidation,
-    stream<bool>          &cache_inval_sig,
-    stream<NalEventNotif>     &internal_event_fifo
-    );
+    void pTcpWRp(
+        ap_uint<1>                *layer_4_enabled,
+        ap_uint<1>                *piNTS_ready,
+        stream<TcpAppData>        &siFMC_data,
+        stream<TcpAppMeta>        &siFMC_SessId,
+        stream<NetworkWord>       &siTcp_data,
+        stream<NetworkMetaStream> &siTcp_meta,
+        stream<TcpAppData>        &soTOE_Data,
+        stream<TcpAppMeta>        &soTOE_SessId,
+        stream<TcpDatLen>         &soTOE_len,
+        stream<NodeId>            &sGetIpReq_TcpTx,
+        stream<Ip4Addr>           &sGetIpRep_TcpTx,
+        stream<NalTriple>         &sGetSidFromTriple_Req,
+        stream<SessionId>         &sGetSidFromTriple_Rep,
+        stream<NalTriple>         &sNewTcpCon_Req,
+        stream<NalNewTcpConRep>   &sNewTcpCon_Rep,
+        stream<bool>              &cache_inval_sig,
+        stream<NalEventNotif>     &internal_event_fifo
+        );
 
 
-void pTcpWBu(
-    ap_uint<1>        *layer_4_enabled,
-    ap_uint<1>        *piNTS_ready,
-    stream<TcpAppData>        &siWrp_Data,
-    stream<TcpAppMeta>        &siWrp_SessId,
-    stream<TcpDatLen>     &siWrp_len,
-    stream<TcpAppData>      &soTOE_Data,
-    stream<TcpAppSndReq>    &soTOE_SndReq,
-    stream<TcpAppSndRep>    &siTOE_SndRep
-    //const bool            *nts_ready_and_enabled
-    );
+    void pTcpWBu(
+        ap_uint<1>                *layer_4_enabled,
+        ap_uint<1>                *piNTS_ready,
+        stream<TcpAppData>        &siWrp_Data,
+        stream<TcpAppMeta>        &siWrp_SessId,
+        stream<TcpDatLen>         &siWrp_len,
+        stream<TcpAppData>        &soTOE_Data,
+        stream<TcpAppSndReq>      &soTOE_SndReq,
+        stream<TcpAppSndRep>      &siTOE_SndRep
+        );
 
-void pTcpCOn(
-    stream<TcpAppOpnReq>        &soTOE_OpnReq,
-    stream<TcpAppOpnRep>      &siTOE_OpnRep,
-    //stream<TcpAppClsReq>      &soTOE_ClsReq,
-    stream<NalNewTableEntry>   &sAddNewTriple_TcpCon,
-    stream<NalTriple>     &sNewTcpCon_Req,
-    stream<NalNewTcpConRep>    &sNewTcpCon_Rep
-    //const bool          *nts_ready_and_enabled
-    );
+    void pTcpCOn(
+        stream<TcpAppOpnReq>      &soTOE_OpnReq,
+        stream<TcpAppOpnRep>      &siTOE_OpnRep,
+        stream<NalNewTableEntry>  &sAddNewTriple_TcpCon,
+        stream<NalTriple>         &sNewTcpCon_Req,
+        stream<NalNewTcpConRep>   &sNewTcpCon_Rep
+        );
 
-void pTcpCls(
-    stream<TcpAppClsReq>      &soTOE_ClsReq,
-    stream<bool>              &sGetNextDelRow_Req,
-    stream<SessionId>         &sGetNextDelRow_Rep,
-    stream<bool>              &sStartTclCls
-    //const bool            *start_tcp_cls_fsm,
-    //const bool            *nts_ready_and_enabled
-    );
+    void pTcpCls(
+        stream<TcpAppClsReq>      &soTOE_ClsReq,
+        stream<bool>              &sGetNextDelRow_Req,
+        stream<SessionId>         &sGetNextDelRow_Rep,
+        stream<bool>              &sStartTclCls
+        );
 
 #endif
 
     /*! \} */
+
+
 

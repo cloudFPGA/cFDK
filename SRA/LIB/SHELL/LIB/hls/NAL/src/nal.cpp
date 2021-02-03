@@ -32,30 +32,6 @@
 
 #include "nal.hpp"
 
-////returns the ZERO-based bit position (so 0 for LSB)
-//ap_uint<32> getRightmostBitPos(ap_uint<32> num)
-//{
-//#pragma HLS INLINE
-//  ap_uint<32> pos = 0;
-//  for (int i = 0; i < 32; i++)
-//  {
-//#pragma HLS unroll
-////    if(!(num & (1 << i)))
-////    {
-////      pos++;
-////    }
-////    else {
-////      break;
-////    }
-//    if(num & (1 << i))
-//    {
-//      pos = i;
-//      break;
-//    }
-//  }
-//  return pos;
-//}
-
 //#include "hls_math.h"
 //ap_uint<32> getRightmostBitPos(ap_uint<32> num)
 //{
@@ -188,22 +164,16 @@ uint8_t extractByteCntNW(NetworkWord currWord)
 }
 
 void pStatusMemory(
-    stream<NalEventNotif>  &internal_event_fifo,
-    ap_uint<1>       *layer_7_enabled,
-    ap_uint<1>       *role_decoupled,
-    //const NodeId       *own_rank,
-    stream<NalConfigUpdate>   &sConfigUpdate,
-    //const ap_uint<32>      *mrt_version_processed,
-    stream<uint32_t>      &mrt_version_update,
-    //const ap_uint<32>    *udp_rx_ports_processed,
-    //const ap_uint<32>    *tcp_rx_ports_processed,
-    //const ap_uint<16>    *processed_FMC_listen_port,
-    stream<NalPortUpdate>     &sNalPortUpdate,
-    stream<NalStatusUpdate>   &sStatusUpdate
+    stream<NalEventNotif>   &internal_event_fifo,
+    ap_uint<1>              *layer_7_enabled,
+    ap_uint<1>              *role_decoupled,
+    stream<NalConfigUpdate> &sConfigUpdate,
+    stream<uint32_t>        &mrt_version_update,
+    stream<NalPortUpdate>   &sNalPortUpdate,
+    stream<NalStatusUpdate> &sStatusUpdate
 
     )
 {  //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-  //#pragma HLS INLINE //yes, inline it!
 #pragma HLS INLINE off
 #pragma HLS pipeline II=1
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
@@ -413,19 +383,10 @@ void pStatusMemory(
 }
 
 void eventFifoMerge(
-    //const ap_uint<1>          *layer_4_enabled,
-    //const ap_uint<1>       *layer_7_enabled,
-    //const ap_uint<1>       *role_decoupled,
-    //const ap_uint<32>      *mrt_version_processed,
-    //const ap_uint<32>    *udp_rx_ports_processed,
-    //const ap_uint<32>    *tcp_rx_ports_processed,
-    //const ap_uint<16>    *processed_FMC_listen_port,
-    //stream<NalConfigUpdate>   &sConfigUpdate,
     stream<NalEventNotif>  &internal_event_fifo_0,
     stream<NalEventNotif>  &internal_event_fifo_1,
     stream<NalEventNotif>  &internal_event_fifo_2,
     stream<NalEventNotif>  &internal_event_fifo_3,
-    //stream<NalStatusUpdate>   &sStatusUpdate
     stream<NalEventNotif>  &merged_fifo
     )
 {
@@ -436,36 +397,36 @@ void eventFifoMerge(
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
 
-  //if else tree to lower latency, the event fifos should have enough buffer...
+  //if else tree for lower latency, the event fifos should have enough buffer...
 
-      if(!internal_event_fifo_0.empty() && !merged_fifo.full())
-      {
-        NalEventNotif tmp = internal_event_fifo_0.read();
-        printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_0\n", \
-            (int) tmp.type, (int) tmp.update_value);
-        merged_fifo.write(tmp);
-      }
-      else if(!internal_event_fifo_1.empty() && !merged_fifo.full() )
-      {
-        NalEventNotif tmp = internal_event_fifo_1.read();
-        printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_1\n", \
-            (int) tmp.type, (int) tmp.update_value);
-        merged_fifo.write(tmp);
-      }
-      else if(!internal_event_fifo_2.empty()  && !merged_fifo.full())
-      {
-        NalEventNotif tmp = internal_event_fifo_2.read();
-        printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_2\n", \
-            (int) tmp.type, (int) tmp.update_value);
-        merged_fifo.write(tmp);
-      }
-      else if(!internal_event_fifo_3.empty() && !merged_fifo.full())
-      {
-        NalEventNotif tmp = internal_event_fifo_3.read();
-        printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_3\n", \
-            (int) tmp.type, (int) tmp.update_value);
-        merged_fifo.write(tmp);
-      }
+  if(!internal_event_fifo_0.empty() && !merged_fifo.full())
+  {
+    NalEventNotif tmp = internal_event_fifo_0.read();
+    printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_0\n", \
+        (int) tmp.type, (int) tmp.update_value);
+    merged_fifo.write(tmp);
+  }
+  else if(!internal_event_fifo_1.empty() && !merged_fifo.full() )
+  {
+    NalEventNotif tmp = internal_event_fifo_1.read();
+    printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_1\n", \
+        (int) tmp.type, (int) tmp.update_value);
+    merged_fifo.write(tmp);
+  }
+  else if(!internal_event_fifo_2.empty()  && !merged_fifo.full())
+  {
+    NalEventNotif tmp = internal_event_fifo_2.read();
+    printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_2\n", \
+        (int) tmp.type, (int) tmp.update_value);
+    merged_fifo.write(tmp);
+  }
+  else if(!internal_event_fifo_3.empty() && !merged_fifo.full())
+  {
+    NalEventNotif tmp = internal_event_fifo_3.read();
+    printf("[INFO] Internal Event Processing received event %d with update value %d from fifo_3\n", \
+        (int) tmp.type, (int) tmp.update_value);
+    merged_fifo.write(tmp);
+  }
 }
 
 
@@ -477,37 +438,35 @@ void nal_main(
     // ----- link to FMC -----
     ap_uint<32> ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
     //state of the FPGA
-    ap_uint<1> *layer_4_enabled,
-    ap_uint<1> *layer_7_enabled,
-    ap_uint<1> *role_decoupled,
+    ap_uint<1>                  *layer_4_enabled,
+    ap_uint<1>                  *layer_7_enabled,
+    ap_uint<1>                  *role_decoupled,
     // ready signal from NTS
-    ap_uint<1>  *piNTS_ready,
+    ap_uint<1>                  *piNTS_ready,
     // ----- link to MMIO ----
-    ap_uint<16> *piMMIO_FmcLsnPort,
-    ap_uint<32> *piMMIO_CfrmIp4Addr,
+    ap_uint<16>                 *piMMIO_FmcLsnPort,
+    ap_uint<32>                 *piMMIO_CfrmIp4Addr,
     // -- my IP address 
     ap_uint<32>                 *myIpAddress,
 
     //-- ROLE UDP connection
     ap_uint<32>                 *pi_udp_rx_ports,
-    stream<NetworkWord>             &siUdp_data,
-    stream<NetworkWord>             &soUdp_data,
+    stream<NetworkWord>         &siUdp_data,
+    stream<NetworkWord>         &soUdp_data,
     stream<NetworkMetaStream>   &siUdp_meta,
     stream<NetworkMetaStream>   &soUdp_meta,
 
     // -- ROLE TCP connection
     ap_uint<32>                 *pi_tcp_rx_ports,
-    stream<NetworkWord>          &siTcp_data,
+    stream<NetworkWord>         &siTcp_data,
     stream<NetworkMetaStream>   &siTcp_meta,
-    stream<NetworkWord>          &soTcp_data,
+    stream<NetworkWord>         &soTcp_data,
     stream<NetworkMetaStream>   &soTcp_meta,
 
     // -- FMC TCP connection
     stream<TcpAppData>          &siFMC_data,
     stream<TcpAppMeta>          &siFMC_SessId,
-    //ap_uint<1>                  *piFMC_data_FIFO_prog_full,
     stream<TcpAppData>          &soFMC_data,
-    //ap_uint<1>                  *piFMC_sessid_FIFO_prog_full,
     stream<TcpAppMeta>          &soFMC_SessId,
 
     //-- UOE / Control Port Interfaces
@@ -526,81 +485,26 @@ void nal_main(
     stream<UdpAppDLen>          &soUOE_DLen,
 
     //-- TOE / Rx Data Interfaces
-    stream<TcpAppNotif>    &siTOE_Notif,
-    stream<TcpAppRdReq>    &soTOE_DReq,
-    stream<TcpAppData>     &siTOE_Data,
-    stream<TcpAppMeta>     &siTOE_SessId,
+    stream<TcpAppNotif>         &siTOE_Notif,
+    stream<TcpAppRdReq>         &soTOE_DReq,
+    stream<TcpAppData>          &siTOE_Data,
+    stream<TcpAppMeta>          &siTOE_SessId,
     //-- TOE / Listen Interfaces
-    stream<TcpAppLsnReq>   &soTOE_LsnReq,
-    stream<TcpAppLsnRep>   &siTOE_LsnRep,
+    stream<TcpAppLsnReq>        &soTOE_LsnReq,
+    stream<TcpAppLsnRep>        &siTOE_LsnRep,
     //-- TOE / Tx Data Interfaces
-    stream<TcpAppData>      &soTOE_Data,
-    stream<TcpAppSndReq>    &soTOE_SndReq,
-    stream<TcpAppSndRep>    &siTOE_SndRep,
-    //stream<AppWrSts>    &siTOE_DSts,
+    stream<TcpAppData>          &soTOE_Data,
+    stream<TcpAppSndReq>        &soTOE_SndReq,
+    stream<TcpAppSndRep>        &siTOE_SndRep,
     //-- TOE / Open Interfaces
-    stream<TcpAppOpnReq>      &soTOE_OpnReq,
-    stream<TcpAppOpnRep>   &siTOE_OpnRep,
+    stream<TcpAppOpnReq>        &soTOE_OpnReq,
+    stream<TcpAppOpnRep>        &siTOE_OpnRep,
     //-- TOE / Close Interfaces
-    stream<TcpAppClsReq>   &soTOE_ClsReq
+    stream<TcpAppClsReq>        &soTOE_ClsReq
     )
 {
 
   // ----- directives for AXI buses (AXI4 stream, AXI4 Lite) -----
-#ifdef USE_DEPRECATED_DIRECTIVES
-#pragma HLS RESOURCE core=AXI4LiteS variable=ctrlLink metadata="-bus_bundle piFMC_NAL_ctrlLink_AXI"
-
-#pragma HLS RESOURCE core=AXI4Stream variable=siUdp_data    metadata="-bus_bundle siUdp_data"
-#pragma HLS RESOURCE core=AXI4Stream variable=soUdp_data    metadata="-bus_bundle soUdp_data"
-
-#pragma HLS RESOURCE core=AXI4Stream variable=siUdp_meta    metadata="-bus_bundle siUdp_meta"
-#pragma HLS DATA_PACK          variable=siUdp_meta
-#pragma HLS RESOURCE core=AXI4Stream variable=soUdp_meta    metadata="-bus_bundle soUdp_meta"
-#pragma HLS DATA_PACK          variable=soUdp_meta
-
-#pragma HLS RESOURCE core=AXI4Stream variable=soUOE_LsnReq  metadata="-bus_bundle soUOE_LsnReq"
-#pragma HLS RESOURCE core=AXI4Stream variable=siUOE_LsnRep  metadata="-bus_bundle siUOE_LsnRep"
-#pragma HLS RESOURCE core=AXI4Stream variable=soUOE_ClsReq  metadata="-bus_bundle soUOE_ClsReq"
-#pragma HLS RESOURCE core=AXI4Stream variable=siUOE_ClsRep  metadata="-bus_bundle siUOE_ClsRep"
-
-#pragma HLS RESOURCE core=AXI4Stream variable=siUOE_Data    metadata="-bus_bundle siUOE_Data"
-#pragma HLS RESOURCE core=AXI4Stream variable=siUOE_Meta    metadata="-bus_bundle siUOE_Meta"
-#pragma HLS DATA_PACK                variable=siUOE_Meta
-
-#pragma HLS RESOURCE core=AXI4Stream variable=soUOE_Data    metadata="-bus_bundle soUOE_Data"
-#pragma HLS RESOURCE core=AXI4Stream variable=soUOE_Meta    metadata="-bus_bundle soUOE_Meta"
-#pragma HLS DATA_PACK                variable=soUOE_Meta
-#pragma HLS RESOURCE core=AXI4Stream variable=soUOE_DLen    metadata="-bus_bundle soUOE_DLen"
-
-#pragma HLS RESOURCE core=AXI4Stream variable=siTcp_data    metadata="-bus_bundle siTcp_data"
-#pragma HLS RESOURCE core=AXI4Stream variable=soTcp_data    metadata="-bus_bundle soTcp_data"
-#pragma HLS RESOURCE core=AXI4Stream variable=siTcp_meta    metadata="-bus_bundle siTcp_meta"
-#pragma HLS DATA_PACK          variable=siTcp_meta
-#pragma HLS RESOURCE core=AXI4Stream variable=soTcp_meta    metadata="-bus_bundle soTcp_meta"
-#pragma HLS DATA_PACK          variable=soTcp_meta
-
-#pragma HLS RESOURCE core=AXI4Stream variable=siTOE_Notif   metadata="-bus_bundle siTOE_Notif"
-#pragma HLS DATA_PACK                variable=siTOE_Notif
-#pragma HLS RESOURCE core=AXI4Stream variable=soTOE_DReq    metadata="-bus_bundle soTOE_DReq"
-#pragma HLS DATA_PACK                variable=soTOE_DReq
-#pragma HLS RESOURCE core=AXI4Stream variable=siTOE_Data    metadata="-bus_bundle siTOE_Data"
-#pragma HLS RESOURCE core=AXI4Stream variable=siTOE_SessId  metadata="-bus_bundle siTOE_SessId"
-
-#pragma HLS RESOURCE core=AXI4Stream variable=soTOE_LsnReq  metadata="-bus_bundle soTOE_LsnReq"
-#pragma HLS RESOURCE core=AXI4Stream variable=siTOE_LsnRep  metadata="-bus_bundle siTOE_LsnRep"
-
-#pragma HLS RESOURCE core=AXI4Stream variable=soTOE_Data    metadata="-bus_bundle soTOE_Data"
-#pragma HLS RESOURCE core=AXI4Stream variable=soTOE_SessId  metadata="-bus_bundle soTOE_SessId"
-  //#pragma HLS RESOURCE core=AXI4Stream variable=siTOE_DSts  metadata="-bus_bundle "
-
-#pragma HLS RESOURCE core=AXI4Stream variable=soTOE_OpnReq  metadata="-bus_bundle soTOE_OpnReq"
-#pragma HLS DATA_PACK                variable=soTOE_OpnReq
-#pragma HLS RESOURCE core=AXI4Stream variable=siTOE_OpnRep  metadata="-bus_bundle siTOE_OpnRep"
-#pragma HLS DATA_PACK                variable=siTOE_OpnRep
-
-#pragma HLS RESOURCE core=AXI4Stream variable=soTOE_ClsReq  metadata="-bus_bundle soTOE_ClsReq"
-
-#else
 #pragma HLS INTERFACE s_axilite depth=512 port=ctrlLink bundle=piFMC_NAL_ctrlLink_AXI
 
 #pragma HLS INTERFACE axis register both port=siUdp_data
@@ -651,8 +555,6 @@ void nal_main(
 
 #pragma HLS INTERFACE axis register both port=soTOE_ClsReq
 
-#endif
-
   // ----- common directives -----
 
 #pragma HLS INTERFACE ap_ctrl_none port=return
@@ -673,34 +575,12 @@ void nal_main(
 #pragma HLS INTERFACE ap_fifo port=soFMC_data
 #pragma HLS INTERFACE ap_fifo port=siFMC_SessId
 #pragma HLS INTERFACE ap_fifo port=soFMC_SessId
-//#pragma HLS INTERFACE ap_vld register port=piFMC_data_FIFO_prog_full name=piFMC_data_FIFO_prog_full
-//#pragma HLS INTERFACE ap_vld register port=piFMC_sessid_FIFO_prog_full name=piFMC_sessid_FIFO_prog_full
 
 
 #pragma HLS DATAFLOW
-  //#pragma HLS PIPELINE II=1 //FIXME
-
-  //=================================================================================================
-  // Variable Pragmas
-
-  //#pragma HLS ARRAY_PARTITION variable=tripleList cyclic factor=4 dim=1
-  //#pragma HLS ARRAY_PARTITION variable=sessionIdList cyclic factor=4 dim=1
-  //#pragma HLS ARRAY_PARTITION variable=usedRows cyclic factor=4 dim=1
-  //#pragma HLS ARRAY_PARTITION variable=privilegedRows cyclic factor=4 dim=1
-  //#pragma HLS ARRAY_PARTITION variable=rowsToDelete cyclic factor=4 dim=1
-  //#pragma HLS ARRAY_PARTITION variable=localMRT complete dim=1
-
-  //#pragma HLS ARRAY_PARTITION variable=status cyclic factor=4 dim=1
-
 
   //===========================================================
   //  core wide STATIC variables
-
-  //static ap_uint<32> mrt_version_processed = 0;
-  //static ap_uint<32> mrt_version_used = 0; //no reset needed
-
-  //static bool expect_FMC_response = false; //pTcpRDP and pTcpWRp need this
-  //static bool start_tcp_cls_fsm = false;
 
   static stream<NalEventNotif> internal_event_fifo_0 ("internal_event_fifo_0");
   static stream<NalEventNotif> internal_event_fifo_1 ("internal_event_fifo_1");
@@ -759,7 +639,7 @@ void nal_main(
 
   static stream<uint32_t>           sMrtVersionUpdate_0 ("sMrtVersionUpdate_0");
   static stream<uint32_t>           sMrtVersionUpdate_1 ("sMrtVersionUpdate_1");
-    
+
   static stream<bool>      sCacheInvalSig_0      ("sCacheInvalSig_0");
   static stream<bool>      sCacheInvalSig_1      ("sCacheInvalSig_1");
   static stream<bool>      sCacheInvalSig_2      ("sCacheInvalSig_2");
@@ -770,16 +650,16 @@ void nal_main(
 
   static stream<bool>      sStartTclCls_sig      ("sStartTclCls_sig");
   static stream<NalPortUpdate> sNalPortUpdate    ("sNalPortUpdate");
-  
+
   static stream<NetworkWord>          sRoleUdpDataRx_buffer ("sRoleUdpDataRx_buffer");
   static stream<NetworkMetaStream>    sRoleUdpMetaRx_buffer ("sRoleUdpMetaRx_buffer");
-    
+
   static stream<UdpAppData>          sUoeTxBuffer_Data ("sUoeTxBuffer_Data");
   static stream<UdpAppMeta>          sUoeTxBuffer_Meta ("sUoeTxBuffer_Meta");
   static stream<UdpAppDLen>          sUoeTxBuffer_DLen ("sUoeTxBuffer_DLen");
 
   static stream<bool>                 sCacheInvalDel_Notif ("sCacheInvalDel_Notif");
-  
+
   static stream<TcpAppData>          sFmcTcpDataRx_buffer ("sFmcTcpDataRx_buffer");
   static stream<TcpAppMeta>          sFmcTcpMetaRx_buffer ("sFmcTcpMetaRx_buffer");
 
@@ -795,7 +675,7 @@ void nal_main(
 #pragma HLS STREAM variable=sA4lToUdpRx      depth=8
 #pragma HLS STREAM variable=sA4lToTcpRx      depth=8
 #pragma HLS STREAM variable=sA4lToStatusProc depth=8
-//#pragma HLS STREAM variable=sA4lMrtUpdate    depth=16
+  //#pragma HLS STREAM variable=sA4lMrtUpdate    depth=16
 #pragma HLS STREAM variable=sStatusUpdate    depth=128 //should be larger than ctrlLink size
 
 #pragma HLS STREAM variable=sGetIpReq_UdpTx  depth=16 //MRT process takes longer -> better more buffer
@@ -840,12 +720,12 @@ void nal_main(
 #pragma HLS STREAM variable=sNewTcpCon_Req       depth=4
 #pragma HLS STREAM variable=sNewTcpCon_Rep       depth=4
 
-//#pragma HLS STREAM variable=sTcpNotif_buffer     depth=1024
+  //#pragma HLS STREAM variable=sTcpNotif_buffer     depth=1024
 #pragma HLS STREAM variable=sTcpNotif_buffer     depth=8192
 
 #pragma HLS RESOURCE variable=localMRT core=RAM_2P_BRAM
-//#pragma HLS ARRAY_PARTITION variable=localMRT cyclic factor=8 dim=1
-//#pragma HLS ARRAY_PARTITION variable=localMRT complete dim=1
+  //#pragma HLS ARRAY_PARTITION variable=localMRT cyclic factor=8 dim=1
+  //#pragma HLS ARRAY_PARTITION variable=localMRT complete dim=1
 
 #pragma HLS STREAM variable=sMrtVersionUpdate_0  depth=4
 #pragma HLS STREAM variable=sMrtVersionUpdate_1  depth=4
@@ -874,42 +754,9 @@ void nal_main(
 #pragma HLS STREAM variable=sFmcTcpMetaRx_buffer depth=32
 
 
-
-  //=================================================================================================
-  // Reset static variables
-
-//#pragma HLS reset variable=mrt_version_processed
-//
-//#pragma HLS reset variable=expect_FMC_response
-//#pragma HLS reset variable=start_tcp_cls_fsm
-
   //===========================================================
-  //  core wide STATIC DATAFLOW variables
-  
-  //static bool role_fifo_empty;
-  //static ap_uint<32>   status_udp_ports;
-  //static ap_uint<32> status_tcp_ports;
-  //static ap_uint<16> status_fmc_ports;
-  //static bool detected_cache_invalidation;
-  //static bool nts_ready_and_enabled;
-
-  //===========================================================
-  //  core wide variables (for one iteration)
-
-  //ap_uint<32> ipAddrBE = *myIpAddress;
-  //bool nts_ready_and_enabled = (*piNTS_ready == 1 && *layer_4_enabled == 1);
-  //bool start_udp_cls_fsm = false;
-
-
-
-
-  //===========================================================
-  // restore saved states and ports handling & check for resets
-
-//  pPortAndResetLogic(layer_4_enabled, layer_7_enabled, role_decoupled, piNTS_ready, piMMIO_FmcLsnPort,
-//      pi_udp_rx_ports, pi_tcp_rx_ports, sA4lToPortLogic, sUdpPortsToOpen, sUdpPortsToClose,
-//      sTcpPortsToOpen, sUdpPortsOpenFeedback, sTcpPortsOpenFeedback, sMarkToDel_unpriv, &detected_cache_invalidation, &nts_ready_and_enabled,
-//      &status_udp_ports, &status_tcp_ports, &status_fmc_ports, &start_tcp_cls_fsm, &mrt_version_processed, &mrt_version_used);
+  // check for chache invalidation and changes to ports
+  // restore saved states after a reset
 
   pCacheInvalDetection(layer_4_enabled, layer_7_enabled, role_decoupled, piNTS_ready, sMrtVersionUpdate_0,
       sCacheInvalDel_Notif, sCacheInvalSig_0, sCacheInvalSig_1, sCacheInvalSig_2, sCacheInvalSig_3);
@@ -927,7 +774,7 @@ void nal_main(
       myIpAddress, sCacheInvalSig_0, internal_event_fifo_0);
 
   pUoeUdpTxDeq(layer_4_enabled, piNTS_ready, sUoeTxBuffer_Data, sUoeTxBuffer_Meta, sUoeTxBuffer_DLen,
-                soUOE_Data, soUOE_Meta, soUOE_DLen);
+      soUOE_Data, soUOE_Meta, soUOE_DLen);
 
   //=================================================================================================
   // RX UDP
@@ -955,10 +802,6 @@ void nal_main(
 
   pTcpRxNotifEnq(layer_4_enabled, piNTS_ready, siTOE_Notif, sTcpNotif_buffer);
 
-  //pTcpRRh(sTcpNotif_buffer, soTOE_DReq, sAddNewTriple_TcpRrh, sDeleteEntryBySid,  sRDp_ReqNotif,
-  //    piFMC_data_FIFO_prog_full, piFMC_sessid_FIFO_prog_full, sRoleFifoEmptySig);
-  //pTcpRRh(sTcpNotif_buffer, soTOE_DReq, sAddNewTriple_TcpRrh, sDeleteEntryBySid,  sRDp_ReqNotif,
-  //    sFmcFifoEmptySig, sRoleFifoEmptySig);
   pTcpRRh(layer_4_enabled, piNTS_ready, piMMIO_CfrmIp4Addr, piMMIO_FmcLsnPort, sTcpNotif_buffer,
       soTOE_DReq, sAddNewTriple_TcpRrh, sMarkAsPriv, sDeleteEntryBySid,  sRDp_ReqNotif,
       sFmcFifoEmptySig, sRoleFifoEmptySig);
@@ -967,7 +810,6 @@ void nal_main(
   // TCP Read Path
   pTcpRDp(layer_4_enabled, piNTS_ready, sRDp_ReqNotif, siTOE_Data, siTOE_SessId, 
       sFmcTcpDataRx_buffer, sFmcTcpMetaRx_buffer,
-      //soFMC_data, soFMC_SessId, soTcp_data, soTcp_meta,
       sRoleTcpDataRx_buffer, sRoleTcpMetaRx_buffer,
       sA4lToTcpRx, sGetNidReq_TcpRx, sGetNidRep_TcpRx, sGetTripleFromSid_Req, sGetTripleFromSid_Rep,
       //sMarkAsPriv, 
@@ -1007,9 +849,6 @@ void nal_main(
 
   //===========================================================
   //  update status, config, MRT
-
-  //eventFifoMerge(layer_4_enabled, layer_7_enabled, role_decoupled, &mrt_version_used, &status_udp_ports, &status_tcp_ports,
-  //    &status_fmc_ports, sA4lToStatusProc, internal_event_fifo_0, internal_event_fifo_1, internal_event_fifo_2, internal_event_fifo_3, sStatusUpdate);
 
   eventFifoMerge( internal_event_fifo_0, internal_event_fifo_1, internal_event_fifo_2, internal_event_fifo_3, merged_fifo);
 

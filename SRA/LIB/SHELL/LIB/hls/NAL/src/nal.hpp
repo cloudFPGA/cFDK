@@ -89,6 +89,10 @@
 
 // (CtrlLink definitions end)
 
+//#define MAX_MRT_SIZE 1024
+//#define MAX_MRT_SIZE 128
+#define MAX_MRT_SIZE 64
+
 
 #include "../../FMC/src/fmc.hpp"
 
@@ -134,69 +138,27 @@ using namespace hls;
 #define DEFAULT_TX_PORT 2718
 #define DEFAULT_RX_PORT 2718
 
-//#define FSM_RESET 0
-//#define FSM_IDLE  1
-//#define FSM_W8FORPORT 2
-//#define FSM_FIRST_ACC 3
-//#define FSM_ACC 4
-//#define FSM_LAST_ACC 5
-//#define FSM_W8FORMETA 6
-//#define FSM_WRITE_META 7
-//#define FSM_DROP_PACKET 8
-//#define FsmStateUdp uint8_t
 enum FsmStateUdp {FSM_RESET = 0, FSM_W8FORMETA, FSM_W8FORREQS, FSM_FIRST_ACC, FSM_ACC, \
   FSM_WRITE_META, FSM_DROP_PACKET};
 
-//#define OpnFsmStates uint8_t
-//#define OPN_IDLE 0
-//#define OPN_REQ 1
-//#define OPN_REP 2
-//#define OPN_DONE 3
 enum OpnFsmStates {OPN_IDLE = 0, OPN_REQ, OPN_REP, OPN_DONE};
 
-//#define LsnFsmStates uint8_t
-//#define LSN_IDLE 0
-//#define LSN_SEND_REQ 1
-//#define LSN_WAIT_ACK 2
-//#define LSN_DONE 3
 enum LsnFsmStates {LSN_IDLE = 0, LSN_SEND_REQ, LSN_WAIT_ACK, LSN_DONE};
 
-//#define RrhFsmStates uint8_t
-//#define RRH_WAIT_NOTIF 0
-//#define RRH_SEND_DREQ 1
 enum RrhFsmStates {RRH_RESET = 0, RRH_WAIT_NOTIF, RRH_PROCESS_NOTIF, RRH_START_REQUEST, RRH_PROCESS_REQUEST, RRH_WAIT_FMC, RRH_WAIT_ROLE, RRH_DRAIN};
 
 enum RrhEnqFsmStates {RRH_ENQ_RESET = 0, RRH_ENQ_STREAM};
 
-//#define RdpFsmStates uint8_t
-//#define RDP_WAIT_META 0
-//#define RDP_STREAM_ROLE 1
-//#define RDP_STREAM_FMC 2
-//#define RDP_WRITE_META_ROLE 3
-//#define RDP_WRITE_META_FMC 4
-//#define RDP_DROP_PACKET 5
 enum RdpFsmStates {RDP_RESET = 0, RDP_WAIT_META, RDP_W8FORREQS_1, RDP_W8FORREQS_2, RDP_FILTER_META, RDP_STREAM_ROLE, RDP_STREAM_FMC, \
   RDP_WRITE_META_ROLE, RDP_WRITE_META_FMC, RDP_DROP_PACKET};
 
-//#define WrpFsmStates uint8_t
-//#define WRP_WAIT_META 0
-//#define WRP_STREAM_FMC 1
-//#define WRP_WAIT_CONNECTION 2
-//#define WRP_STREAM_ROLE 3
-//#define WRP_DROP_PACKET 4
 enum WrpFsmStates {WRP_RESET = 0, WRP_WAIT_META, WRP_STREAM_FMC, WRP_W8FORREQS_1,  WRP_W8FORREQS_11, WRP_W8FORREQS_2, WRP_W8FORREQS_22, WRP_WAIT_CONNECTION, \
   WRP_STREAM_ROLE, WRP_DROP_PACKET};
 
 enum WbuFsmStates {WBU_WAIT_META = 0, WBU_SND_REQ, WBU_WAIT_REP, WBU_STREAM, WBU_DROP, WBU_DRAIN};
 
-//enum FiveStateFsm {FSM_STATE_0 = 0, FSM_STATE_1, FSM_STATE_2, FSM_STATE_3, FSM_STATE_4};
-
 enum CacheInvalFsmStates {CACHE_WAIT_FOR_VALID = 0, CACHE_VALID, CACHE_INV_SEND_0, CACHE_INV_SEND_1, CACHE_INV_SEND_2, CACHE_INV_SEND_3};
 
-//#define ClsFsmStates uint8_t
-//#define CLS_IDLE 0
-//#define CLS_NEXT 1
-//#define CLS_WAIT4RESP 2
 enum ClsFsmStates {CLS_IDLE = 0, CLS_NEXT, CLS_WAIT4RESP};
 
 enum DeqFsmStates {DEQ_WAIT_META = 0, DEQ_STREAM_DATA, DEQ_SEND_NOTIF};
@@ -211,8 +173,8 @@ enum ConfigBcastStates {CB_WAIT = 0, CB_START, CB_1, CB_2, CB_3_0, CB_3_1, CB_3_
 
 
 enum PortFsmStates {PORT_RESET = 0, PORT_IDLE, PORT_L4_RESET, PORT_NEW_UDP_REQ, PORT_NEW_UDP_REP, \
-                PORT_NEW_FMC_REQ, PORT_NEW_FMC_REP, PORT_NEW_TCP_REQ, PORT_NEW_TCP_REP, PORT_L7_RESET, \
-                PORT_WAIT_PR, PORT_START_TCP_CLS_0, PORT_START_TCP_CLS_1, PORT_START_TCP_CLS_2, PORT_START_UDP_CLS, PORT_SEND_UPDATE};
+  PORT_NEW_FMC_REQ, PORT_NEW_FMC_REP, PORT_NEW_TCP_REQ, PORT_NEW_TCP_REP, PORT_L7_RESET, \
+    PORT_WAIT_PR, PORT_START_TCP_CLS_0, PORT_START_TCP_CLS_1, PORT_START_TCP_CLS_2, PORT_START_UDP_CLS, PORT_SEND_UPDATE};
 
 enum PortType {FMC = 0, UDP, TCP};
 
@@ -225,9 +187,6 @@ enum NalCntIncType {NID_MISS_RX = 0, NID_MISS_TX, PCOR_TX, TCP_CON_FAIL, LAST_RX
 #define NAL_STREAMING_SPLIT_TCP (ZYC2_MSS)
 //#define NAL_STREAMING_SPLIT_TCP (ZYC2_MSS - 8)
 
-//#define MAX_MRT_SIZE 1024
-//#define MAX_MRT_SIZE 128
-#define MAX_MRT_SIZE 64
 #define NAL_MAX_FIFO_DEPTHS_BYTES 2000 //does apply for ROLE and FMC FIFOs
 #define NUMBER_CONFIG_WORDS 16
 #define NUMBER_STATUS_WORDS 16
@@ -283,8 +242,6 @@ enum NalCntIncType {NID_MISS_RX = 0, NID_MISS_TX, PCOR_TX, TCP_CON_FAIL, LAST_RX
 #define NAL_STATUS_PACKET_CNT_TX 15
 
 
-// New UOE types
-// here until merged into one HLS hpp [TODO]
 
 typedef bool StsBool;  // Status     : Noun or verb indicating a status (.e.g isOpen). Does not  have to go back to source of stimulus.
 typedef ap_uint<16> UdpSrcPort;     // UDP Source Port
@@ -312,7 +269,6 @@ struct NalEventNotif {
   NalEventNotif() {}
   NalEventNotif(NalCntIncType nt, ap_uint<32> uv): type(nt), update_value(uv) {}
 };
-//typedef NalEventNotif NalEventNotifType;
 
 typedef ap_uint<64> NalTriple;
 
@@ -387,14 +343,14 @@ void nal_main(
     // ----- link to FMC -----
     ap_uint<32> ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
     //state of the FPGA
-    ap_uint<1> *layer_4_enabled,
-    ap_uint<1> *layer_7_enabled,
-    ap_uint<1> *role_decoupled,
+    ap_uint<1>                  *layer_4_enabled,
+    ap_uint<1>                  *layer_7_enabled,
+    ap_uint<1>                  *role_decoupled,
     // ready signal from NTS
-    ap_uint<1>  *piNTS_ready,
+    ap_uint<1>                  *piNTS_ready,
     // ----- link to MMIO ----
-    ap_uint<16> *piMMIO_FmcLsnPort,
-    ap_uint<32> *piMMIO_CfrmIp4Addr,
+    ap_uint<16>                 *piMMIO_FmcLsnPort,
+    ap_uint<32>                 *piMMIO_CfrmIp4Addr,
     // -- my IP address 
     ap_uint<32>                 *myIpAddress,
 
@@ -415,9 +371,7 @@ void nal_main(
     // -- FMC TCP connection
     stream<TcpAppData>          &siFMC_data,
     stream<TcpAppMeta>          &siFMC_SessId,
-    //ap_uint<1>                  *piFMC_data_FIFO_prog_full,
     stream<TcpAppData>          &soFMC_data,
-    //ap_uint<1>                  *piFMC_sessid_FIFO_prog_full,
     stream<TcpAppMeta>          &soFMC_SessId,
 
     //-- UOE / Control Port Interfaces
@@ -436,23 +390,22 @@ void nal_main(
     stream<UdpAppDLen>          &soUOE_DLen,
 
     //-- TOE / Rx Data Interfaces
-    stream<TcpAppNotif>    &siTOE_Notif,
-    stream<TcpAppRdReq>    &soTOE_DReq,
-    stream<TcpAppData>     &siTOE_Data,
-    stream<TcpAppMeta>     &siTOE_SessId,
+    stream<TcpAppNotif>         &siTOE_Notif,
+    stream<TcpAppRdReq>         &soTOE_DReq,
+    stream<TcpAppData>          &siTOE_Data,
+    stream<TcpAppMeta>          &siTOE_SessId,
     //-- TOE / Listen Interfaces
-    stream<TcpAppLsnReq>   &soTOE_LsnReq,
-    stream<TcpAppLsnRep>   &siTOE_LsnRep,
+    stream<TcpAppLsnReq>        &soTOE_LsnReq,
+    stream<TcpAppLsnRep>        &siTOE_LsnRep,
     //-- TOE / Tx Data Interfaces
-    stream<TcpAppData>      &soTOE_Data,
-    stream<TcpAppSndReq>    &soTOE_SndReq,
-    stream<TcpAppSndRep>    &siTOE_SndRep,
-    //stream<AppWrSts>    &siTOE_DSts,
+    stream<TcpAppData>          &soTOE_Data,
+    stream<TcpAppSndReq>        &soTOE_SndReq,
+    stream<TcpAppSndRep>        &siTOE_SndRep,
     //-- TOE / Open Interfaces
-    stream<TcpAppOpnReq>      &soTOE_OpnReq,
-    stream<TcpAppOpnRep>   &siTOE_OpnRep,
+    stream<TcpAppOpnReq>        &soTOE_OpnReq,
+    stream<TcpAppOpnRep>        &siTOE_OpnRep,
     //-- TOE / Close Interfaces
-    stream<TcpAppClsReq>   &soTOE_ClsReq
+    stream<TcpAppClsReq>        &soTOE_ClsReq
     );
 
 #endif
