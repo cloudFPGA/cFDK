@@ -141,7 +141,7 @@ void pRetransmitTimer(
 
     //-- DYNAMIC VARIABLES ----------------------------------------------------
     ReTxTimerEntry     currEntry;
-    TXeReTransTimerCmd txEvent;
+    TXeReTransTimerCmd txeCmd;
     ap_uint<1>         operationSwitch;
     SessionId          currID;
 
@@ -150,7 +150,7 @@ void pRetransmitTimer(
         if (rtt_rxeCmd.command == LOAD_TIMER) {
             RETRANSMIT_TIMER_TABLE[rtt_rxeCmd.sessionID].time = TIME_1s;
         }
-        else {  //-- STOP the timer
+        else {  //-- STOP/CLEAR the timer
             RETRANSMIT_TIMER_TABLE[rtt_rxeCmd.sessionID].time   = 0;
             RETRANSMIT_TIMER_TABLE[rtt_rxeCmd.sessionID].active = false;
         }
@@ -160,7 +160,7 @@ void pRetransmitTimer(
     //------------------------------------------------
     // Handle the input streams from RxEngine
     //------------------------------------------------
-    else if (!siRXe_ReTxTimerCmd.empty() && !rtt_waitForWrite) {
+    else if (!siRXe_ReTxTimerCmd.empty() and !rtt_waitForWrite) {
         // INFO: Rx path has priority over Tx path
         siRXe_ReTxTimerCmd.read(rtt_rxeCmd);
         rtt_waitForWrite = true;
@@ -171,11 +171,11 @@ void pRetransmitTimer(
         // Handle the input streams from TxEngine
         //------------------------------------------------
         if (!siTXe_ReTxTimerEvent.empty()) {
-            siTXe_ReTxTimerEvent.read(txEvent);
-            currID = txEvent.sessionID;
+            siTXe_ReTxTimerEvent.read(txeCmd);
+            currID = txeCmd.sessionID;
             operationSwitch = 1;
-            if ( (txEvent.sessionID-3 <  rtt_position) &&
-                 (rtt_position    <= txEvent.sessionID) ) {
+            if ( (txeCmd.sessionID-3 <  rtt_position) and
+                 (rtt_position    <= txeCmd.sessionID) ) {
                 rtt_position += 5;
             }
         }
@@ -193,7 +193,7 @@ void pRetransmitTimer(
 
         switch (operationSwitch) {
         case 1: // Got an event from [TxEngine]
-            currEntry.type = txEvent.type;
+            currEntry.type = txeCmd.type;
             if (!currEntry.active) {
                 switch(currEntry.retries) {
                 case 0:
@@ -343,9 +343,10 @@ void pProbeTimer(
             }
         }
 
-        if (PROBE_TIMER_TABLE[sessIdToProcess].active && !soEmx_Event.full()) {
-            if (PROBE_TIMER_TABLE[sessIdToProcess].time == 0 || fastResume) {
+        if (PROBE_TIMER_TABLE[sessIdToProcess].active and !soEmx_Event.full()) {
+            if (PROBE_TIMER_TABLE[sessIdToProcess].time == 0 or fastResume) {
                 //-- Clear (de-activate) the current session-ID
+                PROBE_TIMER_TABLE[sessIdToProcess].time = 0;
                 PROBE_TIMER_TABLE[sessIdToProcess].active = false;
                 #if !(TCP_NODELAY)
                     soEmx_Event.write(Event(TX_EVENT, sessIdToProcess));

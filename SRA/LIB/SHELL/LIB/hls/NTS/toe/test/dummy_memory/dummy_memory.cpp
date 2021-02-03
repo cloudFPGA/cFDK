@@ -52,7 +52,7 @@ void DummyMemory::readChunk(AxisApp &chunk) {
     }
     int i = 0;
     chunk.setLE_TKeep(0);
-    while (readLen > 0 and i < 8) {
+    while (this->readLen > 0 and i < 8) {
         //OBSOLETE_20200711 chunk.tdata((i*8)+7, i*8) = (readStorageIt->second)[readAddr];
         //OBSOLETE_20200711 chunk.tkeep = (chunk.tkeep << 1);
         //OBSOLETE_20200711 chunk.tkeep++;
@@ -62,7 +62,7 @@ void DummyMemory::readChunk(AxisApp &chunk) {
         readAddr++;
         i++;
     }
-    if (readLen == 0) {
+    if (this->readLen == 0) {
         chunk.setTLast(TLAST);
     }
     else {

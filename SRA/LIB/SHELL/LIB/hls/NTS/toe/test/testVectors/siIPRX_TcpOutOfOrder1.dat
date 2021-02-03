@@ -1,8 +1,15 @@
 # ########################################################################################
-# @file  : siIPRX_TcpDuplicate.dat
-# @brief : One IPv4 packet of 168 bytes transmitted twice to emulate a duplicated TCP
-#           segment. The RXe is expected to discard this segment and to continue with
-#           the next one.
+# @file  : siIPRX_TcpOutOfOrder1.dat
+# @brief : This DAT file sends 5 packets with two of them arriving out-of-order.
+#          The arrival order of the 5 packets is as follows:
+#               [P1]    [P2]     [P3]       [P4]         [P5]
+#            --+-----+--------+--------+--------------+--------+--
+#              | SYN |   S1   |   S3   |     S2       |   S4   |
+#            --+-----+--------+--------+--------------+--------+--
+#          In this scenario, the packet which carries the segment (S3) arrives
+#           before the packet which carries the segment (S2). This triggers an
+#           OOO processing in [TOE] which is expected to deliver the stream of
+#           bytes in the correct order i.e., {S1,S2,S3,S4}.
 #
 #  @info : Such a '.dat' file can also contain global testbench parameters,
 #          testbench commands and comments.
@@ -16,18 +23,19 @@
 #    G PARAM FpgaLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the FPGA side.
 #    G PARAM HostIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the HOST.
 #    G PARAM HostLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the HOST side.
+#    G PARAM SortTaifGold <true|false> --> Request to sort the 'soTAIF.gold" output file. 
 #    #                            --> This is a comment
 #    > IDLE  <NUM>                --> Request to idle for <NUM> cycles.
-#    > SET   HostIp4Addr <ADDR>  --> Request to add a new destination HOST IPv4 address. 
-#    > SET   HostLsnPort <PORT>  --> Request to add a new listen port on the HOST side.
+#    > SET   HostIp4Addr <ADDR>   --> Request to add a new destination HOST IPv4 address. 
+#    > SET   HostLsnPort <PORT>   --> Request to add a new listen port on the HOST side.
 #    > SET   HostServerSocket <ADDR> <PORT> --> Request to add a new HOST socket.
 #    > TEST  RcvdIp4Packet  <true|false> --> Request to enable/disable testing of received IPv4 packets.
 #    > TEST  RcvdIp4TotLen  <true|false> --> Request to enable/disable testing of received IPv4-Total-Length field.
-#    > TEST  RcvdIp4HdrCsum <true|false> --> Request to enable/disable testing of received IPv4-Header-Ckecksum field.
+#    > TEST  RcvdIp4HdrCsum <true|false> --> Request to enable/disable testing of received IPv4-Header-Checksum field.
 #    > TEST  RcvdUdpLen     <true|false> --> Request to enable/disable testing of received UDP-Length field.
 #    > TEST  RcvdLy4Csum    <true|false> --> Request to enable/disable testing of received TCP|UDP-Checksum field. 
 #    > TEST  SentIp4TotLen  <true|false> --> Request to enable/disable testing of transmitted IPv4-Total-Length field.
-#    > TEST  SentIp4HdrCsum <true|false> --> Request to enable/disable testing of transmitted IPv4-Header-Ckecksum field.
+#    > TEST  SentIp4HdrCsum <true|false> --> Request to enable/disable testing of transmitted IPv4-Header-Checksum field.
 #    > TEST  SentUdpLen     <true|false> --> Request to enable/disable testing of transmitted UDP-Length field.
 #    > TEST  SentLy4Csum    <true|false> --> Request to enable/disable testing of transmitted TCP|UDP-Checksum field.
 # 
@@ -56,11 +64,12 @@
 #     IP-SA = 10.10.10.10, IP-DA=10.12.200.1, TCP-SP=137(0x89), TCP-DP=87(0x57)
 #
 
-G PARAM SimCycles 1000
+G PARAM SimCycles    1000
+G PARAM SortTaifGold true
 
-> IDLE 20
+> IDLE 10
 
-# STEP-1: TCP CONNECTION ESTABLISHMENT =====================
+# == Packet [01] SYN =======================================
 0000000028000045 0 FF
 0A0A0A0Aaed506FF 0 FF
 5700890001C80C0A 0 FF
@@ -69,65 +78,65 @@ G PARAM SimCycles 1000
 
 > IDLE 100
 
-# == STEP-2: TCP DATA TRANSFER (TCP Data Length = 128) =====
-00000000A8000045 0 FF
-0A0A0A0A2ed506FF 0 FF
-5700890001C80C0A 0 FF
-0000000001000000 0 FF
-000052c400041050 0 FF
-0000000000000000 0 FF
-1111111111111111 0 FF
-2222222222222222 0 FF
-3333333333333333 0 FF
-4444444444444444 0 FF
-5555555555555555 0 FF
-6666666666666666 0 FF
-7777777777777777 0 FF
-8888888888888888 0 FF
-9999999999999999 0 FF
-AAAAAAAAAAAAAAAA 0 FF
-BBBBBBBBBBBBBBBB 0 FF
-CCCCCCCCCCCCCCCC 0 FF
-DDDDDDDDDDDDDDDD 0 FF
-EEEEEEEEEEEEEEEE 0 FF
-FFFFFFFFFFFFFFFF 1 FF
-
-> IDLE 500
-
-# == STEP-3: DUPLICATE IP FRAME WITH SAME TCP SEGMENT (TCP Data Length = 128) =====
-> TEST  RcvdIp4Packet false
-00000000A8000045 0 FF
-0A0A0A0A2ed506FF 0 FF
-5700890001C80C0A 0 FF
-0000000001000000 0 FF
-000052c400041050 0 FF
-0000000000000000 0 FF
-1111111111111111 0 FF
-2222222222222222 0 FF
-3333333333333333 0 FF
-4444444444444444 0 FF
-5555555555555555 0 FF
-6666666666666666 0 FF
-7777777777777777 0 FF
-8888888888888888 0 FF
-9999999999999999 0 FF
-AAAAAAAAAAAAAAAA 0 FF
-BBBBBBBBBBBBBBBB 0 FF
-CCCCCCCCCCCCCCCC 0 FF
-DDDDDDDDDDDDDDDD 0 FF
-EEEEEEEEEEEEEEEE 0 FF
-FFFFFFFFFFFFFFFF 1 FF
-> TEST  RcvdIp4Packet true
-
-> IDLE 10
-
-# == STEP-4: EXPECTED SECOND TCP SEGMENT (TCP Data Length = 32) =====
+# == Packet [02] - INO Segment S1 ==============================
 0000000048000045 0 FF
 0A0A0A0A8ed506FF 0 FF
 5700890001C80C0A 0 FF
-0000000081000000 0 FF
-000074db00041050 0 FF
-0000cafecafe0000 0 FF
-0000cafecafe0000 0 FF
-0000cafecafe0000 0 FF
-00000c0fefe00000 1 FF
+0000000001000000 0 FF
+0000a1b300041050 0 FF
+1111111111111111 0 FF
+1111111111111111 0 FF
+1111111111111111 0 FF
+1111111111111111 1 FF
+
+> IDLE 50
+
+# == Packet [03] - OOO Segment S3 ==============================
+0000000048000045 0 FF
+0A0A0A0A8ed506FF 0 FF
+5700890001C80C0A 0 FF
+00000000A1000000 0 FF
+0000df9000041050 0 FF
+3333333333333333 0 FF
+3333333333333333 0 FF
+3333333333333333 0 FF
+3333333333333333 1 FF
+
+> IDLE 50
+
+# == Packet [04] - INO Segment S2 ==============================
+00000000A8000045 0 FF
+0A0A0A0A2ed506FF 0 FF
+5700890001C80C0A 0 FF
+0000000021000000 0 FF
+0000aa3b00041050 0 FF
+2222222222222222 0 FF
+2222222222222222 0 FF
+2222222222222222 0 FF
+2222222222222222 0 FF
+2222222222222222 0 FF
+2222222222222222 0 FF
+2222222222222222 0 FF
+2222222222222222 0 FF
+2222222222222222 0 FF
+2222222222222222 0 FF
+2222222222222222 0 FF
+2222222222222222 0 FF
+2222222222222222 0 FF
+2222222222222222 0 FF
+2222222222222222 0 FF
+2222222222222222 1 FF
+
+> IDLE 50
+
+# == Packet [05] - INO Segment S4 ==============================
+0000000048000045 0 FF
+0A0A0A0A8ed506FF 0 FF
+5700890001C80C0A 0 FF
+00000000C1000000 0 FF
+0000ae7f00041050 0 FF
+4444444444444444 0 FF
+4444444444444444 0 FF
+4444444444444444 0 FF
+4444444444444444 1 FF
+

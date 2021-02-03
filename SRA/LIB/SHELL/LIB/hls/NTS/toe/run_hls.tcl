@@ -74,7 +74,6 @@ add_files     ${srcDir}/tx_sar_table/tx_sar_table.cpp
 # Add testbench files
 #-------------------------------------------------
 add_files -tb ${currDir}/test/test_${projectName}.cpp -cflags "-fstack-check"
-add_files -tb ${currDir}/test/test_${projectName}_utils.cpp
 add_files -tb ${currDir}/test/dummy_memory/dummy_memory.cpp
 
 # Create a solution
@@ -147,6 +146,9 @@ if { $hlsCSim} {
     csim_design -argv "0 ../../../../test/testVectors/siIPRX_TwentyPkt.dat"
     csim_design -argv "0 ../../../../test/testVectors/siIPRX_ThousandPkt.dat"
     csim_design -argv "0 ../../../../test/testVectors/siIPRX_SynAckPkt.dat"
+    csim_design -argv "0 ../../../../test/testVectors/siIPRX_TcpDuplicate.dat"
+    csim_design -argv "0 ../../../../test/testVectors/siIPRX_TcpOutOfOrder1.dat"
+    csim_design -argv "0 ../../../../test/testVectors/siIPRX_TcpOutOfOrder2.dat"
 
     csim_design -argv "1 ../../../../test/testVectors/siTAIF_OneSeg.dat"
     csim_design -argv "1 ../../../../test/testVectors/siTAIF_TwoSeg.dat"
