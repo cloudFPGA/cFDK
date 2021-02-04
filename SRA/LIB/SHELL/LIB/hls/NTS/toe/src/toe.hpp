@@ -92,20 +92,13 @@ extern uint32_t      packetCounter;  // [FIXME] Remove
 extern uint32_t      idleCycCnt;     // [FIXME] Remove
 extern unsigned int  gSimCycCnt;     // [FIXME] Remove
 
-#define OOO_N 4     // number of OOO blocks accepted
-#define OOO_W 4288  // window {max(offset + length)} of sequence numbers beyond recvd accepted
+//OBSOLETE_20210104 #define OOO_N 4     // number of OOO blocks accepted
+//OBSOLETE_20210104 #define OOO_W 4288  // window {max(offset + length)} of sequence numbers beyond recvd accepted
+//OBSOLETE_20210104 static const int OOO_N_BITS = 3;        // bits required to represent OOO_N+1, need 0 to show no OOO blocks are valid
+//OBSOLETE_20210104 static const int OOO_W_BITS = 13;       // bits required to represent OOO_W
+//OBSOLETE_20210104 static const int OOO_L_BITS = 13;       // max length in bits of OOO blocks allowed
 
-// OOO Parameters [FIXME-Remove]
-//static const int OOO_N = 4;       // number of OOO blocks accepted
-//static const int OOO_W = 4288;    // window {max(offset + length)} of sequence numbers beyond recvd accepted
-static const int OOO_N_BITS = 3;        // bits required to represent OOO_N+1, need 0 to show no OOO blocks are valid
-static const int OOO_W_BITS = 13;       // bits required to represent OOO_W
-static const int OOO_L_BITS = 13;       // max length in bits of OOO blocks allowed
-
-//static const int OOO_N_BITS = ceil(log10(OOO_N+1)/log10(2));      // (3) bits required to represent OOO_N
-//static const int OOO_W_BITS = ceil(log10(OOO_W)  /log10(2));      // (13) bits required to represent OOO_W
-
-static const ap_uint<32> SEQ_mid = 2147483648; // used in Modulo Arithmetic Comparison 2^(32-1) of sequence numbers etc.
+//OBSOLETE_20210104 static const ap_uint<32> SEQ_mid = 2147483648; // used in Modulo Arithmetic Comparison 2^(32-1) of sequence numbers etc.
 
 #ifndef __SYNTHESIS__
   // HowTo - You should adjust the value of 'TIME_1s' such that the testbench
@@ -167,9 +160,7 @@ static const ap_uint<32> SEQ_mid = 2147483648; // used in Modulo Arithmetic Comp
   static const ap_uint<32> TIME_120s      = (120.0/0.0000000064/TOE_MAX_SESSIONS) + 1;
 #endif
 
-#define BROADCASTCHANNELS 2
-
-
+  //OBSOLETE_20210104 #define BROADCASTCHANNELS 2
 
 
 /*******************************************************************************
@@ -253,11 +244,11 @@ typedef TcpAckNum   TxAckNum;   // An acknowledge number transmitted to the netw
 typedef TcpWindow   RcvWinSize; // A received window size
 typedef TcpWindow   SndWinSize; // A sending  window size
 
-typedef ap_uint<32> RxMemPtr;  // A pointer to RxMemBuff ( 4GB)  [FIXME <33>]
-typedef ap_uint<32> TxMemPtr;  // A pointer to TxMemBuff ( 4GB)  [FIXME <33>]
-typedef ap_uint<16> TcpBufAdr; // A TCP buffer address   (64KB)
-typedef TcpBufAdr   RxBufPtr;  // A pointer to RxSessBuf (64KB)
-typedef TcpBufAdr   TxBufPtr;  // A pointer to TxSessBuf (64KB)
+typedef ap_uint<32>              RxMemPtr;  // A pointer to RxMemBuff ( 4GB)  [FIXME <33>]
+typedef ap_uint<32>              TxMemPtr;  // A pointer to TxMemBuff ( 4GB)  [FIXME <33>]
+typedef ap_uint<TOE_WINDOW_BITS> TcpBufAdr; // A TCP buffer address   (64KB)
+typedef TcpBufAdr                RxBufPtr;  // A pointer to RxSessBuf (64KB)
+typedef TcpBufAdr                TxBufPtr;  // A pointer to TxSessBuf (64KB)
 
 //---------------------------------------------------------
 //--  SOCKET ADDRESS (alias ipTuple)
@@ -274,7 +265,6 @@ struct ipTuple // [TODO] - Replace w/ SockAddr
 
 typedef bool HitState;
 enum         HitStates { SESSION_UNKNOWN = false, SESSION_EXISTS = true};
-//OBSOLETE_20200703 typedef SessionId   TcpSessId;  // TCP Session ID
 
 //=========================================================
 //== SLc - Session Lookup Query
@@ -313,22 +303,29 @@ class StateQuery {
     TcpState        state;
     RdWrBit         write;
     StateQuery() {}
+    // Read queries
     StateQuery(SessionId id) :
         sessionID(id), state(CLOSED), write(QUERY_RD) {}
+    StateQuery(SessionId id, RdWrBit wrBit) :
+        sessionID(id), state(CLOSED), write(QUERY_RD) {}
+    // Write query
     StateQuery(SessionId id, TcpState state, RdWrBit write) :
-        sessionID(id), state(state), write(write) {}
+        sessionID(id), state(state), write(QUERY_WR) {}
 };
 
 //=========================================================
-//== RSt / Generic Reply
+//== RSt / Generic Reply (Same as RxSarEntry)
 //=========================================================
 class RxSarReply {
   public:
-    RxSeqNum    rcvd;
     RxBufPtr    appd;
+    RxSeqNum    rcvd;
+    FlagBool    ooo;
+    RxSeqNum    oooHead;
+    RxSeqNum    oooTail;
     RxSarReply() {}
-    RxSarReply(RxSeqNum rcvd, RxBufPtr appd) :
-        rcvd(rcvd), appd(appd) {}
+    RxSarReply(RxBufPtr appd, RxSeqNum rcvd, StsBool ooo, RxSeqNum oooHead, RxSeqNum oooTail) :
+        appd(appd), rcvd(rcvd), ooo(ooo), oooHead(oooHead), oooTail(oooTail) {}
 };
 
 //=========================================================
@@ -336,17 +333,29 @@ class RxSarReply {
 //=========================================================
 class RXeRxSarQuery {
   public:
-    SessionId       sessionID;
-    RxSeqNum        rcvd;  // Expected SeqNum of the next byte from remote device.
-    RdWrBit         write;
-    CmdBit          init;
+    SessionId   sessionID;
+    RxSeqNum    rcvd;
+    FlagBool    ooo;
+    RxSeqNum    oooHead;
+    RxSeqNum    oooTail;
+    RdWrBit     write;
+    CmdBit      init;
     RXeRxSarQuery() {}
-    RXeRxSarQuery(SessionId id) : // Read query
-        sessionID(id), rcvd(0),     write(0),     init(0) {}
-    RXeRxSarQuery(SessionId id, RxSeqNum recvd, RdWrBit write) :
-        sessionID(id), rcvd(recvd), write(write), init(0) {}
-    RXeRxSarQuery(SessionId id, RxSeqNum recvd, RdWrBit write, CmdBit init) :
-        sessionID(id), rcvd(recvd), write(write), init(init) {}
+    // Read queries
+    RXeRxSarQuery(SessionId id) :
+        sessionID(id), rcvd(0),    ooo(false), oooHead(0), oooTail(0), write(QUERY_RD), init(0) {}
+    RXeRxSarQuery(SessionId id, RdWrBit wrBit) :
+        sessionID(id), rcvd(0),    ooo(FLAG_INO), oooHead(0), oooTail(0), write(QUERY_RD), init(0) {}
+    // Write query - When in order processing
+    RXeRxSarQuery(SessionId id, RxSeqNum rcvd, RdWrBit wrBit) :
+        sessionID(id), rcvd(rcvd), ooo(FLAG_INO), oooHead(0), oooTail(0), write(QUERY_WR), init(0) {}
+    // Init query
+    RXeRxSarQuery(SessionId id, RxSeqNum rcvd, RdWrBit wrBit, CmdBit iniBit) :
+        sessionID(id), rcvd(rcvd), ooo(FLAG_INO), oooHead(0), oooTail(0), write(QUERY_WR), init(CMD_INIT) {}
+    // Write query - When in out-of-order processing
+    RXeRxSarQuery(SessionId id, RxSeqNum rcvd, FlagBool ooo, RxSeqNum oooHead, RxSeqNum oooTail, RdWrBit wrBit) :
+        sessionID(id), rcvd(rcvd), ooo(ooo), oooHead(oooHead), oooTail(oooTail), write(QUERY_WR), init(0) {}
+
 };
 
 //=========================================================
@@ -404,15 +413,15 @@ class RXeTxSarQuery {
 //=========================================================
 class RXeTxSarReply {
   public:
-    TxAckNum        prevAck;
-    TxAckNum        nextByte;
+    TxAckNum        prevAckd;  // Bytes TX'ed and ACK'ed
+    TxAckNum        prevUnak;  // Bytes TX'ed but not ACK'ed
     TcpWindow       cong_window;
-    ap_uint<16>     slowstart_threshold;
+    TcpWindow       slowstart_threshold;
     ap_uint<2>      count;
     CmdBool         fastRetransmitted;
     RXeTxSarReply() {}
-    RXeTxSarReply(TxAckNum ack, TxAckNum next, TcpWindow cong_win, ap_uint<16> sstresh, ap_uint<2> count, CmdBool fastRetransmitted) :
-        prevAck(ack), nextByte(next), cong_window(cong_win), slowstart_threshold(sstresh), count(count), fastRetransmitted(fastRetransmitted) {}
+    RXeTxSarReply(TxAckNum ackd, TxAckNum unak, TcpWindow cong_win, TcpWindow sstresh, ap_uint<2> count, CmdBool fastRetransmitted) :
+        prevAckd(ackd), prevUnak(unak), cong_window(cong_win), slowstart_threshold(sstresh), count(count), fastRetransmitted(fastRetransmitted) {}
 };
 
 //=========================================================

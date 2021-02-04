@@ -2,7 +2,7 @@
 # @file  : siIPRX_TcpDuplicate.dat
 # @brief : One IPv4 packet of 168 bytes transmitted twice to emulate a duplicated TCP
 #           segment. The RXe is expected to discard this segment and to continue with
-#           thenext one.
+#           the next one.
 #
 #  @info : Such a '.dat' file can also contain global testbench parameters,
 #          testbench commands and comments.
@@ -16,11 +16,20 @@
 #    G PARAM FpgaLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the FPGA side.
 #    G PARAM HostIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the HOST.
 #    G PARAM HostLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the HOST side.
-#    # This is a comment
-#    > SET   HostIp4Addr  <ADDR>  --> Request to add a new destination HOST IPv4 address. 
-#    > SET   HostLsnPort  <PORT>  --> Request to add a new listen port on the HOST side.
-#    > SET   HostServerSocket <ADDR> <PORT> --> Request to add a new HOST socket.
+#    #                            --> This is a comment
 #    > IDLE  <NUM>                --> Request to idle for <NUM> cycles.
+#    > SET   HostIp4Addr <ADDR>  --> Request to add a new destination HOST IPv4 address. 
+#    > SET   HostLsnPort <PORT>  --> Request to add a new listen port on the HOST side.
+#    > SET   HostServerSocket <ADDR> <PORT> --> Request to add a new HOST socket.
+#    > TEST  RcvdIp4Packet  <true|false> --> Request to enable/disable testing of received IPv4 packets.
+#    > TEST  RcvdIp4TotLen  <true|false> --> Request to enable/disable testing of received IPv4-Total-Length field.
+#    > TEST  RcvdIp4HdrCsum <true|false> --> Request to enable/disable testing of received IPv4-Header-Ckecksum field.
+#    > TEST  RcvdUdpLen     <true|false> --> Request to enable/disable testing of received UDP-Length field.
+#    > TEST  RcvdLy4Csum    <true|false> --> Request to enable/disable testing of received TCP|UDP-Checksum field. 
+#    > TEST  SentIp4TotLen  <true|false> --> Request to enable/disable testing of transmitted IPv4-Total-Length field.
+#    > TEST  SentIp4HdrCsum <true|false> --> Request to enable/disable testing of transmitted IPv4-Header-Ckecksum field.
+#    > TEST  SentUdpLen     <true|false> --> Request to enable/disable testing of transmitted UDP-Length field.
+#    > TEST  SentLy4Csum    <true|false> --> Request to enable/disable testing of transmitted TCP|UDP-Checksum field.
 # 
 # ######################################################################################## 
 #
@@ -55,8 +64,8 @@ G PARAM SimCycles 1000
 0000000028000045 0 FF
 0A0A0A0Aaed506FF 0 FF
 5700890001C80C0A 0 FF
-00000000CDFF0000 0 FF
-000013c500040250 1 FF
+0000000000000000 0 FF
+0000e1c400040250 1 FF
 
 > IDLE 100
 
@@ -64,8 +73,8 @@ G PARAM SimCycles 1000
 00000000A8000045 0 FF
 0A0A0A0A2ed506FF 0 FF
 5700890001C80C0A 0 FF
-00000000CEFF0000 0 FF
-000084c400041050 0 FF
+0000000001000000 0 FF
+000052c400041050 0 FF
 0000000000000000 0 FF
 1111111111111111 0 FF
 2222222222222222 0 FF
@@ -86,11 +95,12 @@ FFFFFFFFFFFFFFFF 1 FF
 > IDLE 500
 
 # == STEP-3: DUPLICATE IP FRAME WITH SAME TCP SEGMENT (TCP Data Length = 128) =====
+> TEST  RcvdIp4Packet false
 00000000A8000045 0 FF
 0A0A0A0A2ed506FF 0 FF
 5700890001C80C0A 0 FF
-00000000CEFF0000 0 FF
-000084c400041050 0 FF
+0000000001000000 0 FF
+000052c400041050 0 FF
 0000000000000000 0 FF
 1111111111111111 0 FF
 2222222222222222 0 FF
@@ -107,8 +117,17 @@ CCCCCCCCCCCCCCCC 0 FF
 DDDDDDDDDDDDDDDD 0 FF
 EEEEEEEEEEEEEEEE 0 FF
 FFFFFFFFFFFFFFFF 1 FF
+> TEST  RcvdIp4Packet true
 
 > IDLE 10
 
-# == STEP-4: TODO --> Folow-on TCP segment ================
-
+# == STEP-4: EXPECTED SECOND TCP SEGMENT (TCP Data Length = 32) =====
+0000000048000045 0 FF
+0A0A0A0A8ed506FF 0 FF
+5700890001C80C0A 0 FF
+0000000081000000 0 FF
+000074db00041050 0 FF
+0000cafecafe0000 0 FF
+0000cafecafe0000 0 FF
+0000cafecafe0000 0 FF
+00000c0fefe00000 1 FF

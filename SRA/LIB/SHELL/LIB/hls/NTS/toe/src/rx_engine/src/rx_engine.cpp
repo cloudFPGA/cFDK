@@ -65,7 +65,7 @@ using namespace hls;
 #define TRACE_RAN 1 << 10
 #define TRACE_ALL  0xFFFF
 
-#define DEBUG_LEVEL (TRACE_OFF)
+#define DEBUG_LEVEL (TRACE_FSM)
 
 
 /*******************************************************************************
@@ -1096,14 +1096,15 @@ void pRxAppNotifier(
                 }
             }
         }
-        else if (!siFsm_Notif.empty() && !ssRxNotifFifo.full()) {
+        else if (!siFsm_Notif.empty() and !ssRxNotifFifo.full()) {
             siFsm_Notif.read(ran_appNotification);
             if (ran_appNotification.tcpDatLen != 0) {
                 ssRxNotifFifo.write(ran_appNotification);
             }
             else {
-                printFatal(myName, "Received an Rx notification from FSM for an empty segment...");
-                soRAi_RxNotif.write(ran_appNotification);
+                // Do not send forward the notification to [APP]
+                printInfo(myName, "Received an RxNotif with LENGTH=0.\n");
+                //OBSOLETE_20210112 soRAi_RxNotif.write(ran_appNotification);
             }
         }
     }
@@ -1321,9 +1322,9 @@ void pFiniteStateMachine(
         if (!siMdh_FsmMeta.empty()) {
             siMdh_FsmMeta.read(fsm_Meta);
             // Request the current state of this session
-            soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId));
+            soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, QUERY_RD));
             // Always request the RxSarTable, even though not required for SYN-ACK
-            soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId));
+            soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId, QUERY_RD));
             if (fsm_Meta.meta.ack) {
                 // Only request the txSar when (ACK+ANYTHING); not for SYN
                 soTSt_TxSarQry.write(RXeTxSarQuery(fsm_Meta.sessionId));
@@ -1334,8 +1335,8 @@ void pFiniteStateMachine(
         break;
     case FSM_TRANSITION:
         // Check if transition to FSM_LOAD occurs
-        if (!siSTt_StateRep.empty() && !siRSt_RxSarRep.empty() &&
-            !(fsm_txSarRequest && siTSt_TxSarRep.empty())) {
+        if (!siSTt_StateRep.empty() and !siRSt_RxSarRep.empty() and
+            !(fsm_txSarRequest and siTSt_TxSarRep.empty())) {
             fsm_fsmState = FSM_LOAD;
             fsm_txSarRequest = false;
         }
@@ -1353,14 +1354,14 @@ void pFiniteStateMachine(
                 siSTt_StateRep.read(tcpState);
                 siRSt_RxSarRep.read(rxSar);
                 siTSt_TxSarRep.read(txSar);
-                TimerCmd timerCmd = (fsm_Meta.meta.ackNumb == txSar.nextByte) ? STOP_TIMER : LOAD_TIMER;
+                TimerCmd timerCmd = (fsm_Meta.meta.ackNumb == txSar.prevUnak) ? STOP_TIMER : LOAD_TIMER;
                 soTIm_ReTxTimerCmd.write(RXeReTransTimerCmd(fsm_Meta.sessionId, timerCmd));
                 if ( (tcpState == ESTABLISHED) || (tcpState == SYN_RECEIVED) ||
                      (tcpState == FIN_WAIT_1)  || (tcpState == CLOSING)      ||
                      (tcpState == LAST_ACK) ) {
                     // Check if new ACK arrived
-                    if ( (fsm_Meta.meta.ackNumb == txSar.prevAck) &&
-                         (txSar.prevAck != txSar.nextByte) ) {
+                    if ( (fsm_Meta.meta.ackNumb == txSar.prevAckd) and
+                         (txSar.prevAckd != txSar.prevUnak) ) {
                         // Not new ACK; increase counter but only if it does not contain data
                         if (fsm_Meta.meta.length == 0) {
                             txSar.count++;
@@ -1373,17 +1374,15 @@ void pFiniteStateMachine(
                         if (txSar.cong_window <= (txSar.slowstart_threshold-ZYC2_MSS)) {
                             txSar.cong_window += ZYC2_MSS;
                         }
-                        else if (txSar.cong_window <= 0xF7FF) {
+                        else if (txSar.cong_window <= TOE_MAX_CONGESTION_WINDOW) { // 0xF7FF
                             txSar.cong_window += 365; //TODO replace by approx. of (MSS x MSS) / cong_window
                         }
                         txSar.count = 0;
                         txSar.fastRetransmitted = false;
                     }
                     // Update TxSarTable (only if count or retransmit)
-                    //  [FIXME - 'txSar.count' must be compared to a DEFINE constant]
-                    if ( (  (txSar.prevAck <= fsm_Meta.meta.ackNumb) && (fsm_Meta.meta.ackNumb <= txSar.nextByte) ) ||
-                         ( ((txSar.prevAck <= fsm_Meta.meta.ackNumb) || (fsm_Meta.meta.ackNumb <= txSar.nextByte) ) &&
-                            (txSar.nextByte < txSar.prevAck) ) ) {
+                    if ( (  (fsm_Meta.meta.ackNumb >= txSar.prevAckd) and (fsm_Meta.meta.ackNumb <= txSar.prevUnak)) or
+                          (((fsm_Meta.meta.ackNumb >= txSar.prevAckd) or  (fsm_Meta.meta.ackNumb <= txSar.prevUnak)) and (txSar.prevUnak < txSar.prevAckd))) {
                         soTSt_TxSarQry.write((RXeTxSarQuery(fsm_Meta.sessionId,
                                                             fsm_Meta.meta.ackNumb,
                                                             fsm_Meta.meta.winSize,
@@ -1391,6 +1390,8 @@ void pFiniteStateMachine(
                                                             txSar.count,
                                                           ((txSar.count == 3) || txSar.fastRetransmitted))));
                     }
+
+/*** OBSOLETE_20200108 *********************************
                     // Check if packet contains payload
                     if (fsm_Meta.meta.length != 0) {
                         RxSeqNum newRcvd = fsm_Meta.meta.seqNumb + fsm_Meta.meta.length;
@@ -1429,6 +1430,132 @@ void pFiniteStateMachine(
                             }
                         }
                     }
+*** OBSOLETE_20200108 *********************************/
+
+#if !(RX_DDR_BYPASS)
+                    // Always, compute free space to ensure that 'appd' pointer is not overtaken
+                    RxBufPtr free_space = ((rxSar.appd - rxSar.oooHead(TOE_WINDOW_BITS-1, 0)) - 1);
+                    free_space = ((rxSar.appd - rxSar.rcvd(TOE_WINDOW_BITS-1, 0)) - 1);
+
+                    // If packet contains payload
+                    //  We must handle Out-Of-Order delivered segments
+                    if (fsm_Meta.meta.length != 0) {
+
+                        // Build a DDR memory address for this segment
+                        //  FYI - The TCP Rx buffers use up to 1GB (16Kx64KB).
+                        RxMemPtr memSegAddr = TOE_RX_MEMORY_BASE;
+                        memSegAddr(29, TOE_WINDOW_BITS) = fsm_Meta.sessionId(13, 0);
+                        memSegAddr(TOE_WINDOW_BITS-1, 0) = fsm_Meta.meta.seqNumb.range(TOE_WINDOW_BITS-1, 0);
+
+                        RxSeqNum    newRcvd    = 0;
+                        RxSeqNum    newOooHead = 0;
+                        RxSeqNum    newOooTail = 0;
+
+                        //-- DEFAULT : No OOO and Rx segment is in expected sequence order
+                        if (!rxSar.ooo and (fsm_Meta.meta.seqNumb == rxSar.rcvd) and
+                                           (free_space > fsm_Meta.meta.length)) {
+                            if (DEBUG_LEVEL & TRACE_FSM) { printInfo(myName, "OOO-DEFAULT : Rx segment is in-order.\n"); }
+                            // Generate new received pointer
+                            newRcvd = fsm_Meta.meta.seqNumb + fsm_Meta.meta.length;
+                            // Update RxSar pointers
+                            soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId, newRcvd, QUERY_WR));
+                            // Send memory write command
+                            soMwr_WrCmd.write(DmCmd(memSegAddr, fsm_Meta.meta.length));
+                            // Send Rx data notify to [APP]
+                            soRan_RxNotif.write(TcpAppNotif(fsm_Meta.sessionId,  fsm_Meta.meta.length,
+                                                            fsm_Meta.ip4SrcAddr, fsm_Meta.tcpSrcPort,
+                                                            fsm_Meta.tcpDstPort));
+                            // Send keep command
+                            soTsd_DropCmd.write(CMD_KEEP);
+                        }
+                        //-- START   : No OOO but Rx segment arrived out-of-order
+                        else if (!rxSar.ooo and (fsm_Meta.meta.seqNumb > rxSar.rcvd) and
+                                                (free_space > (fsm_Meta.meta.seqNumb+fsm_Meta.meta.length-rxSar.oooHead(TOE_WINDOW_BITS-1, 0)))) {
+                            if (DEBUG_LEVEL & TRACE_FSM) { printInfo(myName, "OOO-START   : Rx segment is out-of-order.\n"); }
+                            // Generate new oooHead and oooTail pointers
+                            newOooHead = fsm_Meta.meta.seqNumb + fsm_Meta.meta.length;
+                            newOooTail = fsm_Meta.meta.seqNumb;
+                            // Update RxSar pointers
+                            soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId, rxSar.rcvd, FLAG_OOO, newOooHead, newOooTail, QUERY_WR));
+                            // Send memory write command
+                            soMwr_WrCmd.write(DmCmd(memSegAddr, fsm_Meta.meta.length));
+                            // Prevent [Ran] to send Rx data notify to [APP] by setting LENGTH=0 !!!
+                            soRan_RxNotif.write(TcpAppNotif(fsm_Meta.sessionId,  0,
+                                                            fsm_Meta.ip4SrcAddr, fsm_Meta.tcpSrcPort,
+                                                            fsm_Meta.tcpDstPort));
+                            // Send keep command
+                            soTsd_DropCmd.write(CMD_KEEP);
+                        }
+                        //-- CONTINUE: OOO exists and Rx segment is in-order with respect to 'oooHead' pointer
+                        else if (rxSar.ooo and (fsm_Meta.meta.seqNumb == rxSar.oooHead) and
+                                               (free_space > fsm_Meta.meta.length)) {
+                            if (DEBUG_LEVEL & TRACE_FSM) { printInfo(myName, "OOO-CONTINUE: Rx segment is in-order with respect to 'oooHead'.\n"); }
+                            // Generate new oooHead pointer
+                            newOooHead = fsm_Meta.meta.seqNumb + fsm_Meta.meta.length;
+                            // Update RxSar pointers
+                            soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId, rxSar.rcvd, FLAG_OOO, newOooHead, rxSar.oooTail, QUERY_WR));
+                            // Send memory write command
+                            soMwr_WrCmd.write(DmCmd(memSegAddr, fsm_Meta.meta.length));
+                            // Prevent [Ran] to send Rx data notify to [APP] by setting LENGTH=0 !!!
+                            soRan_RxNotif.write(TcpAppNotif(fsm_Meta.sessionId,  0,
+                                                            fsm_Meta.ip4SrcAddr, fsm_Meta.tcpSrcPort,
+                                                            fsm_Meta.tcpDstPort));
+                            // Send keep command
+                            soTsd_DropCmd.write(CMD_KEEP);
+
+                        }
+                        //-- CONTINUE: OOO exists, Rx segment is in-order with respect to 'rcvd' pointer but it does not fill the gap
+                        else if (rxSar.ooo and (fsm_Meta.meta.seqNumb == rxSar.rcvd) and
+                                               ((fsm_Meta.meta.seqNumb + fsm_Meta.meta.length) < rxSar.oooTail)) {
+                            if (DEBUG_LEVEL & TRACE_FSM) { printInfo(myName, "OOO-CONTINUE: Rx segment is in-order with respect to 'rcvd' but it does not fill the gap.\n"); }
+                            // Generate new received pointer
+                            newRcvd = fsm_Meta.meta.seqNumb + fsm_Meta.meta.length;
+                            // Update RxSar pointers
+                            soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId, newRcvd, FLAG_OOO, rxSar.oooHead, rxSar.oooTail, QUERY_WR));
+                            // Send memory write command
+                            soMwr_WrCmd.write(DmCmd(memSegAddr, fsm_Meta.meta.length));
+                            // Send Rx data notify to [APP]
+                            soRan_RxNotif.write(TcpAppNotif(fsm_Meta.sessionId, fsm_Meta.meta.length,
+                                                            fsm_Meta.ip4SrcAddr, fsm_Meta.tcpSrcPort,
+                                                            fsm_Meta.tcpDstPort));
+                            // Send keep command
+                            soTsd_DropCmd.write(CMD_KEEP);
+                        }
+                        //-- END       : OOO exists, Rx segment is in-order with respect to 'rcvd' pointer and it fills the gap
+                        else if (rxSar.ooo and (fsm_Meta.meta.seqNumb == rxSar.rcvd) and
+                                               ((fsm_Meta.meta.seqNumb + fsm_Meta.meta.length) == rxSar.oooTail)) {
+                            if (DEBUG_LEVEL & TRACE_FSM) { printInfo(myName, "OOO-END     : Rx segment is in-order with respect to 'rcvd' and it fills the gap.\n"); }
+                            // Generate new received pointer
+                            newRcvd = rxSar.oooHead;
+                            // Update RxSar pointers
+                            soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId, newRcvd, FLAG_INO, rxSar.oooHead, rxSar.oooTail, QUERY_WR));
+                            // Send memory write command
+                            soMwr_WrCmd.write(DmCmd(memSegAddr, fsm_Meta.meta.length));
+                            // Send Rx data notify to [APP]
+                            //OBSOLETE_20210113 soRan_RxNotif.write(TcpAppNotif(fsm_Meta.sessionId, (rxSar.oooHead - fsm_Meta.meta.seqNumb)(TOE_WINDOW_BITS-1, 0),
+                            soRan_RxNotif.write(TcpAppNotif(fsm_Meta.sessionId, (rxSar.oooHead - rxSar.rcvd),
+                                                            fsm_Meta.ip4SrcAddr, fsm_Meta.tcpSrcPort,
+                                                            fsm_Meta.tcpDstPort));
+                            // Send keep command
+                            soTsd_DropCmd.write(CMD_KEEP);
+                        }
+                        //-- OOO-DROP  : Always drop segment in all other cases
+                        else {
+                            soTsd_DropCmd.write(CMD_DROP);
+                            if ( (!rxSar.ooo and (fsm_Meta.meta.seqNumb == rxSar.rcvd) and (free_space <  fsm_Meta.meta.length)) or
+                                 (!rxSar.ooo and (fsm_Meta.meta.seqNumb >  rxSar.rcvd) and (free_space > (fsm_Meta.meta.seqNumb+fsm_Meta.meta.length-rxSar.oooHead(TOE_WINDOW_BITS-1, 0))))) {
+                                printInfo(myName, "Dropping Rx segment - Not enough space left in the Rx ring buffer.\n");
+                            }
+                            else if (fsm_Meta.meta.seqNumb+fsm_Meta.meta.length == rxSar.rcvd) {
+                                printInfo(myName, "Dropping Rx segment - Segment is a duplicate.\n");
+                            }
+                            else {
+                                printFatal(myName, "Dropping Rx segment - Reason is unknown.\n");
+                            }
+                        }
+                    }
+#endif
+
 
 # if FAST_RETRANSMIT
                     if (txSar.count == 3 && !txSar.fastRetransmitted) {  // [FIXME - Use a constant here]
@@ -1441,7 +1568,7 @@ void pFiniteStateMachine(
                         soEVe_Event.write(Event(ACK_EVENT, fsm_Meta.sessionId));
                     }
                     // Reset Retransmit Timer
-                    if (fsm_Meta.meta.ackNumb == txSar.nextByte) {
+                    if (fsm_Meta.meta.ackNumb == txSar.prevUnak) {
                         switch (tcpState) {
                         case SYN_RECEIVED:
                             soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, ESTABLISHED, QUERY_WR));
@@ -1485,10 +1612,10 @@ void pFiniteStateMachine(
             if (fsm_fsmState == FSM_LOAD) {
                 siSTt_StateRep.read(tcpState);
                 siRSt_RxSarRep.read(rxSar);
-                if (tcpState == CLOSED || tcpState == SYN_SENT) {
-                    // Actually this is LISTEN || SYN_SENT
-                    // Initialize rxSar, SEQ + phantom byte, last '1' for makes sure appd is initialized
-                    soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId, fsm_Meta.meta.seqNumb + 1, QUERY_WR, QUERY_INIT));
+                if (tcpState == CLOSED or tcpState == SYN_SENT) {
+                    // Initialize RxSar entry
+                    soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId, fsm_Meta.meta.seqNumb+1,
+                                                       QUERY_WR, QUERY_INIT));
                     // Initialize receive window ([TODO - maybe include count check])
                     soTSt_TxSarQry.write((RXeTxSarQuery(fsm_Meta.sessionId, 0, fsm_Meta.meta.winSize, txSar.cong_window, 0, false)));
                     // Set SYN_ACK event
@@ -1529,12 +1656,12 @@ void pFiniteStateMachine(
                 siSTt_StateRep.read(tcpState);
                 siRSt_RxSarRep.read(rxSar);
                 siTSt_TxSarRep.read(txSar);
-                TimerCmd timerCmd = (fsm_Meta.meta.ackNumb == txSar.nextByte) ? STOP_TIMER : LOAD_TIMER;
+                TimerCmd timerCmd = (fsm_Meta.meta.ackNumb == txSar.prevUnak) ? STOP_TIMER : LOAD_TIMER;
                 soTIm_ReTxTimerCmd.write(RXeReTransTimerCmd(fsm_Meta.sessionId, timerCmd));
-                if ( (tcpState == SYN_SENT) && (fsm_Meta.meta.ackNumb == txSar.nextByte) ) { // && !mh_lup.created)
-                    // Initialize rx_sar, SEQ + phantom byte, last '1' for appd init
-                    soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId,
-                                                       fsm_Meta.meta.seqNumb + 1, QUERY_WR, QUERY_INIT));
+                if ( (tcpState == SYN_SENT) && (fsm_Meta.meta.ackNumb == txSar.prevUnak) ) { // && !mh_lup.created)
+                    // Initialize RxSar entry
+                    soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId, fsm_Meta.meta.seqNumb+1,
+                                                       QUERY_WR, QUERY_INIT));
                     soTSt_TxSarQry.write(RXeTxSarQuery(fsm_Meta.sessionId,
                                                        fsm_Meta.meta.ackNumb,
                                                        fsm_Meta.meta.winSize,
@@ -1562,23 +1689,21 @@ void pFiniteStateMachine(
             //--------------------------------------
             //-- FIN (_ACK)
             //--------------------------------------
-            if (DEBUG_LEVEL & TRACE_FSM) { printInfo(myName, "Entering '***_ACK' processing.\n"); }
+            if (DEBUG_LEVEL & TRACE_FSM) { printInfo(myName, "Entering 'FIN_ACK' processing.\n"); }
             if (fsm_fsmState == FSM_LOAD) {
                 siSTt_StateRep.read(tcpState);
                 siRSt_RxSarRep.read(rxSar);
                 siTSt_TxSarRep.read(txSar);
-                TimerCmd timerCmd = (fsm_Meta.meta.ackNumb == txSar.nextByte) ? STOP_TIMER : LOAD_TIMER;
+                TimerCmd timerCmd = (fsm_Meta.meta.ackNumb == txSar.prevUnak) ? STOP_TIMER : LOAD_TIMER;
                 soTIm_ReTxTimerCmd.write(RXeReTransTimerCmd(fsm_Meta.sessionId, timerCmd));
                 // Check state and if FIN in order, Current out of order FINs are not accepted
-                if ( (tcpState == ESTABLISHED || tcpState == FIN_WAIT_1 ||
-                      tcpState == FIN_WAIT_2) && (rxSar.rcvd == fsm_Meta.meta.seqNumb) ) {
+                if ( (tcpState == ESTABLISHED or  tcpState == FIN_WAIT_1 or tcpState == FIN_WAIT_2) and (rxSar.rcvd == fsm_Meta.meta.seqNumb) ) {
                     soTSt_TxSarQry.write((RXeTxSarQuery(fsm_Meta.sessionId,
                                           fsm_Meta.meta.ackNumb, fsm_Meta.meta.winSize,
                                           txSar.cong_window, txSar.count,
                                           ~QUERY_FAST_RETRANSMIT))); //TODO include count check
                     // +1 for phantom byte, there might be data too
-                    soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId,
-                                         fsm_Meta.meta.seqNumb+fsm_Meta.meta.length+1,
+                    soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId, fsm_Meta.meta.seqNumb+fsm_Meta.meta.length+1,
                                          QUERY_WR)); // diff to ACK
                     // Clear the probe timer
                     soTIm_ClearProbeTimer.write(fsm_Meta.sessionId);
@@ -1607,7 +1732,7 @@ void pFiniteStateMachine(
                         soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, LAST_ACK, QUERY_WR));
                     }
                     else { //FIN_WAIT_1 || FIN_WAIT_2
-                        if (fsm_Meta.meta.ackNumb == txSar.nextByte) {
+                        if (fsm_Meta.meta.ackNumb == txSar.prevUnak) {
                             // Check if final FIN is ACK'd -> LAST_ACK
                             soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, TIME_WAIT, QUERY_WR));
                             soTIm_CloseTimer.write(fsm_Meta.sessionId);
@@ -1644,7 +1769,7 @@ void pFiniteStateMachine(
                     if (tcpState == SYN_SENT) {
                         // [TODO this would be a RST,ACK i think]
                         // Check if matching SYN
-                        if (fsm_Meta.meta.ackNumb == txSar.nextByte) {
+                        if (fsm_Meta.meta.ackNumb == txSar.prevUnak) {
                             // The connection culd not be established
                             soTAi_SessOpnSts.write(SessState(fsm_Meta.sessionId, CLOSED));
                             soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, CLOSED, QUERY_WR));

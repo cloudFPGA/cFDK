@@ -101,6 +101,7 @@ static const uint64_t TOE_TX_MEMORY_BASE = (TOE_MEMORY_SIZE+TOE_RX_MEMORY_SIZE);
 static const uint16_t TOE_RX_MEMORY_BITS  = log2ceil(TOE_RX_MEMORY_SIZE); // 1GB = 2^30
 static const uint16_t TOE_TX_MEMORY_BITS  = log2ceil(TOE_TX_MEMORY_SIZE); // 1GB = 2^30
 
+static const unsigned TOE_MAX_CONGESTION_WINDOW = (TOE_BUFFER_SIZE - 2048); // 0xF7FF
 
 /*******************************************************************************
  * CONFIGURATION - TRANSPORT LAYER-4 - UDP

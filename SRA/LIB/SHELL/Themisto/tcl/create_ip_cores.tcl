@@ -57,32 +57,49 @@ set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName
 
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
+##------------------------------------------------------------------------------  
+## VIVADO-IP : AXI Register Slice 
+##------------------------------------------------------------------------------
+##  Signal Properties
+##    [Yes] : Enable TREADY
+##    [8]   : TDATA Width (bytes)
+##    [No]  : Enable TSTRB
+##    [Yes] : Enable TKEEP
+##    [Yes] : Enable TLAST
+##    [0]   : TID Width (bits)
+##    [0]   : TDEST Width (bits)
+##    [0]   : TUSER Width (bits)
+##    [No]  : Enable ACLKEN
+##------------------------------------------------------------------------------
+#set ipModName "AxisRegisterSlice_80"
+#set ipName    "axis_register_slice"
+#set ipVendor  "xilinx.com"
+#set ipLibrary "ip"
+#set ipVersion "1.1"
+#set ipCfgList  [ list CONFIG.TDATA_NUM_BYTES {10} \
+#                      CONFIG.HAS_TKEEP {1} \
+#                      CONFIG.HAS_TLAST {1} ]
+#
+#set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+#
+#if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
+
 #------------------------------------------------------------------------------  
-# VIVADO-IP : AXI Register Slice 
+# IBM-HSL-IP : FPGA Managememt Core
 #------------------------------------------------------------------------------
-#  Signal Properties
-#    [Yes] : Enable TREADY
-#    [8]   : TDATA Width (bytes)
-#    [No]  : Enable TSTRB
-#    [Yes] : Enable TKEEP
-#    [Yes] : Enable TLAST
-#    [0]   : TID Width (bits)
-#    [0]   : TDEST Width (bits)
-#    [0]   : TUSER Width (bits)
-#    [No]  : Enable ACLKEN
-#------------------------------------------------------------------------------
-set ipModName "AxisRegisterSlice_80"
-set ipName    "axis_register_slice"
-set ipVendor  "xilinx.com"
-set ipLibrary "ip"
-set ipVersion "1.1"
-set ipCfgList  [ list CONFIG.TDATA_NUM_BYTES {10} \
-                      CONFIG.HAS_TKEEP {1} \
-                      CONFIG.HAS_TLAST {1} ]
+set ipModName "FpgaManagementCore"
+set ipName    "fmc"
+set ipVendor  "IBM"
+set ipLibrary "hls"
+set ipVersion "1.0"
+set ipCfgList  [ list CONFIG.Component_Name {SMC} ]
 
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
+
 
 #------------------------------------------------------------------------------  
 # VIVADO-IP : FIFO Generator
@@ -152,9 +169,14 @@ set ipName    "fifo_generator"
 set ipVendor  "xilinx.com"
 set ipLibrary "ip"
 set ipVersion "13.2"
+# 8K
+#set ipCfgList [ list CONFIG.Performance_Options {First_Word_Fall_Through} CONFIG.Input_Data_Width {64} CONFIG.Output_Data_Width {64} \
+#                CONFIG.Input_Depth {8192} CONFIG.Output_Depth {8192} CONFIG.Data_Count_Width {13} CONFIG.Write_Data_Count_Width {13} CONFIG.Read_Data_Count_Width {13} \
+#                CONFIG.Programmable_Full_Type {Single_Programmable_Full_Threshold_Constant} CONFIG.Full_Threshold_Assert_Value {8063} CONFIG.Full_Threshold_Negate_Value {8062} ]
+# 32K
 set ipCfgList [ list CONFIG.Performance_Options {First_Word_Fall_Through} CONFIG.Input_Data_Width {64} CONFIG.Output_Data_Width {64} \
-                CONFIG.Input_Depth {8192} CONFIG.Output_Depth {8192} CONFIG.Data_Count_Width {13} CONFIG.Write_Data_Count_Width {13} CONFIG.Read_Data_Count_Width {13} \
-                CONFIG.Programmable_Full_Type {Single_Programmable_Full_Threshold_Constant} CONFIG.Full_Threshold_Assert_Value {8063} CONFIG.Full_Threshold_Negate_Value {8062} ]
+                CONFIG.Input_Depth {32768} CONFIG.Output_Depth {32768} CONFIG.Data_Count_Width {15} CONFIG.Write_Data_Count_Width {15} CONFIG.Read_Data_Count_Width {15} \
+                CONFIG.Programmable_Full_Type {No_Programmable_Full_Threshold} CONFIG.Full_Threshold_Assert_Value {32764} CONFIG.Full_Threshold_Negate_Value {32763} ]
 
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 
@@ -169,9 +191,14 @@ set ipName    "fifo_generator"
 set ipVendor  "xilinx.com"
 set ipLibrary "ip"
 set ipVersion "13.2"
+# 8K
+#set ipCfgList [ list CONFIG.Performance_Options {First_Word_Fall_Through} CONFIG.Input_Data_Width {8} CONFIG.Output_Data_Width {8} \
+#                CONFIG.Input_Depth {8192} CONFIG.Output_Depth {8192} CONFIG.Data_Count_Width {13} CONFIG.Write_Data_Count_Width {13} CONFIG.Read_Data_Count_Width {13} \
+#                CONFIG.Programmable_Full_Type {Single_Programmable_Full_Threshold_Constant} CONFIG.Full_Threshold_Assert_Value {8063} CONFIG.Full_Threshold_Negate_Value {8062} ]
+# 32K
 set ipCfgList [ list CONFIG.Performance_Options {First_Word_Fall_Through} CONFIG.Input_Data_Width {8} CONFIG.Output_Data_Width {8} \
-                CONFIG.Input_Depth {8192} CONFIG.Output_Depth {8192} CONFIG.Data_Count_Width {13} CONFIG.Write_Data_Count_Width {13} CONFIG.Read_Data_Count_Width {13} \
-                CONFIG.Programmable_Full_Type {Single_Programmable_Full_Threshold_Constant} CONFIG.Full_Threshold_Assert_Value {8063} CONFIG.Full_Threshold_Negate_Value {8062} ]
+                CONFIG.Input_Depth {32768} CONFIG.Output_Depth {32768} CONFIG.Data_Count_Width {15} CONFIG.Write_Data_Count_Width {15} CONFIG.Read_Data_Count_Width {15} \
+                CONFIG.Programmable_Full_Type {No_Programmable_Full_Threshold} CONFIG.Full_Threshold_Assert_Value {32764} CONFIG.Full_Threshold_Negate_Value {32763} ]
 
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 
@@ -186,9 +213,14 @@ set ipName    "fifo_generator"
 set ipVendor  "xilinx.com"
 set ipLibrary "ip"
 set ipVersion "13.2"
+# 8K
+#set ipCfgList [ list CONFIG.Performance_Options {First_Word_Fall_Through} CONFIG.Input_Data_Width {1} CONFIG.Output_Data_Width {1} \
+#                CONFIG.Input_Depth {8192} CONFIG.Output_Depth {8192} CONFIG.Data_Count_Width {13} CONFIG.Write_Data_Count_Width {13} CONFIG.Read_Data_Count_Width {13} \
+#                CONFIG.Programmable_Full_Type {Single_Programmable_Full_Threshold_Constant} CONFIG.Full_Threshold_Assert_Value {8063} CONFIG.Full_Threshold_Negate_Value {8062} ]
+# 32K
 set ipCfgList [ list CONFIG.Performance_Options {First_Word_Fall_Through} CONFIG.Input_Data_Width {1} CONFIG.Output_Data_Width {1} \
-                CONFIG.Input_Depth {8192} CONFIG.Output_Depth {8192} CONFIG.Data_Count_Width {13} CONFIG.Write_Data_Count_Width {13} CONFIG.Read_Data_Count_Width {13} \
-                CONFIG.Programmable_Full_Type {Single_Programmable_Full_Threshold_Constant} CONFIG.Full_Threshold_Assert_Value {8063} CONFIG.Full_Threshold_Negate_Value {8062} ]
+                CONFIG.Input_Depth {32768} CONFIG.Output_Depth {32768} CONFIG.Data_Count_Width {15} CONFIG.Write_Data_Count_Width {15} CONFIG.Read_Data_Count_Width {15} \
+                CONFIG.Programmable_Full_Type {No_Programmable_Full_Threshold} CONFIG.Full_Threshold_Assert_Value {32764} CONFIG.Full_Threshold_Negate_Value {32763} ]
 
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 
@@ -203,24 +235,43 @@ set ipName    "fifo_generator"
 set ipVendor  "xilinx.com"
 set ipLibrary "ip"
 set ipVersion "13.2"
+# 8K with prog full
+#set ipCfgList [ list CONFIG.Performance_Options {First_Word_Fall_Through} CONFIG.Input_Data_Width {16} CONFIG.Output_Data_Width {16} \
+#                CONFIG.Input_Depth {8192} CONFIG.Output_Depth {8192} CONFIG.Data_Count_Width {13} CONFIG.Write_Data_Count_Width {13} CONFIG.Read_Data_Count_Width {13} \
+#                CONFIG.Programmable_Full_Type {Single_Programmable_Full_Threshold_Constant} CONFIG.Full_Threshold_Assert_Value {8063} CONFIG.Full_Threshold_Negate_Value {8062} ]
+# 8K without prog full
 set ipCfgList [ list CONFIG.Performance_Options {First_Word_Fall_Through} CONFIG.Input_Data_Width {16} CONFIG.Output_Data_Width {16} \
                 CONFIG.Input_Depth {8192} CONFIG.Output_Depth {8192} CONFIG.Data_Count_Width {13} CONFIG.Write_Data_Count_Width {13} CONFIG.Read_Data_Count_Width {13} \
-                CONFIG.Programmable_Full_Type {Single_Programmable_Full_Threshold_Constant} CONFIG.Full_Threshold_Assert_Value {8063} CONFIG.Full_Threshold_Negate_Value {8062} ]
+                CONFIG.Programmable_Full_Type {No_Programmable_Full_Threshold} CONFIG.Full_Threshold_Assert_Value {8188} CONFIG.Full_Threshold_Negate_Value {8187} ]
 
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 
+##------------------------------------------------------------------------------  
+## IBM-HSL-IP : NRC IP
+##------------------------------------------------------------------------------
+#set ipModName "NetworkRoutingCore"
+#set ipName    "nrc_main"
+#set ipVendor  "IBM"
+#set ipLibrary "hls"
+#set ipVersion "1.0"
+#set ipCfgList  [ list CONFIG.Component_Name {NRC} ]
+#
+#set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+#
+#if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
 #------------------------------------------------------------------------------  
-# IBM-HSL-IP : NRC IP
+# IBM-HSL-IP : NAL IP
 #------------------------------------------------------------------------------
-set ipModName "NetworkRoutingCore"
-set ipName    "nrc_main"
+set ipModName "NetworkAbstractionLayer"
+set ipName    "nal_main"
 set ipVendor  "IBM"
 set ipLibrary "hls"
 set ipVersion "1.0"
-set ipCfgList  [ list CONFIG.Component_Name {NRC} ]
+set ipCfgList  [ list CONFIG.Component_Name {NAL} ]
 
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 

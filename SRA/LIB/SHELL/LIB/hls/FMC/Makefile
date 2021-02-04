@@ -29,11 +29,12 @@ DEPS := $(shell find ./src/ -type f)
 .PHONY: all sim cosim cosim_view
 all: fmc_prj/solution1/impl/ip
 
-# TODO clean before rebuild seems to be necessary...
 fmc_prj/solution1/impl/ip: $(DEPS) 
 	rm -rf $@
 	@#cp ./src/fmc_hw_flags.hpp ./src/cfdk_dynamic.hpp
 	export hlsSim=0; export hlsCoSim=0; vivado_hls -f run_hls.tcl
+	@#print the report
+	@cat fmc_prj/solution1/syn/report/fmc_csynth.rpt
 	@touch $@
 	@touch ../../.ip_guard
 	@#rm -f ./src/cfdk_dynamic.hpp

@@ -261,6 +261,7 @@ All global variables are marked as `#pragma HLS reset`.
 | `tcp_write_only_fifo`        |   | indicates to the TCP-RX FSM that from now on, the incoming data is only written to the Fifo   |
 | `fifo_overflow_buffer_length` |   | indicates how many bytes are in the FIFO overflow buffer   |
 | `process_fifo_overflow_buffer`|   | indicates that the overflow buffer must be processed first   |
+| `flag_enable_fake_hwicap`     |   | if enabled, data will not be written to HWICAP, and the HWICAP behavior will be emulated |
 
 
 (internal FIFOs and Arrays are not marked as reset and not listed in this table)
@@ -336,7 +337,8 @@ There are **three** connections between the FMC and the EMIF:
 | 2 | Trigger soft reset for the Role |
 | 3 | flag `pyroReadReq` (i.e. from FMC to Coaxium) |
 | 4 | flag `startTcpMode` |
-| 5 -- 11 | unused |
+| 5 | flag `fake_hwicap` |
+| 6 -- 11 | unused |
 | 12 | flag `startXmemTrans` |
 | 13 | flag `checkPattern` |
 | 14 | flag `parseHTTP` (for XMEM transfers) |

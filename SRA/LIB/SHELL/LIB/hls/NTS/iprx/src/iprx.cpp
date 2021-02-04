@@ -855,8 +855,8 @@ void iprx(
     /*** directives because the new PRAGMAs do not work for us.        ***/
     /*********************************************************************/
 
-    #pragma HLS INTERFACE ap_stable           port=piMMIO_MacAddress
-    #pragma HLS INTERFACE ap_stable           port=piMMIO_Ip4Address
+    #pragma HLS INTERFACE ap_stable register  port=piMMIO_MacAddress
+    #pragma HLS INTERFACE ap_stable register  port=piMMIO_Ip4Address
 
     #pragma  HLS RESOURCE core=AXI4Stream variable=siETH_Data  metadata="-bus_bundle siETH_Data"
 
@@ -878,7 +878,7 @@ void iprx(
     #pragma HLS INTERFACE axis      port=soARP_Data            name=soARP_Data
 
     #pragma HLS INTERFACE axis      port=soICMP_Data           name=soICMP_Data
-    #pragma HLS INTERFACE axis      port=soICMP_Derr           name=soICMP_Data
+    #pragma HLS INTERFACE axis      port=soICMP_Derr           name=soICMP_Derr
 
     #pragma HLS INTERFACE axis      port=soUOE_Data            name=soUOE_Data
     #pragma HLS INTERFACE axis      port=soTOE_Data            name=soTOE_Data

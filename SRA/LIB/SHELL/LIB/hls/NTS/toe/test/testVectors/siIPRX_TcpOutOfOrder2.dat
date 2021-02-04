@@ -1,0 +1,155 @@
+# ########################################################################################
+# @file  : siIPRX_TcpOutOfOrder2.dat
+# @brief : This DAT file sends 7 packets with two of them arriving out-of-order.
+#          The arrival order of the 75 packets is as follows:
+#               [P1]   [P2]   [P3]   [P4]   [P5]   [P6]   [P7]
+#            --+-----+------+------+------+------+------+------+--
+#              | SYN |  S1  |  S5  |  S2  |  S3  |  S4  |  S6  |
+#            --+-----+------+------+------+------+------+------+--
+#          In this scenario, the packet which carries the segment (S5) arrives
+#           before the packets which carry the segments (S2,S3,S4). This triggers
+#           an OOO processing in [TOE] which is expected to deliver the stream
+#           of bytes in the correct order i.e., {S1,S2,S3,S4,S5,S6}.
+#
+#  @info : Such a '.dat' file can also contain global testbench parameters,
+#          testbench commands and comments.
+#
+#  @details:
+#   A global parameter, a testbench command or a comment line must start with a
+#    single character (G|>|#) followed by a space character.
+#   Examples:
+#    G PARAM SimCycles    <NUM>   --> Request a minimum of <NUM> simulation cycles.
+#    G PARAM FpgaIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the FPGA.
+#    G PARAM FpgaLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the FPGA side.
+#    G PARAM HostIp4Addr  <ADDR>  --> Request to set the default IPv4 address of the HOST.
+#    G PARAM HostLsnPort  <PORT>  --> Request to set the default TCP  server listen port on the HOST side.
+#    G PARAM SortTaifGold <true|false> --> Request to sort the 'soTAIF.gold" output file. 
+#    #                            --> This is a comment
+#    > IDLE  <NUM>                --> Request to idle for <NUM> cycles.
+#    > SET   HostIp4Addr <ADDR>   --> Request to add a new destination HOST IPv4 address. 
+#    > SET   HostLsnPort <PORT>   --> Request to add a new listen port on the HOST side.
+#    > SET   HostServerSocket <ADDR> <PORT> --> Request to add a new HOST socket.
+#    > TEST  RcvdIp4Packet  <true|false> --> Request to enable/disable testing of received IPv4 packets.
+#    > TEST  RcvdIp4TotLen  <true|false> --> Request to enable/disable testing of received IPv4-Total-Length field.
+#    > TEST  RcvdIp4HdrCsum <true|false> --> Request to enable/disable testing of received IPv4-Header-Checksum field.
+#    > TEST  RcvdUdpLen     <true|false> --> Request to enable/disable testing of received UDP-Length field.
+#    > TEST  RcvdLy4Csum    <true|false> --> Request to enable/disable testing of received TCP|UDP-Checksum field. 
+#    > TEST  SentIp4TotLen  <true|false> --> Request to enable/disable testing of transmitted IPv4-Total-Length field.
+#    > TEST  SentIp4HdrCsum <true|false> --> Request to enable/disable testing of transmitted IPv4-Header-Checksum field.
+#    > TEST  SentUdpLen     <true|false> --> Request to enable/disable testing of transmitted UDP-Length field.
+#    > TEST  SentLy4Csum    <true|false> --> Request to enable/disable testing of transmitted TCP|UDP-Checksum field.
+# 
+# ######################################################################################## 
+#
+#         6                   5                   4                   3                   2                   1                   0   
+#   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0      
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  | Frag. Offset  |Flags|         |         Identification        |          Total Length         |Type of Service|Version|  IHL  |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |                       Source Address                          |         Header Checksum       |    Protocol   |  Time to Live |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |       Destination Port        |          Source Port          |                    Destination Address                        |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |                    Acknowledgment Number                      |                        Sequence Number                        |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |                               |                               |                               |   |U|A|P|R|S|F|  Data |       |
+#  |         Urgent Pointer        |           Checksum            |            Window             |   |R|C|S|S|Y|I| Offset|  Res  |
+#  |                               |                               |                               |   |G|K|H|T|N|N|       |       |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |                                                             data                                                              |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#
+# @details :
+#   Packets use the following connection settings:
+#     IP-SA = 10.10.10.10, IP-DA=10.12.200.1, TCP-SP=137(0x89), TCP-DP=87(0x57)
+#
+
+G PARAM SimCycles    1000
+G PARAM SortTaifGold true
+
+> IDLE 10
+
+# == Packet [01] SYN =======================================
+0000000028000045 0 FF
+0A0A0A0Aaed506FF 0 FF
+5700890001C80C0A 0 FF
+0000000000000000 0 FF
+0000e1c400040250 1 FF
+
+> IDLE 10
+
+# == Packet [02] - INO Segment S1 ==============================
+0000000048000045 0 FF
+0A0A0A0A8ed506FF 0 FF
+5700890001C80C0A 0 FF
+0000000001000000 0 FF
+0000a1b300041050 0 FF
+1111111111111111 0 FF
+1111111111111111 0 FF
+1111111111111111 0 FF
+1111111111111111 1 FF
+
+> IDLE 10
+
+# == Packet [03] - OOO Segment S5 ==============================
+0000000048000045 0 FF
+0A0A0A0A8ed506FF 0 FF
+5700890001C80C0A 0 FF
+0000000081000000 0 FF
+0000dd6e00041050 0 FF
+5555555555555555 0 FF
+5555555555555555 0 FF
+5555555555555555 0 FF
+5555555555555555 1 FF
+
+> IDLE 10
+
+# == Packet [04] - INO Segment S2 ==============================
+0000000048000045 0 FF
+0A0A0A0A8ed506FF 0 FF
+5700890001C80C0A 0 FF
+0000000021000000 0 FF
+000070a200041050 0 FF
+2222222222222222 0 FF
+2222222222222222 0 FF
+2222222222222222 0 FF
+2222222222222222 1 FF
+
+> IDLE 10
+
+# == Packet [05] - INO Segment S3 ==============================
+0000000048000045 0 FF
+0A0A0A0A8ed506FF 0 FF
+5700890001C80C0A 0 FF
+0000000041000000 0 FF
+00003f9100041050 0 FF
+3333333333333333 0 FF
+3333333333333333 0 FF
+3333333333333333 0 FF
+3333333333333333 1 FF
+
+> IDLE 10
+
+# == Packet [06] - INO Segment S4 ==============================
+0000000048000045 0 FF
+0A0A0A0A8ed506FF 0 FF
+5700890001C80C0A 0 FF
+0000000061000000 0 FF
+00000e8000041050 0 FF
+4444444444444444 0 FF
+4444444444444444 0 FF
+4444444444444444 0 FF
+4444444444444444 1 FF
+
+> IDLE 10
+
+# == Packet [07] - INO Segment S6 ==============================
+0000000048000045 0 FF
+0A0A0A0A8ed506FF 0 FF
+5700890001C80C0A 0 FF
+00000000A1000000 0 FF
+0000ac5d00041050 0 FF
+6666666666666666 0 FF
+6666666666666666 0 FF
+6666666666666666 0 FF
+6666666666666666 1 FF

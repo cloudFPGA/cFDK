@@ -183,6 +183,7 @@ if { $hlsRtl } {
     switch $hlsRtl {
         1 {
             export_design -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+
         }
         2 {
             export_design -flow syn -rtl verilog -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}

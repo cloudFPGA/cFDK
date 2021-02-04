@@ -93,7 +93,7 @@ proc my_clean_ip_dir { ipModName } {
 
 #-------------------------------------------------------------------------------
 # my_create_ip ${ipModName ipDir ipVendor ipLibrary ipName ipVersion ipCfgList}
-#  A procedure that automates the creation and the customizationof of an IP.
+#  A procedure that automates the creation and the customization of an IP.
 #  :param ipModName the name of the IP module to create (as a string).
 #  :param ipDir     the directory path for remote IP to be created and
 #                     managed outside of the project (as a string).
@@ -1131,21 +1131,5 @@ set ipCfgList  [ list ]
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
-
-#------------------------------------------------------------------------------  
-# IBM-HSL-IP : FPGA Managememt Core
-#------------------------------------------------------------------------------
-set ipModName "FpgaManagementCore"
-set ipName    "fmc"
-set ipVendor  "IBM"
-set ipLibrary "hls"
-set ipVersion "1.0"
-set ipCfgList  [ list CONFIG.Component_Name {SMC} ]
-
-set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
-if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
 
 
