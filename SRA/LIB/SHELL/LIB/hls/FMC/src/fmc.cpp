@@ -80,9 +80,9 @@ ap_uint<32> clusterSize = 0;
 
 ap_uint<1> toDecoup_persistent = 0;
 
-ap_uint<8> mpe_status_request_cnt = 0;
-ap_uint<32> mpe_status[NRC_NUMBER_STATUS_WORDS];
-bool mpe_status_disabled = false;
+ap_uint<8> nal_status_request_cnt = 0;
+ap_uint<32> nal_status[NAL_NUMBER_STATUS_WORDS];
+bool nal_status_disabled = false;
 
 ap_uint<8> fpga_status[NUMBER_FPGA_STATE_REGISTERS];
 ap_uint<32> ctrl_link_next_check_seconds = 0;
@@ -122,6 +122,7 @@ ap_uint<1> flag_check_xmem_pattern = 0;
 ap_uint<1> flag_silent_skip = 0;
 ap_uint<1> last_xmem_page_received_persistent = 0;
 ap_uint<1> flag_continuous_tcp_rx = 0;
+ap_uint<1> flag_enable_fake_hwicap = 0;
 
 //TCP FSMs
 TcpFsmState fsmTcpSessId_RX = TCP_FSM_RESET;
@@ -295,9 +296,9 @@ uint32_t writeDisplaysToOutBuffer()
   len += 2; 
 
   //NRC status
-  len += writeString("NRC Status (16 lines): \r\n"); //NRC_NUMBER_STATUS_WORDS
+  len += writeString("NAL Status (16 lines): \r\n"); //NAL_NUMBER_STATUS_WORDS
 
-  for(int i = 0; i<NRC_NUMBER_STATUS_WORDS; i++)
+  for(int i = 0; i<NAL_NUMBER_STATUS_WORDS; i++)
   {
     if(i<=9)
     {
@@ -311,18 +312,18 @@ uint32_t writeDisplaysToOutBuffer()
     bufferOutPtrWrite++;
     len++;
     len+=writeString(": ");
-    if( mpe_status_disabled )
+    if( nal_status_disabled )
     {
-      bufferOut[bufferOutPtrWrite + 3] = mpe_status[i] & 0xFF; 
-      bufferOut[bufferOutPtrWrite + 2] = (mpe_status[i] >> 8) & 0xFF; 
-      bufferOut[bufferOutPtrWrite + 1] = (mpe_status[i] >> 16) & 0xFF; 
-      bufferOut[bufferOutPtrWrite + 0] = (mpe_status[i] >> 24) & 0xFF; 
+      bufferOut[bufferOutPtrWrite + 3] = nal_status[i] & 0xFF; 
+      bufferOut[bufferOutPtrWrite + 2] = (nal_status[i] >> 8) & 0xFF; 
+      bufferOut[bufferOutPtrWrite + 1] = (nal_status[i] >> 16) & 0xFF; 
+      bufferOut[bufferOutPtrWrite + 0] = (nal_status[i] >> 24) & 0xFF; 
       bufferOut[bufferOutPtrWrite + 4] = '\r'; 
       bufferOut[bufferOutPtrWrite + 5] = '\n'; 
       bufferOutPtrWrite  += 6;
       len += 6; 
     } else {
-      len += writeUnsignedLong((uint32_t) mpe_status[i], 16);
+      len += writeUnsignedLong((uint32_t) nal_status[i], 16);
       bufferOut[bufferOutPtrWrite + 0] = '\r'; 
       bufferOut[bufferOutPtrWrite + 1] = '\n'; 
       bufferOutPtrWrite  += 2;
@@ -515,6 +516,7 @@ void fmc(
     ap_uint<1> *layer_4_enabled,
     ap_uint<1> *layer_6_enabled,
     ap_uint<1> *layer_7_enabled,
+    ap_uint<1> *nts_ready,
     //get FPGA time
     ap_uint<32> *in_time_seconds,
     ap_uint<32> *in_time_minutes,
@@ -528,12 +530,12 @@ void fmc(
     //XMEM
     ap_uint<32> xmem[XMEM_SIZE], 
     //NRC
-    ap_uint<32> nrcCtrl[NRC_CTRL_LINK_SIZE],
+    ap_uint<32> nalCtrl[NAL_CTRL_LINK_SIZE],
     ap_uint<1> *disable_ctrl_link,
-    stream<TcpWord>             &siNRC_Tcp_data,
-    stream<AppMeta>           &siNRC_Tcp_SessId,
-    stream<TcpWord>             &soNRC_Tcp_data,
-    stream<AppMeta>           &soNRC_Tcp_SessId,
+    stream<TcpWord>           &siNAL_Tcp_data,
+    stream<AppMeta>           &siNAL_Tcp_SessId,
+    stream<TcpWord>           &soNAL_Tcp_data,
+    stream<AppMeta>           &soNAL_Tcp_SessId,
 #ifdef INCLUDE_PYROLINK
     //Pyrolink
     stream<Axis<8> >  &soPYROLINK,
@@ -553,6 +555,7 @@ void fmc(
 #pragma HLS INTERFACE ap_vld register port=layer_4_enabled name=piLayer4enabled
 #pragma HLS INTERFACE ap_vld register port=layer_6_enabled name=piLayer6enabled
 #pragma HLS INTERFACE ap_vld register port=layer_7_enabled name=piLayer7enabled
+#pragma HLS INTERFACE ap_vld register port=nts_ready       name=piNTS_ready
 #pragma HLS INTERFACE ap_vld register port=in_time_seconds name=piTime_seconds
 #pragma HLS INTERFACE ap_vld register port=in_time_minutes name=piTime_minutes
 #pragma HLS INTERFACE ap_vld register port=in_time_hours   name=piTime_hours
@@ -561,10 +564,10 @@ void fmc(
 #pragma HLS INTERFACE ap_ovld register port=setDecoup name=poDECOUP_activate
 #pragma HLS INTERFACE ap_ovld register port=role_rank name=poROLE_rank
 #pragma HLS INTERFACE ap_ovld register port=cluster_size name=poROLE_size
-#pragma HLS INTERFACE m_axi depth=16383 port=nrcCtrl bundle=boNRC_ctrlLink 
+#pragma HLS INTERFACE m_axi depth=16383 port=nalCtrl bundle=boNAL_ctrlLink
   //max_read_burst_length=1 max_write_burst_length=1 //0x3fff - 0x2000
 #pragma HLS INTERFACE ap_stable register port=disable_ctrl_link name=piDisableCtrlLink
-#pragma HLS INTERFACE ap_ovld register port=setSoftReset name=poSoftReset 
+#pragma HLS INTERFACE ap_ovld register port=setSoftReset name=poSoftReset
 
 #ifdef INCLUDE_PYROLINK
 #pragma HLS INTERFACE ap_fifo register both port=soPYROLINK
@@ -572,17 +575,17 @@ void fmc(
 #pragma HLS INTERFACE ap_stable register port=disable_pyro_link name=piDisablePyroLink
 #endif
 
-#pragma HLS INTERFACE ap_fifo port=siNRC_Tcp_data
-#pragma HLS INTERFACE ap_fifo port=soNRC_Tcp_data
-#pragma HLS INTERFACE ap_fifo port=siNRC_Tcp_SessId
-#pragma HLS INTERFACE ap_fifo port=soNRC_Tcp_SessId
+#pragma HLS INTERFACE ap_fifo port=siNAL_Tcp_data
+#pragma HLS INTERFACE ap_fifo port=soNAL_Tcp_data
+#pragma HLS INTERFACE ap_fifo port=siNAL_Tcp_SessId
+#pragma HLS INTERFACE ap_fifo port=soNAL_Tcp_SessId
 //ap_ctrl is default (i.e. ap_hs)
 //#pragma HLS DATAFLOW TODO: crashes Vivado..
 
 #pragma HLS STREAM variable=internal_icap_fifo depth=4096
 #pragma HLS STREAM variable=icap_hangover_fifo depth=3
 
-#pragma HLS reset variable=mpe_status_request_cnt
+#pragma HLS reset variable=nal_status_request_cnt
 #pragma HLS reset variable=httpState
 #pragma HLS reset variable=bufferInPtrWrite
 #pragma HLS reset variable=bufferInPtrMaxWrite
@@ -633,7 +636,7 @@ void fmc(
 #pragma HLS reset variable=nodeRank
 #pragma HLS reset variable=clusterSize
 #pragma HLS reset variable=tables_initialized
-#pragma HLS reset variable=mpe_status_disabled
+#pragma HLS reset variable=nal_status_disabled
 #pragma HLS reset variable=need_to_update_nrc_mrt
 #pragma HLS reset variable=need_to_update_nrc_config
 #pragma HLS reset variable=ctrl_link_next_check_seconds
@@ -645,6 +648,7 @@ void fmc(
 #pragma HLS reset variable=target_http_nl_cnt
 #pragma HLS reset variable=hwicap_hangover_present
 #pragma HLS reset variable=hwicap_hangover_size
+#pragma HLS reset variable=flag_enable_fake_hwicap
 
 
 
@@ -764,6 +768,8 @@ void fmc(
 
   ap_uint<1> reset_from_psoc = (MMIO_in_LE >> RST_SHIFT) & 0b1;
 
+  ap_uint<1> flag_enable_fake_hwicap = (MMIO_in_LE >> ENABLE_FAKE_HWICAP_SHIFT) & 0b1;
+
 #ifdef INCLUDE_PYROLINK
   if(*disable_pyro_link == 0)
   {
@@ -778,6 +784,7 @@ void fmc(
   fpga_status[FPGA_STATE_LAYER_7] = *layer_7_enabled;
   fpga_status[FPGA_STATE_CONFIG_UPDATE] = need_to_update_nrc_config;
   fpga_status[FPGA_STATE_MRT_UPDATE] = need_to_update_nrc_mrt;
+  fpga_status[FPGA_STATE_NTS_READY] = *nts_ready;
 
   fpga_time_seconds = *in_time_seconds;
   fpga_time_minutes = *in_time_minutes;
@@ -1790,11 +1797,11 @@ void fmc(
         fsmTcpSessId_RX = TCP_FSM_PROCESS_DATA;
         //no break;
       case TCP_FSM_PROCESS_DATA:
-        if(!siNRC_Tcp_SessId.empty())
+        if(!siNAL_Tcp_SessId.empty())
         {
           //we assume that the NRC always sends a valid pair of SessId and data (because we control it)
           AppMeta tmp = 0x0;
-          if(siNRC_Tcp_SessId.read_nb(tmp))
+          if(siNAL_Tcp_SessId.read_nb(tmp))
           {
           received_TCP_SessIds_cnt++;
           currentTcpSessId = tmp;
@@ -1821,9 +1828,9 @@ void fmc(
         fsmTcpSessId_TX = TCP_FSM_PROCESS_DATA;
         //no break;
       case TCP_FSM_PROCESS_DATA:
-        if(!soNRC_Tcp_SessId.full())
+        if(!soNAL_Tcp_SessId.full())
         {
-          if(soNRC_Tcp_SessId.write_nb(currentTcpSessId))
+          if(soNAL_Tcp_SessId.write_nb(currentTcpSessId))
           {
             fsmTcpSessId_TX = TCP_FSM_DONE;
           }
@@ -1882,13 +1889,13 @@ void fmc(
               }
             }
             //check before we proceed...
-            if(siNRC_Tcp_data.empty() || internal_icap_fifo.full() )
+            if(siNAL_Tcp_data.empty() || internal_icap_fifo.full() )
             {
               break;
             }
 
             NetworkWord big = NetworkWord();
-            if(!siNRC_Tcp_data.read_nb(big))
+            if(!siNAL_Tcp_data.read_nb(big))
             {
               break;
             }
@@ -2015,9 +2022,9 @@ void fmc(
         fsmTcpData_TX = TCP_FSM_PROCESS_DATA;
         //no break;
       case TCP_FSM_PROCESS_DATA:
-        //if(!soNRC_Tcp_data.full())
+        //if(!soNAL_Tcp_data.full())
         run_nested_loop_helper = true;
-        while(!soNRC_Tcp_data.full() && run_nested_loop_helper)
+        while(!soNAL_Tcp_data.full() && run_nested_loop_helper)
         {
           //out = NetworkWord();
           NetworkWord out = NetworkWord();
@@ -2039,7 +2046,7 @@ void fmc(
             }
 
           }
-          if(soNRC_Tcp_data.write_nb(out))
+          if(soNAL_Tcp_data.write_nb(out))
           {
             bufferOutPtrNextRead += 8;
             //break while
@@ -2054,7 +2061,7 @@ void fmc(
           }
         } //while
         //else {
-        //  printf("\t ----------- soNRC_Tcp_data is full -----------");
+        //  printf("\t ----------- soNAL_Tcp_data is full -----------");
         //}
         break;
       case TCP_FSM_DONE:
@@ -2086,7 +2093,7 @@ void fmc(
           break;
         }
         CR_isWriting = CR_value & CR_WRITE;
-        if (CR_isWriting != 1)
+        if (CR_isWriting != 1 && flag_enable_fake_hwicap == 0)
         {
           HWICAP[CR_OFFSET] = CR_WRITE;
         }
@@ -2111,9 +2118,12 @@ void fmc(
               break;
             }
 #endif
-            //update FIFO vaccancies
-            WFV = HWICAP[WFV_OFFSET];
-            WFV_value = WFV & 0x7FF;
+            if(flag_enable_fake_hwicap == 0)
+            {
+              //update FIFO vaccancies
+              WFV = HWICAP[WFV_OFFSET];
+              WFV_value = WFV & 0x7FF;
+            }
             max_words_to_write = WFV_value;
             printf("UPDATE: max_words_to_write %d\n", (int) max_words_to_write);
             if(max_words_to_write == 0)
@@ -2186,26 +2196,33 @@ void fmc(
               printf("Poison Pill received...\n");
               fsmHwicap = ICAP_FSM_DONE;
               break;
-            } else { 
-#ifndef __SYNTHESIS__
-              if(use_sequential_hwicap)
+            } else {
+              if(flag_enable_fake_hwicap == 0)
               {
-                HWICAP[sequential_hwicap_address] = tmp;
-                sequential_hwicap_address++;
-              }
-              //TODO: decrement WFV value of testbench
-              //for debugging reasons, we write it twice
-              HWICAP[WF_OFFSET] = tmp;
+#ifndef __SYNTHESIS__
+                if(use_sequential_hwicap)
+                {
+                  HWICAP[sequential_hwicap_address] = tmp;
+                  sequential_hwicap_address++;
+                }
+                //TODO: decrement WFV value of testbench
+                //for debugging reasons, we write it twice
+                HWICAP[WF_OFFSET] = tmp;
 #else
-              HWICAP[WF_OFFSET] = tmp;
+                HWICAP[WF_OFFSET] = tmp;
 #endif
+              } else {
+                //we do NOT write it to HWICAP
+                //but update the WFV
+                WFV_value--;
+              }
               wordsWrittenToIcapCnt++;
               max_words_to_write--;
               printf("writing to HWICAP: %#010x\n",(int) tmp);
             }
           }
         } //while
-        
+
         WFV = HWICAP[WFV_OFFSET];
         WFV_value = WFV & 0x7FF;
         if (WFV_value >= HWICAP_FIFO_DEPTH && (WFV_value != max_words_to_write) )
@@ -3213,9 +3230,9 @@ void fmc(
 if((*disable_ctrl_link == 0) && (*layer_4_enabled == 0) && tables_initialized )
 {
   //reset of NTS closes ports
-  current_nrc_config[NRC_CONFIG_SAVED_UDP_PORTS] = 0x0;
-  current_nrc_config[NRC_CONFIG_SAVED_TCP_PORTS] = 0x0;
-  current_nrc_config[NRC_CONFIG_SAVED_FMC_PORTS] = 0x0;
+  current_nrc_config[NAL_CONFIG_SAVED_UDP_PORTS] = 0x0;
+  current_nrc_config[NAL_CONFIG_SAVED_TCP_PORTS] = 0x0;
+  current_nrc_config[NAL_CONFIG_SAVED_FMC_PORTS] = 0x0;
   need_to_update_nrc_config = false; //the NRC know this too
 }
 
@@ -3224,7 +3241,7 @@ if((*disable_ctrl_link == 0) && (*layer_6_enabled == 1) && tables_initialized //
   )
 { //and we need valid tables
 
-  mpe_status_disabled = false;
+  nal_status_disabled = false;
 
   switch (linkCtrlFSM) 
   {
@@ -3249,46 +3266,46 @@ if((*disable_ctrl_link == 0) && (*layer_6_enabled == 1) && tables_initialized //
       } 
       else if(ctrl_link_next_check_seconds <= fpga_time_seconds)
       {
-        mpe_status_request_cnt = 0;
+        nal_status_request_cnt = 0;
         linkCtrlFSM = LINKFSM_UPDATE_STATE;
       }
       break;
 
     case LINKFSM_UPDATE_CONFIG:
       //e.g. to recover from a reset
-      nrcCtrl[NRC_CTRL_LINK_CONFIG_START_ADDR + NRC_CONFIG_OWN_RANK] = nodeRank; 
-        nrcCtrl[NRC_CTRL_LINK_CONFIG_START_ADDR + NRC_CONFIG_SAVED_UDP_PORTS] = current_nrc_config[NRC_CONFIG_SAVED_UDP_PORTS];
-        nrcCtrl[NRC_CTRL_LINK_CONFIG_START_ADDR + NRC_CONFIG_SAVED_TCP_PORTS] = current_nrc_config[NRC_CONFIG_SAVED_TCP_PORTS];
-        nrcCtrl[NRC_CTRL_LINK_CONFIG_START_ADDR + NRC_CONFIG_SAVED_FMC_PORTS] = current_nrc_config[NRC_CONFIG_SAVED_FMC_PORTS];
+      nalCtrl[NAL_CTRL_LINK_CONFIG_START_ADDR + NAL_CONFIG_OWN_RANK] = nodeRank; 
+        nalCtrl[NAL_CTRL_LINK_CONFIG_START_ADDR + NAL_CONFIG_SAVED_UDP_PORTS] = current_nrc_config[NAL_CONFIG_SAVED_UDP_PORTS];
+        nalCtrl[NAL_CTRL_LINK_CONFIG_START_ADDR + NAL_CONFIG_SAVED_TCP_PORTS] = current_nrc_config[NAL_CONFIG_SAVED_TCP_PORTS];
+        nalCtrl[NAL_CTRL_LINK_CONFIG_START_ADDR + NAL_CONFIG_SAVED_FMC_PORTS] = current_nrc_config[NAL_CONFIG_SAVED_FMC_PORTS];
         need_to_update_nrc_config = false;
         linkCtrlFSM = LINKFSM_IDLE;
         break;
 
       case LINKFSM_UPDATE_MRT:
         printf("linkFSM: updating entry %d with value 0x%08x; max_discovered_node_id: %d\n",(int) mrt_copy_index, (int) current_MRT[mrt_copy_index], (int) max_discovered_node_id);
-        nrcCtrl[NRC_CTRL_LINK_MRT_START_ADDR + mrt_copy_index] = current_MRT[mrt_copy_index];
+        nalCtrl[NAL_CTRL_LINK_MRT_START_ADDR + mrt_copy_index] = current_MRT[mrt_copy_index];
         mrt_copy_index++;
 
         if(mrt_copy_index > MAX_MRT_SIZE || mrt_copy_index > max_discovered_node_id)
         {
-          nrcCtrl[NRC_CTRL_LINK_CONFIG_START_ADDR + NRC_CONFIG_MRT_VERSION] = current_nrc_mrt_version;
+          nalCtrl[NAL_CTRL_LINK_CONFIG_START_ADDR + NAL_CONFIG_MRT_VERSION] = current_nrc_mrt_version;
           need_to_update_nrc_mrt = false;
           linkCtrlFSM = LINKFSM_IDLE;
         }
         break;
 
       case LINKFSM_UPDATE_STATE:
-        mpe_status[mpe_status_request_cnt] = nrcCtrl[NRC_CTRL_LINK_STATUS_START_ADDR + mpe_status_request_cnt];
-        mpe_status_request_cnt++; 
-        if(mpe_status_request_cnt >= NRC_NUMBER_STATUS_WORDS)
+        nal_status[nal_status_request_cnt] = nalCtrl[NAL_CTRL_LINK_STATUS_START_ADDR + nal_status_request_cnt];
+        nal_status_request_cnt++; 
+        if(nal_status_request_cnt >= NAL_NUMBER_STATUS_WORDS)
         {
-          if(mpe_status[NRC_STATUS_MRT_VERSION] != current_nrc_mrt_version)
+          if(nal_status[NAL_STATUS_MRT_VERSION] != current_nrc_mrt_version)
           {
             need_to_update_nrc_mrt = true;
             need_to_update_nrc_config = true; //better to do both
             linkCtrlFSM = LINKFSM_WAIT;
           } 
-          else if (mpe_status[NRC_STATUS_OWN_RANK] != nodeRank)
+          else if (nal_status[NAL_STATUS_OWN_RANK] != nodeRank)
           {
             need_to_update_nrc_config = true;
             linkCtrlFSM = LINKFSM_WAIT;
@@ -3299,9 +3316,9 @@ if((*disable_ctrl_link == 0) && (*layer_6_enabled == 1) && tables_initialized //
         break;
       case LINKFSM_UPDATE_SAVED_STATE:
         //indicies don't match: need to to manually 
-        current_nrc_config[NRC_CONFIG_SAVED_UDP_PORTS] = mpe_status[NRC_STATUS_OPEN_UDP_PORTS];
-        current_nrc_config[NRC_CONFIG_SAVED_TCP_PORTS] = mpe_status[NRC_STATUS_OPEN_TCP_PORTS];
-        current_nrc_config[NRC_CONFIG_SAVED_FMC_PORTS] = mpe_status[NRC_STATUS_FMC_PORT_PROCESSED];
+        current_nrc_config[NAL_CONFIG_SAVED_UDP_PORTS] = nal_status[NAL_STATUS_OPEN_UDP_PORTS];
+        current_nrc_config[NAL_CONFIG_SAVED_TCP_PORTS] = nal_status[NAL_STATUS_OPEN_TCP_PORTS];
+        current_nrc_config[NAL_CONFIG_SAVED_FMC_PORTS] = nal_status[NAL_STATUS_FMC_PORT_PROCESSED];
         linkCtrlFSM = LINKFSM_IDLE;
         break;
     }
@@ -3310,9 +3327,9 @@ if((*disable_ctrl_link == 0) && (*layer_6_enabled == 1) && tables_initialized //
   } else {
     //ctrlLink disabled 
     //hex for "DISABLED"
-    mpe_status_disabled = true;
-    mpe_status[0] = 0x44495341;
-    mpe_status[1] = 0x424c4544;
+    nal_status_disabled = true;
+    nal_status[0] = 0x44495341;
+    nal_status[1] = 0x424c4544;
   }
 
 

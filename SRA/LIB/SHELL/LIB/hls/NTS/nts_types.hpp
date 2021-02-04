@@ -259,8 +259,12 @@ inline bool operator < (fourTuple const& lhs, fourTuple const& rhs) {
 //--------------------------------------------------------
 //-- LAYER-4 - SOCKET PAIR ASSOCIATION
 //--------------------------------------------------------
+#ifdef _USE_STRUCT_SOCKET_PAIR_
+struct SocketPair {
+#else
 class SocketPair { // Socket Pair Association in NETWORK-BYTE order !!!
   public:
+#endif
     SockAddr  src;  // Source socket address in NETWORK-BYTE order !!!
     SockAddr  dst;  // Destination socket address in NETWORK-BYTE order !!!
     SocketPair() {}

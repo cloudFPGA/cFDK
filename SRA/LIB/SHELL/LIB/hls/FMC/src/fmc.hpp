@@ -114,6 +114,7 @@ using namespace hls;
 #define PYRO_MODE_SHIFT 15
 #define PYRO_READ_REQUEST_SHIFT 3
 #define ENABLE_TCP_MODE_SHIFT 4
+#define ENABLE_FAKE_HWICAP_SHIFT 5
 #define LAST_PAGE_CNT_SHIFT 17 //until 23, including
 
 //XMEM
@@ -142,11 +143,12 @@ using namespace hls;
 #define MAX_HWICAP_DATA_CHUNK_BYTES ((4*HWICAP_FIFO_DEPTH) - 24)
 #define HWICAP_FIFO_NEARLY_FULL_TRIGGER 4
 
+#include "../../NAL/src/nal.hpp" 
 //MAX CLUSTER/MAX RANK
-#define MAX_CLUSTER_SIZE 128 //only one limit is enough, there is no rank > clusterSize...
+//only one limit is enough, there is no rank > clusterSize...
+//#define MAX_CLUSTER_SIZE 128
+#define MAX_CLUSTER_SIZE (MAX_MRT_SIZE)
 
-//TODO: multiple ctrlLinks?
-#include "../../NRC/src/nrc.hpp" //is dependent on MAX_CLUSTER_SIZE, so must be after it... 
 
 #define MIN_ROUTING_TABLE_LINE (1+1+4+1) //1: rank, 1: space, 4: IPv4-Address, 1: \n 
 
@@ -214,6 +216,7 @@ using namespace hls;
 #define FPGA_STATE_LAYER_7 2
 #define FPGA_STATE_CONFIG_UPDATE 3
 #define FPGA_STATE_MRT_UPDATE 4
+#define FPGA_STATE_NTS_READY 5
 
 //ctrl link interval
 #define CHECK_CTRL_LINK_INTERVAL_SECONDS 2
@@ -304,6 +307,7 @@ void fmc(
     ap_uint<1> *layer_4_enabled,
     ap_uint<1> *layer_6_enabled,
     ap_uint<1> *layer_7_enabled,
+    ap_uint<1> *nts_ready,
     //get FPGA time
     ap_uint<32> *in_time_seconds,
     ap_uint<32> *in_time_minutes,
@@ -317,12 +321,12 @@ void fmc(
     //XMEM
     ap_uint<32> xmem[XMEM_SIZE], 
     //NRC 
-    ap_uint<32> nrcCtrl[NRC_CTRL_LINK_SIZE],
+    ap_uint<32> nalCtrl[NAL_CTRL_LINK_SIZE],
     ap_uint<1> *disable_ctrl_link,
-    stream<TcpWord>             &siNRC_Tcp_data,
-    stream<AppMeta>           &siNRC_Tcp_SessId,
-    stream<TcpWord>             &soNRC_Tcp_data,
-    stream<AppMeta>           &soNRC_Tcp_SessId,
+    stream<TcpWord>           &siNAL_Tcp_data,
+    stream<AppMeta>           &siNAL_Tcp_SessId,
+    stream<TcpWord>           &soNAL_Tcp_data,
+    stream<AppMeta>           &soNAL_Tcp_SessId,
 #ifdef INCLUDE_PYROLINK
     //Pyrolink
     stream<Axis<8> >  &soPYROLINK,
