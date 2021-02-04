@@ -163,6 +163,20 @@ uint8_t extractByteCntNW(NetworkWord currWord)
   return ret;
 }
 
+/*****************************************************************************
+ * @brief Maps the individual event notification of the USS/TSS processes to 
+ *        the status array as part of the Axi4Lite address space. Forwards 
+ *        status changes to Axi4Lite processing.
+ *
+ * @param[in]   internal_event_fifo,    the merged event fifo
+ * @param[in]   layer_7_enabled,        external signal if layer 7 is enabled
+ * @param[in]   role_decoupled,         external signal if the role is decoupled
+ * @param[in]   sConfigUpdate,          notification of configuration changes
+ * @param[in]   mrt_version_update,     notification of MRT version change
+ * @param[in]   sNalPortUpdate,         notification if ports were opened or closed
+ * @param[out]  sStatusUpdate,          the status update notification for Axi4Lite proc
+ *
+ ******************************************************************************/
 void pStatusMemory(
     stream<NalEventNotif>   &internal_event_fifo,
     ap_uint<1>              *layer_7_enabled,
@@ -382,6 +396,12 @@ void pStatusMemory(
 
 }
 
+
+/*****************************************************************************
+ * @brief Merges multiple fifos, where the order of the fifo represents also the
+ *        priorities.
+ *
+ ******************************************************************************/
 void eventFifoMerge(
     stream<NalEventNotif>  &internal_event_fifo_0,
     stream<NalEventNotif>  &internal_event_fifo_1,
@@ -431,7 +451,7 @@ void eventFifoMerge(
 
 
 /*****************************************************************************
- * @brief   Main process of the UDP Role Interface
+ * @brief   Main process of the Network Abstraction Layer (NAL)
  *
  *****************************************************************************/
 void nal_main(
@@ -544,9 +564,9 @@ void nal_main(
 
 #pragma HLS INTERFACE axis register both port=soTOE_Data
 #pragma HLS INTERFACE axis register both port=soTOE_SndReq
-#pragma HLS DATA_PACK            variable=soTOE_SndReq
+#pragma HLS DATA_PACK                variable=soTOE_SndReq
 #pragma HLS INTERFACe axis register both port=siTOE_SndRep
-#pragma HLS DATA_PACK        variable=siTOE_SndRep
+#pragma HLS DATA_PACK                variable=siTOE_SndRep
 
 #pragma HLS INTERFACE axis register both port=soTOE_OpnReq
 #pragma HLS DATA_PACK                variable=soTOE_OpnReq
@@ -559,17 +579,17 @@ void nal_main(
 
 #pragma HLS INTERFACE ap_ctrl_none port=return
 
-#pragma HLS INTERFACE ap_vld register port=layer_4_enabled name=piLayer4enabled
-#pragma HLS INTERFACE ap_vld register port=layer_7_enabled name=piLayer7enabled
-#pragma HLS INTERFACE ap_vld register port=role_decoupled  name=piRoleDecoup_active
-#pragma HLS INTERFACE ap_vld register port=piNTS_ready name=piNTS_ready
+#pragma HLS INTERFACE ap_vld register port=layer_4_enabled    name=piLayer4enabled
+#pragma HLS INTERFACE ap_vld register port=layer_7_enabled    name=piLayer7enabled
+#pragma HLS INTERFACE ap_vld register port=role_decoupled     name=piRoleDecoup_active
+#pragma HLS INTERFACE ap_vld register port=piNTS_ready        name=piNTS_ready
 
-#pragma HLS INTERFACE ap_vld register port=myIpAddress name=piMyIpAddress
-#pragma HLS INTERFACE ap_vld register port=pi_udp_rx_ports name=piROL_Udp_Rx_ports
-#pragma HLS INTERFACE ap_vld register port=piMMIO_FmcLsnPort name=piMMIO_FmcLsnPort
+#pragma HLS INTERFACE ap_vld register port=myIpAddress        name=piMyIpAddress
+#pragma HLS INTERFACE ap_vld register port=pi_udp_rx_ports    name=piROL_Udp_Rx_ports
+#pragma HLS INTERFACE ap_vld register port=piMMIO_FmcLsnPort  name=piMMIO_FmcLsnPort
 #pragma HLS INTERFACE ap_vld register port=piMMIO_CfrmIp4Addr name=piMMIO_CfrmIp4Addr
 
-#pragma HLS INTERFACE ap_vld register port=pi_tcp_rx_ports name=piROL_Tcp_Rx_ports
+#pragma HLS INTERFACE ap_vld register port=pi_tcp_rx_ports    name=piROL_Tcp_Rx_ports
 
 #pragma HLS INTERFACE ap_fifo port=siFMC_data
 #pragma HLS INTERFACE ap_fifo port=soFMC_data
@@ -578,6 +598,7 @@ void nal_main(
 
 
 #pragma HLS DATAFLOW
+
 
   //===========================================================
   //  core wide STATIC variables

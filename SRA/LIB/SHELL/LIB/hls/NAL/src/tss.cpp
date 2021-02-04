@@ -32,12 +32,15 @@
 
 using namespace hls;
 
+
 /*****************************************************************************
  * @brief Request the TOE to start listening (LSn) for incoming connections
  *  on a specific port (.i.e open connection for reception mode).
  *
- * @param[out] soTOE_LsnReq,   listen port request to TOE.
- * @param[in]  siTOE_LsnRep,   listen port acknowledge from TOE.
+ * @param[out]  soTOE_LsnReq,            listen port request to TOE.
+ * @param[in]   siTOE_LsnRep,            listen port acknowledge from TOE.
+ * @param[in]   sTcpPortsToOpen,         port open request from pPortLogic
+ * @param[out]  sTcpPortsOpenFeedback,   feedback to pPortLogic
  *
  * @warning
  *  The Port Table (PRt) supports two port ranges; one for static ports (0 to
@@ -45,6 +48,7 @@ using namespace hls;
  *   assigned or ephemeral ports (32,768 to 65,535) which are used for active
  *   connections. Therefore, listening port numbers must be in the range 0
  *   to 32,767.
+ *
  ******************************************************************************/
 void pTcpLsn(
     stream<TcpAppLsnReq>      &soTOE_LsnReq,
@@ -139,6 +143,12 @@ void pTcpLsn(
   } //switch
 }
 
+
+
+/*****************************************************************************
+ * @brief Enqueus the incoming notificiations from TOE into the internal buffer.
+ *
+ ******************************************************************************/
 void pTcpRxNotifEnq(
     ap_uint<1>              *layer_4_enabled,
     ap_uint<1>              *piNTS_ready,
@@ -190,11 +200,20 @@ void pTcpRxNotifEnq(
 /*****************************************************************************
  * @brief ReadRequestHandler (RRh).
  *  Waits for a notification indicating the availability of new data for
- *  the ROLE. If the TCP segment length is greater than 0, the notification
- *  is accepted.
+ *  the ROLE or FMC.
  *
- * @param[in]  siTOE_Notif, a new Rx data notification from TOE.
- * @param[out] soTOE_DReq,  a Rx data request to TOE.
+ * @param[in]   layer_4_enabled,          external signal if layer 4 is enabled
+ * @param[in]   piNTS_ready,              external signal if NTS is up and running
+ * @param[in]   piMMIO_CfrmIp4Addr,       the IP address of the CFRM (from MMIO)
+ * @param[in]   piMMIO_FmcLsnPort,        the management listening port (from MMIO)
+ * @param[in]   siTOE_Notif,              a new Rx data notification from TOE.
+ * @param[out]  soTOE_DReq,               a Rx data request to TOE.
+ * @param[out]  sAddNewTriple_TcpRrh,     Notification for the TCP Agency to add a new Triple/SessionId pair
+ * @param[out]  sMarkAsPriv,              Notification for the TCP Agency to mark a connection as privileged
+ * @param[out]  sDeleteEntryBySid,        Notifies the TCP Agency of the closing of a connection
+ * @param[out]  sRDp_ReqNotif,            Notifies pTcpRDp about a n incoming TCP chunk
+ * @param[in]   fmc_write_cnt_sig,        Signal from pFmcTcpRxDeq about how many bytes are written
+ * @param[in]   role_write_cnt_sig,       Signal from pRoleTcpRxDeq about how many bytes are written
  *
  ******************************************************************************/
 void pTcpRRh(
@@ -204,7 +223,7 @@ void pTcpRRh(
     ap_uint<16>               *piMMIO_FmcLsnPort,
     stream<TcpAppNotif>       &siTOE_Notif,
     stream<TcpAppRdReq>       &soTOE_DReq,
-    stream<NalNewTableEntry>  &sAddNewTripple_TcpRrh,
+    stream<NalNewTableEntry>  &sAddNewTriple_TcpRrh,
     stream<SessionId>         &sMarkAsPriv,
     stream<SessionId>         &sDeleteEntryBySid,
     stream<TcpAppRdReq>       &sRDp_ReqNotif,
@@ -313,7 +332,7 @@ void pTcpRRh(
       }
       break;
     case RRH_PROCESS_NOTIF:
-      if(!waitingSessions.full() && !sAddNewTripple_TcpRrh.full()
+      if(!waitingSessions.full() && !sAddNewTriple_TcpRrh.full()
           && !sMarkAsPriv.full()
         )
       {
@@ -334,7 +353,7 @@ void pTcpRRh(
           //} else {
           NalNewTableEntry ne_struct = NalNewTableEntry(newTriple(notif_pRrh.ip4SrcAddr, notif_pRrh.tcpSrcPort, notif_pRrh.tcpDstPort),
               notif_pRrh.sessionID);
-          sAddNewTripple_TcpRrh.write(ne_struct);
+          sAddNewTriple_TcpRrh.write(ne_struct);
           bool is_fmc = false;
           if(notif_pRrh.ip4SrcAddr == *piMMIO_CfrmIp4Addr && notif_pRrh.tcpDstPort == *piMMIO_FmcLsnPort)
           {
@@ -534,13 +553,30 @@ void pTcpRRh(
 
 
 /*****************************************************************************
- * @brief Read Path (RDp) - From TOE to ROLE.
- *  Process waits for a new data segment to read and forwards it to the ROLE.
+ * @brief Read Path (RDp) - From TOE to ROLE or FMC.
+ *  Process waits for a new data segment to read and forwards it to ROLE or FMC.
+ *  Invalid packets are dropped.
  *
- * @param[in]  siTOE_Data,   Data from [TOE].
- * @param[in]  siTOE_SessId, Session Id from [TOE].
- * @param[out] soTcp_data,   Data to [ROLE].
- * @param[out] soTcp_meta,   Meta Data to [ROLE].
+ * @param[in]   layer_4_enabled,          external signal if layer 4 is enabled
+ * @param[in]   piNTS_ready,              external signal if NTS is up and running
+ * @param[in]   sRDp_ReqNotif,            Notifies pTcpRDp about a n incoming TCP chunk
+ * @param[in]   siTOE_Data,               Data from [TOE].
+ * @param[in]   siTOE_SessId,             Session Id from [TOE].
+ * @param[out]  soFmc_data,               Data for FMC
+ * @param[out]  soFmc_meta,               Metadata for FMC
+ * @param[out]  soTcp_data,               Data to [ROLE].
+ * @param[out]  soTcp_meta,               Meta Data to [ROLE].
+ * @param[in]   sConfigUpdate,            notification of configuration changes
+ * @param[out]  sGetNidReq_TcpRx,         Request stream for the the MRT Agency
+ * @param[in]   sGetNidRep_TcpRx,         Reply stream from the MRT Agency
+ * @param[out]  &sGetTripleFromSid_Req,   Request stream for the the TCP Agency
+ * @param[in]   &sGetTripleFromSid_Rep,   Reply stream from the TCO Agency
+ * @param[in]   piMMIO_CfrmIp4Addr,       the IP address of the CFRM (from MMIO)
+ * @param[in]   piMMIO_FmcLsnPort,        the management listening port (from MMIO)
+ * @param[in]   layer_7_enabled,          external signal if layer 7 is enabled
+ * @param[in]   role_decoupled,           external signal if the role is decoupled
+ * @param[in]   cache_inval_sig,          Signal from the Cache Invalidation Logic
+ * @param[out]  internal_event_fifo,      Fifo for event reporting
  *
  *****************************************************************************/
 void pTcpRDp(
@@ -896,6 +932,10 @@ void pTcpRDp(
 }
 
 
+/*****************************************************************************
+ * @brief Terminates the internal TCP RX FIFOs and forwards packets to the Role.
+ *
+ ******************************************************************************/
 void pRoleTcpRxDeq(
     ap_uint<1>                  *layer_7_enabled,
     ap_uint<1>                  *role_decoupled,
@@ -975,6 +1015,10 @@ void pRoleTcpRxDeq(
 }
 
 
+/*****************************************************************************
+ * @brief Terminates the internal TCP RX FIFOs and forwards packets to the FMC.
+ *
+ ******************************************************************************/
 void pFmcTcpRxDeq(
     stream<TcpAppData>    &sFmcTcpDataRx_buffer,
     stream<TcpAppMeta>    &sFmcTcpMetaRx_buffer,
@@ -1043,15 +1087,28 @@ void pFmcTcpRxDeq(
 }
 
 
+
 /*****************************************************************************
- * @brief Write Path (WRp) - From ROLE to TOE.
+ * @brief Write Path (WRp) - From ROLE or FMC to TOE.
  *  Process waits for a new data segment to write and forwards it to TOE.
  *
- * @param[in]  siROL_Data,   Tx data from [ROLE].
- * @param[in]  siROL_SessId, the session Id from [ROLE].
- * @param[out] soTOE_Data,   Tx data to [TOE].
- * @param[out] soTOE_SessId, Tx session Id to to [TOE].
- * @param[in]  siTOE_DSts,   Tx data write status from [TOE].
+ * @param[in]   layer_4_enabled,          external signal if layer 4 is enabled
+ * @param[in]   piNTS_ready,              external signal if NTS is up and running
+ * @param[in]   siFmc_data,               Data from FMC
+ * @param[in]   siFmc_meta,               Metadata from FMC
+ * @param[in]   siTcp_data,               Data from [ROLE].
+ * @param[in]   siTcp_meta,               Meta Data from [ROLE].
+ * @param[out]  soTOE_Data,               Data for [TOE].
+ * @param[out]  soTOE_SessId,             Session Id for [TOE].
+ * @param[out]  soTOE_len,                Data length for [TOE].
+ * @param[out]  sGetIpReq_TcpTx,          Request stream for the the MRT Agency
+ * @param[in]   sGetIpRep_TcpTx,          Reply stream from the MRT Agency
+ * @param[out]  &sGetSidFromTriple_Req,   Request stream for the the TCP Agency
+ * @param[in]   &sGetSidFromTriple_Rep,   Reply stream from the TCO Agency
+ * @param[out]  sNewTcpCon_Req,           Request stream for pTcpCOn to open a new connection
+ * @param[in]   sNewTcpCon_Rep,           Reply stream from pTcpCOn
+ * @param[in]   cache_inval_sig,          Signal from the Cache Invalidation Logic
+ * @param[out]  internal_event_fifo,      Fifo for event reporting
  *
  ******************************************************************************/
 void pTcpWRp(
@@ -1493,11 +1550,14 @@ void pTcpWRp(
  *  In case of streaming mode (i.e. ROLE's length was 0), WRp takes care of
  *  splitting the data and writing the right len.
  *
- * @param[in]  siWrp_Data,   Tx data from [Wrp].
- * @param[in]  siWrp_SessId, the session Id from [Wrp].
- * @param[in]  siWrp_len,    the length of the current chunk (is *never* 0) from [Wrp].
- * @param[out]
- * @param[in]
+ * @param[in]   layer_4_enabled,          external signal if layer 4 is enabled
+ * @param[in]   piNTS_ready,              external signal if NTS is up and running
+ * @param[in]   siWrp_Data,               Tx data from [Wrp].
+ * @param[in]   siWrp_SessId,             the session Id from [Wrp].
+ * @param[in]   siWrp_len,                the length of the current chunk (is *never* 0) from [Wrp].
+ * @param[out]  soTOE_Data,               Data for the TOE
+ * @param[out]  soTOE_SndReq,             Send request (containing the planned length) for the TOE
+ * @param[in]   siTOE_SndRep,             Send reply from the TOE (containing the allowed length)
  *
  ******************************************************************************/
 void pTcpWBu(
@@ -1692,9 +1752,11 @@ void pTcpWBu(
 /*****************************************************************************
  * @brief Client connection to remote HOST or FPGA socket (COn).
  *
- * @param[out] soTOE_OpnReq,  open connection request to TOE.
- * @param[in]  siTOE_OpnRep,  open connection reply from TOE.
- * @param[out] soTOE_ClsReq,  close connection request to TOE.
+ * @param[out]  soTOE_OpnReq,            open connection request to TOE.
+ * @param[in]   siTOE_OpnRep,            open connection reply from TOE.
+ * @param[out]  sAddNewTriple_TcpCon,    Notification for the TCP Agency to add a new Triple/SessionId pair
+ * @param[in]   sNewTcpCon_Req,          Request stream from pTcpWRp to open a new connection
+ * @param[out]  sNewTcpCon_Rep,          Reply stream to pTcpWRp
  *
  ******************************************************************************/
 void pTcpCOn(
@@ -1829,9 +1891,13 @@ void pTcpCOn(
 }
 
 /*****************************************************************************
- * @brief Closes unused sessions (Cls).
+ * @brief Asks the TOE to close Tcp *connections*, based on the request from 
+ *        pPortLogic.
  *
- * @param[out] soTOE_ClsReq,  close connection request to TOE.
+ * @param[out]  soTOE_ClsReq,            close connection request to TOE.
+ * @param[in]   sGetNextDelRow_Req,      request stream to TCP Agency
+ * @param[in]   sGetNextDelRow_Rep,      reply stream rom TCP Agency
+ * @param[in]   sStartTclCls,            start signal from pPortLogic
  *
  ******************************************************************************/
 void pTcpCls(

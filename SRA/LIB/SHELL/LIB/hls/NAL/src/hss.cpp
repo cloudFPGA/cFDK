@@ -57,6 +57,25 @@ uint8_t selectConfigUpdatePropagation(uint16_t config_addr)
   }
 }
 
+
+
+/*****************************************************************************
+ * @brief Contains the Axi4 Lite secondary endpoint and reads the MRT and 
+ *        configuration values from it as well as writes the status values. It 
+ *        notifies all other concerned processes on MRT or configuration updates 
+ *        and is notified on status updates.
+ *
+ * @param[in/out]  ctrlLink,              the Axi4Lite bus
+ * @param[out]     sToPortLogic,          notification of configuration changes
+ * @param[out]     sToUdpRx,              notification of configuration changes
+ * @param[out]     sToTcpRx,              notification of configuration changes
+ * @param[out]     sToStatusProc,         notification of configuration changes
+ * @param[out]     localMRT,              BRAM for storing the MRT 
+ * @param[out]     mrt_version_update_0,  notification of MRT version change
+ * @param[out]     mrt_version_update_1,  notification of MRT version change
+ * @param[in]      sStatusUpdate,         Satus update notification for Axi4Lite proc
+ *
+ ******************************************************************************/
 void axi4liteProcessing(
     ap_uint<32>   ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
     //stream<NalConfigUpdate> &sToTcpAgency, //(currently not used)
@@ -65,7 +84,7 @@ void axi4liteProcessing(
     stream<NalConfigUpdate>   &sToTcpRx,
     stream<NalConfigUpdate>   &sToStatusProc,
     //stream<NalMrtUpdate>    &sMrtUpdate,
-    ap_uint<32> localMRT[MAX_MRT_SIZE],
+    ap_uint<32>               localMRT[MAX_MRT_SIZE],
     stream<uint32_t>          &mrt_version_update_0,
     stream<uint32_t>          &mrt_version_update_1,
     stream<NalStatusUpdate>   &sStatusUpdate
@@ -344,6 +363,20 @@ void axi4liteProcessing(
 }
 
 
+/*****************************************************************************
+ * @brief Can access the BRAM that contains the MRT and replies to lookup requests
+ *
+ * @param[in]    localMRT,              BRAM for storing the MRT (RO access)
+ * @param[in]    sGetIpReq_UdpTx,       Request stream to get the IPv4 to a NodeId (from UdpTx)
+ * @param[out]   sGetIpRep_UdpTx,       Reply stream containing the IP address (to UdpTx)
+ * @param[in]    sGetIpReq_TcpTx,       Request stream to get the IPv4 to a NodeId (from TcpTx)
+ * @param[out]   sGetIpRep_TcpTx,       Reply stream containing the IP address (to TcpTx)
+ * @param[in]    sGetNidReq_UdpRx,      Request stream to get the NodeId to an IPv4 (from UdRx)
+ * @param[out]   sGetNidRep_UdpRx,      Reply stream containing the NodeId (to UdpRx)
+ * @param[in]    sGetNidReq_TcpRx,      Request stream to get the NodeId to an IPv4 (from TcpRx)
+ * @param[out]   sGetNidRep_TcpRx,      Reply stream containing the NodeId (to TcpRX)
+ *
+ ******************************************************************************/
 void pMrtAgency(
     const ap_uint<32>     localMRT[MAX_MRT_SIZE],
     stream<NodeId>        &sGetIpReq_UdpTx,
@@ -464,6 +497,31 @@ void pMrtAgency(
 }
 
 
+/*****************************************************************************
+ * @brief Translates the one-hot encoded open-port vectors from the Role
+ *        (i.e. `piUdpRxPorts` and `piTcpRxPorts`) to absolute port numbers
+ *        If the input vector changes, or during a reset of the Role, the
+ *        necessary open or close requests are send to `pUdpLsn`, `pUdpCls`,
+ *        `pTcpLsn`, and `pTcpCls`.
+ *
+ * @param[in]   layer_4_enabled,        external signal if layer 4 is enabled
+ * @param[in]   layer_7_enabled,        external signal if layer 7 is enabled
+ * @param[in]   role_decoupled,         external signal if the role is decoupled
+ * @param[in]   piNTS_ready,            external signal if NTS is up and running
+ * @param[in]   piMMIO_FmcLsnPort,      the management listening port (from MMIO)
+ * @param[in]   pi_udp_rx_ports,        one-hot encoded UDP Role listening ports
+ * @param[in]   pi_tcp_rx_ports,        one-hot encoded Tcp Role listening ports
+ * @param[in]   sConfigUpdate,          notification of configuration changes
+ * @param[out]  sUdpPortsToOpen,        stream containing the next UdpPort to open (to pUdpLsn)
+ * @param[out]  sUdpPortsToClose,       stream containing the next UdpPort to close (to pUdpCls)
+ * @param[out]  sTcpPortsToOpen,        stream containing the next TcpPort to open (to pUdpLsn)
+ * @param[in]   sUdpPortsOpenFeedback,  signal of Udp Port opening results (success/failure)
+ * @param[in]   sTcpPortsOpenFeedback,  signal of Tcp Port opening results (success/failure)
+ * @param[out]  sMarkToDel_unpriv,      signal to mark unpivileged Tcp session as to be closed (to TCP agency)
+ * @param[out]  sPortUpdate,            stream containing updates of currently opened ports (to status processing)
+ * @param[out]  sStartTclCls            signal to start TCP Connection closing (to pTcpCls)
+ *
+ ******************************************************************************/
 void pPortLogic(
     ap_uint<1>                *layer_4_enabled,
     ap_uint<1>                *layer_7_enabled,
@@ -793,6 +851,22 @@ void pPortLogic(
 }
 
 
+/*****************************************************************************
+ * @brief Detects if the caches of the USS and TSS have to be invalidated and 
+ *        signals this to the concerned processes.
+ *
+ * @param[in]   layer_4_enabled,        external signal if layer 4 is enabled
+ * @param[in]   layer_7_enabled,        external signal if layer 7 is enabled
+ * @param[in]   role_decoupled,         external signal if the role is decoupled
+ * @param[in]   piNTS_ready,            external signal if NTS is up and running
+ * @param[in]   mrt_version_update,     notification of MRT version change
+ * @param[in]   inval_del_sig,          notification of connection closing
+ * @param[out]  cache_inval_0,          signals that caches must be invalidated
+ * @param[out]  cache_inval_1,          signals that caches must be invalidated
+ * @param[out]  cache_inval_2,          signals that caches must be invalidated
+ * @param[out]  cache_inval_3,          signals that caches must be invalidated
+ *
+ ******************************************************************************/
 void pCacheInvalDetection(
     ap_uint<1>        *layer_4_enabled,
     ap_uint<1>        *layer_7_enabled,
@@ -903,6 +977,24 @@ void pCacheInvalDetection(
 }
 
 
+/*****************************************************************************
+ * @brief Contains the SessionId-Triple CAM for TCP sessions. It replies to 
+ *        stram requests.
+ *
+ * @param[in]   sGetTripleFromSid_Req,       Request stream to get the Tcp Triple to a SessionId
+ * @param[out]  sGetTripleFromSid_Rep,       Reply stream containing Tcp Triple
+ * @param[in]   sGetSidFromTriple_Req,       Request stream to get the SessionId to a Tcp Triple
+ * @param[out]  sGetSidFromTriple_Rep,       Reply stream containing the SessionId
+ * @param[in]   sAddNewTriple_TcpRrh,        Stream containing new SessionIds with Triples (from TcpRRh)
+ * @param[out]  sAddNewTriple_TcpCon,        Stream containing new SessionIds with Triples (from TcpCOn)
+ * @param[in]   sDeleteEntryBySid,           Notification to mark a table entry as closed
+ * @param[out]  inval_del_sig,               Notification of connection closing to Cache Invalidation Logic
+ * @param[in]   sMarkAsPriv,                 Notification to mark a session as prvileged
+ * @param[in]   sMarkToDel_unpriv,           Signal to mark all un-privileged sessions as to-be-deleted
+ * @param[in]   sGetNextDelRow_Req,          Request to get the next sesseion that is marked as to-be-deleted
+ * @param[out]  sGetNextDelRow_Rep,          Reply containin the SessionId of the next to-be-deleted session
+ *
+ ******************************************************************************/
 void pTcpAgency(
     stream<SessionId>         &sGetTripleFromSid_Req,
     stream<NalTriple>         &sGetTripleFromSid_Rep,

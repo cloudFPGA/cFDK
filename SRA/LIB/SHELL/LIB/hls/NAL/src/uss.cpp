@@ -32,6 +32,22 @@
 
 using namespace hls;
 
+
+/*****************************************************************************
+ * @brief Processes the outgoing UDP packets (i.e. ROLE -> Network).
+ *
+ * @param[in]   siUdp_data,            UDP Data from the Role
+ * @param[in]   siUdp_meta,            UDP Metadata from the Role
+ * @param[out]  soUOE_Data,            UDP Data for the UOE
+ * @param[out]  soUOE_Meta,            UDP Metadata (i.e. HostSockAddr) for the UOE
+ * @param[out]  soUOE_DLen,            UDP Packet length for the UOE
+ * @param[out]  sGetIpReq_UdpTx,       Request stream for the the MRT Agency
+ * @param[in]   sGetIpRep_UdpTx,       Reply stream from the MRT Agency
+ * @param[in]   ipAddrBE,              IP address of the FPGA (from MMIO)
+ * @param[in]   cache_inval_sig,       Signal from the Cache Invalidation Logic
+ * @param[out]  internal_event_fifo,   Fifo for event reporting
+ *
+ ******************************************************************************/
 void pUdpTX(
     stream<NetworkWord>         &siUdp_data,
     stream<NetworkMetaStream>   &siUdp_meta,
@@ -101,10 +117,6 @@ void pUdpTX(
         break;
       }
       else if ( !siUdp_meta.empty() &&
-          //!soUOE_Meta.full() &&
-          //!siUdp_data.empty() &&
-          //!soUOE_Data.full() &&
-          //!soUOE_DLen.full() &&
           !sGetIpReq_UdpTx.full() )
       {
         udp_meta_in = siUdp_meta.read();
@@ -174,9 +186,7 @@ void pUdpTX(
       break;
 
     case FSM_FIRST_ACC:
-      if (//!soUOE_Meta.full() //&& !soUOE_Data.full() &&
-          //!siUdp_data.empty()
-          !soUOE_Meta.full()
+      if ( !soUOE_Meta.full()
           && !soUOE_DLen.full() )
       {
         if(dst_ip_addr == 0)
@@ -270,6 +280,10 @@ void pUdpTX(
 
 
 
+/*****************************************************************************
+ * @brief Terminates the internal UDP TX FIFOs and forwards packets to the UOE.
+ *
+ ******************************************************************************/
 void pUoeUdpTxDeq(
     ap_uint<1>                  *layer_4_enabled,
     ap_uint<1>                  *piNTS_ready,
@@ -341,7 +355,16 @@ void pUoeUdpTxDeq(
 
 
 
-
+/*****************************************************************************
+ * @brief Asks the UOE to open new UDP ports for listening, based on the 
+ *        request from pPortLogic.
+ *
+ * @param[out]  soUOE_LsnReq,            open port request for UOE
+ * @param[in]   siUOE_LsnRep,            response of the UOE
+ * @param[in]   sUdpPortsToOpen,         port open request from pPortLogic
+ * @param[out]  sUdpPortsOpenFeedback,   feedback to pPortLogic
+ *
+ ******************************************************************************/
 void pUdpLsn(
     stream<UdpPort>             &soUOE_LsnReq,
     stream<StsBool>             &siUOE_LsnRep,
@@ -435,6 +458,20 @@ void pUdpLsn(
 
 
 
+/*****************************************************************************
+ * @brief Processes the incoming UDP packets (i.e. Network -> ROLE ).
+ *
+ * @param[out]  soUdp_data,            UDP Data for the Role
+ * @param[out]  soUdp_meta,            UDP Metadata for the Role
+ * @param[in]   siUOE_Data,            UDP Data from the UOE
+ * @param[in]   siUOE_Meta,            UDP Metadata from the UOE
+ * @param[in]   sConfigUpdate,         Updates from axi4liteProcessing (own rank)
+ * @param[out]  sGetNidReq_UdpRx,      Request stream for the the MRT Agency
+ * @param[in]   sGetNidRep_UdpRx,      Reply stream from the MRT Agency
+ * @param[in]   cache_inval_sig,       Signal from the Cache Invalidation Logic
+ * @param[out]  internal_event_fifo,   Fifo for event reporting
+ *
+ ******************************************************************************/
 void pUdpRx(
     stream<NetworkWord>         &soUdp_data,
     stream<NetworkMetaStream>   &soUdp_meta,
@@ -625,6 +662,10 @@ void pUdpRx(
 }
 
 
+/*****************************************************************************
+ * @brief Terminates the internal UDP RX FIFOs and forwards packets to the Role.
+ *
+ ******************************************************************************/
 void pRoleUdpRxDeq(
     ap_uint<1>                  *layer_7_enabled,
     ap_uint<1>                  *role_decoupled,
@@ -691,6 +732,14 @@ void pRoleUdpRxDeq(
 
 
 
+/*****************************************************************************
+ * @brief Asks the UOE to close UDP ports, based on the request from pPortLogic.
+ *
+ * @param[out]  soUOE_ClsReq,            close port request for UOE
+ * @param[in]   siUOE_ClsRep,            response of the UOE
+ * @param[in]   sUdpPortsToClose,        port close request from pPortLogic
+ *
+ ******************************************************************************/
 void pUdpCls(
     stream<UdpPort>             &soUOE_ClsReq,
     stream<StsBool>             &siUOE_ClsRep,

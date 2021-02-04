@@ -67,7 +67,7 @@ void pTcpRRh(
     ap_uint<16>               *piMMIO_FmcLsnPort,
     stream<TcpAppNotif>       &siTOE_Notif,
     stream<TcpAppRdReq>       &soTOE_DReq,
-    stream<NalNewTableEntry>  &sAddNewTripple_TcpRrh,
+    stream<NalNewTableEntry>  &sAddNewTriple_TcpRrh,
     stream<SessionId>         &sMarkAsPriv,
     stream<SessionId>         &sDeleteEntryBySid,
     stream<TcpAppRdReq>       &sRDp_ReqNotif,
