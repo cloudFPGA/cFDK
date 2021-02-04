@@ -66,7 +66,7 @@ To reduce the latency of the `NodeId <--> IpAddress (<--> TCP session Id)` mappi
 
 For debugging and monitoring, the USS and TSS systems create *events* (e.g. about a successful packet transmission, the meta data of the last connection, or an unauthorized access attempt) and send them to the *Status & Event Processing*. This process merges all those event notification, maps them to the correct status address in the AXI4 Lite address space, and forwards these updates to the AXI4Lite Processing Logic. 
 
-The details of the TSS and USS can be found [here (TSS)](./TSS.md) and [here (USS)](./USS.md). 
+The details of the TSS and USS can be found [here (TSS)](./TSS.md) and [here (USS)](./USS.md). The HSS is futher documented [here](./HSS.md). 
 
 ## HLS Coding Style and Naming Conventions
 
@@ -95,14 +95,14 @@ void nal_main(
     // ----- link to FMC -----
     ap_uint<32> ctrlLink[MAX_MRT_SIZE + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS],
     //state of the FPGA
-    ap_uint<1> *layer_4_enabled,
-    ap_uint<1> *layer_7_enabled,
-    ap_uint<1> *role_decoupled,
+    ap_uint<1>                     *layer_4_enabled,
+    ap_uint<1>                     *layer_7_enabled,
+    ap_uint<1>                     *role_decoupled,
     // ready signal from NTS
-    ap_uint<1>  *piNTS_ready,
+    ap_uint<1>                  *piNTS_ready,
     // ----- link to MMIO ----
-    ap_uint<16> *piMMIO_FmcLsnPort,
-    ap_uint<32> *piMMIO_CfrmIp4Addr,
+    ap_uint<16>                 *piMMIO_FmcLsnPort,
+    ap_uint<32>                 *piMMIO_CfrmIp4Addr,
     // -- my IP address 
     ap_uint<32>                 *myIpAddress,
 
@@ -140,22 +140,22 @@ void nal_main(
     stream<UdpAppDLen>          &soUOE_DLen,
 
     //-- TOE / Rx Data Interfaces
-    stream<TcpAppNotif>    &siTOE_Notif,
-    stream<TcpAppRdReq>    &soTOE_DReq,
-    stream<TcpAppData>     &siTOE_Data,
-    stream<TcpAppMeta>     &siTOE_SessId,
+    stream<TcpAppNotif>            &siTOE_Notif,
+    stream<TcpAppRdReq>            &soTOE_DReq,
+    stream<TcpAppData>             &siTOE_Data,
+    stream<TcpAppMeta>             &siTOE_SessId,
     //-- TOE / Listen Interfaces
-    stream<TcpAppLsnReq>   &soTOE_LsnReq,
-    stream<TcpAppLsnRep>   &siTOE_LsnRep,
+    stream<TcpAppLsnReq>           &soTOE_LsnReq,
+    stream<TcpAppLsnRep>           &siTOE_LsnRep,
     //-- TOE / Tx Data Interfaces
-    stream<TcpAppData>      &soTOE_Data,
-    stream<TcpAppSndReq>    &soTOE_SndReq,
-    stream<TcpAppSndRep>    &siTOE_SndRep,
+    stream<TcpAppData>          &soTOE_Data,
+    stream<TcpAppSndReq>        &soTOE_SndReq,
+    stream<TcpAppSndRep>        &siTOE_SndRep,
     //-- TOE / Open Interfaces
-    stream<TcpAppOpnReq>      &soTOE_OpnReq,
-    stream<TcpAppOpnRep>   &siTOE_OpnRep,
+    stream<TcpAppOpnReq>          &soTOE_OpnReq,
+    stream<TcpAppOpnRep>           &siTOE_OpnRep,
     //-- TOE / Close Interfaces
-    stream<TcpAppClsReq>   &soTOE_ClsReq
+    stream<TcpAppClsReq>           &soTOE_ClsReq
 );
 ```
 

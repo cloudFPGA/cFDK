@@ -36,7 +36,7 @@ The details of the mentioned MRT Agency can be found [here](./HSS.md).
 
 In the following, the functionality of each process is briefly described:
 
-- `pUdpLsn`: Asks the UOE to open a new UDP port for listening, based on the request of the Role.
+- `pUdpLsn`: Asks the UOE to open a new UDP ports for listening, based on the request of the Role.
 
 - `pUdpCls`: Asks the UOE to close an open UDP port. This happens either based on requests of the Role, during a partial reconfiguration, or after a reset of the Role. 
 
