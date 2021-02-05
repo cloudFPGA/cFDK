@@ -25,7 +25,6 @@
  *              |   +--[+] FMC FMC
  *              |   +--[+] MEM MEM
  *              |   +--[+] NAL NAL
- *              |   +--[+] NRC NRC
  *              |   +--[+] NTS NTS
  *              |       +-- NTS_ARP ARP
  *              |       |  [+] NTS_ARP_TEST ARP_TEST
@@ -72,7 +71,7 @@
 /** \defgroup ShellLib SHELL Library
  *  @ingroup cFDK
  * 
- *  \brief This is the SHELL library of cloudFPGA platform with its three basic components, i.e. NTS, FMC, NRC. The documentation of the SHELL library is available at https://pages.github.ibm.com/cloudFPGA/Doc/pages/cfdk.html#shell-library .
+ *  \brief This is the SHELL library of cloudFPGA platform with its three basic components, i.e. NTS, FMC, NAL. The documentation of the SHELL library is available at https://pages.github.ibm.com/cloudFPGA/Doc/pages/cfdk.html#shell-library .
  */
 
 /** \defgroup SRA SRA
@@ -103,12 +102,6 @@
  *  @ingroup ShellLib
  * 
  *  \brief Network Abstraction Layer (NAL). The NAL separates the privileged management traffic from the unprivileged Role traffic. It also abstracts the details of port opening, connection handling and IP Address translation. The documentation of NAL is available at https://pages.github.ibm.com/cloudFPGA/Doc/pages/cfdk.html#network-abstraction-layer-nal.
- */
-
-/** \defgroup NRC NRC
- *  @ingroup ShellLib
- * 
- *  \brief Network Routing Core (NRC). The NRC is responsible for managing all UDP/TCP traffic of the FPGA. The documentation of NRC is available at https://pages.github.ibm.com/cloudFPGA/Doc/pages/cfdk.html#network-routing-core-nrc .
  */
 
 /** \defgroup NTS NTS
@@ -148,7 +141,7 @@
 
 /*****************************************************************************
  *
- *  cFDK / ShellLib / NRC : Submodules
+ *  cFDK / ShellLib / NAL: Submodules
  *
  *****************************************************************************/
 
