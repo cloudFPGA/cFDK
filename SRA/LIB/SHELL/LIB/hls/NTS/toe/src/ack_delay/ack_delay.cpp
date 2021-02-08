@@ -114,8 +114,7 @@ void ack_delay(
 
         // Check if there is a delayed ACK
         if (ev.type == ACK_EVENT and ACK_TABLE[ev.sessionID] == 0) {
-            //OBSOLETE_20201204 ACK_TABLE[ev.sessionID] = ACKD_64us;
-            ACK_TABLE[ev.sessionID] = ACKD_16us;
+            ACK_TABLE[ev.sessionID] = ACKD_64us;
             if (DEBUG_LEVEL & TRACE_AKD) {
                 printInfo(myName, "Creating a delayed ACK for session #%d.\n", ev.sessionID.to_int());
             }
