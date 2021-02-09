@@ -195,15 +195,15 @@ architecture structural of topFMKU60 is
   -- Open Port vector
   signal sROL_Nrc_Udp_Rx_ports              : std_ulogic_vector( 31 downto 0);
   -- ROLE <-> NRC Meta Interface
-  signal sROLE_Nrc_Udp_Meta_TDATA               : std_ulogic_vector( 79 downto 0);
+  signal sROLE_Nrc_Udp_Meta_TDATA               : std_ulogic_vector( 63 downto 0);
   signal sROLE_Nrc_Udp_Meta_TVALID              : std_ulogic;
   signal sROLE_Nrc_Udp_Meta_TREADY              : std_ulogic;
-  signal sROLE_Nrc_Udp_Meta_TKEEP               : std_ulogic_vector(  9 downto 0);
+  signal sROLE_Nrc_Udp_Meta_TKEEP               : std_ulogic_vector(  7 downto 0);
   signal sROLE_Nrc_Udp_Meta_TLAST               : std_ulogic;
-  signal sNRC_Role_Udp_Meta_TDATA               : std_ulogic_vector( 79 downto 0);
+  signal sNRC_Role_Udp_Meta_TDATA               : std_ulogic_vector( 63 downto 0);
   signal sNRC_Role_Udp_Meta_TVALID              : std_ulogic;
   signal sNRC_Role_Udp_Meta_TREADY              : std_ulogic;
-  signal sNRC_Role_Udp_Meta_TKEEP               : std_ulogic_vector(  9 downto 0);
+  signal sNRC_Role_Udp_Meta_TKEEP               : std_ulogic_vector(  7 downto 0);
   signal sNRC_Role_Udp_Meta_TLAST               : std_ulogic;
   
   ---- TCP Interface ---------------------------
@@ -222,15 +222,15 @@ architecture structural of topFMKU60 is
   -- Open Port vector
   signal sROL_Nrc_Tcp_Rx_ports              : std_ulogic_vector( 31 downto 0);
   -- ROLE <-> NRC Meta Interface
-  signal sROLE_Nrc_Tcp_Meta_TDATA               : std_ulogic_vector( 79 downto 0);
+  signal sROLE_Nrc_Tcp_Meta_TDATA               : std_ulogic_vector( 63 downto 0);
   signal sROLE_Nrc_Tcp_Meta_TVALID              : std_ulogic;
   signal sROLE_Nrc_Tcp_Meta_TREADY              : std_ulogic;
-  signal sROLE_Nrc_Tcp_Meta_TKEEP               : std_ulogic_vector(  9 downto 0);
+  signal sROLE_Nrc_Tcp_Meta_TKEEP               : std_ulogic_vector(  7 downto 0);
   signal sROLE_Nrc_Tcp_Meta_TLAST               : std_ulogic;
-  signal sNRC_Role_Tcp_Meta_TDATA               : std_ulogic_vector( 79 downto 0);
+  signal sNRC_Role_Tcp_Meta_TDATA               : std_ulogic_vector( 63 downto 0);
   signal sNRC_Role_Tcp_Meta_TVALID              : std_ulogic;
   signal sNRC_Role_Tcp_Meta_TREADY              : std_ulogic;
-  signal sNRC_Role_Tcp_Meta_TKEEP               : std_ulogic_vector(  9 downto 0);
+  signal sNRC_Role_Tcp_Meta_TKEEP               : std_ulogic_vector(  7 downto 0);
   signal sNRC_Role_Tcp_Meta_TLAST               : std_ulogic;
 
 
@@ -450,15 +450,15 @@ architecture structural of topFMKU60 is
       -- Open Port vector
       piROL_Nrc_Udp_Rx_ports         : in    std_ulogic_vector( 31 downto 0);
       -- ROLE <-> NRC Meta Interface
-      siROLE_Nrc_Udp_Meta_TDATA      : in    std_ulogic_vector( 79 downto 0);
+      siROLE_Nrc_Udp_Meta_TDATA      : in    std_ulogic_vector( 63 downto 0);
       siROLE_Nrc_Udp_Meta_TVALID     : in    std_ulogic;
       siROLE_Nrc_Udp_Meta_TREADY     : out   std_ulogic;
-      siROLE_Nrc_Udp_Meta_TKEEP      : in    std_ulogic_vector(  9 downto 0);
+      siROLE_Nrc_Udp_Meta_TKEEP      : in    std_ulogic_vector(  7 downto 0);
       siROLE_Nrc_Udp_Meta_TLAST      : in    std_ulogic;
-      soNRC_Role_Udp_Meta_TDATA      : out   std_ulogic_vector( 79 downto 0);
+      soNRC_Role_Udp_Meta_TDATA      : out   std_ulogic_vector( 63 downto 0);
       soNRC_Role_Udp_Meta_TVALID     : out   std_ulogic;
       soNRC_Role_Udp_Meta_TREADY     : in    std_ulogic;
-      soNRC_Role_Udp_Meta_TKEEP      : out   std_ulogic_vector(  9 downto 0);
+      soNRC_Role_Udp_Meta_TKEEP      : out   std_ulogic_vector(  7 downto 0);
       soNRC_Role_Udp_Meta_TLAST      : out   std_ulogic;
       
       ------------------------------------------------------
@@ -479,15 +479,15 @@ architecture structural of topFMKU60 is
       -- Open Port vector
       piROL_Nrc_Tcp_Rx_ports         : in    std_ulogic_vector( 31 downto 0);
       -- ROLE <-> NRC Meta Interface
-      siROLE_Nrc_Tcp_Meta_TDATA      : in    std_ulogic_vector( 79 downto 0);
+      siROLE_Nrc_Tcp_Meta_TDATA      : in    std_ulogic_vector( 63 downto 0);
       siROLE_Nrc_Tcp_Meta_TVALID     : in    std_ulogic;
       siROLE_Nrc_Tcp_Meta_TREADY     : out   std_ulogic;
-      siROLE_Nrc_Tcp_Meta_TKEEP      : in    std_ulogic_vector(  9 downto 0);
+      siROLE_Nrc_Tcp_Meta_TKEEP      : in    std_ulogic_vector(  7 downto 0);
       siROLE_Nrc_Tcp_Meta_TLAST      : in    std_ulogic;
-      soNRC_Role_Tcp_Meta_TDATA      : out   std_ulogic_vector( 79 downto 0);
+      soNRC_Role_Tcp_Meta_TDATA      : out   std_ulogic_vector( 63 downto 0);
       soNRC_Role_Tcp_Meta_TVALID     : out   std_ulogic;
       soNRC_Role_Tcp_Meta_TREADY     : in    std_ulogic;
-      soNRC_Role_Tcp_Meta_TKEEP      : out   std_ulogic_vector(  9 downto 0);
+      soNRC_Role_Tcp_Meta_TKEEP      : out   std_ulogic_vector(  7 downto 0);
       soNRC_Role_Tcp_Meta_TLAST      : out   std_ulogic;
   
       ------------------------------------------------------  
@@ -624,15 +624,15 @@ architecture structural of topFMKU60 is
       -- Open Port vector
       poROL_Nrc_Udp_Rx_ports     : out    std_ulogic_vector( 31 downto 0);
       -- ROLE <-> NRC Meta Interface
-      soROLE_Nrc_Udp_Meta_TDATA   : out   std_ulogic_vector( 79 downto 0);
+      soROLE_Nrc_Udp_Meta_TDATA   : out   std_ulogic_vector( 63 downto 0);
       soROLE_Nrc_Udp_Meta_TVALID  : out   std_ulogic;
       soROLE_Nrc_Udp_Meta_TREADY  : in    std_ulogic;
-      soROLE_Nrc_Udp_Meta_TKEEP   : out   std_ulogic_vector(  9 downto 0);
+      soROLE_Nrc_Udp_Meta_TKEEP   : out   std_ulogic_vector(  7 downto 0);
       soROLE_Nrc_Udp_Meta_TLAST   : out   std_ulogic;
-      siNRC_Role_Udp_Meta_TDATA   : in    std_ulogic_vector( 79 downto 0);
+      siNRC_Role_Udp_Meta_TDATA   : in    std_ulogic_vector( 63 downto 0);
       siNRC_Role_Udp_Meta_TVALID  : in    std_ulogic;
       siNRC_Role_Udp_Meta_TREADY  : out   std_ulogic;
-      siNRC_Role_Udp_Meta_TKEEP   : in    std_ulogic_vector(  9 downto 0);
+      siNRC_Role_Udp_Meta_TKEEP   : in    std_ulogic_vector(  7 downto 0);
       siNRC_Role_Udp_Meta_TLAST   : in    std_ulogic;
       
       ------------------------------------------------------
@@ -653,15 +653,15 @@ architecture structural of topFMKU60 is
       -- Open Port vector
       poROL_Nrc_Tcp_Rx_ports     : out    std_ulogic_vector( 31 downto 0);
       -- ROLE <-> NRC Meta Interface
-      soROLE_Nrc_Tcp_Meta_TDATA   : out   std_ulogic_vector( 79 downto 0);
+      soROLE_Nrc_Tcp_Meta_TDATA   : out   std_ulogic_vector( 63 downto 0);
       soROLE_Nrc_Tcp_Meta_TVALID  : out   std_ulogic;
       soROLE_Nrc_Tcp_Meta_TREADY  : in    std_ulogic;
-      soROLE_Nrc_Tcp_Meta_TKEEP   : out   std_ulogic_vector(  9 downto 0);
+      soROLE_Nrc_Tcp_Meta_TKEEP   : out   std_ulogic_vector(  7 downto 0);
       soROLE_Nrc_Tcp_Meta_TLAST   : out   std_ulogic;
-      siNRC_Role_Tcp_Meta_TDATA   : in    std_ulogic_vector( 79 downto 0);
+      siNRC_Role_Tcp_Meta_TDATA   : in    std_ulogic_vector( 63 downto 0);
       siNRC_Role_Tcp_Meta_TVALID  : in    std_ulogic;
       siNRC_Role_Tcp_Meta_TREADY  : out   std_ulogic;
-      siNRC_Role_Tcp_Meta_TKEEP   : in    std_ulogic_vector(  9 downto 0);
+      siNRC_Role_Tcp_Meta_TKEEP   : in    std_ulogic_vector(  7 downto 0);
       siNRC_Role_Tcp_Meta_TLAST   : in    std_ulogic;
       
 

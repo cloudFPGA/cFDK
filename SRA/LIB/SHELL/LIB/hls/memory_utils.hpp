@@ -12,7 +12,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*******************************************************************************/
+ *******************************************************************************/
 
 //  *
 //  *                       cloudFPGA
@@ -69,22 +69,22 @@ class DmCmd
     ap_uint<4>      rsvd;   // Reserved
     DmCmd() {}
     DmCmd(ap_uint<40> addr, ap_uint<16> len) :
-        bbt(len), type(1), dsa(0), eof(1), drr(1), saddr(addr), tag(0), rsvd(0) {}
+      bbt(len), type(1), dsa(0), eof(1), drr(1), saddr(addr), tag(0), rsvd(0) {}
 };
 
 struct mmCmd
 {
-    ap_uint<23> bbt;
-    ap_uint<1>  type;
-    ap_uint<6>  dsa;
-    ap_uint<1>  eof;
-    ap_uint<1>  drr;
-    ap_uint<40> saddr;
-    ap_uint<4>  tag;
-    ap_uint<4>  rsvd;
-    mmCmd() {}
-    mmCmd(ap_uint<40> addr, ap_uint<16> len) :
-        bbt(len), type(1), dsa(0), eof(1), drr(1), saddr(addr), tag(0), rsvd(0) {}
+  ap_uint<23> bbt;
+  ap_uint<1>  type;
+  ap_uint<6>  dsa;
+  ap_uint<1>  eof;
+  ap_uint<1>  drr;
+  ap_uint<40> saddr;
+  ap_uint<4>  tag;
+  ap_uint<4>  rsvd;
+  mmCmd() {}
+  mmCmd(ap_uint<40> addr, ap_uint<16> len) :
+    bbt(len), type(1), dsa(0), eof(1), drr(1), saddr(addr), tag(0), rsvd(0) {}
 
 };
 
@@ -104,23 +104,23 @@ class DmSts
 
 struct mmStatus
 {
-    ap_uint<4>  tag;
-    ap_uint<1>  interr;
-    ap_uint<1>  decerr;
-    ap_uint<1>  slverr;
-    ap_uint<1>  okay;
+  ap_uint<4>  tag;
+  ap_uint<1>  interr;
+  ap_uint<1>  decerr;
+  ap_uint<1>  slverr;
+  ap_uint<1>  okay;
 };
 
 //TODO is this required??
 struct mm_ibtt_status
 {
-    ap_uint<4>  tag;
-    ap_uint<1>  interr;
-    ap_uint<1>  decerr;
-    ap_uint<1>  slverr;
-    ap_uint<1>  okay;
-    ap_uint<22> brc_vd;
-    ap_uint<1>  eop;
+  ap_uint<4>  tag;
+  ap_uint<1>  interr;
+  ap_uint<1>  decerr;
+  ap_uint<1>  slverr;
+  ap_uint<1>  okay;
+  ap_uint<22> brc_vd;
+  ap_uint<1>  eop;
 };
 
 

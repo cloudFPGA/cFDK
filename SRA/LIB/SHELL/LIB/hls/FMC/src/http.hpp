@@ -16,7 +16,7 @@
 
 /*****************************************************************************
  * @file       : http.hpp
- * @brief      : 
+ * @brief      : The HTTP parsing functions for the FMC.
  *
  * System:     : cloudFPGA
  * Component   : Shell, FPGA Management Core (FMC)
