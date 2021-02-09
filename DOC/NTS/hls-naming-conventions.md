@@ -150,7 +150,7 @@ gives a general indication about the nature of the data being transferred (.e.g,
 If applicable, a C++ class or type definition should *always* be used to further qualify such a data-flow object
 as for example:
 ```
-    stream<AxiWord>       soTsd_Data;
+    stream<AxisRaw>       soTsd_Data;
     stream<TcpSegLen>     siTle_Len;
     stream<SocketPair>    ssCsaToMdh_SockPair;
 ```
@@ -194,5 +194,6 @@ The NTS makes use of the following networking terminology and acronyms to qualif
 - a **TCP-SEGMENT (Seg)** is a PDU information exchanged at networking layer-4.
 
 
-### Static Variables
-[TODO - Naming conventions for the static variables within a process]
+## Static vs Dynamic Variables
+In HLS programming, it is crucial for the developer to quickly distinguish a static variable from a dynamic variable within a function or a process, because static variables retain their value between function calls and will therefore be implemented as HDL registers. To ease identifying static vs dynamic variables, the NTS enforces the following rule:
+- a static variable is always prefixed with the **lower-case acronym** of the process or the function it belongs to, plus an  '_**underescore**_' (to break the _CamelCase_ sequence). This prefix becomes particularly helpful when searching for this register in the synthesized code (e.g. '_**ica_lastChunck**_' is a static variable of the process 'pIpChechsumAccumulator', while '_**currChunk**_' is a dynamic variable of the same process).    
