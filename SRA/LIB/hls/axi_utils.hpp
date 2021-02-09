@@ -47,6 +47,7 @@ using namespace hls;
      ap_uint<(D+7)/8> tkeep;
      ap_uint<1>       tlast;
      Axis() {}
+     Axis(ap_uint<D> tdata, ap_uint<(D+7)/8> tkeep, ap_uint<1> tlast) : tdata(tdata), tkeep(tkeep), tlast(tlast) {}
      Axis(ap_uint<D> single_data) : tdata((ap_uint<D>)single_data), tkeep((~(((ap_uint<D>) single_data) & 0))), tlast(1) {}
    };
 
