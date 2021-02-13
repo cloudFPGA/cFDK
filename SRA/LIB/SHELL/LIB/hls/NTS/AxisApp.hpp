@@ -59,7 +59,6 @@ class AxisApp: public AxisRaw {
     /****************************************************************
      * AXIS_APP - BIG-ENDIAN HELPERS
      ****************************************************************/
-
     /* Set higher-half part of the 'tdata' field with a data encoded in BE order
      *        +---------------+---------------+---------------+---------------+
      * LITTLE |63        Lower-Half         32|31       Higher-Half          0|
