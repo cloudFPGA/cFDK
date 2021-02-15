@@ -188,55 +188,6 @@ class AxisIp4: public AxisRaw {
     AxisIp4(AxisRaw axisRaw) :
         AxisRaw(axisRaw.getLE_TData(), axisRaw.getLE_TKeep(), axisRaw.getLE_TLast()) {}
 
-    /* Set higher-half part of the 'tdata' field with a data encoded in BE order
-     *        +---------------+---------------+---------------+---------------+
-     * LITTLE |63        Lower-Half         32|31       Higher-Half          0|
-     *        +---------------+---------------+---------------+---------------+
-     */
-    //void setTDataHi(tDataHalf data) {
-    //    tdata.range(31,  0) = swapDWord(data);
-    //}
-    /* Get higher-half part of the 'tdata' field and return it in BE order
-     *        +---------------+---------------+---------------+---------------+
-     * LITTLE |63        Lower-Half         32|31       Higher-Half          0|
-     *       +---------------+---------------+---------------+---------------+
-     */
-    //tDataHalf getTDataHi() {
-    //    return swapDWord(tdata.range(31, 0));
-    //}
-    /* Set lower-half part of the 'tdata' field with a data encoded in BE order
-     *        +---------------+---------------+---------------+---------------+
-     * LITTLE |63        Lower-Half         32|31       Higher-Half          0|
-     *        +---------------+---------------+---------------+---------------+
-     */
-    //void setTDataLo(tDataHalf data) {
-    //    tdata.range(63, 32) = swapDWord(data);
-    //}
-    /* Get lower-half part of the 'tdata' field and return it in BE order
-     *        +---------------+---------------+---------------+---------------+
-     * LITTLE |63        Lower-Half         32|31       Higher-Half          0|
-     *        +---------------+---------------+---------------+---------------+
-     */
-    //tDataHalf getTDataLo() {
-    //    return swapDWord(tdata.range(63,32));
-    //}
-    // Set higher-half part of the 'tkeep' field with a data encoded in BE order
-    //void setTKeepHi(tKeepHalf keep) {
-    //    tkeep(3,0) = swapNibble(keep);
-    //}
-    // Get higher-half part of the 'tkeep' field and return it in BE order
-    //tKeepHalf getTKeepHi() {
-    //    return swapNibble(tkeep.range(3,0));
-    //}
-    // Set lower-half part of the 'tkeep' field with a data encoded in BE order
-    //void setTKeepLo(tKeepHalf keep) {
-    //    tkeep(7,4) = swapNibble(keep);
-    //}
-    // Get lower-half part of the 'tkeep' field and return it in BE order
-    //tKeepHalf getTKeepLo() {
-    //    return swapNibble(tkeep.range(7,4));
-    //}
-
     /****************************************************************
      * IP4 HEADER HELPERS - SETTERS AND GETTERS
      ****************************************************************/
