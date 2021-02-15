@@ -604,7 +604,7 @@ int main(int argc, char *argv[]) {
     //-- TESTBENCH LOCAL VARIABLES
     //------------------------------------------------------
     int         nrErr  = 0;        // Tb error counter.
-    char        tbMode = *argv[1]; // Indicates the TB testing mode.
+    char        tbMode = 'x';      // Indicates the TB testing mode.
 
     UdpPort     portToOpen;
     StsBool     openReply;
@@ -639,7 +639,10 @@ int main(int argc, char *argv[]) {
     //------------------------------------------------------
     //-- PARSING THE TESBENCH ARGUMENTS
     //------------------------------------------------------
-    switch (tbMode=*argv[1]) {
+    if (argc > 1) {
+        tbMode = *argv[1]; // Retrieve the TB testing mode.
+    }
+    switch (tbMode) {
     case RX_MODE:
     case TX_DGRM_MODE:
     case TX_STRM_MODE:
