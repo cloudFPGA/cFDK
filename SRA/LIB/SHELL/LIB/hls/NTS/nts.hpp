@@ -43,10 +43,14 @@
 
 #include "nts_types.hpp"
 #include "nts_config.hpp"
-#include "AxisApp.hpp"
+//OBSOLETE_20210215 #include "AxisApp.hpp"
 
 using namespace hls;
 
+/*******************************************************************************
+ * INTERFACE - GENERIC TCP & UDP APPLICATION INTERFACE (APP)
+ *******************************************************************************/
+typedef AxisRaw     AxisApp;
 
 /*******************************************************************************
  * INTERFACE - TCP APPLICATION INTERFACE (TAIF)
@@ -64,6 +68,7 @@ using namespace hls;
 //-- TCP APP - DATA
 //--  The data section of a TCP segment over an AXI4S I/F.
 //---------------------------------------------------------
+//OBSOLETE_20210215 typedef AxisApp     TcpAppData;
 typedef AxisApp     TcpAppData;
 #endif
 
@@ -213,7 +218,8 @@ typedef RepBool     TcpAppLsnRep;
 //-- UDP APP - DATA
 //--  The data section of an UDP datagram over an AXI4S I/F.
 //---------------------------------------------------------
-typedef AxisApp     UdpAppData;
+//OBSOLETE_20210215 typedef AxisApp     UdpAppData;
+typedef AxisRaw     UdpAppData;
 #endif
 
 //---------------------------------------------------------

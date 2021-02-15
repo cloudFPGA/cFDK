@@ -189,7 +189,7 @@ class AxisIp4: public AxisRaw {
         AxisRaw(axisRaw.getLE_TData(), axisRaw.getLE_TKeep(), axisRaw.getLE_TLast()) {}
 
     /****************************************************************
-     * IP4 HEADER HELPERS - SETTERS AND GETTERS
+     * IP4 PACKET HEADER HELPERS
      ****************************************************************/
     // Set-Get the IP4 Version
     void        setIp4Version(Ip4Version ver)   {                  tdata.range( 7,  4) = ver;             }

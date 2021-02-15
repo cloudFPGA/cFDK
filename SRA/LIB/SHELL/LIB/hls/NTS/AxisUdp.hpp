@@ -122,7 +122,7 @@ class AxisUdp: public AxisRaw {
         AxisRaw(axisUdp.tdata, axisUdp.tkeep, axisUdp.tlast) {}
 
     /****************************************************************
-     * HEADER HELPERS - UDP-OVER-IP4
+     * UDP HEADER HELPERS
      ****************************************************************/
 
     // Set-Get the UDP Source Port

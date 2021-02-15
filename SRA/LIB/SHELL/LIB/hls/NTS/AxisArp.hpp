@@ -132,6 +132,10 @@ class AxisArp: public AxisRaw {
     AxisArp(const AxisArp &axisArp) :
         AxisRaw(axisArp.tdata, axisArp.tkeep, axisArp.tlast) {}
 
+    /****************************************************************
+     * ARP MESSAGE HEADER HELPERS
+     ****************************************************************/
+
     // Set-Get the Hardware Type (HTYPE) field
     void            setArpHardwareType(ArpHwType htype)   {                    tdata.range(15,  0) = swapWord(htype); }
     ArpHwType       getArpHardwareType()                  {   return swapWord (tdata.range(15,  0));                  }

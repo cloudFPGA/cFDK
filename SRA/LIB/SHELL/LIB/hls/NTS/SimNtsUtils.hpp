@@ -40,7 +40,7 @@
 #include "../NTS/nts.hpp"
 #include "../NTS/nts_utils.hpp"
 #include "../NTS/SimNtsUtils.hpp"
-#include "../NTS/AxisApp.hpp"
+//OBSOLETE_20210215 #include "../NTS/AxisApp.hpp"
 
 using namespace std;
 

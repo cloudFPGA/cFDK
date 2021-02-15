@@ -43,7 +43,7 @@
 
 #include <hls_stream.h>
 
-#include "AxisApp.hpp"   // Application (TCP segment or UDP datagram)
+//OBSOLETE_20210215 #include "AxisApp.hpp"   // Application (TCP segment or UDP datagram)
 #include "AxisEth.hpp"   // ETHernet
 #include "AxisIp4.hpp"   // IPv4
 using namespace hls;
