@@ -52,8 +52,8 @@ void axi4liteProcessing(
     stream<NalConfigUpdate>   &sToUdpRx,
     stream<NalConfigUpdate>   &sToTcpRx,
     stream<NalConfigUpdate>   &sToStatusProc,
-    //stream<NalMrtUpdate>    &sMrtUpdate,
-    ap_uint<32>               localMRT[MAX_MRT_SIZE],
+    stream<NalMrtUpdate>      &sMrtUpdate,
+    //ap_uint<32>               localMRT[MAX_MRT_SIZE],
     stream<uint32_t>          &mrt_version_update_0,
     stream<uint32_t>          &mrt_version_update_1,
     stream<NalStatusUpdate>   &sStatusUpdate
@@ -61,7 +61,8 @@ void axi4liteProcessing(
 
 
 void pMrtAgency(
-    const ap_uint<32>         localMRT[MAX_MRT_SIZE],
+    //const ap_uint<32>         localMRT[MAX_MRT_SIZE],
+    stream<NalMrtUpdate>      &sMrtUpdate,
     stream<NodeId>            &sGetIpReq_UdpTx,
     stream<Ip4Addr>           &sGetIpRep_UdpTx,
     stream<NodeId>            &sGetIpReq_TcpTx,

@@ -613,7 +613,7 @@ void nal_main(
   static stream<NalConfigUpdate>   sA4lToUdpRx        ("sA4lToUdpRx");
   static stream<NalConfigUpdate>   sA4lToTcpRx        ("sA4lToTcpRx");
   static stream<NalConfigUpdate>   sA4lToStatusProc   ("sA4lToStatusProc");
-  //static stream<NalMrtUpdate>      sA4lMrtUpdate      ("sA4lMrtUpdate");
+  static stream<NalMrtUpdate>      sA4lMrtUpdate      ("sA4lMrtUpdate");
   static stream<NalStatusUpdate>   sStatusUpdate    ("sStatusUpdate");
   static stream<NodeId>            sGetIpReq_UdpTx    ("sGetIpReq_UdpTx");
   static stream<Ip4Addr>           sGetIpRep_UdpTx    ("sGetIpRep_UdpTx");
@@ -656,7 +656,7 @@ void nal_main(
   static stream<NalNewTcpConRep>    sNewTcpCon_Rep           ("sNewTcpConRep");
   static stream<TcpAppNotif>       sTcpNotif_buffer   ("sTcpNotif_buffer");
 
-  static ap_uint<32> localMRT[MAX_MRT_SIZE];
+  //static ap_uint<32> localMRT[MAX_MRT_SIZE];
 
   static stream<uint32_t>           sMrtVersionUpdate_0 ("sMrtVersionUpdate_0");
   static stream<uint32_t>           sMrtVersionUpdate_1 ("sMrtVersionUpdate_1");
@@ -696,7 +696,7 @@ void nal_main(
 #pragma HLS STREAM variable=sA4lToUdpRx      depth=8
 #pragma HLS STREAM variable=sA4lToTcpRx      depth=8
 #pragma HLS STREAM variable=sA4lToStatusProc depth=8
-  //#pragma HLS STREAM variable=sA4lMrtUpdate    depth=16
+#pragma HLS STREAM variable=sA4lMrtUpdate    depth=16
 #pragma HLS STREAM variable=sStatusUpdate    depth=128 //should be larger than ctrlLink size
 
 #pragma HLS STREAM variable=sGetIpReq_UdpTx  depth=16 //MRT process takes longer -> better more buffer
@@ -744,7 +744,7 @@ void nal_main(
   //#pragma HLS STREAM variable=sTcpNotif_buffer     depth=1024
 #pragma HLS STREAM variable=sTcpNotif_buffer     depth=8192
 
-#pragma HLS RESOURCE variable=localMRT core=RAM_2P_BRAM
+  //#pragma HLS RESOURCE variable=localMRT core=RAM_2P_BRAM
   //#pragma HLS ARRAY_PARTITION variable=localMRT cyclic factor=8 dim=1
   //#pragma HLS ARRAY_PARTITION variable=localMRT complete dim=1
 
@@ -880,12 +880,13 @@ void nal_main(
       //sA4lToTcpAgency, //(currently not used)
       sA4lToPortLogic, sA4lToUdpRx,
       sA4lToTcpRx, sA4lToStatusProc,
-      localMRT,
+      sA4lMrtUpdate,
+      //localMRT,
       sMrtVersionUpdate_0, sMrtVersionUpdate_1,
       sStatusUpdate);
 
 
-  pMrtAgency(localMRT, sGetIpReq_UdpTx, sGetIpRep_UdpTx, sGetIpReq_TcpTx, sGetIpRep_TcpTx, sGetNidReq_UdpRx, sGetNidRep_UdpRx, sGetNidReq_TcpRx, sGetNidRep_TcpRx);
+  pMrtAgency(sA4lMrtUpdate, sGetIpReq_UdpTx, sGetIpRep_UdpTx, sGetIpReq_TcpTx, sGetIpRep_TcpTx, sGetNidReq_UdpRx, sGetNidRep_UdpRx, sGetNidReq_TcpRx, sGetNidRep_TcpRx);
 
 
 }

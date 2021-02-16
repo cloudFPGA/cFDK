@@ -70,7 +70,7 @@ uint8_t selectConfigUpdatePropagation(uint16_t config_addr)
  * @param[out]     sToUdpRx,              notification of configuration changes
  * @param[out]     sToTcpRx,              notification of configuration changes
  * @param[out]     sToStatusProc,         notification of configuration changes
- * @param[out]     localMRT,              BRAM for storing the MRT 
+ * @param[out]     sMrtUpdate,            notification of MRT content changes
  * @param[out]     mrt_version_update_0,  notification of MRT version change
  * @param[out]     mrt_version_update_1,  notification of MRT version change
  * @param[in]      sStatusUpdate,         Satus update notification for Axi4Lite proc
@@ -83,8 +83,8 @@ void axi4liteProcessing(
     stream<NalConfigUpdate>   &sToUdpRx,
     stream<NalConfigUpdate>   &sToTcpRx,
     stream<NalConfigUpdate>   &sToStatusProc,
-    //stream<NalMrtUpdate>    &sMrtUpdate,
-    ap_uint<32>               localMRT[MAX_MRT_SIZE],
+    stream<NalMrtUpdate>      &sMrtUpdate,
+    //ap_uint<32>               localMRT[MAX_MRT_SIZE],
     stream<uint32_t>          &mrt_version_update_0,
     stream<uint32_t>          &mrt_version_update_1,
     stream<NalStatusUpdate>   &sStatusUpdate
@@ -117,6 +117,11 @@ void axi4liteProcessing(
   static NalConfigUpdate cu_toCB = NalConfigUpdate();
   static ap_uint<32> new_word;
 
+  static ap_uint<32> localMRT[MAX_MRT_SIZE];
+  //#pragma HLS RESOURCE variable=localMRT core=RAM_2P_BRAM
+  //#pragma HLS ARRAY_PARTITION variable=localMRT complete dim=1
+  //FIXME: maybe optimize and remove localMRT here (send updates when indicated by version?)
+
 
   //#pragma HLS ARRAY_PARTITION variable=status cyclic factor=4 dim=1
   //#pragma HLS ARRAY_PARTITION variable=config cyclic factor=4 dim=1
@@ -132,7 +137,8 @@ void axi4liteProcessing(
     // ----- tables init -----
     for(int i = 0; i < MAX_MRT_SIZE; i++)
     {
-      localMRT[i] = 0x0;
+      //localMRT[i] = 0x0;
+      localMRT[i] = 0x1; //to force init of MRT agency
     }
     for(int i = 0; i < NUMBER_CONFIG_WORDS; i++)
     {
@@ -218,15 +224,15 @@ void axi4liteProcessing(
       case A4L_COPY_MRT:
         //printf("[A4l] copy MRT %d\n", tableCopyVariable);
         new_ip4node = ctrlLink[tableCopyVariable + NUMBER_CONFIG_WORDS + NUMBER_STATUS_WORDS];
-        //if (new_ip4node != localMRT[tableCopyVariable])
-        //{
-        //NalMrtUpdate mu = NalMrtUpdate(tableCopyVariable, new_ip4node);
-        //sMrtUpdate.write(mu);
-        localMRT[tableCopyVariable] = new_ip4node;
-        //printf("[A4l] update MRT at %d with %d\n", tableCopyVariable, (int) new_ip4node);
-        //  NalMrtUpdate mrt_update = NalMrtUpdate(tableCopyVariable, new_ip4node);
-        //  sMrtUpdate.write(mrt_update);
-        //}
+        if (new_ip4node != localMRT[tableCopyVariable])
+        {
+          NalMrtUpdate mu = NalMrtUpdate(tableCopyVariable, new_ip4node);
+          sMrtUpdate.write(mu);
+          localMRT[tableCopyVariable] = new_ip4node;
+          printf("[A4l] update MRT at %d with %d\n", tableCopyVariable, (int) new_ip4node);
+          NalMrtUpdate mrt_update = NalMrtUpdate(tableCopyVariable, new_ip4node);
+          sMrtUpdate.write(mrt_update);
+        }
         tableCopyVariable++;
         if(tableCopyVariable >= MAX_MRT_SIZE)
         {
@@ -366,7 +372,7 @@ void axi4liteProcessing(
 /*****************************************************************************
  * @brief Can access the BRAM that contains the MRT and replies to lookup requests
  *
- * @param[in]    localMRT,              BRAM for storing the MRT (RO access)
+ * @param[in]    sMrtUpdate,            Notification of MRT changes
  * @param[in]    sGetIpReq_UdpTx,       Request stream to get the IPv4 to a NodeId (from UdpTx)
  * @param[out]   sGetIpRep_UdpTx,       Reply stream containing the IP address (to UdpTx)
  * @param[in]    sGetIpReq_TcpTx,       Request stream to get the IPv4 to a NodeId (from TcpTx)
@@ -378,7 +384,8 @@ void axi4liteProcessing(
  *
  ******************************************************************************/
 void pMrtAgency(
-    const ap_uint<32>     localMRT[MAX_MRT_SIZE],
+    stream<NalMrtUpdate>  &sMrtUpdate,
+    //const ap_uint<32>     localMRT[MAX_MRT_SIZE],
     stream<NodeId>        &sGetIpReq_UdpTx,
     stream<Ip4Addr>       &sGetIpRep_UdpTx,
     stream<NodeId>        &sGetIpReq_TcpTx,
@@ -393,7 +400,7 @@ void pMrtAgency(
 {
   //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
 #pragma HLS INLINE off
-  //#pragma HLS pipeline II=1
+#pragma HLS pipeline II=1
 
   //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
   //static bool tables_initialized = false;
@@ -414,6 +421,10 @@ void pMrtAgency(
   //  }
   //#endif
 
+  static ap_uint<32> localMRT[MAX_MRT_SIZE];
+  //#pragma HLS ARRAY_PARTITION variable=localMRT cyclic factor=8 dim=1
+#pragma HLS ARRAY_PARTITION variable=localMRT complete dim=1
+
 
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
 
@@ -425,7 +436,16 @@ void pMrtAgency(
   //    //}
   //    tables_initialized = true;
   //  } else
-  if( !sGetIpReq_UdpTx.empty() && !sGetIpRep_UdpTx.full())
+
+  if( !sMrtUpdate.empty() )
+  {
+    NalMrtUpdate mu = sMrtUpdate.read();
+    if(mu.nid < MAX_MRT_SIZE)
+    {
+      localMRT[mu.nid] = mu.ip4a;
+    }
+
+  } else if( !sGetIpReq_UdpTx.empty() && !sGetIpRep_UdpTx.full())
   {
     NodeId rank;
     rank = sGetIpReq_UdpTx.read();
