@@ -179,7 +179,7 @@ class AxisRaw {
             case  8-1 : return           (tdata.range(leHi, leLo)); break;
             default : break;
         }
-        assert(true); std::cout << "Unsupported range.";
+        std::cout << "ASSERT - AxisRaw::getTData() - Unsupported range.\n"; assert(false);
         return tdata;
     }
     /* Get a range of the 'tkeep' member in Big-Endian (BE) order
@@ -195,7 +195,7 @@ class AxisRaw {
             case 1-1 : return         (tkeep[leLo]); break;
             default : break;
         }
-        assert(true); std::cout << "Unsupported range.";
+        std::cout << "ASSERT - AxisRaw::getTKeep() - Unsupported range.\n"; assert(false);
         return tkeep;
     }
     // Get the 'tlast' member
@@ -210,8 +210,8 @@ class AxisRaw {
      */
     void setTData(tData data) {
         switch (ARW) {
-            case 64 : tdata = byteSwap64(data);
-            default : assert(true); std::cout << "Unsupported Axis raw width."; break;
+            case 64 : tdata = byteSwap64(data); break;
+            default : std::cout << "ASSERT - AxisRaw::setTData() - Unsupported Axis raw width.\n"; break;
         }
     }
     /* Set the 'tkeep' member from a parameter encoded in Big-Endian (BE) order
@@ -221,8 +221,8 @@ class AxisRaw {
      */
     void setTKeep(tKeep keep) {
         switch (ARW) {
-            case 64 : tkeep = bitSwap8(keep);
-            default : assert(true); std::cout << "Unsupported Axis raw width."; break;
+            case 64 : tkeep = bitSwap8(keep); break;
+            default : std::cout << "ASSERT - AxisRaw::setTKeep() - Unsupported Axis raw width.\n"; break;
         }
     }
     // Set the tlast member
@@ -290,7 +290,7 @@ class AxisRaw {
      *       +----------------------+-------------------+
      */
     tKeepHalf getTKeepHi() const {
-        return getTKeep(ARW/2/8-1, 0);
+        return getTKeep(ARW/8/2-1, 0);
     }
     /* Get lower-half part of member 'tkeep' and return it in BE order
       *       +----------------------+-------------------+
@@ -298,7 +298,7 @@ class AxisRaw {
       *       +----------------------+-------------------+
       */
     tKeepHalf getTKeepLo() const {
-        return getTKeep(ARW/8-1, ARW/2/8);
+        return getTKeep(ARW/8-1, ARW/8/2);
     }
 
     /* Set higher-half part of 'tdata' from a parameter encoded in BE order
@@ -309,8 +309,8 @@ class AxisRaw {
     void setTDataHi(tDataHalf halfData) {
         //OBSOLETE_20210215 tdata.range(31,  0) = swapDWord(data);
         switch (ARW) {
-            case 64 : tdata.range(ARW/2-1, 0) = byteSwap32(halfData);
-            default : assert(true); std::cout << "Unsupported Axis raw width."; break;
+            case 64 : tdata.range(ARW/2-1, 0) = byteSwap32(halfData); break;
+            default : std::cout << "ASSERT - AxisRaw::setTDataHi() - Unsupported Axis raw width.\n"; break;
         }
     }
     /* Set lower-half part of 'tdata' from a parameter encoded in BE order
@@ -321,8 +321,8 @@ class AxisRaw {
     void setTDataLo(tDataHalf halfData) {
         //OBSOLETE_20210215 tdata.range(63, 32) = swapDWord(data);
         switch (ARW) {
-            case 64 : tdata.range(ARW-1, ARW/2) = byteSwap32(halfData);
-            default : assert(true); std::cout << "Unsupported Axis raw width."; break;
+            case 64 : tdata.range(ARW-1, ARW/2) = byteSwap32(halfData); break;
+            default : std::cout << "ASSERT - AxisRaw::setTDataLo() - Unsupported Axis raw width.\n"; break;
         }
     }
     /* Set higher-half part of 'tkeep' from a parameter encoded in BE order
@@ -332,8 +332,8 @@ class AxisRaw {
      */
     void setTKeepHi(tKeepHalf halfKeep) {
         switch (ARW) {
-            case 64 : tkeep(ARW/8/2-1, 0) = bitSwap4(halfKeep);
-            default : assert(true); std::cout << "Unsupported Axis raw width."; break;
+            case 64 : tkeep(ARW/8/2-1, 0) = bitSwap4(halfKeep); break;
+            default : std::cout << "ASSERT - AxisRaw::setTKeepHi() - Unsupported Axis raw width.\n"; break;
         }
     }
     /* Set lower-half part of 'tkeep' from a parameter encoded in BE order
@@ -343,8 +343,8 @@ class AxisRaw {
      */
     void setTKeepLo(tKeepHalf halfKeep) {
         switch (ARW) {
-            case 64 : tkeep(ARW/8-1, ARW/8/2) = bitSwap4(halfKeep);
-            default : assert(true); std::cout << "Unsupported Axis raw width."; break;
+            case 64 : tkeep(ARW/8-1, ARW/8/2) = bitSwap4(halfKeep); break;
+            default : std::cout << "ASSERT - AxisRaw::setTKeepLo() - Unsupported Axis raw width.\n"; break;
         }
     }
 
