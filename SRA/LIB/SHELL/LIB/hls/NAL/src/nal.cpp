@@ -762,8 +762,10 @@ void nal_main(
 #pragma HLS STREAM variable=sStartTclCls_sig depth=4
 #pragma HLS STREAM variable=sNalPortUpdate   depth=8
 
-#pragma HLS STREAM variable=sRoleUdpDataRx_buffer depth=252 //NAL_MAX_FIFO_DEPTS_BYTES/8 (+2)
-#pragma HLS STREAM variable=sRoleUdpMetaRx_buffer depth=32
+//#pragma HLS STREAM variable=sRoleUdpDataRx_buffer depth=252 //NAL_MAX_FIFO_DEPTS_BYTES/8 (+2)
+//#pragma HLS STREAM variable=sRoleUdpMetaRx_buffer depth=32
+#pragma HLS STREAM variable=sRoleUdpDataRx_buffer depth=512 // ~2 * NAL_MAX_FIFO_DEPTS_BYTES/8 (+2)
+#pragma HLS STREAM variable=sRoleUdpMetaRx_buffer depth=64
 
 #pragma HLS STREAM variable=sUoeTxBuffer_Data  depth=252 //NAL_MAX_FIFO_DEPTS_BYTES/8 (+2)
 #pragma HLS STREAM variable=sUoeTxBuffer_Meta  depth=32
