@@ -15,11 +15,6 @@
  *******************************************************************************/
 
 //  *
-//  *                       cloudFPGA
-//  *    =============================================
-//  *     Created: Apr 2019
-//  *     Authors: FAB, WEI, NGL
-//  *
 //  *     Description:
 //  *        This file contains network types and functions that are shared
 //  *        across HLS cores.
@@ -122,7 +117,7 @@ typedef Axis<64>  TcpAppData;
 #include "NTS/nts_types.hpp"
 #include "NTS/nts_config.hpp"
 #include "NTS/nts_utils.hpp"
-#include "NTS/AxisApp.hpp"
+//OBSOLETE_20210216 #include "NTS/AxisApp.hpp"
 #include "NTS/AxisRaw.hpp"
 
 
