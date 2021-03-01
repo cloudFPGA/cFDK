@@ -225,14 +225,14 @@ class AxisRaw {
             default : std::cout << "ASSERT - AxisRaw::setTKeep() - Unsupported Axis raw width.\n"; break;
         }
     }
-    // Set the tlast member
+    // Set the 'tlast' member
     void setTLast(tLast last) {
         tlast = last;
-        if (last) {
+        if (last) {  // [FIXME-Remove and create a 'setTLastAndClear()]
             // Always zero the bytes which have their tkeep-bit cleared.
             // This simplifies the computation of the various checksums and
             // unifies the overall AxisRaw processing and verification.
-            this->clearUnusedBytes();
+            clearUnusedBytes();
         }
     }
 
@@ -376,28 +376,28 @@ class AxisRaw {
     void clearUnusedBytes() {
         for (int i=0, leHi=ARW/8-1, leLo=0; i<ARW/8; i++) {  // ARW/8 = noBytes
             #pragma HLS UNROLL
-            if (this->tkeep[i] == 0) {
-                this->tdata.range(leHi+8*i, leLo+8*i) = 0x00;
+            if (tkeep[i] == 0) {
+                tdata.range(leHi+8*i, leLo+8*i) = 0x00;
             }
         }
     }
     // Get the length of this chunk (in bytes)
     int getLen() const {
-        return this->keepToLen();
+        return keepToLen();
     }
     // Get the length of the higher-half part of this chunk (in bytes)
     int getLenHi() {
-        if (this->keepToLen() > ARW/8/2) {
+        if (keepToLen() > ARW/8/2) {
             return (ARW/8/2);
         }
         else {
-            return this->keepToLen();
+            return keepToLen();
         }
     }
     // Get the length of the lower-half part of this chunk (in bytes)
     int getLenLo() {
-        if (this->keepToLen() > ARW/8/2) {
-             return (this->keepToLen()-ARW/8/2);
+        if (keepToLen() > ARW/8/2) {
+             return (keepToLen()-ARW/8/2);
          }
          else {
              return 0;
@@ -406,8 +406,8 @@ class AxisRaw {
 
     // Assess the consistency of 'tkeep' and 'tlast'
     bool isValid() const {
-        if (((this->tlast == 0) and (this->tkeep != 0xFF)) or
-            ((this->tlast == 1) and (this->keepToLen() == 0))) {
+        if (((tlast == 0) and (tkeep != 0xFF)) or
+            ((tlast == 1) and (keepToLen() == 0))) {
             return false;
         }
         return true;
