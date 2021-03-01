@@ -43,9 +43,8 @@
 
 #include "nts_types.hpp"
 #include "nts_config.hpp"
-//OBSOLETE_20210215 #include "AxisApp.hpp"
 
-using namespace hls;
+//OBSOLETE_20210226 using namespace hls;
 
 /*******************************************************************************
  * INTERFACE - GENERIC TCP & UDP APPLICATION INTERFACE (APP)
@@ -218,7 +217,6 @@ typedef RepBool     TcpAppLsnRep;
 //-- UDP APP - DATA
 //--  The data section of an UDP datagram over an AXI4S I/F.
 //---------------------------------------------------------
-//OBSOLETE_20210215 typedef AxisApp     UdpAppData;
 typedef AxisRaw     UdpAppData;
 #endif
 
@@ -234,6 +232,26 @@ typedef SocketPair  UdpAppMeta;
 //---------------------------------------------------------
 typedef UdpDatLen   UdpAppDLen;
 
+//---------------------------------------------------------
+//-- UDP APP - METADATA
+//--  The meta-data of a UDP connection.
+//--
+//--  [INFO] Do not use struct 'SocketPair' here because
+//--   'DATA_PACK' optimization does not support packing
+//--   structs which contain other structs.
+//---------------------------------------------------------
+class UdpAppMetb {  // [FIXME-Rename class when done]
+  public:
+    Ip4Addr     ip4SrcAddr; // IPv4 source address in NETWORK BYTE ORDER
+    Ly4Port     udpSrcPort; // UDP  source port    in NETWORK BYTE ORDER
+    Ip4Addr     ip4DstAddr; // IPv4 destination address in NETWORK BYTE ORDER
+    Ly4Port     udpDstPort; // UDP  destination port    in NETWORK BYTE ORDER
+    //[FIXME-Add a length member]   UdpDatLen udpDatLen;
+    UdpAppMetb() {}
+    UdpAppMetb(Ip4Addr srcAddr, Ly4Port srcPort, Ip4Addr dstAddr, Ly4Port dstPort) :
+        ip4SrcAddr(srcAddr), udpSrcPort(srcPort), ip4DstAddr(dstAddr), udpDstPort(dstPort) {}
+};
+
 //=========================================================
 //== UAIF / OPEN & CLOSE PORT INTERFACES
 //=========================================================
@@ -242,7 +260,7 @@ typedef UdpDatLen   UdpAppDLen;
 //-- UDP APP - LISTEN REQUEST
 //--  The UDP port to open for listening.
 //---------------------------------------------------------
-typedef UdpPort     UdpAppLsnReq;
+typedef Ly4Port     UdpAppLsnReq;
 
 //---------------------------------------------------------
 //-- UDP APP - LISTEN REPLY
@@ -254,7 +272,7 @@ typedef StsBool     UdpAppLsnRep;
 //-- UDP APP - CLOSE PORT REQUEST
 //--  The listen port to close.
 //--------------------------------------------------------
-typedef UdpPort     UdpAppClsReq; // [FIXME-What about creating a class 'AppLsnReq' with a member 'start/stop']
+typedef Ly4Port     UdpAppClsReq; // [FIXME-What about creating a class 'AppLsnReq' with a member 'start/stop']
 
 //--------------------------------------------------------
 //-- UDP APP - CLOSE PORT REPLY
