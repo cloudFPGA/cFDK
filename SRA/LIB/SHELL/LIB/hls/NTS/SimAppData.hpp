@@ -37,7 +37,7 @@
 
 #include "nts_utils.hpp"
 #include "SimNtsUtils.hpp"
-#include "AxisApp.hpp"
+//OBSOLETE_20210215 #include "AxisApp.hpp"
 
 using namespace std;
 using namespace hls;

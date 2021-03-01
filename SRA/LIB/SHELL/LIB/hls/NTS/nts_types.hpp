@@ -19,7 +19,7 @@
  * @brief   : Definition of the types used by the Network Transport Stack
  *             (NTS) component of the cloudFPGA shell.
  *
- * System:     : cloudFPGA
+ * System:   : cloudFPGA
  * Component : Shell
  * Language  : Vivado HLS
  *
@@ -43,7 +43,7 @@
 
 #include <hls_stream.h>
 
-#include "AxisApp.hpp"   // Application (TCP segment or UDP datagram)
+//OBSOLETE_20210215 #include "AxisApp.hpp"   // Application (TCP segment or UDP datagram)
 #include "AxisEth.hpp"   // ETHernet
 #include "AxisIp4.hpp"   // IPv4
 using namespace hls;
@@ -143,12 +143,6 @@ typedef ap_uint<16> TcpSessId;  // TCP Session ID (alias for SessionId)
  *  - a MESSAGE  (or ARP Packet)   refers to the ARP protocol data unit.
  *******************************************************************************/
 
-//OBSOLETE_20201008 //-- ETHERNET - MAXIMUM TRANSMISSION UNIT
-//OBSOLETE_20201008 static const ap_uint<16> MTU = 1500;
-//OBSOLETE_20201008 //-- ETHERNET - MTU in ZYC2 is 1450 bytes due to the use of VXLAN overlay (1500-20-8-8-6-6-2)
-//OBSOLETE_20201008 //--   [OutIpHdr][OutUdpHdr][VxlanHdr][InMacDa][InMacSa][EtherType]
-//OBSOLETE_20201008 static const ap_uint<16> MTU_ZYC2 = 1450;
-
 //=========================================================
 //== ETHERNET FRAME FIELDS - Constant Definitions
 //=========================================================
@@ -204,18 +198,6 @@ typedef ap_uint<16> LE_Ly4Port; // Layer-4 Port in LE order
 typedef ap_uint<16> LE_Ly4Len;  // Layer-4 Length in LE_order
 typedef ap_uint<16> Ly4Port;    // Layer-4 Port
 typedef ap_uint<16> Ly4Len;     // Layer-4 header plus data Length
-
-//OBSOLETE_20201008 //--------------------------------------------------------
-//OBSOLETE_20201008 //-- TCP - MAXIMUM SEGMENT SIZE (modulo 8 for efficiency)
-//OBSOLETE_20201008 //--------------------------------------------------------
-//OBSOLETE_20201008 static const Ly4Len MY_MSS    = (MTU     -IP4_HEADER_LEN-TCP_HEADER_LEN) & ~0x7; // 1456
-//OBSOLETE_20201008 static const Ly4Len THEIR_MSS = (MTU_ZYC2-IP4_HEADER_LEN-TCP_HEADER_LEN) & ~0x7; // 1410
-//OBSOLETE_20201008 static const Ly4Len ZYC2_MSS  = (MTU_ZYC2-92) & ~0x7; // 1358 & ~0x7 = 1352
-
-//OBSOLETE_20201008 //--------------------------------------------------------
-//OBSOLETE_20201008 //-- UDP - MAXIMUM DATAGRAM SIZE (modulo 8 for efficiency)
-//OBSOLETE_20201008 //--------------------------------------------------------
-//OBSOLETE_20201008 static const Ly4Len UDP_MDS = (MTU_ZYC2-IP4_HEADER_LEN-UDP_HEADER_LEN) & ~0x7;  // 1416
 
 //--------------------------------------------------------
 //-- LAYER-4 - SOCKET ADDRESS
@@ -322,9 +304,6 @@ enum TcpState { CLOSED=0,    SYN_SENT,    SYN_RECEIVED,   ESTABLISHED, \
 //==  Error codes returned by NTS after a send request.
 //=========================================================
 enum TcpAppSndErr { NO_ERROR=0, NO_SPACE, NO_CONNECTION };
-//OBSOLETE_20201105 #define TCP_APP_WR_STS_KO           0
-//OBSOLETE_20201105 #define TCP_APP_WR_STS_NOSPACE      1
-//OBSOLETE_20201105 #define TCP_APP_WR_STS_NOCONNECTION 2
 
 //=========================================================
 //== TCP Application Notification Codes

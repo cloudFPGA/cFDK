@@ -154,6 +154,10 @@ class AxisTcp: public AxisRaw {
     AxisTcp(const AxisTcp &axisTcp) :
         AxisRaw(axisTcp.tdata, axisTcp.tkeep, axisTcp.tlast) {}
 
+    /****************************************************************
+     * TCP HEADER HELPERS
+     ****************************************************************/
+
     // Set the TCP Source Port
     void          setTcpSrcPort(TcpPort port)   {                  tdata.range(15,  0) = swapWord(port);  }
     // Get the TCP Source Port

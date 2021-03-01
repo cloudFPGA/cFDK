@@ -97,6 +97,9 @@
 #ifndef _AXIS_RAW_H_
 #define _AXIS_RAW_H_
 
+#include <cassert>
+#include <iostream>
+
 #include "ap_int.h"
 
 /*******************************************************************************
@@ -118,8 +121,8 @@ template<int D>
 /***********************************************
  * AXIS RAW - DEFINITIONS
  ***********************************************/
-#define AXIS_ROW_WIDTH_AT_10GE  64
-#define ARW                     AXIS_ROW_WIDTH_AT_10GE
+#define AXIS_RAW_WIDTH_AT_10GE  64
+#define ARW                     AXIS_RAW_WIDTH_AT_10GE
 
 #define TLAST       1
 
@@ -159,110 +162,267 @@ class AxisRaw {
     AxisRaw(LE_tData tdata, LE_tKeep tkeep, LE_tLast tlast) :
             tdata(tdata), tkeep(tkeep), tlast(tlast) {}
 
-    // Get the length of this chunk (in bytes)
-    int getLen() {
-        return keepToLen();
-    }
-    // Zero the bytes which have their tkeep-bit cleared
-    void clearUnusedBytes() {
-        for (int i=0, hi=ARW/8-1, lo=0; i<ARW/8; i++) {  // ARW/8 = noBytes
-            #pragma HLS UNROLL
-            if (tkeep[i] == 0) {
-                tdata.range(hi+8*i, lo+8*i) = 0x00;
-            }
-        }
-    }
-
     /******************************************************
      * BIG-ENDIAN SETTERS AND GETTERS
-     *****************************************************/
-    // Set the 'tdata' field with a 'data' encoded in Big-Endian order
+     ******************************************************/
+
+    /* Get a range of the 'tdata' member in Big-Endian (BE) order
+     *       +---------------+---------------+---------------+---------------+
+     * tdata |ARW-1                   (Little-Endian)                       0|
+     *       +---------------+---------------+---------------+---------------+
+     */
+    tData getTData(int leHi=ARW-1, int leLo=0) const {
+        switch (leHi-leLo) {
+            case 64-1 : return byteSwap64(tdata.range(leHi, leLo)); break;
+            case 32-1 : return byteSwap32(tdata.range(leHi, leLo)); break;
+            case 16-1 : return byteSwap16(tdata.range(leHi, leLo)); break;
+            case  8-1 : return           (tdata.range(leHi, leLo)); break;
+            default : break;
+        }
+        std::cout << "ASSERT - AxisRaw::getTData() - Unsupported range.\n"; assert(false);
+        return tdata;
+    }
+    /* Get a range of the 'tkeep' member in Big-Endian (BE) order
+     *       +---------------+---------------+
+     * tkeep |ARW/8-1      (LE)             0|
+     *       +---------------+---------------+
+     */
+    tKeep getTKeep(int leHi=ARW/8-1, int leLo=0) const {
+        switch (leHi-leLo) {
+            case 8-1 : return bitSwap8(tkeep.range(leHi, leLo)); break;
+            case 4-1 : return bitSwap4(tkeep.range(leHi, leLo)); break;
+            case 2-1 : return bitSwap2(tkeep.range(leHi, leLo)); break;
+            case 1-1 : return         (tkeep[leLo]); break;
+            default : break;
+        }
+        std::cout << "ASSERT - AxisRaw::getTKeep() - Unsupported range.\n"; assert(false);
+        return tkeep;
+    }
+    // Get the 'tlast' member
+    tLast getTLast() const {
+        return tlast;
+    }
+
+    /* Set the 'tdata' member from a parameter encoded in Big-Endian (BE) order
+     *       +---------------+---------------+---------------+---------------+
+     * tdata |ARW-1                   (Little-Endian)                       0|
+     *       +---------------+---------------+---------------+---------------+
+     */
     void setTData(tData data) {
-        tdata.range(63,  0) = byteSwap64(data);
+        switch (ARW) {
+            case 64 : tdata = byteSwap64(data); break;
+            default : std::cout << "ASSERT - AxisRaw::setTData() - Unsupported Axis raw width.\n"; break;
+        }
     }
-    // Return the 'tdata' field in Big-Endian order
-    tData getTData() {
-         return byteSwap64(tdata.range(63, 0));
-    }
-    // Set the 'tkeep' field with respect to a 'data' field encoded in Big-Endian order
+    /* Set the 'tkeep' member from a parameter encoded in Big-Endian (BE) order
+     *       +---------------+---------------+
+     * tkeep |ARW/8-1      (LE)             0|
+     *       +---------------+---------------+
+     */
     void setTKeep(tKeep keep) {
-        tkeep = bitSwap8(keep);
+        switch (ARW) {
+            case 64 : tkeep = bitSwap8(keep); break;
+            default : std::cout << "ASSERT - AxisRaw::setTKeep() - Unsupported Axis raw width.\n"; break;
+        }
     }
-    // Get the 'tkeep' field with respect to a 'data' field encoded in Big-Endian order
-    tKeep getTKeep() {
-        return bitSwap8(tkeep);
-    }
-    // Set the tlast field
+    // Set the 'tlast' member
     void setTLast(tLast last) {
         tlast = last;
-        if (last) {
+        if (last) {  // [FIXME-Remove and create a 'setTLastAndClear()]
             // Always zero the bytes which have their tkeep-bit cleared.
             // This simplifies the computation of the various checksums and
             // unifies the overall AxisRaw processing and verification.
-            this->clearUnusedBytes();
+            clearUnusedBytes();
         }
-    }
-    // Get the tlast bit
-    tLast getTLast() {
-        return tlast;
     }
 
     /******************************************************
      * LITTLE-ENDIAN SETTERS AND GETTERS
-     *****************************************************/
-    // Set the 'tdata' field with a 'data' encoded in Little-Endian order
-    void setLE_TData(LE_tData data, int hi=ARW-1, int lo=0) {
-        tdata.range(hi, lo) = data.range(hi-lo, 0);
-    }
+     ******************************************************/
     // Return the 'tdata' field in Little-Endian order
-    LE_tData getLE_TData(int hi=ARW-1, int lo=0) {
-        return tdata.range(hi, lo);
-    }
-    // Set the 'tdata' field with the upper-half part of a 'data' encoded in Little-Endian order (.i.e, data(31,0))
-    void setLE_TDataHi(LE_tData data) {
-        tdata.range(31, 0) = data.range(31, 0);  // [TODO]
-    }
-    // Get the 'tdata' field in Little-Endian order and return its upper-half part (.i.e data(31,0))
-    LE_tDataHalf getLE_TDataHi() {
-        return getLE_TData().range(31, 0);  // [TODO]
-    }
-    // Set the 'tdata' field with the lower-half part of a 'data' encoded in Little-Endian order (.i.e, data(63,32))
-    void setLE_TDataLo(LE_tData data) {
-        tdata.range(63, 32) = data.range(63, 32);  // [TODO]
-    }
-    // Get the 'tdata' field in Little-Endian order and return its lower-half part (.i.e, data(63,32)
-    LE_tDataHalf getLE_TDataLo() {
-        return getLE_TData().range(63, 32);  // [TODO]
-    }
-    // Set the 'tkeep' field with respect to the 'tdata' field encoded in Little-Endian order
-    void setLE_TKeep(LE_tKeep keep, int hi=ARW/8-1, int lo=0) {
-        tkeep.range(hi, lo) = keep;
+    LE_tData getLE_TData(int leHi=ARW-1, int leLo=0) const {
+        return tdata.range(leHi, leLo);
     }
     // Get the 'tkeep' field with respect to the 'tdata' field encoded in Little-Endian order
-    LE_tKeep getLE_TKeep(int hi=ARW/8-1, int lo=0) {
-        return tkeep.range(hi, lo);
+    LE_tKeep getLE_TKeep(int leHi=ARW/8-1, int leLo=0) const {
+        return tkeep.range(leHi, leLo);
+    }
+    // Get the tlast bit
+    LE_tLast getLE_TLast() const {
+        return tlast;
+    }
+    // Set the 'tdata' field with a 'data' encoded in Little-Endian order
+    void setLE_TData(LE_tData data, int leHi=ARW-1, int leLo=0) {
+        tdata.range(leHi, leLo) = data.range(leHi-leLo, 0);
+    }
+    // Set the 'tkeep' field with respect to the 'tdata' field encoded in Little-Endian order
+    void setLE_TKeep(LE_tKeep keep, int leHi=ARW/8-1, int leLo=0) {
+        tkeep.range(leHi, leLo) = keep;
     }
     // Set the tlast field
     void setLE_TLast(LE_tLast last) {
         tlast = last;
     }
-    // Get the tlast bit
-    LE_tLast getLE_TLast() {
-        return tlast;
+
+    /******************************************************
+     * BIG-ENDIAN HELPERS
+     ******************************************************/
+
+    /* Get higher-half part of member 'tdata' and return it in BE order
+     *       +---------------+---------------+---------------+---------------+
+     * tdata |ARW-1     Lower-Half         (LE)        Higher-Half          0|
+     *       +---------------+---------------+---------------+---------------+
+     */
+    tDataHalf getTDataHi() const {
+        return getTData(ARW/2-1, 0);
+    }
+    /* Get lower-half part of member 'tdata' and return it in BE order
+     *       +---------------+---------------+---------------+---------------+
+     * tdata |ARW-1     Lower-Half         (LE)        Higher-Half          0|
+     *       +---------------+---------------+---------------+---------------+
+     */
+    tDataHalf getTDataLo() const {
+        return getTData(ARW-1, ARW/2);
+    }
+    /* Get higher-half part of member 'tkeep' and return it in BE order
+     *       +----------------------+-------------------+
+     * tkeep |ARW/8-1  Lower-Half  (LE)   Higher-Half  0|
+     *       +----------------------+-------------------+
+     */
+    tKeepHalf getTKeepHi() const {
+        return getTKeep(ARW/8/2-1, 0);
+    }
+    /* Get lower-half part of member 'tkeep' and return it in BE order
+      *       +----------------------+-------------------+
+      * tkeep |ARW/8-1  Lower-Half  (LE)   Higher-Half  0|
+      *       +----------------------+-------------------+
+      */
+    tKeepHalf getTKeepLo() const {
+        return getTKeep(ARW/8-1, ARW/8/2);
     }
 
+    /* Set higher-half part of 'tdata' from a parameter encoded in BE order
+     *       +---------------+---------------+---------------+---------------+
+     * tdata |ARW-1     Lower-Half         (LE)        Higher-Half          0|
+     *       +---------------+---------------+---------------+---------------+
+     */
+    void setTDataHi(tDataHalf halfData) {
+        //OBSOLETE_20210215 tdata.range(31,  0) = swapDWord(data);
+        switch (ARW) {
+            case 64 : tdata.range(ARW/2-1, 0) = byteSwap32(halfData); break;
+            default : std::cout << "ASSERT - AxisRaw::setTDataHi() - Unsupported Axis raw width.\n"; break;
+        }
+    }
+    /* Set lower-half part of 'tdata' from a parameter encoded in BE order
+     *       +---------------+---------------+---------------+---------------+
+     * tdata |ARW-1     Lower-Half         (LE)        Higher-Half          0|
+     *       +---------------+---------------+---------------+---------------+
+     */
+    void setTDataLo(tDataHalf halfData) {
+        //OBSOLETE_20210215 tdata.range(63, 32) = swapDWord(data);
+        switch (ARW) {
+            case 64 : tdata.range(ARW-1, ARW/2) = byteSwap32(halfData); break;
+            default : std::cout << "ASSERT - AxisRaw::setTDataLo() - Unsupported Axis raw width.\n"; break;
+        }
+    }
+    /* Set higher-half part of 'tkeep' from a parameter encoded in BE order
+     *       +----------------------+-------------------+
+     * tkeep |ARW/8-1  Lower-Half  (LE)   Higher-Half  0|
+     *       +----------------------+-------------------+
+     */
+    void setTKeepHi(tKeepHalf halfKeep) {
+        switch (ARW) {
+            case 64 : tkeep(ARW/8/2-1, 0) = bitSwap4(halfKeep); break;
+            default : std::cout << "ASSERT - AxisRaw::setTKeepHi() - Unsupported Axis raw width.\n"; break;
+        }
+    }
+    /* Set lower-half part of 'tkeep' from a parameter encoded in BE order
+     *       +----------------------+-------------------+
+     * tkeep |ARW/8-1  Lower-Half  (LE)   Higher-Half  0|
+     *       +----------------------+-------------------+
+     */
+    void setTKeepLo(tKeepHalf halfKeep) {
+        switch (ARW) {
+            case 64 : tkeep(ARW/8-1, ARW/8/2) = bitSwap4(halfKeep); break;
+            default : std::cout << "ASSERT - AxisRaw::setTKeepLo() - Unsupported Axis raw width.\n"; break;
+        }
+    }
+
+    /******************************************************
+     * LITTLE-ENDIAN HELPERS
+     ******************************************************/
+    // Get the 'tdata' field in Little-Endian order and return its upper-half part (.i.e data(31,0))
+    LE_tDataHalf getLE_TDataHi() const {
+        return getLE_TData().range(31, 0);  // [TODO]
+    }
+    // Get the 'tdata' field in Little-Endian order and return its lower-half part (.i.e, data(63,32)
+    LE_tDataHalf getLE_TDataLo() const {
+        return getLE_TData().range(63, 32);  // [TODO]
+    }
+
+    // Set the 'tdata' field with the upper-half part of a 'data' encoded in Little-Endian order (.i.e, data(31,0))
+    void setLE_TDataHi(LE_tData data) {
+        tdata.range(31, 0) = data.range(31, 0);  // [TODO]
+    }
+    // Set the 'tdata' field with the lower-half part of a 'data' encoded in Little-Endian order (.i.e, data(63,32))
+    void setLE_TDataLo(LE_tData data) {
+        tdata.range(63, 32) = data.range(63, 32);  // [TODO]
+    }
+
+    /******************************************************
+     * MORE HELPER METHODS
+     ******************************************************/
+    // Zero the bytes which have their tkeep-bit cleared
+    void clearUnusedBytes() {
+        for (int i=0, leHi=ARW/8-1, leLo=0; i<ARW/8; i++) {  // ARW/8 = noBytes
+            #pragma HLS UNROLL
+            if (tkeep[i] == 0) {
+                tdata.range(leHi+8*i, leLo+8*i) = 0x00;
+            }
+        }
+    }
+    // Get the length of this chunk (in bytes)
+    int getLen() const {
+        return keepToLen();
+    }
+    // Get the length of the higher-half part of this chunk (in bytes)
+    int getLenHi() {
+        if (keepToLen() > ARW/8/2) {
+            return (ARW/8/2);
+        }
+        else {
+            return keepToLen();
+        }
+    }
+    // Get the length of the lower-half part of this chunk (in bytes)
+    int getLenLo() {
+        if (keepToLen() > ARW/8/2) {
+             return (keepToLen()-ARW/8/2);
+         }
+         else {
+             return 0;
+         }
+     }
+
     // Assess the consistency of 'tkeep' and 'tlast'
-    bool isValid() {
-        if (((this->tlast == 0) and (this->tkeep != 0xFF)) or
-            ((this->tlast == 1) and (this->keepToLen() == 0))) {
+    bool isValid() const {
+        if (((tlast == 0) and (tkeep != 0xFF)) or
+            ((tlast == 1) and (keepToLen() == 0))) {
             return false;
         }
         return true;
     }
+    // Overload = operator to direct assignment from an AxisRaw
+    // AxisApp& operator= (const AxisRaw& _axisRaw) {
+    //       this->tdata = _axisRaw.getLE_TData();
+    //       this->tkeep = _axisRaw.getLE_TKeep();
+    //       this->tlast = _axisRaw.getLE_TLast();
+    //       return *this;
+    // }
 
   protected:
     // Return the number of valid bytes
-    int keepToLen() {
+    int keepToLen() const {
         switch(this->tkeep){
             case 0x01: return 1; break;
             case 0x03: return 2; break;
@@ -277,25 +437,29 @@ class AxisRaw {
     }
 
   private:
+    // Reverse the bits within a pair.
+    ap_uint<2> bitSwap2(ap_uint<2> inputVector) const {
+        return (inputVector.range(0,1));
+    }
     // Reverse the bits within a nibble.
-    ap_uint<4> bitSwap4(ap_uint<4> inputVector) {
+    ap_uint<4> bitSwap4(ap_uint<4> inputVector) const {
         return (inputVector.range(0,3));
     }
     // Reverse the bits within a byte.
-    ap_uint<8> bitSwap8(ap_uint<8> inputVector) {
+    ap_uint<8> bitSwap8(ap_uint<8> inputVector) const {
         return (inputVector.range(0,7));
     }
     // Swap the two bytes of a word (.i.e, 16 bits).
-    ap_uint<16> byteSwap16(ap_uint<16> inputVector) {
+    ap_uint<16> byteSwap16(ap_uint<16> inputVector) const {
         return (inputVector.range(7,0), inputVector(15, 8));
     }
     // Swap the four bytes of a double-word (.i.e, 32 bits).
-    ap_uint<32> byteSwap32(ap_uint<32> inpDWord) {
+    ap_uint<32> byteSwap32(ap_uint<32> inpDWord) const {
         return (inpDWord.range( 7, 0), inpDWord.range(15,  8),
                 inpDWord.range(23,16), inpDWord.range(31, 24));
     }
     // Swap the eight bytes of a quad-word (.i.e, 64 bits).
-    ap_uint<64> byteSwap64(ap_uint<64> inpQWord) {
+    ap_uint<64> byteSwap64(ap_uint<64> inpQWord) const {
         return (inpQWord.range( 7, 0), inpQWord(15,  8),
                 inpQWord.range(23,16), inpQWord(31, 24),
                 inpQWord.range(39,32), inpQWord(47, 40),

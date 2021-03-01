@@ -1203,7 +1203,6 @@ void pTxDatagramHandler(
                 if (tdh_currChunk.getTLast()) {
                     tdh_currChunk.clearUnusedBytes();
                     soUha_Data.write(tdh_currChunk);
-                    //OBSOLETE if (tdh_currChunk.getLE_TKeep(7, 4) == 0) {
                     if (tdh_currChunk.getTKeepLo() == 0) {
                         // Done. Payload <= 4 bytes fits into current pseudo-pkt
                         tdh_fsmState = FSM_TDH_PSD_PKT1;

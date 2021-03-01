@@ -151,9 +151,10 @@ class AxisEth: public AxisRaw {
     AxisEth(const AxisEth &axisEth) :
       AxisRaw(axisEth.tdata, axisEth.tkeep, axisEth.tlast) {}
 
-    //-----------------------------------------------------
-    //-- ETHERNET FRAME HEADER - Setters and Getters
-    //-----------------------------------------------------
+    /****************************************************************
+     * ETHERNET FRAME HEADER HELPERS
+     ****************************************************************/
+
     // Set the ETH Destination Address
     void               setEthDstAddr(EthAddr addr)       {                    tdata.range(47,  0) = swapMacAddr(addr); }
     // Get the ETH Destination Address
@@ -227,6 +228,7 @@ class AxisEth: public AxisRaw {
     //-----------------------------------------------------
     //-- ENCAPSULATED IP4 PACKET - Setters and Getters
     //-----------------------------------------------------
+
     // Set-Get the IP4 Version
     void              setIp4Version(Ip4Version ver)      {                 tdata.range(55, 52) = ver;                  }
     Ip4Version        getIp4Version()                    {          return tdata.range(55, 52);                        }

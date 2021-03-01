@@ -103,7 +103,6 @@
 typedef ap_uint< 8> Psd4Res;           // Pseudo-Header Reserved Bits
 //typedef ap_uint<16> Psd4Len;           // Pseudo-Header UDP datagram or TCP segment Length
 
-
 /******************************************************************************
  * PSD4 - PSEUDO-IPv4 Packet over AXI4-STREAMING
  *  As Encoded by the 10GbE MAC (.i.e LITTLE-ENDIAN order).
@@ -120,61 +119,9 @@ class AxisPsd4: public AxisRaw {
         AxisRaw(axisPsd4.tdata, axisPsd4.tkeep, axisPsd4.tlast) {}
 
     /****************************************************************
-     * AXIS_PSD4 - BIG-ENDIAN HELPERS (specific to PSEUDO-PACKETS)
+     * TCP/IPv4 PSEUDO HEADER HELPERS
      ****************************************************************/
 
-    /* Set higher-half part of the 'tdata' field with a data encoded in BE order
-     *        +---------------+---------------+---------------+---------------+
-     * LITTLE |63        Lower-Half         32|31       Higher-Half          0|
-     *        +---------------+---------------+---------------+---------------+
-     */
-    void setTDataHi(tDataHalf data) {
-        tdata.range(31,  0) = swapDWord(data);
-    }
-    /* Get higher-half part of the 'tdata' field and return it in BE order
-     *        +---------------+---------------+---------------+---------------+
-     * LITTLE |63        Lower-Half         32|31       Higher-Half          0|
-     *       +---------------+---------------+---------------+---------------+
-     */
-    tDataHalf getTDataHi() {
-        return swapDWord(tdata.range(31, 0));
-    }
-    /* Set lower-half part of the 'tdata' field with a data encoded in BE order
-     *        +---------------+---------------+---------------+---------------+
-     * LITTLE |63        Lower-Half         32|31       Higher-Half          0|
-     *        +---------------+---------------+---------------+---------------+
-     */
-    void setTDataLo(tDataHalf data) {
-        tdata.range(63, 32) = swapDWord(data);
-    }
-    /* Get lower-half part of the 'tdata' field and return it in BE order
-     *        +---------------+---------------+---------------+---------------+
-     * LITTLE |63        Lower-Half         32|31       Higher-Half          0|
-     *        +---------------+---------------+---------------+---------------+
-     */
-    tDataHalf getTDataLo() {
-        return swapDWord(tdata.range(63,32));
-    }
-    // Set higher-half part of the 'tkeep' field with a data encoded in BE order
-    void setTKeepHi(tKeepHalf keep) {
-        tkeep(3,0) = swapNibble(keep);
-    }
-    // Get higher-half part of the 'tkeep' field and return it in BE order
-    tKeepHalf getTKeepHi() {
-        return swapNibble(tkeep.range(3,0));
-    }
-    // Set lower-half part of the 'tkeep' field with a data encoded in BE order
-    void setTKeepLo(tKeepHalf keep) {
-        tkeep(7,4) = swapNibble(keep);
-    }
-    // Get lower-half part of the 'tkeep' field and return it in BE order
-    tKeepHalf getTKeepLo() {
-        return swapNibble(tkeep.range(7,4));
-    }
-
-    //-----------------------------------------------------
-    //-- PSD4 - PSEUDO-IP4 PACKET - Setters and Getters
-    //-----------------------------------------------------
     // Set-Get the PSD4 Source Address
     void        setPsd4SrcAddr(Ip4Addr addr)    {                  tdata.range(31,  0) = swapDWord(addr); }
     Ip4Addr     getPsd4SrcAddr()                { return swapDWord(tdata.range(31,  0));                  }
@@ -269,27 +216,10 @@ class AxisPsd4: public AxisRaw {
     void        setUdpCsum(UdpCsum csum)        {                  tdata.range(31, 16) = swapWord(csum);  }
     TcpChecksum getUdpCsum()                    { return swapWord (tdata.range(31, 16));                  }
 
-    // Set the 'tdata' field with a 'data' encoded in Big-Endian order
-    //void        setUdpData(UdpData data)        {        AxisRaw::setTData(data);                         }
-    // Return the 'tdata' field in Big-Endian order
-    //UdpData     getUdpData()                    { return AxisRaw::getTData();                             }
-    // Set the higher-half part of the UDP data chunk (.i.e, tdata(31,0))
-    //void        setUdpDataHi(UdpDataHi data)    {        AxisRaw::setTDataHi(data);                       }
-    // Get the higher-half part of the UDP data chunk (.i.e, tdata(31, 0))
-    //UdpDataHi   getUdpDataHi()                  {        AxisRaw::getTDataHi();                           }
-    // Set the lower-half part of the UDP data chunk (.i.e, tdata(63,32))
-    //void        setUdpDataLo(UdpDataLo data)    {        AxisRaw::setTDataLo(data);                       }
-    // Get the lower-half part of the UDP data chunk (.i.e, tdata(63,32))
-    //UdpDataLo   getUdpDataLo()                  {        AxisRaw::getTDataHi();                           }
-
   private:
     // Reverse the bits within a nibble.
     ap_uint<4> swapNibble(ap_uint<4> nibble) {
         return (nibble.range(0,3));
-    }
-    // Reverse the bits within a byte.
-    ap_uint<8> swapByte(ap_uint<8> byte) {
-        return (byte.range(0,7));
     }
     // Swap the two bytes of a word (.i.e, 16 bits)
     ap_uint<16> swapWord(ap_uint<16> inpWord) {

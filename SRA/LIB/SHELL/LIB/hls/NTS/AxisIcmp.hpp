@@ -119,6 +119,10 @@ class AxisIcmp: public AxisRaw {
     AxisIcmp(const AxisIcmp &axisIcmp) :
         AxisRaw(axisIcmp.tdata, axisIcmp.tkeep, axisIcmp.tlast) {}
 
+    /****************************************************************
+     * ICMP MESSAGE HEADER HELPERS
+     ****************************************************************/
+
     // Set-Get the message Type field
     void          setIcmpType(IcmpType type)         {                    tdata.range( 7,  0) = type;            }
     IcmpType      getIcmpType()                      {             return tdata.range( 7,  0);                   }
