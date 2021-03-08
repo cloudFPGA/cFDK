@@ -295,7 +295,6 @@ void pTcpRRh(
         siTOE_Notif.read(notif_pRrh);
         if (notif_pRrh.tcpDatLen != 0)
         {
-
           //waiting_length = 0;
           already_waiting = sessionLength.lookup(notif_pRrh.sessionID, waiting_length);
           rrhFsmState = RRH_PROCESS_NOTIF;
@@ -594,7 +593,6 @@ void pTcpRDp(
     stream<NodeId>              &sGetNidRep_TcpRx,
     stream<SessionId>           &sGetTripleFromSid_Req,
     stream<NalTriple>           &sGetTripleFromSid_Rep,
-    //stream<SessionId>         &sMarkAsPriv,
     ap_uint<32>                 *piMMIO_CfrmIp4Addr,
     ap_uint<16>                 *piMMIO_FmcLsnPort,
     ap_uint<1>                  *layer_7_enabled,
@@ -633,7 +631,7 @@ void pTcpRDp(
 
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
   static SessionId session_toFMC = 0;
-  static NetworkMetaStream in_meta_tcp = NetworkMetaStream(); //ATTENTION: don't forget to initialize...
+  static NetworkMetaStream in_meta_tcp = NetworkMetaStream();
   static bool first_word_written = false;
   static TcpAppData first_word = TcpAppData();
   static NodeId src_id = INVALID_MRT_VALUE;
@@ -706,13 +704,9 @@ void pTcpRDp(
         break;
       }
       else if (!sRDp_ReqNotif.empty()
-          //!siTOE_SessId.empty()
-          //&& !sGetNidReq_TcpRx.full() 
-          && !sGetTripleFromSid_Req.full() 
-          //&& !sMarkAsPriv.full()
+          && !sGetTripleFromSid_Req.full()
           )
       {
-        //siTOE_SessId.read(sessId);
         TcpAppRdReq new_req = sRDp_ReqNotif.read();
         sessId = new_req.sessionID;
         current_length = new_req.length;
@@ -754,7 +748,6 @@ void pTcpRDp(
           cached_tcp_rx_triple = triple_in;
           rdpFsmState = RDP_FILTER_META;
         }
-        //rdpFsmState = RDP_W8FORREQS_2;
       }
       break;
 
@@ -776,9 +769,8 @@ void pTcpRDp(
       {
         rdpFsmState = RDP_RESET;
       }
-      else if(//!sMarkAsPriv.full() && 
-          !siTOE_SessId.empty()
-          && !soTcp_meta.full() && !soFMC_SessId.full()
+      else if(!siTOE_SessId.empty()
+              && !soTcp_meta.full() && !soFMC_SessId.full()
           )
       {
         TcpAppMeta controll_id = siTOE_SessId.read();
@@ -822,9 +814,6 @@ void pTcpRDp(
           } else {
             new_ev_not = NalEventNotif(UNAUTH_ACCESS, 1);
             evsStreams[1].write_nb(new_ev_not);
-            //We won't miss this one
-            //update: we aren't since every event has it's own "slot"
-            //evsStreams[1].write(new_ev_not);
             printf("unauthorized access to FMC!\n");
             rdpFsmState = RDP_DROP_PACKET;
             printf("NRC drops the packet...\n");
@@ -1223,13 +1212,12 @@ void pTcpWRp(
         break;
       }
       else if (!siFMC_SessId.empty()
-          && !soTOE_SessId.full() //&& !soTOE_len.full() 
+          && !soTOE_SessId.full()
           )
       {
         //FMC must come first
         tcpSessId = (AppMeta) siFMC_SessId.read();
         soTOE_SessId.write(tcpSessId);
-        //soTOE_len.write(0); //always streaming mode
         streaming_mode = true;
         tcpTX_current_packet_length = 0;
         //delete the session id, we don't need it any longer
@@ -1245,9 +1233,7 @@ void pTcpWRp(
         break;
       }
       else if (!siTcp_meta.empty()
-          //&& !soTOE_SessId.full()
           && !sGetIpReq_TcpTx.full()
-          //&& !soTOE_len.full() 
           )
       {
         //now ask the ROLE

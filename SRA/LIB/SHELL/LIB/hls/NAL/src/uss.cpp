@@ -125,13 +125,10 @@ void pUdpTX(
 
         // Send out the first data together with the metadata and payload length information
 
-        //UdpMeta txMeta = {{DEFAULT_TX_PORT, *myIpAddress}, {DEFAULT_TX_PORT, txIPmetaReg.ipAddress}};
         dst_rank = udp_meta_in.tdata.dst_rank;
         if(dst_rank > MAX_CF_NODE_ID)
         {
-          //node_id_missmatch_TX_cnt++;
           new_ev_not = NalEventNotif(NID_MISS_TX, 1);
-          //internal_event_fifo.write_nb(new_ev_not);
           evsStreams[0].write_nb(new_ev_not);
           //SINK packet
           fsmStateTX_Udp = FSM_DROP_PACKET;
@@ -147,9 +144,7 @@ void pUdpTX(
         if (dst_port == 0)
         {
           dst_port = DEFAULT_RX_PORT;
-          //port_corrections_TX_cnt++;
           new_ev_not = NalEventNotif(PCOR_TX, 1);
-          //internal_event_fifo.write_nb(new_ev_not);
           evsStreams[3].write_nb(new_ev_not);
         }
 
@@ -164,8 +159,6 @@ void pUdpTX(
           printf("used UDP TX id cache\n");
         } else {
 
-          //ap_uint<32> dst_ip_addr = localMRT[dst_rank];
-          //ap_uint<32> dst_ip_addr = getIpFromRank(dst_rank);
           sGetIpReq_UdpTx.write(dst_rank);
           fsmStateTX_Udp = FSM_W8FORREQS;
           //break;
@@ -191,18 +184,10 @@ void pUdpTX(
       {
         if(dst_ip_addr == 0)
         {
-          //node_id_missmatch_TX_cnt++;
           new_ev_not = NalEventNotif(NID_MISS_TX, 1);
-          //internal_event_fifo.write_nb(new_ev_not);
           evsStreams[1].write_nb(new_ev_not);
           //SINK packet
           fsmStateTX_Udp = FSM_DROP_PACKET;
-          //            if (first_word.getTLast() == 1)
-          //            {
-          //              fsmStateTX_Udp = FSM_W8FORMETA;
-          //            } else {
-          //              fsmStateTX_Udp = FSM_DROP_PACKET;
-          //            }
           break;
         }
         new_ev_not = NalEventNotif(LAST_TX_NID, dst_rank);
@@ -404,10 +389,9 @@ void pUdpLsn(
       }
       break;
 
-    case LSN_SEND_REQ: //we arrive here only if need_tcp_port_req == true
+    case LSN_SEND_REQ:
       if ( !soUOE_LsnReq.full() && !sUdpPortsToOpen.empty())
       {
-        //ap_uint<16> new_absolute_port = NAL_RX_MIN_PORT + *new_relative_port_to_req_udp;
         new_absolute_port = sUdpPortsToOpen.read();
         soUOE_LsnReq.write(new_absolute_port);
         if (DEBUG_LEVEL & TRACE_LSN) {
@@ -545,7 +529,6 @@ void pUdpRx(
         }
         break;
       } else if ( !siUOE_Meta.empty()
-          //&& !soUdp_data.full() && !soUdp_meta.full()
           && !sGetNidReq_UdpRx.full())
       {
         //extract src ip address
@@ -563,7 +546,6 @@ void pUdpRx(
           src_id = cached_udp_rx_id;
           fsmStateRX_Udp = FSM_FIRST_ACC;
         } else {
-          //src_id = getNodeIdFromIpAddress(udpRxMeta.src.addr);
           sGetNidReq_UdpRx.write(udpRxMeta.src.addr);
           fsmStateRX_Udp = FSM_W8FORREQS;
           //break;
@@ -583,8 +565,7 @@ void pUdpRx(
       break;
 
     case FSM_FIRST_ACC:
-      if( //!siUOE_Data.empty() && !soUdp_data.full() &&
-          !soUdp_meta.full())
+      if( !soUdp_meta.full() )
       {
         if(src_id == ((NodeId) INVALID_MRT_VALUE))
         {
@@ -621,7 +602,6 @@ void pUdpRx(
       if ( !siUOE_Data.empty() && !soUdp_data.full() )
       {
         // Forward data chunk to ROLE
-        //UdpAppData    udpWord = siUOE_Data.read();
         NetworkWord    udpWord = siUOE_Data.read();
         soUdp_data.write(udpWord);
         // Until LAST bit is set
@@ -770,8 +750,6 @@ void pUdpCls(
       if(!sUdpPortsToClose.empty() && !soUOE_ClsReq.full() )
       {
         //we have to close opened ports, one after another
-        //newRelativePortToClose = getRightmostBitPos(*udp_rx_ports_to_close);
-        //newAbsolutePortToClose = NAL_RX_MIN_PORT + newRelativePortToClose;
         newAbsolutePortToClose = sUdpPortsToClose.read();
         soUOE_ClsReq.write(newAbsolutePortToClose);
         clsFsmState_Udp = CLS_WAIT4RESP;
@@ -785,10 +763,6 @@ void pUdpCls(
         if (not isOpened)
         {
           printInfo(myName, "Received close acknowledgment from [UOE].\n");
-          //update ports to close
-          //ap_uint<32> one_cold_closed_port = ~(((ap_uint<32>) 1) << (newRelativePortToClose));
-          //*udp_rx_ports_to_close &= one_cold_closed_port;
-          //printf("new UDP port ports to close: %#04x\n",(unsigned int) *udp_rx_ports_to_close);
         }
         else {
           printWarn(myName, "UOE denied closing the port %d (0x%4.4X) which is still opened.\n",

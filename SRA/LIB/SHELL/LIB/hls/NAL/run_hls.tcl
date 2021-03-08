@@ -80,7 +80,7 @@ add_files     ${srcDir}/../../NTS/nts_types.hpp
 add_files     ${srcDir}/../../NTS/nts_utils.hpp
 add_files     ${srcDir}/../../NTS/nts_utils.cpp
 add_files     ${srcDir}/../../NTS/AxisRaw.hpp
-add_files     ${srcDir}/../../NTS/AxisApp.hpp
+#add_files     ${srcDir}/../../NTS/AxisApp.hpp
 add_files     ${srcDir}/../../NTS/SimNtsUtils.hpp
 add_files     ${srcDir}/../../NTS/SimNtsUtils.cpp
 

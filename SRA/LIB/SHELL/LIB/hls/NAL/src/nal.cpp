@@ -383,16 +383,15 @@ void pStatusMemory(
         old_status[status_update_i] = status[status_update_i];
         //printf("[INFO] Internal Event Processing detected status change on address %d with new value %d\n", \
         //       (int) su.status_addr, (int) su.new_value);
-        //}
-        //one at a time is enough
+      }
+      //one at a time is enough
     }
     status_update_i++;
     if(status_update_i >= NUMBER_STATUS_WORDS)
     {
       status_update_i = 0;
     }
-  }
-} // else
+  } // else
 
 }
 
@@ -762,8 +761,8 @@ void nal_main(
 #pragma HLS STREAM variable=sStartTclCls_sig depth=4
 #pragma HLS STREAM variable=sNalPortUpdate   depth=8
 
-//#pragma HLS STREAM variable=sRoleUdpDataRx_buffer depth=252 //NAL_MAX_FIFO_DEPTS_BYTES/8 (+2)
-//#pragma HLS STREAM variable=sRoleUdpMetaRx_buffer depth=32
+  //#pragma HLS STREAM variable=sRoleUdpDataRx_buffer depth=252 //NAL_MAX_FIFO_DEPTS_BYTES/8 (+2)
+  //#pragma HLS STREAM variable=sRoleUdpMetaRx_buffer depth=32
 #pragma HLS STREAM variable=sRoleUdpDataRx_buffer depth=512 // ~2 * NAL_MAX_FIFO_DEPTS_BYTES/8 (+2)
 #pragma HLS STREAM variable=sRoleUdpMetaRx_buffer depth=64
 

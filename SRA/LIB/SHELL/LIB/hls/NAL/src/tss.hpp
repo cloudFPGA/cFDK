@@ -90,7 +90,6 @@ void pTcpRDp(
     stream<NodeId>            &sGetNidRep_TcpRx,
     stream<SessionId>         &sGetTripleFromSid_Req,
     stream<NalTriple>         &sGetTripleFromSid_Rep,
-    //stream<SessionId>       &sMarkAsPriv,
     ap_uint<32>               *piMMIO_CfrmIp4Addr,
     ap_uint<16>               *piMMIO_FmcLsnPort,
     ap_uint<1>                *layer_7_enabled,
