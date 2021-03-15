@@ -408,46 +408,6 @@ if { ${create} } {
 
   if { $forceWithoutBB } {
 
-
-    set MdlHdlFile ${rootDir}/cFDK/SRA/LIB/MIDLW/${cFpSRAtype}/Middleware.vhdl
-    # we don't know, if this Shell has a Middleware?
-    if { [ file exists ${MdlHdlFile} ] && ${midlwActive} } {
-      # Add HDL Source Files for the MIDDLEWARE and turn VHDL-2008 mode on
-      #---------------------------------------------------------------------------
-      add_files  ${MdlHdlFile}
-      set_property file_type {VHDL 2008} [ get_files  ${MdlHdlFile} ]
-      update_compile_order -fileset sources_1
-      my_dbg_trace "Finished adding the  HDL files of the MIDDLEWARE." ${dbgLvl_1}
-
-      #setting IP and HLS folder
-      #ipDirMidlw comes from xpr_settings!!
-      #general LIB  folder
-      set hlsDirMidlw ${rootDir}/cFDK/SRA/LIB/MIDLW/LIB/hls/
-      set_property ip_repo_paths [ concat [ get_property ip_repo_paths [current_project] ] \
-      ${ipDirMidlw} ${hlsDirMidlw} ] [current_project]
-
-      #SRA specific dir
-      set hlsDirMidlw ${rootDir}/cFDK/SRA/LIB/MIDLW/${cFpSRAtype}/hls/
-      set_property ip_repo_paths [ concat [ get_property ip_repo_paths [current_project] ] \
-      ${ipDirMidlw} ${hlsDirMidlw} ] [current_project]
-
-
-      # Add *ALL* the User-based IPs (i.e. VIVADO- as well HLS-based) needed for the MIDDLEWARE. 
-      #---------------------------------------------------------------------------
-      set ipList [ glob -nocomplain ${ipDirMidlw}/ip_user_files/ip/* ]
-      if { $ipList ne "" } {
-        foreach ip $ipList {
-          set ipName [file tail ${ip} ]
-          add_files ${ipDirMidlw}/${ipName}/${ipName}.xci
-          my_dbg_trace "Done with add_files for MIDDLEWARE: ${ipDir}/${ipName}/${ipName}.xci" 2
-        }
-      }
-
-      update_ip_catalog
-      my_dbg_trace "Done with update_ip_catalog for the MIDDLEWARE" ${dbgLvl_1}
-    }
-
-
     # Add HDL Source Files for the ROLE and turn VHDL-2008 mode on
     #---------------------------------------------------------------------------
     add_files  ${usedRoleDir}/hdl/
@@ -678,16 +638,6 @@ if { ${link} } {
 
   set_property SCOPED_TO_CELLS {ROLE} [get_files ${roleDcpFile} ]
 
-  if { $midlwActive } {
-    #TODO: select multiple middlewares
-    set mdlwDcpFile ${rootDir}/cFDK/SRA/LIB/MIDLW/${cFpSRAtype}/MIDLW_${cFpSRAtype}_OOC.dcp
-    add_files ${mdlwDcpFile}
-    update_compile_order -fileset sources_1
-    my_dbg_trace "Added dcp of MIDDLEWARE ${mdlwDcpFile}." ${dbgLvl_1}
-
-    set_property SCOPED_TO_CELLS {MIDLW} [get_files ${mdlwDcpFile} ]
-  }
-
   open_run synth_1 -name synth_1
   # Link the two dcps together
   #link_design -mode default -reconfig_partitions {ROLE}  -top ${topName} -part ${xilPartName} 
@@ -717,15 +667,6 @@ if { ${link} } {
     my_puts "################################################################################"
     my_puts "## ADDED Partial Reconfiguration Constraint File: ${prConstrFile}; PBLOCK CREATED;"
     my_puts "################################################################################"
-
-    if { $midlwActive } { 
-      set mdlwPrConstrFile "${xdcDir}/topFMKU60_midlw_pr.xdc"
-      add_files -fileset ${constrObj} ${mdlwPrConstrFile} 
-    
-      my_puts "################################################################################"
-      my_puts "## ADDED Partial Reconfiguration Constraint File: ${mdlwPrConstrFile}; PBLOCK CREATED;"
-      my_puts "################################################################################"
-    }
 
     write_checkpoint -force ${dcpDir}/1_${topName}_linked_pr.dcp
   } else {
@@ -835,12 +776,7 @@ if { ${impl1} || ( $forceWithoutBB && $impl1 ) } {
       # now, black box 
       update_design -cell ROLE -black_box
 
-      #TODO right now, we support only one MIDLW...so better not
-      #if { $midlwActive } { 
-      #  update_design -cell MIDLW -black_box
-      #}
-      
-      lock_design -level routing 
+      lock_design -level routing
       
       write_checkpoint -force ${dcpDir}/3_${topName}_STATIC.dcp
       

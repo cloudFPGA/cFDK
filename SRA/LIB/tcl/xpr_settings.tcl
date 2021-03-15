@@ -61,19 +61,6 @@ set dcpDir       ${cFpDcpDir}
 # Not used: set ipXprFile    [file join ${ipXprDir} ${ipXprName}.xpr ]
 
 #-------------------------------------------------------------------------------
-# MIDDLEWARE Settings
-#-------------------------------------------------------------------------------
-
-if { [info exists ::env(cFpMidlwIpDir)] } {
-  set midlwActive 1
-  set ipDirMidlw $env(cFpMidlwIpDir)
-  my_info_puts "Middleware flow activated"
-  set usedMidlwType "MIDLW_${cFpSRAtype}"
-} else {
-  set midlwActive 0
-}
-
-#-------------------------------------------------------------------------------
 # Xilinx Project Settings
 #-------------------------------------------------------------------------------
 set xprName      "top${cFpMOD}"

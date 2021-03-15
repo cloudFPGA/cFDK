@@ -40,10 +40,6 @@ CLEAN_TYPES = *.log *.jou *.str
 
 VEIRFY_RETVAL=47
 
-ifdef cFpMidlwIpDir
-MIDLW_DIR=$(cFpRootDir)/cFDK/SRA/LIB/MIDLW/$(cFpSRAtype)/
-endif
-
 .PHONY: all clean full_src full_src_pr pr_verify full_src_pr_all monolithic monolithic_incr save_mono_incr 
 .PHONY: finalcmd incrcmd onlycmd basecmd monobasecmd monofinalcmd
 .PHONY: full_src_pr_only full_src_pr_2_only   monolithic_incr_debug monolithic_debug debugcmd full_src_pr_debug full_src_pr_all_debug
@@ -172,17 +168,6 @@ $(XPR_PROJ): $(MOD_DIR)/xdc ../hdl $(cFpIpDir) $(SHELL_DIR)/Shell.v | $(cFpDcpDi
 $(cFpDcpDir)/0_$(TOP_NAME)_static_without_role.dcp: $(MOD_DIR)/xdc ../hdl $(cFpIpDir) $(SHELL_DIR)/Shell.v | $(XPR_PROJ)
 	@/bin/echo "-synth \\" >> .vivado_basecmd.sh
 	rm -f $@
-
-# treating Middleware, better avoid PHONY target...
-ifdef cFpMidlwIpDir
-$(cFpDcpDir)/1_$(TOP_NAME)_linked_pr.dcp: $(cFpDcpDir)/0_$(TOP_NAME)_static_without_role.dcp $(ROLE_DIR_1)/*.dcp $(MIDLW_DIR)/*.dcp
-	@/bin/echo "-link  -pr \\" >> .vivado_basecmd.sh
-	rm -f $@
-else
-$(cFpDcpDir)/1_$(TOP_NAME)_linked_pr.dcp: $(cFpDcpDir)/0_$(TOP_NAME)_static_without_role.dcp $(ROLE_DIR_1)/*.dcp
-	@/bin/echo "-link  -pr \\" >> .vivado_basecmd.sh
-	rm -f $@
-endif
 
 $(cFpDcpDir)/2_$(TOP_NAME)_impl_$(roleName1)_complete_pr.dcp: $(cFpDcpDir)/1_$(TOP_NAME)_linked_pr.dcp $(ROLE_DIR_1)/*.dcp $(cFpDcpDir)/0_$(TOP_NAME)_static_without_role.dcp
 	@/bin/echo "-impl  -pr \\" >> .vivado_basecmd.sh
