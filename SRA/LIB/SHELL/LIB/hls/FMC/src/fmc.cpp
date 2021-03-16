@@ -818,7 +818,8 @@ void fmc(
         tcpModeEnabled = 0;
         flag_continuous_tcp_rx = 0;
         if(reset_from_psoc == 1)
-        { 
+        {
+          printf("[FMC] reset from PSOC!\n");
           tcp_iteration_count = 0;
           //tcp_rx_blocked_by_processing = false;
           writeErrCnt = 0;

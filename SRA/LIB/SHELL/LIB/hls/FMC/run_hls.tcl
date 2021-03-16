@@ -19,11 +19,11 @@
 # *----------------------------------------------------------------------------
 # * Created : Jun 2018
 # * Authors : Burkhard Ringlein
-# * 
+# *
 # * Description : A Tcl script for the HLS batch syhthesis of the FMC core
 # *   used by the SHELL of a cloudFPGA module.
 # *   project.
-# * 
+# *
 # ******************************************************************************
 
 # User defined settings
@@ -40,34 +40,20 @@ set ipLibrary      "hls"
 set ipVersion      "1.0"
 set ipPkgFormat    "ip_catalog"
 
-# Set Project Environment Variables  
+# Set Project Environment Variables
 #-------------------------------------------------
 set currDir      [pwd]
 set srcDir       ${currDir}/src
 set tbDir        ${currDir}/tb
-#set implDir      ${currDir}/${projectName}_prj/${solutionName}/impl/ip 
+#set implDir      ${currDir}/${projectName}_prj/${solutionName}/impl/ip
 #set repoDir      ${currDir}/../../ip
 
 
-# Get targets out of env  
+# Get targets out of env
 #-------------------------------------------------
 
 set hlsSim $env(hlsSim)
 set hlsCoSim $env(hlsCoSim)
-
-# MIDDLEWARE Settings
-#-------------------------------------------------------------------------------
-# We can't rely on xpr_settings here, because 1. it's not always present for the HLS 
-# cores (i.e. run_hls.tcl) and 2. there may be xpr_settings versions without the middleware flow
-
-if { [info exists ::env(cFpMidlwIpDir)] } {
-  set midlwActive 1
-  puts "\tcF::INFO Middleware flow activated"
-} else {
-  set midlwActive 0
-}
-
-
 
 # Open and Setup Project
 #-------------------------------------------------
@@ -75,28 +61,16 @@ open_project  ${projectName}_prj
 set_top       ${projectName}
 
 
-if { $midlwActive } { 
-  add_files     ${srcDir}/${projectName}.cpp -cflags "-DCOSIM -DMIDLW_PRESENT"
-  add_files     ${srcDir}/${projectName}.hpp -cflags "-DCOSIM -DMIDLW_PRESENT"
-  if { $hlsCoSim} {
-    #to disable multi core simulation
-    add_files -tb tb/tb_fmc.cpp -cflags "-DMIDLW_PRESENT -DCOSIM"
-  } else {
-    add_files -tb tb/tb_fmc.cpp -cflags "-DMIDLW_PRESENT"
-  }
-} else { 
-  add_files     ${srcDir}/${projectName}.cpp -cflags "-DCOSIM"
-  add_files     ${srcDir}/${projectName}.hpp -cflags "-DCOSIM"
-  if { $hlsCoSim} {
-    #to disable asserts etc.
-    add_files -tb tb/tb_fmc.cpp -cflags "-DCOSIM"
-  } else {
-    add_files -tb tb/tb_fmc.cpp
-  }
-} 
-# in al cases cases
+add_files     ${srcDir}/${projectName}.cpp -cflags "-DCOSIM"
+add_files     ${srcDir}/${projectName}.hpp -cflags "-DCOSIM"
 add_files     ${srcDir}/http.cpp -cflags "-DCOSIM"
 add_files     ${srcDir}/http.hpp -cflags "-DCOSIM"
+if { $hlsCoSim} {
+  #to disable asserts etc.
+  add_files -tb tb/tb_fmc.cpp -cflags "-DCOSIM"
+} else {
+  add_files -tb tb/tb_fmc.cpp
+}
 
 
 open_solution ${solutionName}
@@ -107,24 +81,24 @@ create_clock -period 6.4 -name default
 # Run C Simulation and Synthesis
 #-------------------------------------------------
 
-if { $hlsSim} { 
+if { $hlsSim} {
   csim_design -compiler gcc -clean
   #csim_design -compiler clang -clean
 } else {
 
   #config_rtl -reset all -reset_async -reset_level low #seems to be ignored, due to the presence of AXI interfaces...
   csynth_design
-  
+
   if { $hlsCoSim} {
     #cosim_design -compiler gcc -trace_level all -rtl vhdl
-    #cosim_design -compiler clang -trace_level all 
-    cosim_design -compiler gcc -trace_level all 
-  } else {
-  
+    #cosim_design -compiler clang -trace_level all
+    cosim_design -compiler gcc -trace_level all
+} else {
+
   # Export RTL
   #-------------------------------------------------
-    export_design -rtl vhdl -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
-  }
+  export_design -rtl vhdl -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+}
 }
 
 exit
