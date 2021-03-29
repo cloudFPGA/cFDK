@@ -87,21 +87,27 @@ set_property CONFIG_MODE BPI16 [current_design]
 
 
 
-#OBSOLETE-20180418 set_property CLKFBOUT_MULT_F 2 [get_cells SHELL/MEM/MC0/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst]
-#OBSOLETE-20180418 set_property CLKFBOUT_MULT_F 2 [get_cells SHELL/MEM/MC1/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst]
 
 
 
-#---------------------------------------------------------------------
-# Define Specific Physical Blocks (PBLOCK) for the Memory Channels
-#---------------------------------------------------------------------
-#OBSOLETE-20180419 create_pblock pblock_MC0
-#OBSOLETE-20180419 add_cells_to_pblock [get_pblocks pblock_MC0] [get_cells -quiet [list SHELL/inst/MEM/MC0]]
-#OBSOLETE-20180419 resize_pblock [get_pblocks pblock_MC0] -add {CLOCKREGION_X1Y0:CLOCKREGION_X2Y2}
 
-#OBSOLETE-20180419 create_pblock pblock_MC1
-#OBSOLETE-20180419 add_cells_to_pblock [get_pblocks pblock_MC1] [get_cells -quiet [list SHELL/inst/MEM/MC1]]
-#OBSOLETE-20180419 resize_pblock [get_pblocks pblock_MC1] -add {CLOCKREGION_X3Y2:CLOCKREGION_X4Y4}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
