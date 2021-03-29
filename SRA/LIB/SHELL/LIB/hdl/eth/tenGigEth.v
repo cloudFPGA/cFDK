@@ -260,9 +260,9 @@ module TenGigEth (
   //  INST: AXI-LITE/DRPCLK Clock Generator
   //==========================================================================
   TenGigEth_AxiLiteClk ALCG (
-    .clk_in                          (piTOP_156_25Clk),
-    .s_axi_aclk                      (sALCG_DrpClk),
-    .tx_mmcm_locked                  (sALCG_DcmLocked)
+    .piClk                           (piTOP_156_25Clk),
+    .poAxiAclk                       (sALCG_DrpClk),
+    .poMmcmLocked                    (sALCG_DcmLocked)
   );
 
 

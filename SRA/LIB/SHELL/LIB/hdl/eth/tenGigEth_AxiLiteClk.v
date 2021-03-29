@@ -69,45 +69,125 @@
 module TenGigEth_AxiLiteClk
   (
    // Inputs
-   input clk_in,
-   //OBSOLETE-20171129 input tx_mmcm_reset,
-
+   input piClk,
    // Clock outputs
-   output s_axi_aclk,
-
+   output poAxiAclk,
    // Status outputs
-   output tx_mmcm_locked);
+   output poMmcmLocked
+   );
 
   // Signal declarations
-  wire s_axi_dcm_aclk0;
+  wire sClkOut0;
   wire clkfbout;
   
   wire clkin1;
 
-  assign clkin1 = clk_in;
+  assign clkin1 = piClk;
 
+  //==
+  //== Frequency Synthesis Parameters according to UG472/UG572
+  //==   The input clock is 156.25MHz (CLKIN1)
+  //==   The Voltage Controlled Oscillator (VCO) operating frequency is determined by:
+  //==     F_vco = F_clkin * M / (D * O)
+  //==   We need to generate an output clock of 125MHz (CLKOUT0).
+  //==   The ratio is 156.25/125 = 5/4, so we select M=4, D=5 and O=1, where
+  //==     - M corresponds to CLKFBOUT_MULT_F,
+  //==     - D corresponds to DIVCLK_DIVIDE,
+  //==     - O corresponds to CLKOUT_DIVIDE.
+  //==
+    MMCME3_BASE #(
+      .BANDWIDTH("OPTIMIZED"),    // Jitter programming (HIGH, LOW, OPTIMIZED)
+      .CLKFBOUT_MULT_F    (4.0),  // Multiply value for all CLKOUT (2.000-64.000)
+      .CLKFBOUT_PHASE     (0.0),  // Phase offset in degrees of CLKFB (-360.000-360.000)
+      .CLKIN1_PERIOD      (6.4),  // Input clock period (F_clkin) in ns units, ps resolution (i.e. 33.333 is 30 MHz).
+      .CLKOUT0_DIVIDE_F   (1.0),  // Divide amount (D) for CLKOUT0 (1.000-128.000)
+      // CLKOUT0_DUTY_CYCLE - CLKOUT6_DUTY_CYCLE: Duty cycle for each CLKOUT (0.001-0.999).
+      .CLKOUT0_DUTY_CYCLE (0.5),
+      .CLKOUT1_DUTY_CYCLE (0.5),
+      .CLKOUT2_DUTY_CYCLE (0.5),
+      .CLKOUT3_DUTY_CYCLE (0.5),
+      .CLKOUT4_DUTY_CYCLE (0.5),
+      .CLKOUT5_DUTY_CYCLE (0.5),
+      .CLKOUT6_DUTY_CYCLE (0.5),
+      // CLKOUT0_PHASE - CLKOUT6_PHASE: Phase offset for each CLKOUT (-360.000-360.000).
+      .CLKOUT0_PHASE      (0.0),
+      .CLKOUT1_PHASE      (0.0),
+      .CLKOUT2_PHASE      (0.0),
+      .CLKOUT3_PHASE      (0.0),
+      .CLKOUT4_PHASE      (0.0),
+      .CLKOUT5_PHASE      (0.0),
+      .CLKOUT6_PHASE      (0.0),
+      // CLKOUT1_DIVIDE - CLKOUT6_DIVIDE: Divide amount (O) for each CLKOUT (1-128)
+      .CLKOUT1_DIVIDE     (1),
+      .CLKOUT2_DIVIDE     (1),
+      .CLKOUT3_DIVIDE     (1),
+      .CLKOUT4_DIVIDE     (1),
+      .CLKOUT5_DIVIDE     (1),
+      .CLKOUT6_DIVIDE     (1),
+      .CLKOUT4_CASCADE    ("FALSE"),  // Cascade CLKOUT4 counter with CLKOUT6 (FALSE, TRUE)
+      .DIVCLK_DIVIDE      (5),    // Master (D) division value (1-106)
+      // Programmable Inversion Attributes: Specifies built-in programmable inversion on specific pins
+      .IS_CLKFBIN_INVERTED(1'b0), // Optional inversion for CLKFBIN
+      .IS_CLKIN1_INVERTED (1'b0), // Optional inversion for CLKIN1
+      .IS_PWRDWN_INVERTED (1'b0), // Optional inversion for PWRDWN
+      .IS_RST_INVERTED    (1'b0), // Optional inversion for RST
+      .REF_JITTER1        (0.0),  // Reference input jitter in UI (0.000-0.999)
+      .STARTUP_WAIT       ("FALSE") // Delays DONE until MMCM is locked (FALSE, TRUE)
+   )
+   MMCME3_BASE_inst (
+      // Clock Outputs outputs: User configurable clock outputs
+      .CLKOUT0(CLKOUT0),     // 1-bit output: CLKOUT0
+      .CLKOUT0B(CLKOUT0B),   // 1-bit output: Inverted CLKOUT0
+      .CLKOUT1(CLKOUT1),     // 1-bit output: CLKOUT1
+      .CLKOUT1B(CLKOUT1B),   // 1-bit output: Inverted CLKOUT1
+      .CLKOUT2(CLKOUT2),     // 1-bit output: CLKOUT2
+      .CLKOUT2B(CLKOUT2B),   // 1-bit output: Inverted CLKOUT2
+      .CLKOUT3(CLKOUT3),     // 1-bit output: CLKOUT3
+      .CLKOUT3B(CLKOUT3B),   // 1-bit output: Inverted CLKOUT3
+      .CLKOUT4(CLKOUT4),     // 1-bit output: CLKOUT4
+      .CLKOUT5(CLKOUT5),     // 1-bit output: CLKOUT5
+      .CLKOUT6(CLKOUT6),     // 1-bit output: CLKOUT6
+      // Feedback outputs: Clock feedback ports
+      .CLKFBOUT(CLKFBOUT),   // 1-bit output: Feedback clock
+      .CLKFBOUTB(CLKFBOUTB), // 1-bit output: Inverted CLKFBOUT
+      // Status Ports outputs: MMCM status ports
+      .LOCKED(LOCKED),       // 1-bit output: LOCK
+      // Clock Inputs inputs: Clock input
+      .CLKIN1(CLKIN1),       // 1-bit input: Clock
+      // Control Ports inputs: MMCM control ports
+      .PWRDWN(PWRDWN),       // 1-bit input: Power-down
+      .RST(RST),             // 1-bit input: Reset
+      // Feedback inputs: Clock feedback ports
+      .CLKFBIN(CLKFBIN)      // 1-bit input: Feedback clock
+   );
+
+   BUFG poAxiAclk_bufg0 (
+     .I(sClkOut0),
+     .O(poAxiAclk));
+  
+  /*** DEPRECATED AFTER VIVADO_2017.4 *********************
   MMCME2_BASE #(
-    .DIVCLK_DIVIDE        (1),
-    .CLKFBOUT_MULT_F      (3),
-    .CLKIN1_PERIOD        (3.333),
+    .DIVCLK_DIVIDE        (5),       // D
+    .CLKFBOUT_MULT_F      (4),       // M                      //OBSOLETE_20210328 (3),
+    .CLKIN1_PERIOD        (6.400),   // F-clkin = 156.25MHz    //OBSOLETE_20210328 (3.333),
     .CLKFBOUT_PHASE       (0.000),
     .CLKOUT0_DIVIDE_F     (8.000),
     .CLKOUT0_PHASE        (0.000),
     .CLKOUT0_DUTY_CYCLE   (0.5),
-    .CLKOUT1_DIVIDE       (8.000),  //125MHz
+    .CLKOUT1_DIVIDE       (8.000),   // 125MHz
     .CLKOUT1_PHASE        (0.000),
     .CLKOUT1_DUTY_CYCLE   (0.5),
     .REF_JITTER1          (0.050)
   ) tx_mmcm 
     // Output clocks
    (.CLKFBOUT            (clkfbout),
-    .CLKOUT0             (s_axi_dcm_aclk0),
+    .CLKOUT0             (sClkOut0),
     .CLKOUT1             (),
      // Input clock control
     .CLKFBIN             (clkfbout),
     .CLKIN1              (clkin1),
     // Other control and status signals
-    .LOCKED              (tx_mmcm_locked),
+    .LOCKED              (poMmcmLocked),
     .PWRDWN              (1'b0),
     //OBSOLETE-20171129  .RST                 (tx_mmcm_reset),
     .RST                 (1'b0),
@@ -121,9 +201,6 @@ module TenGigEth_AxiLiteClk
     .CLKOUT4             (),
     .CLKOUT5             (),
     .CLKOUT6             ());
-
-   BUFG s_axi_aclk_bufg0 (
-     .I(s_axi_dcm_aclk0),
-     .O(s_axi_aclk));
+    *******************************************************/
 
 endmodule
