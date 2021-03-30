@@ -674,9 +674,9 @@ module Shell_Kale # (
     //-- ROLE : Status input and Control Outputs
     //----------------------------------------------
     //---- [PHY_RESET] -------------
-    .poSHL_ResetLayer               (sMMIO_LayerRst),
+    .poSHL_ResetLayer               (sMMIO_META_Rst),
     //---- [PHY_ENABLE] ------------
-    .poSHL_EnableLayer              (sMMIO_LayerEn),
+    .poSHL_EnableLayer              (sMMIO_META_En),
     //---- DIAG_CTRL_1 -------------
     .poROLE_Mc1_MemTestCtrl         (poROL_Mmio_Mc1_MemTestCtrl),
     //---- DIAG_STAT_1 -------------
