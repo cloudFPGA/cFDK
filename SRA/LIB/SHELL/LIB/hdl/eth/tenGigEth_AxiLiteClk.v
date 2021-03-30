@@ -71,13 +71,13 @@ module TenGigEth_AxiLiteClk
    // Inputs
    input piClk,
    // Clock outputs
-   output poAxiAclk,
+   output poEthAxiLiteClk,
    // Status outputs
    output poMmcmLocked
    );
 
   // Signal declarations
-  wire sClkOut0;
+  wire sEthAxiLiteClk;
   wire sClkIn1;
   wire sClkFb;
   
@@ -135,7 +135,7 @@ module TenGigEth_AxiLiteClk
    )
    MMCME3_BASE_inst (
       // Clock Outputs outputs: User configurable clock outputs
-      .CLKOUT0            (sClkOut0),  // 1-bit output: CLKOUT0
+      .CLKOUT0            (sEthAxiLiteClk),  // 1-bit output: CLKOUT0
       .CLKOUT0B           (),  // 1-bit output: Inverted CLKOUT0
       .CLKOUT1            (),  // 1-bit output: CLKOUT1
       .CLKOUT1B           (),  // 1-bit output: Inverted CLKOUT1
@@ -160,9 +160,9 @@ module TenGigEth_AxiLiteClk
       .CLKFBIN             (sClkFb)   // 1-bit input: Feedback clock
    );
 
-   BUFG poAxiAclk_bufg0 (
-     .I(sClkOut0),
-     .O(poAxiAclk));
+   BUFG poAxiLiteClk_bufg0 (
+     .I(sEthAxiLiteClk),
+     .O(poEthAxiLiteClk));
   
   /*** DEPRECATED AFTER VIVADO_2017.4 *********************
   MMCME2_BASE #(
@@ -180,7 +180,7 @@ module TenGigEth_AxiLiteClk
   ) tx_mmcm 
     // Output clocks
    (.CLKFBOUT            (sClkFb),
-    .CLKOUT0             (sClkOut0),
+    .CLKOUT0             (sEthAxiLiteClk),
     .CLKOUT1             (),
      // Input clock control
     .CLKFBIN             (sClkFb),
