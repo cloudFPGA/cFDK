@@ -726,7 +726,7 @@ module Shell_Kale # (
    )
    HARD_SYNC_RST_2 (
       .DIN  (sMMIO_META_Rst[2]),
-      .CLK  (sETH0_ShlClkCLK),
+      .CLK  (sETH0_ShlClk),
       .DOUT (sMETA_LayerRst[2])
    );
    HARD_SYNC #(
@@ -736,7 +736,7 @@ module Shell_Kale # (
    )
    HARD_SYNC_RST_3 (
       .DIN  (sMMIO_META_Rst[3]),
-      .CLK  (sETH0_ShlClkCLK),
+      .CLK  (sETH0_ShlClk),
       .DOUT (sMETA_LayerRst[3])
    );
    HARD_SYNC #(
@@ -746,7 +746,7 @@ module Shell_Kale # (
    )
    HARD_SYNC_RST_4 (
       .DIN  (sMMIO_META_Rst[4]),
-      .CLK  (sETH0_ShlClkCLK),
+      .CLK  (sETH0_ShlClk),
       .DOUT (sMETA_LayerRst[4])
    );
       HARD_SYNC #(
@@ -756,7 +756,7 @@ module Shell_Kale # (
    )
    HARD_SYNC_RST_7 (
       .DIN  (sMMIO_META_Rst[7]),
-      .CLK  (sETH0_ShlClkCLK),
+      .CLK  (sETH0_ShlClk),
       .DOUT (sMETA_LayerRst[7])
    );
    
@@ -767,7 +767,7 @@ module Shell_Kale # (
    )
    HARD_SYNC_EN_2 (
       .DIN  (sMMIO_META_En[2]),
-      .CLK  (sETH0_ShlClkCLK),
+      .CLK  (sETH0_ShlClk),
       .DOUT (sMETA_LayerEn[2])
    );
    HARD_SYNC #(
@@ -777,7 +777,7 @@ module Shell_Kale # (
    )
    HARD_SYNC_EN_3 (
       .DIN  (sMMIO_META_En[3]),
-      .CLK  (sETH0_ShlClkCLK),
+      .CLK  (sETH0_ShlClk),
       .DOUT (sMETA_LayerEn[3])
    );
    HARD_SYNC #(
@@ -787,7 +787,7 @@ module Shell_Kale # (
    )
    HARD_SYNC_EN_4 (
       .DIN  (sMMIO_META_En[4]),
-      .CLK  (sETH0_ShlClkCLK),
+      .CLK  (sETH0_ShlClk),
       .DOUT (sMETA_LayerEn[4])
    );
       HARD_SYNC #(
@@ -797,7 +797,7 @@ module Shell_Kale # (
    )
    HARD_SYNC_EN_7 (
       .DIN  (sMMIO_META_En[7]),
-      .CLK  (sETH0_ShlClkCLK),
+      .CLK  (sETH0_ShlClk),
       .DOUT (sMETA_LayerEn[7])
    );
 
