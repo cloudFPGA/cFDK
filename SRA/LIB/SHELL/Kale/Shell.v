@@ -724,37 +724,40 @@ module Shell_Kale # (
       .IS_CLK_INVERTED(1'b0), // Programmable inversion on CLK input
       .LATENCY(2)             // 2-3
    )
-   HARD_SYNC_RST_2 (
+   SW_RESET_LY2 (
       .DIN  (sMMIO_META_Rst[2]),
       .CLK  (sETH0_ShlClk),
       .DOUT (sMETA_LayerRst[2])
    );
+   
    HARD_SYNC #(
       .INIT(1'b0),            // Initial values, 1'b0, 1'b1
       .IS_CLK_INVERTED(1'b0), // Programmable inversion on CLK input
       .LATENCY(2)             // 2-3
    )
-   HARD_SYNC_RST_3 (
+   SW_RESET_LY3 (
       .DIN  (sMMIO_META_Rst[3]),
       .CLK  (sETH0_ShlClk),
       .DOUT (sMETA_LayerRst[3])
    );
+   
    HARD_SYNC #(
       .INIT(1'b0),            // Initial values, 1'b0, 1'b1
       .IS_CLK_INVERTED(1'b0), // Programmable inversion on CLK input
       .LATENCY(2)             // 2-3
    )
-   HARD_SYNC_RST_4 (
+   SW_RESET_LY4 (
       .DIN  (sMMIO_META_Rst[4]),
       .CLK  (sETH0_ShlClk),
       .DOUT (sMETA_LayerRst[4])
    );
-      HARD_SYNC #(
+   
+   HARD_SYNC #(
       .INIT(1'b0),            // Initial values, 1'b0, 1'b1
       .IS_CLK_INVERTED(1'b0), // Programmable inversion on CLK input
       .LATENCY(2)             // 2-3
    )
-   HARD_SYNC_RST_7 (
+   SW_RESET_LY7 (
       .DIN  (sMMIO_META_Rst[7]),
       .CLK  (sETH0_ShlClk),
       .DOUT (sMETA_LayerRst[7])
@@ -765,37 +768,40 @@ module Shell_Kale # (
       .IS_CLK_INVERTED(1'b0), // Programmable inversion on CLK input
       .LATENCY(2)             // 2-3
    )
-   HARD_SYNC_EN_2 (
+   SW_ENABLE_LY2 (
       .DIN  (sMMIO_META_En[2]),
       .CLK  (sETH0_ShlClk),
       .DOUT (sMETA_LayerEn[2])
    );
+   
    HARD_SYNC #(
       .INIT(1'b0),            // Initial values, 1'b0, 1'b1
       .IS_CLK_INVERTED(1'b0), // Programmable inversion on CLK input
       .LATENCY(2)             // 2-3
    )
-   HARD_SYNC_EN_3 (
+   SW_ENABLE_LY3 (
       .DIN  (sMMIO_META_En[3]),
       .CLK  (sETH0_ShlClk),
       .DOUT (sMETA_LayerEn[3])
    );
+   
    HARD_SYNC #(
       .INIT(1'b0),            // Initial values, 1'b0, 1'b1
       .IS_CLK_INVERTED(1'b0), // Programmable inversion on CLK input
       .LATENCY(2)             // 2-3
    )
-   HARD_SYNC_EN_4 (
+   SW_ENABLE_LY4 (
       .DIN  (sMMIO_META_En[4]),
       .CLK  (sETH0_ShlClk),
       .DOUT (sMETA_LayerEn[4])
    );
-      HARD_SYNC #(
+    
+   HARD_SYNC #(
       .INIT(1'b0),            // Initial values, 1'b0, 1'b1
       .IS_CLK_INVERTED(1'b0), // Programmable inversion on CLK input
       .LATENCY(2)             // 2-3
    )
-   HARD_SYNC_EN_7 (
+   SW_ENABLE_LY7 (
       .DIN  (sMMIO_META_En[7]),
       .CLK  (sETH0_ShlClk),
       .DOUT (sMETA_LayerEn[7])
@@ -1576,7 +1582,7 @@ module Shell_Kale # (
     .INIT             (1'b0), // Initial values, 1'b0, 1'b1
     .IS_CLK_INVERTED  (1'b0), // Programmable inversion on CLK input
     .LATENCY          (3)     // 2-3
-  ) META_RST (
+  ) HW_RESET (
     .CLK  (sETH0_ShlClk),                             // 1-bit input:  Clock
     .DIN  (piTOP_156_25Rst | ~sETH0_CoreResetDone),   // 1-bit input:  Data
     .DOUT (sETH0_ShlRst)                              // 1-bit output: Data
