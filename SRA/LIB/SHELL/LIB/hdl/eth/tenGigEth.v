@@ -261,7 +261,7 @@ module TenGigEth (
   //==========================================================================
   TenGigEth_AxiLiteClk ALCG (
     .piClk                           (piTOP_156_25Clk),
-    .poAxiAclk                       (sALCG_DrpClk),
+    .poEthAxiLiteClk                 (sALCG_DrpClk),
     .poMmcmLocked                    (sALCG_DcmLocked)
   );
 
