@@ -203,7 +203,7 @@ typedef ap_uint<16> Ly4Len;     // Layer-4 header plus data Length
 //-- LAYER-4 - SOCKET ADDRESS
 //--------------------------------------------------------
 class SockAddr {  // Socket Address stored in NETWORK BYTE ORDER
-   public:
+  public:
     Ip4Addr        addr;   // IPv4 address in NETWORK BYTE ORDER
     Ly4Port        port;   // Layer-4 port in NETWORK BYTE ORDER
     SockAddr() {}
