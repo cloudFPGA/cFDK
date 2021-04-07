@@ -173,9 +173,7 @@ module MemoryChannel_DualPort #(
   output  [0:0]   poDDR4_Cs_n,
   output  [0:0]   poDDR4_Ck_n,
   output  [0:0]   poDDR4_Ck_p,
-  output          poDDR4_Reset_n,
- 
-  output          poVoid
+  output          poDDR4_Reset_n
 
 );  // End of PortList
 

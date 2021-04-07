@@ -272,9 +272,7 @@ module NetworkTransportStack_TcpIp (
   input  [ 31:0] piMMIO_SubNetMask,
   input  [ 31:0] piMMIO_GatewayAddr,
   output         poMMIO_CamReady,
-  output         poMMIO_NtsReady,
-  
-  output         poVoid
+  output         poMMIO_NtsReady
   
 ); // End of PortList
 

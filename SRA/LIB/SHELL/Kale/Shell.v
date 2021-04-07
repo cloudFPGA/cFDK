@@ -369,9 +369,12 @@ module Shell_Kale # (
   wire          sETH0_ShlRst;
   wire          sETH0_CoreResetDone;
   
-   //-- SoftReset & SoftEnable Signals ---------------------
-   wire  [ 7:0]  sMMIO_LayerRst;
-   wire  [ 7:0]  sMMIO_LayerEn;  
+   //-- Async SoftReset & SoftEnable Signals --------------
+   wire  [ 7:0]  sMMIO_META_Rst;
+   wire  [ 7:0]  sMMIO_META_En;
+   //-- Sync  SoftReset & SoftEnable Signals --------------
+   wire  [ 7:0]  sMETA_LayerRst;
+   wire  [ 7:0]  sMETA_LayerEn;
 
   //--------------------------------------------------------
   //-- SIGNAL DECLARATIONS : ETH[0] <--> NTS[0] 
@@ -626,7 +629,7 @@ module Shell_Kale # (
     //-- Global Clock & Reset Inputs
     //----------------------------------------------
     .piSHL_Clk                      (sETH0_ShlClk),
-    .piTOP_Rst                      (piTOP_156_25Rst),
+    .piTOP_Rst                      (sETH0_ShlRst),  // OBSOLETE_20210330 (piTOP_156_25Rst),
     //----------------------------------------------
     //-- Bitstream Identification
     //----------------------------------------------
@@ -671,9 +674,9 @@ module Shell_Kale # (
     //-- ROLE : Status input and Control Outputs
     //----------------------------------------------
     //---- [PHY_RESET] -------------
-    .poSHL_ResetLayer               (sMMIO_LayerRst),
+    .poSHL_ResetLayer               (sMMIO_META_Rst),
     //---- [PHY_ENABLE] ------------
-    .poSHL_EnableLayer              (sMMIO_LayerEn),
+    .poSHL_EnableLayer              (sMMIO_META_En),
     //---- DIAG_CTRL_1 -------------
     .poROLE_Mc1_MemTestCtrl         (poROL_Mmio_Mc1_MemTestCtrl),
     //---- DIAG_STAT_1 -------------
@@ -713,6 +716,96 @@ module Shell_Kale # (
     .piXXX_XMemAddr                ()     // [TODO - Not yet used by this SHELL]
   );  // End of MMIO
 
+   //============================================================================
+   // HARD_SYNC: A Set of Metastability Hardened Registers for Reset and Enable
+   //============================================================================
+   HARD_SYNC #(
+      .INIT(1'b0),            // Initial values, 1'b0, 1'b1
+      .IS_CLK_INVERTED(1'b0), // Programmable inversion on CLK input
+      .LATENCY(2)             // 2-3
+   )
+   SW_RESET_LY2 (
+      .DIN  (sMMIO_META_Rst[2]),
+      .CLK  (sETH0_ShlClk),
+      .DOUT (sMETA_LayerRst[2])
+   );
+   
+   HARD_SYNC #(
+      .INIT(1'b0),            // Initial values, 1'b0, 1'b1
+      .IS_CLK_INVERTED(1'b0), // Programmable inversion on CLK input
+      .LATENCY(2)             // 2-3
+   )
+   SW_RESET_LY3 (
+      .DIN  (sMMIO_META_Rst[3]),
+      .CLK  (sETH0_ShlClk),
+      .DOUT (sMETA_LayerRst[3])
+   );
+   
+   HARD_SYNC #(
+      .INIT(1'b0),            // Initial values, 1'b0, 1'b1
+      .IS_CLK_INVERTED(1'b0), // Programmable inversion on CLK input
+      .LATENCY(2)             // 2-3
+   )
+   SW_RESET_LY4 (
+      .DIN  (sMMIO_META_Rst[4]),
+      .CLK  (sETH0_ShlClk),
+      .DOUT (sMETA_LayerRst[4])
+   );
+   
+   HARD_SYNC #(
+      .INIT(1'b0),            // Initial values, 1'b0, 1'b1
+      .IS_CLK_INVERTED(1'b0), // Programmable inversion on CLK input
+      .LATENCY(2)             // 2-3
+   )
+   SW_RESET_LY7 (
+      .DIN  (sMMIO_META_Rst[7]),
+      .CLK  (sETH0_ShlClk),
+      .DOUT (sMETA_LayerRst[7])
+   );
+   
+   HARD_SYNC #(
+      .INIT(1'b0),            // Initial values, 1'b0, 1'b1
+      .IS_CLK_INVERTED(1'b0), // Programmable inversion on CLK input
+      .LATENCY(2)             // 2-3
+   )
+   SW_ENABLE_LY2 (
+      .DIN  (sMMIO_META_En[2]),
+      .CLK  (sETH0_ShlClk),
+      .DOUT (sMETA_LayerEn[2])
+   );
+   
+   HARD_SYNC #(
+      .INIT(1'b0),            // Initial values, 1'b0, 1'b1
+      .IS_CLK_INVERTED(1'b0), // Programmable inversion on CLK input
+      .LATENCY(2)             // 2-3
+   )
+   SW_ENABLE_LY3 (
+      .DIN  (sMMIO_META_En[3]),
+      .CLK  (sETH0_ShlClk),
+      .DOUT (sMETA_LayerEn[3])
+   );
+   
+   HARD_SYNC #(
+      .INIT(1'b0),            // Initial values, 1'b0, 1'b1
+      .IS_CLK_INVERTED(1'b0), // Programmable inversion on CLK input
+      .LATENCY(2)             // 2-3
+   )
+   SW_ENABLE_LY4 (
+      .DIN  (sMMIO_META_En[4]),
+      .CLK  (sETH0_ShlClk),
+      .DOUT (sMETA_LayerEn[4])
+   );
+    
+   HARD_SYNC #(
+      .INIT(1'b0),            // Initial values, 1'b0, 1'b1
+      .IS_CLK_INVERTED(1'b0), // Programmable inversion on CLK input
+      .LATENCY(2)             // 2-3
+   )
+   SW_ENABLE_LY7 (
+      .DIN  (sMMIO_META_En[7]),
+      .CLK  (sETH0_ShlClk),
+      .DOUT (sMETA_LayerEn[7])
+   );
 
   //============================================================================
   //  CONDITIONAL INSTANTIATION OF A LOOPBACK TURN BETWEEN ETH0 Ly2 and Ly3.  
@@ -774,7 +867,7 @@ module Shell_Kale # (
       .piTOP_156_25Clk              (piTOP_156_25Clk),    // Freerunning
       .piCLKT_Gt_RefClk_n           (piCLKT_10GeClk_n),
       .piCLKT_Gt_RefClk_p           (piCLKT_10GeClk_p),
-      .piTOP_Reset                  (piTOP_156_25Rst),    // [TODO-Add piMMIO_Layer2Rst]
+      .piTOP_Reset                  (piTOP_156_25Rst),
       //-- Clocks and Resets outputs ---------------
       .poSHL_CoreClk                (sETH0_ShlClk),
       .poSHL_CoreResetDone          (sETH0_CoreResetDone),
@@ -1023,10 +1116,10 @@ module Shell_Kale # (
     //------------------------------------------------------
     //-- MMIO / Interfaces
     //------------------------------------------------------
-    .piMMIO_Layer2Rst                 (sMMIO_LayerRst[2]),
-    .piMMIO_Layer3Rst                 (sMMIO_LayerRst[3]),
-    .piMMIO_Layer4Rst                 (sMMIO_LayerRst[4]),
-    .piMMIO_Layer4En                  (sMMIO_LayerEn[4]),
+    .piMMIO_Layer2Rst                 (sMETA_LayerRst[2]),
+    .piMMIO_Layer3Rst                 (sMETA_LayerRst[3]),
+    .piMMIO_Layer4Rst                 (sMETA_LayerRst[4]),
+    .piMMIO_Layer4En                  (sMETA_LayerEn[4]),
     .piMMIO_MacAddress                (sMMIO_NTS0_MacAddress),
     .piMMIO_Ip4Address                (sMMIO_NTS0_Ip4Address),
     .piMMIO_SubNetMask                (sMMIO_NTS0_SubNetMask),
@@ -1041,7 +1134,7 @@ module Shell_Kale # (
   //============================================================================
   TcpApplicationRegisterSlice TARS (
     .piClk                      (sETH0_ShlClk),
-    .piRst                      (piTOP_156_25Rst),   // [TODO-Use sMMIO_LayerRst[5])
+    .piRst                      (sETH0_ShlRst),    // OBSOLETE_20210329  (piTOP_156_25Rst),
     //------------------------------------------------------
     //-- APP / Tcp / Tx Data Interfaces (.i.e THIS<-->APP)
     //------------------------------------------------------
@@ -1177,7 +1270,7 @@ module Shell_Kale # (
   //============================================================================
   UdpApplicationRegisterSlice UARS (
     .piClk                    (sETH0_ShlClk),
-    .piRst                    (piTOP_156_25Rst),   // [TODO-Use sMMIO_LayerRst[5])
+    .piRst                    (sETH0_ShlRst),   // OBSOLETE_20210329  (piTOP_156_25Rst),
     //------------------------------------------------------
     //-- APP / Udp / Tx Data Interfaces (.i.e APP->UARS)
     //------------------------------------------------------
@@ -1296,7 +1389,7 @@ module Shell_Kale # (
     //------------------------------------------------------
     //-- Alternate System Reset
     //------------------------------------------------------
-    .piMMIO_Rst                       (sMMIO_LayerRst[1]),  // [FIXME]
+    .piMMIO_Rst                       (1'b0),  // [NOT-USED]
     //------------------------------------------------------
     //-- DDR4 Reference Memory Clocks
     //------------------------------------------------------
@@ -1489,7 +1582,7 @@ module Shell_Kale # (
     .INIT             (1'b0), // Initial values, 1'b0, 1'b1
     .IS_CLK_INVERTED  (1'b0), // Programmable inversion on CLK input
     .LATENCY          (3)     // 2-3
-  ) META_RST (
+  ) HW_RESET (
     .CLK  (sETH0_ShlClk),                             // 1-bit input:  Clock
     .DIN  (piTOP_156_25Rst | ~sETH0_CoreResetDone),   // 1-bit input:  Data
     .DOUT (sETH0_ShlRst)                              // 1-bit output: Data
@@ -1547,7 +1640,7 @@ module Shell_Kale # (
   //============================================================================
   assign poROL_156_25Clk   = sETH0_ShlClk;
   assign poROL_156_25Rst   = sETH0_ShlRst;
-  assign poROL_Mmio_Ly7Rst = sMMIO_LayerRst[7];
-  assign poROL_Mmio_Ly7En  = sMMIO_LayerEn[7];
+  assign poROL_Mmio_Ly7Rst = sMETA_LayerRst[7];
+  assign poROL_Mmio_Ly7En  = sMETA_LayerEn[7];
 
 endmodule

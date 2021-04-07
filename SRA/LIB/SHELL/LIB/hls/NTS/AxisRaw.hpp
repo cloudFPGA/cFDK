@@ -374,11 +374,22 @@ class AxisRaw {
      ******************************************************/
     // Zero the bytes which have their tkeep-bit cleared
     void clearUnusedBytes() {
-        for (int i=0, leHi=ARW/8-1, leLo=0; i<ARW/8; i++) {  // ARW/8 = noBytes
-            #pragma HLS UNROLL
-            if (tkeep[i] == 0) {
-                tdata.range(leHi+8*i, leLo+8*i) = 0x00;
-            }
+        //for (int i=0, leHi=ARW/8-1, leLo=0; i<ARW/8; i++) {  // ARW/8 = noBytes
+        //    #pragma HLS UNROLL factor=8
+        //    if (tkeep[i] == 0) {
+        //        tdata.range(leHi+8*i, leLo+8*i) = 0x00;
+        //    }
+        int leHi=ARW/8-1;
+        int leLo=0;
+        switch(this->tkeep){
+            case 0x00: tdata.range(leHi+8*0, leLo+8*0) = 0x00; // No break here
+            case 0x01: tdata.range(leHi+8*1, leLo+8*1) = 0x00; // No break here
+            case 0x03: tdata.range(leHi+8*2, leLo+8*2) = 0x00; // No break here
+            case 0x07: tdata.range(leHi+8*3, leLo+8*3) = 0x00; // No break here
+            case 0x0F: tdata.range(leHi+8*4, leLo+8*4) = 0x00; // No break here
+            case 0x1F: tdata.range(leHi+8*5, leLo+8*5) = 0x00; // No break here
+            case 0x3F: tdata.range(leHi+8*6, leLo+8*6) = 0x00; // No break here
+            case 0x7F: tdata.range(leHi+8*7, leLo+8*7) = 0x00; // No break here
         }
     }
     // Get the length of this chunk (in bytes)
