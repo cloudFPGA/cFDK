@@ -1,20 +1,27 @@
+# *
+# * Copyright 2016 -- 2020 IBM Corporation
+# *
+# * Licensed under the Apache License, Version 2.0 (the "License");
+# * you may not use this file except in compliance with the License.
+# * You may obtain a copy of the License at
+# *
+# *     http://www.apache.org/licenses/LICENSE-2.0
+# *
+# * Unless required by applicable law or agreed to in writing, software
+# * distributed under the License is distributed on an "AS IS" BASIS,
+# * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# * See the License for the specific language governing permissions and
+# * limitations under the License.
+# *
+
 # *****************************************************************************
-# *                            cloudFPGA
-# *            All rights reserved -- Property of IBM
-# *----------------------------------------------------------------------------
-# * Created : Jan 2018
-# * Authors : Francois Abel, Burkhard Ringlein
 # *
-# * Description : A makefile that synthesizes and packages the current HLS core
-# *               as an IP.
+# * Description : A makefile to simulate, synthesize and package the current
+# *   HLS core as an IP. 
+# *
 # * Synopsis:
-# *   make help    : Displays a help message.
-# *   make clean   : Cleanup of the current directory.
-# *   make         : Runs the default build for this core.
+# *   make help
 # *
-# *----------------------------------------------------------------------------
-# * HowTo: A little make receipt to print a variable (usage: make print-SRC_DEPS).
-# *          print-%: ; @echo $* = $($*)
 # ******************************************************************************
 
 # Name of the HLS core to build
@@ -24,7 +31,7 @@ ipName = iprx
 SRC_DEPS := $(shell find ./src/ -type f)
 
 .PHONY: all clean csim cosim csynth help project regression rtlSyn rtlImpl
- 
+
 ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	$(MAKE) clean
 	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=1; vivado_hls -f run_hls.tcl	
@@ -75,3 +82,8 @@ help:                    ## Shows this help message
 	@echo 'Targets:'
 	@egrep '^(.+)\:\ .*##\ (.+)' ${MAKEFILE_LIST} | sed -n 's/\([a-zA-Z0-9]*\): \(.*\)##\(.*\)/\1 ;\3/p' | column -t -c 2 -s ';' | sed -e 's/^/    /' 
 	@echo
+
+#
+# HowTo: A little make receipt to print a variable (usage: make print-SRC_DEPS).
+#          print-%: ; @echo $* = $($*)
+#

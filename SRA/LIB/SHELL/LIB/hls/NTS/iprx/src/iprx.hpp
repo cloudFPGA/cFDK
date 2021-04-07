@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2016-2019, IBM Research.
+Copyright (c) 2016-2020, IBM Research.
 Copyright (c) 2015, Xilinx, Inc.
 
 All rights reserved.
@@ -48,8 +48,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../../../NTS/AxisArp.hpp"
 #include "../../../NTS/AxisEth.hpp"
 #include "../../../NTS/AxisIp4.hpp"
-
-using namespace hls;
 
 const UdpLen  MaxDatagramSize = 32768; // Maximum size of an IP datagram in bytes [FIXME - Why not 65535?]
 

@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2016-2019, IBM Research.
+Copyright (c) 2016-2020, IBM Research.
 Copyright (c) 2015, Xilinx, Inc.
 
 All rights reserved.
@@ -41,8 +41,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace hls;
 
-#define USE_DEPRECATED_DIRECTIVES
-
+//OBSOLETE_20210407 #define USE_DEPRECATED_DIRECTIVES
 
 /************************************************
  * HELPERS FOR THE DEBUGGING TRACES
@@ -845,48 +844,53 @@ void iprx(
         stream<AxisIp4>     &soTOE_Data)
 
 {
+#if HLS_VERSION == 2017
+
     //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
-
-#if defined(USE_DEPRECATED_DIRECTIVES)
 
     /*********************************************************************/
     /*** For the time being, we continue designing with the DEPRECATED ***/
     /*** directives because the new PRAGMAs do not work for us.        ***/
     /*********************************************************************/
-
     #pragma HLS INTERFACE ap_stable register  port=piMMIO_MacAddress
     #pragma HLS INTERFACE ap_stable register  port=piMMIO_Ip4Address
 
-    #pragma  HLS RESOURCE core=AXI4Stream variable=siETH_Data  metadata="-bus_bundle siETH_Data"
+    #pragma HLS RESOURCE core=AXI4Stream variable=siETH_Data  metadata="-bus_bundle siETH_Data"
 
-    #pragma  HLS RESOURCE core=AXI4Stream variable=soARP_Data  metadata="-bus_bundle soARP_Data"
+    #pragma HLS RESOURCE core=AXI4Stream variable=soARP_Data  metadata="-bus_bundle soARP_Data"
 
-    #pragma  HLS RESOURCE core=AXI4Stream variable=soICMP_Data metadata="-bus_bundle soICMP_Data"
-    #pragma  HLS RESOURCE core=AXI4Stream variable=soICMP_Derr metadata="-bus_bundle soICMP_Derr"
+    #pragma HLS RESOURCE core=AXI4Stream variable=soICMP_Data metadata="-bus_bundle soICMP_Data"
+    #pragma HLS RESOURCE core=AXI4Stream variable=soICMP_Derr metadata="-bus_bundle soICMP_Derr"
 
-    #pragma  HLS RESOURCE core=AXI4Stream variable=soUOE_Data  metadata="-bus_bundle soUOE_Data"
-    #pragma  HLS RESOURCE core=AXI4Stream variable=soTOE_Data  metadata="-bus_bundle soTOE_Data"
-
-#else
-
-    #pragma HLS INTERFACE ap_stable port=piMMIO_MacAddress     name=piMMIO_MacAddress
-    #pragma HLS INTERFACE ap_stable port=piMMIO_Ip4Address     name=piMMIO_Ip4Address
-
-    #pragma HLS INTERFACE axis      port=siETH_Data            name=siETH_Data
-
-    #pragma HLS INTERFACE axis      port=soARP_Data            name=soARP_Data
-
-    #pragma HLS INTERFACE axis      port=soICMP_Data           name=soICMP_Data
-    #pragma HLS INTERFACE axis      port=soICMP_Derr           name=soICMP_Derr
-
-    #pragma HLS INTERFACE axis      port=soUOE_Data            name=soUOE_Data
-    #pragma HLS INTERFACE axis      port=soTOE_Data            name=soTOE_Data
-
-#endif
+    #pragma HLS RESOURCE core=AXI4Stream variable=soUOE_Data  metadata="-bus_bundle soUOE_Data"
+    #pragma HLS RESOURCE core=AXI4Stream variable=soTOE_Data  metadata="-bus_bundle soTOE_Data"
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW
+
+#else
+
+    //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
+    #pragma HLS INTERFACE ap_ctrl_none port=return
+
+    #pragma HLS INTERFACE ap_stable register port=piMMIO_MacAddress name=piMMIO_MacAddress
+    #pragma HLS INTERFACE ap_stable register port=piMMIO_Ip4Address name=piMMIO_Ip4Address
+
+    #pragma HLS INTERFACE axis off           port=siETH_Data        name=siETH_Data
+
+    #pragma HLS INTERFACE axis off           port=soARP_Data        name=soARP_Data
+
+    #pragma HLS INTERFACE axis off           port=soICMP_Data       name=soICMP_Data
+    #pragma HLS INTERFACE axis off           port=soICMP_Derr       name=soICMP_Derr
+
+    #pragma HLS INTERFACE axis off           port=soUOE_Data        name=soUOE_Data
+    #pragma HLS INTERFACE axis off           port=soTOE_Data        name=soTOE_Data
+
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS DATAFLOW disable_start_propagation
+
+#endif
 
     //--------------------------------------------------------------------------
     //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
