@@ -260,6 +260,76 @@ int createGoldenFiles(EthAddr myMacAddress,
     return(ret);
 }
 
+/*******************************************************************************
+ * @brief A wrapper for the Toplevel of the IP Receive handler (IPRX).
+ *
+ * @param[in]  piMMIO_MacAddress The MAC address from MMIO (in network order).
+ * @param[in]  piMMIO_Ip4Address The IPv4 address from MMIO (in network order).
+ * @param[in]  siETH_Data        Data stream from ETHernet MAC layer (ETH).
+ * @param[out] soARP_Data        Data stream to Address Resolution Protocol (ARP) server.
+ * @param[out] soICMP_Data       Data stream to Internet Control Message Protocol (ICMP) engine.
+ * @param[out] soICMP_Derr       Data stream in error to [ICMP].
+ * @param[out] soUOE_Data        Data stream to UDP Offload Engine (UOE).
+ * @param[out] soTOE_Data        Data stream to TCP Offload Engine (TOE).
+ *
+ * @details
+ *  This process is a wrapper for the 'iprx_top' entity. It instantiates such an
+ *   entity and further connects it with base 'AxisRaw' streams as expected by
+ *   the 'iprx_top'.
+ *******************************************************************************/
+void iprx_top_wrap(
+    //-- MMIO Interfaces
+    EthAddr              piMMIO_MacAddress,
+    Ip4Addr              piMMIO_Ip4Address,
+    //-- ETHernet MAC Layer Interface
+    stream<AxisEth>     &siETH_Data,
+    //-- ARP Interface
+    stream<AxisArp>     &soARP_Data,
+    //-- ICMP Interfaces
+    stream<AxisIp4>     &soICMP_Data,
+    stream<AxisIp4>     &soICMP_Derr,
+    //-- UOE Interface
+    stream<AxisIp4>     &soUOE_Data,
+    //-- TOE Interface
+    stream<AxisIp4>     &soTOE_Data)
+{
+    //-- LOCAL INPUT and OUTPUT STREAMS
+    static stream<AxisRaw>     ssETH_Data ("ssETH_Data");
+    static stream<AxisRaw>     ssARP_Data ("ssARP_Data");
+    static stream<AxisRaw>     ssICMP_Data("ssICMP_Data");
+    static stream<AxisRaw>     ssICMP_Derr("ssICMP_Derr");
+    static stream<AxisRaw>     ssUOE_Data ("ssUOE_Data");
+    static stream<AxisRaw>     ssTOE_Data ("ssTOE_Data");
+
+    //-- INPUT STREAM CASTING
+    pAxisRawCast(siETH_Data, ssETH_Data);
+
+    //-- MAIN IPRX_TOP PROCESS
+    iprx_top(
+        //-- MMIO Interfaces
+        piMMIO_MacAddress,
+        piMMIO_Ip4Address,
+        //-- ETHernet MAC Layer Interface
+        ssETH_Data,
+        //-- ARP Interface
+        ssARP_Data,
+        //-- ICMP Interfaces
+        ssICMP_Data,
+        ssICMP_Derr,
+        //-- UDP Interface
+        ssUOE_Data,
+        //-- TOE Interface
+        ssTOE_Data);
+
+    //-- OUTPUT STREAM CASTING
+    pAxisRawCast(ssARP_Data,  soARP_Data);
+    pAxisRawCast(ssICMP_Data, soICMP_Data);
+    pAxisRawCast(ssICMP_Derr, soICMP_Derr);
+    pAxisRawCast(ssUOE_Data,  soUOE_Data);
+    pAxisRawCast(ssTOE_Data,  soTOE_Data);
+}
+
+
 /*****************************************************************************
  * @brief Main function.
  *
@@ -368,8 +438,9 @@ int main(int argc, char* argv[]) {
     int tbRun = nrETH_IPRX_Chunks + TB_GRACE_TIME;
 
     while (tbRun) {
-        //-- RUN DUT
-        iprx(
+        //-- RUN DUT --------------------------------------
+      #if HLS_VERSION == 2017
+        iprx_top(
             myMacAddress,
             myIp4Address,
             ssETH_IPRX_Data,
@@ -377,8 +448,18 @@ int main(int argc, char* argv[]) {
             ssIPRX_ICMP_Data,
             ssIPRX_ICMP_DErr,
             ssIPRX_UOE_Data,
-            ssIPRX_TOE_Data
-        );
+            ssIPRX_TOE_Data);
+      #else
+        iprx_top_wrap(
+            myMacAddress,
+            myIp4Address,
+            ssETH_IPRX_Data,
+            ssIPRX_ARP_Data,
+            ssIPRX_ICMP_Data,
+            ssIPRX_ICMP_DErr,
+            ssIPRX_UOE_Data,
+            ssIPRX_TOE_Data);
+      #endif
         tbRun--;
         stepSim();
     }

@@ -67,16 +67,16 @@ open_project  ${projectName}_prj
 
 # Add files
 #-------------------------------------------------
-add_files     ${srcDir}/${projectName}.cpp -cflags "-DHLS_VERSION=${HLS_VERSION}"
+add_files     ${srcDir}/${projectName}.cpp
 
 add_files     ${currDir}/../../NTS/nts_utils.cpp
 
-add_files -tb ${testDir}/test_${projectName}.cpp
+add_files -tb ${testDir}/test_${projectName}.cpp -cflags "-DHLS_VERSION=${HLS_VERSION}"
 add_files -tb ${currDir}/../../NTS/SimNtsUtils.cpp
 
 # Set toplevel
 #-------------------------------------------------
-set_top       ${projectName}
+set_top       ${projectName}_top
 
 # Create a solution
 #-------------------------------------------------

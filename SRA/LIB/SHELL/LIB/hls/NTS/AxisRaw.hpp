@@ -105,18 +105,6 @@
 /*******************************************************************************
  * GENERIC AXI4 STREAMING INTERFACES
  *******************************************************************************/
-/*** OBSOLETE_20201207 ******
-template<int D>
-   class Axis {
-     private:
-       ap_uint<D>       tdata;
-       ap_uint<(D+7)/8> tkeep;
-       ap_uint<1>       tlast;
-       Axis() {}
-       Axis(ap_uint<D> single_data) :
-           tdata((ap_uint<D>)single_data), tkeep(~(((ap_uint<D>) single_data) & 0)), tlast(1) {}
-   };
-*** OBSOLETE_20201207 ******/
 
 /***********************************************
  * AXIS RAW - DEFINITIONS
@@ -139,6 +127,32 @@ typedef ap_uint<ARW/2>  tDataHalf;
 typedef ap_uint<ARW/8>  tKeep;
 typedef ap_uint<ARW/16> tKeepHalf;
 typedef ap_uint<1>      tLast;
+
+/*******************************************************************************
+ * @brief AxisRaw cast - Casts an AxisRaw stream to/from an AxisRaw derived class.
+ *
+ * @param[in]  si  The input stream to cast.
+ * @param[out] so  The casted output stream.
+ *
+ * @details
+ *  This process is used to type cast an HLS stream from a base class 'AxisRaw'
+ *   to or from a derived class such as 'AxisEth', 'AxisIp4', 'AxisIcmp',
+ *   'AxisUdp', 'AxisTcp, or 'AxisPsd4'.
+ *  Its usage is only required in NTS for the arguments of a top-level function,
+ *   because the interface synthesis optimization of Vivado HLS does not support
+ *   packing structs which contain other strucs, neither does it support derived
+ *   classes.
+ *******************************************************************************/
+template <class TypeIn, class TypeOut>
+void pAxisRawCast(
+        hls::stream<TypeIn>&  si,
+        hls::stream<TypeOut>& so)
+{
+    #pragma HLS PIPELINE II=1 enable_flush
+    if (!si.empty()) {
+        so.write(si.read());
+    }
+}
 
 /*******************************************************************************
  * AXIS_RAW - RAW AXIS-4 STREAMING INTERFACE
@@ -307,7 +321,6 @@ class AxisRaw {
      *       +---------------+---------------+---------------+---------------+
      */
     void setTDataHi(tDataHalf halfData) {
-        //OBSOLETE_20210215 tdata.range(31,  0) = swapDWord(data);
         switch (ARW) {
             case 64 : tdata.range(ARW/2-1, 0) = byteSwap32(halfData); break;
             default : std::cout << "ASSERT - AxisRaw::setTDataHi() - Unsupported Axis raw width.\n"; break;
@@ -319,7 +332,6 @@ class AxisRaw {
      *       +---------------+---------------+---------------+---------------+
      */
     void setTDataLo(tDataHalf halfData) {
-        //OBSOLETE_20210215 tdata.range(63, 32) = swapDWord(data);
         switch (ARW) {
             case 64 : tdata.range(ARW-1, ARW/2) = byteSwap32(halfData); break;
             default : std::cout << "ASSERT - AxisRaw::setTDataLo() - Unsupported Axis raw width.\n"; break;
