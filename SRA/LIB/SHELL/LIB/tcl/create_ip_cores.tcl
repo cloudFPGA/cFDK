@@ -1062,7 +1062,7 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 # IBM-HSL-IP : IP RX Handler 
 #------------------------------------------------------------------------------
 set ipModName "IpRxHandler"
-set ipName    "iprx"
+set ipName    "iprx_top"
 set ipVendor  "IBM"
 set ipLibrary "hls"
 set ipVersion "1.0"

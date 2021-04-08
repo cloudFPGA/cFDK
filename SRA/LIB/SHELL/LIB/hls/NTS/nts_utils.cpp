@@ -341,30 +341,6 @@ tKeep lenTotKeep(ap_uint<4> noValidBytes) {
 }
 
 /*******************************************************************************
- * @brief Returns the number '1' in an 8-bit value which is used here to
- *   count the number of valid bytes within the 'tdata' field of an AxisRaw.
- *
- * @param[in]  The 'tkeep' field of the AxisRaw.
- * @return  The number of '1s' that are set (.i.e, the number of valid bytes).
- *******************************************************************************/
-/*** OBSOLETE_20200711 *** (use getLen() instead) ***
-ap_uint<4> keepToLen(ap_uint<8> keepValue) {
-    ap_uint<4> count = 0;
-    switch(keepValue){
-        case 0x01: count = 1; break;
-        case 0x03: count = 2; break;
-        case 0x07: count = 3; break;
-        case 0x0F: count = 4; break;
-        case 0x1F: count = 5; break;
-        case 0x3F: count = 6; break;
-        case 0x7F: count = 7; break;
-        case 0xFF: count = 8; break;
-    }
-    return count;
-}
-****************************/
-
-/*******************************************************************************
  * @brief Swap the two bytes of a word (.i.e, 16 bits).
  *
  * @param[in] inpWord  The 16-bit unsigned data to swap.

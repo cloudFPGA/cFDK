@@ -41,8 +41,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace hls;
 
-//OBSOLETE_20210407 #define USE_DEPRECATED_DIRECTIVES
-
 /************************************************
  * HELPERS FOR THE DEBUGGING TRACES
  *  .e.g: DEBUG_LEVEL = (TRACE_MPD | TRACE_IBUF)
@@ -810,87 +808,38 @@ void pIpPacketRouter(
  *
  *******************************************************************************/
 void iprx(
-
         //------------------------------------------------------
         //-- MMIO Interfaces
         //------------------------------------------------------
         EthAddr              piMMIO_MacAddress,
         Ip4Addr              piMMIO_Ip4Address,
-
         //------------------------------------------------------
         //-- ETHernet MAC Layer Interface
         //------------------------------------------------------
         stream<AxisEth>     &siETH_Data,
-
         //------------------------------------------------------
         //-- ARP Interface
         //------------------------------------------------------
         stream<AxisArp>     &soARP_Data,
-
         //------------------------------------------------------
         //-- ICMP Interfaces
         //------------------------------------------------------
         stream<AxisIp4>     &soICMP_Data,
         stream<AxisIp4>     &soICMP_Derr,
-
         //------------------------------------------------------
         //-- UOE Interface
         //------------------------------------------------------
         stream<AxisIp4>     &soUOE_Data,
-
         //------------------------------------------------------
         //-- TOE Interface
         //------------------------------------------------------
         stream<AxisIp4>     &soTOE_Data)
 
 {
-#if HLS_VERSION == 2017
-
-    //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
-    #pragma HLS INTERFACE ap_ctrl_none port=return
-
-    /*********************************************************************/
-    /*** For the time being, we continue designing with the DEPRECATED ***/
-    /*** directives because the new PRAGMAs do not work for us.        ***/
-    /*********************************************************************/
-    #pragma HLS INTERFACE ap_stable register  port=piMMIO_MacAddress
-    #pragma HLS INTERFACE ap_stable register  port=piMMIO_Ip4Address
-
-    #pragma HLS RESOURCE core=AXI4Stream variable=siETH_Data  metadata="-bus_bundle siETH_Data"
-
-    #pragma HLS RESOURCE core=AXI4Stream variable=soARP_Data  metadata="-bus_bundle soARP_Data"
-
-    #pragma HLS RESOURCE core=AXI4Stream variable=soICMP_Data metadata="-bus_bundle soICMP_Data"
-    #pragma HLS RESOURCE core=AXI4Stream variable=soICMP_Derr metadata="-bus_bundle soICMP_Derr"
-
-    #pragma HLS RESOURCE core=AXI4Stream variable=soUOE_Data  metadata="-bus_bundle soUOE_Data"
-    #pragma HLS RESOURCE core=AXI4Stream variable=soTOE_Data  metadata="-bus_bundle soTOE_Data"
-
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW
-
-#else
-
-    //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
+    #pragma HLS INLINE
     #pragma HLS INTERFACE ap_ctrl_none port=return
-
-    #pragma HLS INTERFACE ap_stable register port=piMMIO_MacAddress name=piMMIO_MacAddress
-    #pragma HLS INTERFACE ap_stable register port=piMMIO_Ip4Address name=piMMIO_Ip4Address
-
-    #pragma HLS INTERFACE axis off           port=siETH_Data        name=siETH_Data
-
-    #pragma HLS INTERFACE axis off           port=soARP_Data        name=soARP_Data
-
-    #pragma HLS INTERFACE axis off           port=soICMP_Data       name=soICMP_Data
-    #pragma HLS INTERFACE axis off           port=soICMP_Derr       name=soICMP_Derr
-
-    #pragma HLS INTERFACE axis off           port=soUOE_Data        name=soUOE_Data
-    #pragma HLS INTERFACE axis off           port=soTOE_Data        name=soTOE_Data
-
-    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS DATAFLOW disable_start_propagation
-
-#endif
 
     //--------------------------------------------------------------------------
     //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
@@ -980,5 +929,175 @@ void iprx(
             soTOE_Data);
 
 }
+
+/*******************************************************************************
+ * @brief Top of IP Receive handler (IPRX)
+ *
+ * @param[in]  piMMIO_MacAddress The MAC address from MMIO (in network order).
+ * @param[in]  piMMIO_Ip4Address The IPv4 address from MMIO (in network order).
+ * @param[in]  siETH_Data        Data stream from ETHernet MAC layer (ETH).
+ * @param[out] soARP_Data        Data stream to Address Resolution Protocol (ARP) server.
+ * @param[out] soICMP_Data       Data stream to Internet Control Message Protocol (ICMP) engine.
+ * @param[out] soICMP_Derr       Data stream in error to [ICMP].
+ * @param[out] soUOE_Data        Data stream to UDP Offload Engine (UOE).
+ * @param[out] soTOE_Data        Data stream to TCP Offload Engine (TOE).
+ *
+ *******************************************************************************/
+#if HLS_VERSION == 2017
+    void iprx_top(
+		//------------------------------------------------------
+		//-- MMIO Interfaces
+        //------------------------------------------------------
+        EthAddr              piMMIO_MacAddress,
+        Ip4Addr              piMMIO_Ip4Address,
+        //------------------------------------------------------
+        //-- ETHernet MAC Layer Interface
+        //------------------------------------------------------
+        stream<AxisEth>     &siETH_Data,
+        //------------------------------------------------------
+        //-- ARP Interface
+        //------------------------------------------------------
+        stream<AxisArp>     &soARP_Data,
+        //------------------------------------------------------
+        //-- ICMP Interfaces
+        //------------------------------------------------------
+        stream<AxisIp4>     &soICMP_Data,
+        stream<AxisIp4>     &soICMP_Derr,
+        //------------------------------------------------------
+        //-- UOE Interface
+        //------------------------------------------------------
+        stream<AxisIp4>     &soUOE_Data,
+        //------------------------------------------------------
+        //-- TOE Interface
+        //------------------------------------------------------
+        stream<AxisIp4>     &soTOE_Data)
+{
+    //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
+    #pragma HLS INTERFACE ap_ctrl_none port=return
+
+    /*********************************************************************/
+    /*** For the time being, we continue designing with the DEPRECATED ***/
+    /*** directives because the new PRAGMAs do not work for us.        ***/
+    /*********************************************************************/
+    #pragma HLS INTERFACE ap_stable register  port=piMMIO_MacAddress
+    #pragma HLS INTERFACE ap_stable register  port=piMMIO_Ip4Address
+
+    #pragma HLS RESOURCE core=AXI4Stream variable=siETH_Data  metadata="-bus_bundle siETH_Data"
+
+    #pragma HLS RESOURCE core=AXI4Stream variable=soARP_Data  metadata="-bus_bundle soARP_Data"
+
+    #pragma HLS RESOURCE core=AXI4Stream variable=soICMP_Data metadata="-bus_bundle soICMP_Data"
+    #pragma HLS RESOURCE core=AXI4Stream variable=soICMP_Derr metadata="-bus_bundle soICMP_Derr"
+
+    #pragma HLS RESOURCE core=AXI4Stream variable=soUOE_Data  metadata="-bus_bundle soUOE_Data"
+    #pragma HLS RESOURCE core=AXI4Stream variable=soTOE_Data  metadata="-bus_bundle soTOE_Data"
+
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS DATAFLOW
+
+    //-- MAIN IPRX PROCESS -----------------------------------------------------
+    iprx(
+        //-- MMIO Interfaces
+   		piMMIO_MacAddress,
+		piMMIO_Ip4Address,
+		//-- ETHernet MAC Layer Interface
+		siETH_Data,
+		//-- ARP Interface
+		soARP_Data,
+		//-- ICMP Interfaces
+		soICMP_Data,
+		soICMP_Derr,
+		//-- UDP Interface
+		soUOE_Data,
+		//-- TOE Interface
+		soTOE_Data);
+
+}
+#else
+    void iprx_top(
+        //------------------------------------------------------
+        //-- MMIO Interfaces
+        //------------------------------------------------------
+        EthAddr              piMMIO_MacAddress,
+		Ip4Addr              piMMIO_Ip4Address,
+		//------------------------------------------------------
+		//-- ETHernet MAC Layer Interface
+		//------------------------------------------------------
+		stream<AxisRaw>     &siETH_Data,
+		//------------------------------------------------------
+		//-- ARP Interface
+		//------------------------------------------------------
+		stream<AxisRaw>     &soARP_Data,
+		//------------------------------------------------------
+		//-- ICMP Interfaces
+		//------------------------------------------------------
+		stream<AxisRaw>     &soICMP_Data,
+		stream<AxisRaw>     &soICMP_Derr,
+		//------------------------------------------------------
+		//-- UOE Interface
+		//------------------------------------------------------
+		stream<AxisRaw>     &soUOE_Data,
+		//------------------------------------------------------
+		//-- TOE Interface
+		//------------------------------------------------------
+		stream<AxisRaw>     &soTOE_Data)
+{
+
+    //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
+    #pragma HLS INTERFACE ap_ctrl_none port=return
+
+    #pragma HLS INTERFACE ap_stable          port=piMMIO_MacAddress name=piMMIO_MacAddress
+    #pragma HLS INTERFACE ap_stable          port=piMMIO_Ip4Address name=piMMIO_Ip4Address
+
+    #pragma HLS INTERFACE axis off           port=siETH_Data        name=siETH_Data
+
+    #pragma HLS INTERFACE axis off           port=soARP_Data        name=soARP_Data
+
+    #pragma HLS INTERFACE axis off           port=soICMP_Data       name=soICMP_Data
+    #pragma HLS INTERFACE axis off           port=soICMP_Derr       name=soICMP_Derr
+
+    #pragma HLS INTERFACE axis off           port=soUOE_Data        name=soUOE_Data
+    #pragma HLS INTERFACE axis off           port=soTOE_Data        name=soTOE_Data
+
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS DATAFLOW disable_start_propagation
+
+    //-- LOCAL INPUT and OUTPUT STREAMS ----------------------------------------
+    static stream<AxisEth>     ssETH_Data;
+    static stream<AxisArp>     ssARP_Data;
+    static stream<AxisIp4>     ssICMP_Data;
+    static stream<AxisIp4>     ssICMP_Derr;
+    static stream<AxisIp4>     ssUOE_Data;
+    static stream<AxisIp4>     ssTOE_Data;
+
+    //-- INPUT STREAM CASTING --------------------------------------------------
+    pAxisRawCast(siETH_Data, ssETH_Data);
+
+    //-- MAIN IPRX PROCESS -----------------------------------------------------
+    iprx(
+        //-- MMIO Interfaces
+    	piMMIO_MacAddress,
+		piMMIO_Ip4Address,
+		//-- ETHernet MAC Layer Interface
+		ssETH_Data,
+		//-- ARP Interface
+		ssARP_Data,
+		//-- ICMP Interfaces
+		ssICMP_Data,
+		ssICMP_Derr,
+		//-- UDP Interface
+		ssUOE_Data,
+		//-- TOE Interface
+		ssTOE_Data);
+
+    //-- OUTPUT STREAM CASTING -------------------------------------------------
+    pAxisRawCast(ssARP_Data,  soARP_Data);
+    pAxisRawCast(ssICMP_Data, soICMP_Data);
+    pAxisRawCast(ssICMP_Derr, soICMP_Derr);
+    pAxisRawCast(ssUOE_Data,  soUOE_Data);
+    pAxisRawCast(ssTOE_Data,  soTOE_Data);
+
+}
+#endif
 
 /*! \} */

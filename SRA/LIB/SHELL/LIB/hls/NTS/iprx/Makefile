@@ -34,7 +34,7 @@ SRC_DEPS := $(shell find ./src/ -type f)
 
 ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	$(MAKE) clean
-	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=1; vivado_hls -f run_hls.tcl	
+	export hlsCSim=0; export hlsCSynth=1; export hlsCoSim=0; export hlsRtl=1; vivado_hls -f run_hls.tcl
 	@touch $@
 	@touch ../../../../LIB/.ip_guard
 
