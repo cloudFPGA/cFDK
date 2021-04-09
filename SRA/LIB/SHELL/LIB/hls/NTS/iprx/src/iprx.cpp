@@ -997,7 +997,7 @@ void iprx(
     //-- MAIN IPRX PROCESS -----------------------------------------------------
     iprx(
         //-- MMIO Interfaces
-           piMMIO_MacAddress,
+        piMMIO_MacAddress,
         piMMIO_Ip4Address,
         //-- ETHernet MAC Layer Interface
         siETH_Data,
@@ -1070,7 +1070,7 @@ void iprx(
     static stream<AxisIp4>     ssoTOE_Data;
 
     //-- INPUT STREAM CASTING --------------------------------------------------
-    pAxisRawCast(siETH_Data, ssiETH_Data);
+    pAxisRawCast(siETH_Data, ssETH_Data);
 
     //-- MAIN IPRX PROCESS -----------------------------------------------------
     iprx(
