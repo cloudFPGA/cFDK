@@ -293,40 +293,34 @@ void iprx_top_wrap(
     //-- TOE Interface
     stream<AxisIp4>     &soTOE_Data)
 {
-    //-- LOCAL INPUT and OUTPUT STREAMS
-    static stream<AxisRaw>     ssETH_Data ("ssETH_Data");
-    static stream<AxisRaw>     ssARP_Data ("ssARP_Data");
-    static stream<AxisRaw>     ssICMP_Data("ssICMP_Data");
-    static stream<AxisRaw>     ssICMP_Derr("ssICMP_Derr");
-    static stream<AxisRaw>     ssUOE_Data ("ssUOE_Data");
-    static stream<AxisRaw>     ssTOE_Data ("ssTOE_Data");
+    //-- LOCAL INPUT and OUTPUT STREAMS -------------------
+    static stream<AxisRaw>     ssiETH_Data ("ssiETH_Data");
+    static stream<AxisRaw>     ssoARP_Data ("ssoARP_Data");
+    static stream<AxisRaw>     ssoICMP_Data("ssoICMP_Data");
+    static stream<AxisRaw>     ssoICMP_Derr("ssoICMP_Derr");
+    static stream<AxisRaw>     ssoUOE_Data ("ssoUOE_Data");
+    static stream<AxisRaw>     ssoTOE_Data ("ssoTOE_Data");
 
-    //-- INPUT STREAM CASTING
-    pAxisRawCast(siETH_Data, ssETH_Data);
+    //-- INPUT STREAM CASTING -----------------------------
+    pAxisRawCast(siETH_Data, ssiETH_Data);
 
-    //-- MAIN IPRX_TOP PROCESS
+    //-- MAIN IPRX_TOP PROCESS ----------------------------
     iprx_top(
-        //-- MMIO Interfaces
         piMMIO_MacAddress,
         piMMIO_Ip4Address,
-        //-- ETHernet MAC Layer Interface
-        ssETH_Data,
-        //-- ARP Interface
-        ssARP_Data,
-        //-- ICMP Interfaces
-        ssICMP_Data,
-        ssICMP_Derr,
-        //-- UDP Interface
-        ssUOE_Data,
-        //-- TOE Interface
-        ssTOE_Data);
+        ssiETH_Data,
+        ssoARP_Data,
+        ssoICMP_Data,
+        ssoICMP_Derr,
+        ssoUOE_Data,
+        ssoTOE_Data);
 
-    //-- OUTPUT STREAM CASTING
-    pAxisRawCast(ssARP_Data,  soARP_Data);
-    pAxisRawCast(ssICMP_Data, soICMP_Data);
-    pAxisRawCast(ssICMP_Derr, soICMP_Derr);
-    pAxisRawCast(ssUOE_Data,  soUOE_Data);
-    pAxisRawCast(ssTOE_Data,  soTOE_Data);
+    //-- OUTPUT STREAM CASTING ----------------------------
+    pAxisRawCast(ssoARP_Data,  soARP_Data);
+    pAxisRawCast(ssoICMP_Data, soICMP_Data);
+    pAxisRawCast(ssoICMP_Derr, soICMP_Derr);
+    pAxisRawCast(ssoUOE_Data,  soUOE_Data);
+    pAxisRawCast(ssoTOE_Data,  soTOE_Data);
 }
 
 

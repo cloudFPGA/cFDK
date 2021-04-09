@@ -834,7 +834,6 @@ void iprx(
         //-- TOE Interface
         //------------------------------------------------------
         stream<AxisIp4>     &soTOE_Data)
-
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW
@@ -945,8 +944,8 @@ void iprx(
  *******************************************************************************/
 #if HLS_VERSION == 2017
     void iprx_top(
-		//------------------------------------------------------
-		//-- MMIO Interfaces
+        //------------------------------------------------------
+        //-- MMIO Interfaces
         //------------------------------------------------------
         EthAddr              piMMIO_MacAddress,
         Ip4Addr              piMMIO_Ip4Address,
@@ -998,19 +997,19 @@ void iprx(
     //-- MAIN IPRX PROCESS -----------------------------------------------------
     iprx(
         //-- MMIO Interfaces
-   		piMMIO_MacAddress,
-		piMMIO_Ip4Address,
-		//-- ETHernet MAC Layer Interface
-		siETH_Data,
-		//-- ARP Interface
-		soARP_Data,
-		//-- ICMP Interfaces
-		soICMP_Data,
-		soICMP_Derr,
-		//-- UDP Interface
-		soUOE_Data,
-		//-- TOE Interface
-		soTOE_Data);
+           piMMIO_MacAddress,
+        piMMIO_Ip4Address,
+        //-- ETHernet MAC Layer Interface
+        siETH_Data,
+        //-- ARP Interface
+        soARP_Data,
+        //-- ICMP Interfaces
+        soICMP_Data,
+        soICMP_Derr,
+        //-- UDP Interface
+        soUOE_Data,
+        //-- TOE Interface
+        soTOE_Data);
 
 }
 #else
@@ -1019,28 +1018,28 @@ void iprx(
         //-- MMIO Interfaces
         //------------------------------------------------------
         EthAddr              piMMIO_MacAddress,
-		Ip4Addr              piMMIO_Ip4Address,
-		//------------------------------------------------------
-		//-- ETHernet MAC Layer Interface
-		//------------------------------------------------------
-		stream<AxisRaw>     &siETH_Data,
-		//------------------------------------------------------
-		//-- ARP Interface
-		//------------------------------------------------------
-		stream<AxisRaw>     &soARP_Data,
-		//------------------------------------------------------
-		//-- ICMP Interfaces
-		//------------------------------------------------------
-		stream<AxisRaw>     &soICMP_Data,
-		stream<AxisRaw>     &soICMP_Derr,
-		//------------------------------------------------------
-		//-- UOE Interface
-		//------------------------------------------------------
-		stream<AxisRaw>     &soUOE_Data,
-		//------------------------------------------------------
-		//-- TOE Interface
-		//------------------------------------------------------
-		stream<AxisRaw>     &soTOE_Data)
+        Ip4Addr              piMMIO_Ip4Address,
+        //------------------------------------------------------
+        //-- ETHernet MAC Layer Interface
+        //------------------------------------------------------
+        stream<AxisRaw>     &siETH_Data,
+        //------------------------------------------------------
+        //-- ARP Interface
+        //------------------------------------------------------
+        stream<AxisRaw>     &soARP_Data,
+        //------------------------------------------------------
+        //-- ICMP Interfaces
+        //------------------------------------------------------
+        stream<AxisRaw>     &soICMP_Data,
+        stream<AxisRaw>     &soICMP_Derr,
+        //------------------------------------------------------
+        //-- UOE Interface
+        //------------------------------------------------------
+        stream<AxisRaw>     &soUOE_Data,
+        //------------------------------------------------------
+        //-- TOE Interface
+        //------------------------------------------------------
+        stream<AxisRaw>     &soTOE_Data)
 {
 
     //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
@@ -1063,39 +1062,39 @@ void iprx(
     #pragma HLS DATAFLOW disable_start_propagation
 
     //-- LOCAL INPUT and OUTPUT STREAMS ----------------------------------------
-    static stream<AxisEth>     ssETH_Data;
-    static stream<AxisArp>     ssARP_Data;
-    static stream<AxisIp4>     ssICMP_Data;
-    static stream<AxisIp4>     ssICMP_Derr;
-    static stream<AxisIp4>     ssUOE_Data;
-    static stream<AxisIp4>     ssTOE_Data;
+    static stream<AxisEth>     ssiETH_Data;
+    static stream<AxisArp>     ssoARP_Data;
+    static stream<AxisIp4>     ssoICMP_Data;
+    static stream<AxisIp4>     ssoICMP_Derr;
+    static stream<AxisIp4>     ssoUOE_Data;
+    static stream<AxisIp4>     ssoTOE_Data;
 
     //-- INPUT STREAM CASTING --------------------------------------------------
-    pAxisRawCast(siETH_Data, ssETH_Data);
+    pAxisRawCast(siETH_Data, ssiETH_Data);
 
     //-- MAIN IPRX PROCESS -----------------------------------------------------
     iprx(
         //-- MMIO Interfaces
-    	piMMIO_MacAddress,
-		piMMIO_Ip4Address,
-		//-- ETHernet MAC Layer Interface
-		ssETH_Data,
-		//-- ARP Interface
-		ssARP_Data,
-		//-- ICMP Interfaces
-		ssICMP_Data,
-		ssICMP_Derr,
-		//-- UDP Interface
-		ssUOE_Data,
-		//-- TOE Interface
-		ssTOE_Data);
+        piMMIO_MacAddress,
+        piMMIO_Ip4Address,
+        //-- ETHernet MAC Layer Interface
+        ssiETH_Data,
+        //-- ARP Interface
+        ssoARP_Data,
+        //-- ICMP Interfaces
+        ssoICMP_Data,
+        ssoICMP_Derr,
+        //-- UDP Interface
+        ssoUOE_Data,
+        //-- TOE Interface
+        ssoTOE_Data);
 
     //-- OUTPUT STREAM CASTING -------------------------------------------------
-    pAxisRawCast(ssARP_Data,  soARP_Data);
-    pAxisRawCast(ssICMP_Data, soICMP_Data);
-    pAxisRawCast(ssICMP_Derr, soICMP_Derr);
-    pAxisRawCast(ssUOE_Data,  soUOE_Data);
-    pAxisRawCast(ssTOE_Data,  soTOE_Data);
+    pAxisRawCast(ssoARP_Data,  soARP_Data);
+    pAxisRawCast(ssoICMP_Data, soICMP_Data);
+    pAxisRawCast(ssoICMP_Derr, soICMP_Derr);
+    pAxisRawCast(ssoUOE_Data,  soUOE_Data);
+    pAxisRawCast(ssoTOE_Data,  soTOE_Data);
 
 }
 #endif
