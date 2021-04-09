@@ -1070,7 +1070,7 @@ void iprx(
     static stream<AxisIp4>     ssoTOE_Data;
 
     //-- INPUT STREAM CASTING --------------------------------------------------
-    pAxisRawCast(siETH_Data, ssETH_Data);
+    pAxisRawCast(siETH_Data, ssiETH_Data);
 
     //-- MAIN IPRX PROCESS -----------------------------------------------------
     iprx(
