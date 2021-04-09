@@ -46,15 +46,15 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../../AxisEth.hpp"
 #include "../../AxisIp4.hpp"
 
-using namespace hls;
-
 
 /*******************************************************************************
  *
  * ENTITY - IP TX HANDLER (IPTX)
  *
  *******************************************************************************/
-void iptx(
+#if HLS_VERSION == 2017
+
+    void iptx_top(
         //------------------------------------------------------
         //-- MMIO Interfaces
         //------------------------------------------------------
@@ -77,7 +77,36 @@ void iptx(
         //------------------------------------------------------
         stream<Ip4Addr>         &soARP_LookupReq,
         stream<ArpLkpReply>     &siARP_LookupRep
-);
+    );
+
+#else
+
+    void iptx_top(
+        //------------------------------------------------------
+        //-- MMIO Interfaces
+        //------------------------------------------------------
+        EthAddr                  piMMIO_MacAddress,
+        Ip4Addr                  piMMIO_SubNetMask,
+        Ip4Addr                  piMMIO_GatewayAddr,
+
+        //------------------------------------------------------
+        //-- L3MUX Interface
+        //------------------------------------------------------
+        stream<AxisRaw>         &siL3MUX_Data,
+
+        //------------------------------------------------------
+        //-- L2MUX Interface
+        //------------------------------------------------------
+        stream<AxisRaw>         &soL2MUX_Data,
+
+        //------------------------------------------------------
+        //-- ARP Interface
+        //------------------------------------------------------
+        stream<Ip4Addr>         &soARP_LookupReq,
+        stream<ArpLkpReply>     &siARP_LookupRep
+    );
+
+#endif  // HLS_VERSION
 
 #endif
 

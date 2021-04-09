@@ -1,21 +1,27 @@
+# *
+# * Copyright 2016 -- 2020 IBM Corporation
+# *
+# * Licensed under the Apache License, Version 2.0 (the "License");
+# * you may not use this file except in compliance with the License.
+# * You may obtain a copy of the License at
+# *
+# *     http://www.apache.org/licenses/LICENSE-2.0
+# *
+# * Unless required by applicable law or agreed to in writing, software
+# * distributed under the License is distributed on an "AS IS" BASIS,
+# * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# * See the License for the specific language governing permissions and
+# * limitations under the License.
+# *
+
 # *****************************************************************************
-# *                            cloudFPGA
-# *            All rights reserved -- Property of IBM
-# *----------------------------------------------------------------------------
-# * Created : Jan 2018
-# * Authors : Francois Abel, Burkhard Ringlein
 # *
-# * Description : A makefile that synthesizes and packages the current HLS core
-# *               as an IP.
-# * 
+# * Description : A makefile to simulate, synthesize and package the current
+# *   HLS core as an IP. 
+# *
 # * Synopsis:
-# *   make help    : Displays a help message.
-# *   make clean   : Cleanup of the current directory.
-# *   make         : Runs the default build for this core.
+# *   make help
 # *
-# *----------------------------------------------------------------------------
-# * HowTo: A little make receipt to print a variable (usage: make print-SRC_DEPS).
-# *          print-%: ; @echo $* = $($*)
 # ******************************************************************************
 
 # Name of the HLS core to build
@@ -24,9 +30,7 @@ ipName = iptx
 # Dependencies
 SRC_DEPS := $(shell find ./src/ -type f)
 
-.PHONY: all clean help csim csynth cosim project regression
-
-all: ${ipName}_prj/solution1/impl/ip
+.PHONY: all clean csim cosim csynth help project regression rtlSyn rtlImpl
 
 ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	$(MAKE) clean
@@ -40,6 +44,9 @@ ${ipName}_prj/solution1/impl/ip: $(SRC_DEPS)
 	@touch $@
 
 #-- Targets --------------------------------------------------------------------
+
+all: ${ipName}_prj/solution1/impl/ip
+
 clean:                   ## Cleans the current project
 	${RM} -rf ${ipName}_prj
 	${RM} vivado*.log
@@ -56,14 +63,14 @@ cosim: .synth_guard      ## Runs the HLS C/RTL cosimulation
 project:                 ## Creates the HLS project
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=0; vivado_hls -f run_hls.tcl
 
+regression: .synth_guard ## Runs HLS csim, csynth and cosim in sequence
+	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl
+
 rtlSyn:                  ## Executes logic synthesis to obtain more accurate timing and and utilization numbers
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=2; vivado_hls -f run_hls.tcl
 
 rtlImpl:                 ## Performs both RTL synthesis and implementation including detailed palce and route
 	export hlsCSim=0; export hlsCSynth=0; export hlsCoSim=0; export hlsRtl=3; vivado_hls -f run_hls.tcl
-
-regression: .synth_guard ## Runs HLS csim, csynth and cosim in sequence
-	export hlsCSim=1; export hlsCSynth=0; export hlsCoSim=1; export hlsRtl=0; vivado_hls -f run_hls.tcl
 
 help:                    ## Shows this help message
     # This target is for self documentation of the Makefile. 
@@ -76,3 +83,7 @@ help:                    ## Shows this help message
 	@egrep '^(.+)\:\ .*##\ (.+)' ${MAKEFILE_LIST} | sed -n 's/\([a-zA-Z0-9]*\): \(.*\)##\(.*\)/\1 ;\3/p' | column -t -c 2 -s ';' | sed -e 's/^/    /' 
 	@echo
 
+#
+# HowTo: A little make receipt to print a variable (usage: make print-SRC_DEPS).
+#          print-%: ; @echo $* = $($*)
+#

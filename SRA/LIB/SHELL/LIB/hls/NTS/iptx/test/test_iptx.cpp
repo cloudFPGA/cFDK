@@ -308,6 +308,57 @@ int createGoldenFile(
 }
 
 /*******************************************************************************
+ * @brief A wrapper for the Toplevel of IP the IP Transmitter Handler (IPTX).
+ *
+ * @param[in]  piMMIO_MacAddress  The MAC address from MMIO (in network order).
+ * @param[in]  piMMIO_SubNetMask  The sub-network-mask from [MMIO].
+ * @param[in]  piMMIO_GatewayAddr The default gateway address from [MMIO].
+ * @param[in]  siL3MUX_Data       The IP4 data stream from the L3 Multiplexer (L3MUX).
+ * @param[out] soL2MUX_Data       The ETH data stream to the L2 Multiplexer (L2MUX).
+ * @param[out] soARP_LookupReq    The IP4 address lookup request to AddressResolutionProtocol (ARP).
+ * @param[in]  siARP_LookupRep    The MAC address looked-up from [ARP].
+ *
+ * @details
+ *  This process is a wrapper for the 'iptx_top' entity. It instantiates an
+ *   'iptx_top' entity and connects it with the appropriate 'AxisRaw' streams
+ *   instead of the derived stream classes which are not supported by the
+ *   interface synthesis optimization of Vivado HLS.
+ *******************************************************************************/
+void iptx_top_wrap(
+    //-- MMIO Interfaces
+    EthAddr                  piMMIO_MacAddress,
+    Ip4Addr                  piMMIO_SubNetMask,
+    Ip4Addr                  piMMIO_GatewayAddr,
+    //-- L3MUX Interface
+    stream<AxisIp4>         &siL3MUX_Data,
+    //-- L2MUX Interface
+    stream<AxisEth>         &soL2MUX_Data,
+    //-- ARP Interface
+    stream<Ip4Addr>         &soARP_LookupReq,
+    stream<ArpLkpReply>     &siARP_LookupRep)
+{
+    //-- LOCAL INPUT and OUTPUT STREAMS -------------------
+    stream<AxisRaw>          ssiL3MUX_Data ("ssiL3MUX_Data");
+    stream<AxisRaw>          ssoL2MUX_Data ("ssoL2MUX_Data");
+
+    //-- INPUT STREAM CASTING -----------------------------
+    pAxisRawCast(siL3MUX_Data, ssiL3MUX_Data);
+
+    //-- MAIN IPTX_TOP PROCESS ----------------------------
+    iptx_top(
+        piMMIO_MacAddress,
+        piMMIO_SubNetMask,
+        piMMIO_GatewayAddr,
+        ssiL3MUX_Data,
+        ssoL2MUX_Data,
+        soARP_LookupReq,
+        siARP_LookupRep);
+
+    //-- OUTPUT STREAM CASTING ----------------------------
+    pAxisRawCast(ssoL2MUX_Data, soL2MUX_Data);
+}
+
+/*******************************************************************************
  * @brief Main function.
  *
  * @param[in] argv[1] The filename of an input test vector (.e.g, ../../../../test/testVectors/siTOE_OnePkt.dat)
@@ -424,21 +475,30 @@ int main(int argc, char* argv[]) {
     tbRun = (nrErr == 0) ? (nrL3MUX_IPTX_Chunks + TB_GRACE_TIME) : 0;
 
     while (tbRun) {
-        //-- RUN DUT
-        iptx(
-            //-- MMIO Interfaces
+        //-- RUN DUT --------------------------------------
+        #if HLS_VERSION == 2017
+          iptx_top(
             myMacAddress,
             mySubNetMask,
             myGatewayAddr,
-            //-- L3MUX Interface
             ssL3MUX_IPTX_Data,
-            //-- L2MUX Interface
             ssIPTX_L2MUX_Data,
-            //-- ARP Interface
             ssIPTX_ARP_LookupReq,
             ssARP_IPTX_LookupRep
-        );
+          );
+        #else
+          iptx_top_wrap(
+            myMacAddress,
+            mySubNetMask,
+            myGatewayAddr,
+            ssL3MUX_IPTX_Data,
+            ssIPTX_L2MUX_Data,
+            ssIPTX_ARP_LookupReq,
+            ssARP_IPTX_LookupRep
+          );
+        #endif
 
+          //-- EMULATE ARP --------------------------------
         pEmulateArp(
             ssIPTX_ARP_LookupReq,
             ssARP_IPTX_LookupRep,
@@ -447,7 +507,7 @@ int main(int argc, char* argv[]) {
             mySubNetMask,
             myGatewayAddr);
 
-        //-- READ FROM STREAM AND WRITE TO FILE
+        //-- READ FROM STREAM AND WRITE TO FILE -----------
         AxisEth  axisEth;
         if (!(ssIPTX_L2MUX_Data.empty())) {
             ssIPTX_L2MUX_Data.read(axisEth);

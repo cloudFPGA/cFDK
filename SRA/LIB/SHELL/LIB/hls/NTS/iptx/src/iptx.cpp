@@ -41,7 +41,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace hls;
 
-#define USE_DEPRECATED_DIRECTIVES
+//OBSOLETE_20210409 #define USE_DEPRECATED_DIRECTIVES
 
 /************************************************
  * HELPERS FOR THE DEBUGGING TRACES
@@ -96,7 +96,7 @@ void pHeaderChecksumAccumulator(
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE off
-    #pragma HLS pipeline II=1
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "HCa");
 
@@ -148,7 +148,7 @@ void pHeaderChecksumAccumulator(
             break;
         }
     }
-    else if (!siL3MUX_Data.empty() && !soICi_Data.full() && hca_csumWritten) {
+    else if (!siL3MUX_Data.empty() and !soICi_Data.full() and hca_csumWritten) {
         siL3MUX_Data.read(currChunk);
         // Process the IPv4 header.
         //  Remember that the Internet Header Length (IHL) field contains the
@@ -258,14 +258,14 @@ void pIpChecksumInsert(
     currChunk.setLE_TLast(0);
     switch (ici_fsmState) {
     case S0:
-        if (!siHCa_Data.empty() && !soIAe_Data.full()) {
+        if (!siHCa_Data.empty() and !soIAe_Data.full()) {
             siHCa_Data.read(currChunk);
             soIAe_Data.write(currChunk);
             ici_fsmState = S1;
         }
         break;
     case S1:
-        if (!siHCa_Data.empty() && !siHCa_Csum.empty() && !soIAe_Data.full()) {
+        if (!siHCa_Data.empty() and !siHCa_Csum.empty() and !soIAe_Data.full()) {
             siHCa_Data.read(currChunk);
             siHCa_Csum.read(ipHdrChecksum);
             // Insert the computed ipHeaderChecksum in the incoming stream
@@ -275,7 +275,7 @@ void pIpChecksumInsert(
         }
         break;
     default:
-        if (!siHCa_Data.empty() && !soIAe_Data.full()) {
+        if (!siHCa_Data.empty() and !soIAe_Data.full()) {
             siHCa_Data.read(currChunk);
             soIAe_Data.write(currChunk);
         }
@@ -320,7 +320,7 @@ void pIp4AddressExtractor(
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     Ip4Addr ipDestAddr;
 
-    if (!siICi_Data.empty() && !soMAi_Data.full()) {
+    if (!siICi_Data.empty() and !soMAi_Data.full()) {
         AxisIp4 currChunk = siICi_Data.read();
         switch (iae_chunkCount) {
         case 2:  // Extract destination IP address
@@ -388,7 +388,7 @@ void pMacAddressInserter(
     currChunk.setLE_TLast(0);
     switch (mai_fsmState) {
     case FSM_MAI_WAIT_LOOKUP:
-        if (!siARP_LookupRsp.empty() && !soL2MUX_Data.full()) {
+        if (!siARP_LookupRsp.empty() and !soL2MUX_Data.full()) {
             siARP_LookupRsp.read(arpResponse);
             macDstAddr = arpResponse.macAddress;
             if (arpResponse.hit) {
@@ -414,7 +414,7 @@ void pMacAddressInserter(
         break;
     case FSM_MAI_WRITE_FIRST:
         if (DEBUG_LEVEL & TRACE_MAI) { printInfo(myName, "FSM_MAI_WRITE_FIRST - \n"); }
-        if (!siIAe_Data.empty() && !soL2MUX_Data.full()) {
+        if (!siIAe_Data.empty() and !soL2MUX_Data.full()) {
             siIAe_Data.read(currChunk);
             sendChunk.setEthSrcAddrLo(piMMIO_MacAddress);
             sendChunk.setEthTypeLen(0x0800);
@@ -430,7 +430,7 @@ void pMacAddressInserter(
         break;
     case FSM_MAI_WRITE:
         if (DEBUG_LEVEL & TRACE_MAI) { printInfo(myName, "FSM_MAI_WRITE - \n"); }
-        if (!siIAe_Data.empty() && !soL2MUX_Data.full()) {
+        if (!siIAe_Data.empty() and !soL2MUX_Data.full()) {
             siIAe_Data.read(currChunk);
             sendChunk.setLE_TData(mai_prevChunk.getLE_TData(63, 16), 47,  0);
             sendChunk.setLE_TData(    currChunk.getLE_TData(15,  0), 63, 48);
@@ -477,7 +477,7 @@ void pMacAddressInserter(
         break;
     case FSM_MAI_DROP:
         if (DEBUG_LEVEL & TRACE_MAI) { printInfo(myName, "FSM_MAI_DROP - \n"); }
-        if (!siIAe_Data.empty() && !soL2MUX_Data.full()) {
+        if (!siIAe_Data.empty() and !soL2MUX_Data.full()) {
             siIAe_Data.read(currChunk);
             if (currChunk.getLE_TLast()) {
                 mai_fsmState = FSM_MAI_WAIT_LOOKUP;
@@ -490,7 +490,7 @@ void pMacAddressInserter(
 } // End-of: pMacAddressInserter
 
 /*******************************************************************************
- * @brief   Main process of the IP Transmitter Handler (IPRX).
+ * @brief   Main process of the IP Transmitter Handler (IPTX).
  *
  * @param[in]  piMMIO_MacAddress  The MAC address from MMIO (in network order).
  * @param[in]  piMMIO_SubNetMask  The sub-network-mask from [MMIO].
@@ -510,24 +510,20 @@ void pMacAddressInserter(
  *
  *******************************************************************************/
 void iptx(
-
         //------------------------------------------------------
         //-- MMIO Interfaces
         //------------------------------------------------------
         EthAddr                  piMMIO_MacAddress,
         Ip4Addr                  piMMIO_SubNetMask,
         Ip4Addr                  piMMIO_GatewayAddr,
-
         //------------------------------------------------------
         //-- L3MUX Interface
         //------------------------------------------------------
         stream<AxisIp4>         &siL3MUX_Data,
-
         //------------------------------------------------------
         //-- L2MUX Interface
         //------------------------------------------------------
         stream<AxisEth>         &soL2MUX_Data,
-
         //------------------------------------------------------
         //-- ARP Interface
         //------------------------------------------------------
@@ -535,43 +531,9 @@ void iptx(
         stream<ArpLkpReply>     &siARP_LookupRep)
 {
     //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
-    #pragma HLS INTERFACE ap_ctrl_none port=return
-
-#if defined(USE_DEPRECATED_DIRECTIVES)
-
-    /*********************************************************************/
-    /*** For the time being, we continue designing with the DEPRECATED ***/
-    /*** directives because the new PRAGMAs do not work for us.        ***/
-    /*********************************************************************/
-
-    #pragma HLS INTERFACE ap_stable          port=piMMIO_MacAddress
-    #pragma HLS INTERFACE ap_stable          port=piMMIO_SubNetMask
-    #pragma HLS INTERFACE ap_stable          port=piMMIO_GatewayAddr
-
-    #pragma HLS resource core=AXI4Stream variable=siL3MUX_Data    metadata="-bus_bundle siL3MUX_Data"
-    #pragma HLS resource core=AXI4Stream variable=soL2MUX_Data    metadata="-bus_bundle soL2MUX_Data"
-
-    #pragma HLS resource core=AXI4Stream variable=soARP_LookupReq metadata="-bus_bundle soARP_LookupReq"
-    #pragma HLS resource core=AXI4Stream variable=siARP_LookupRep metadata="-bus_bundle siARP_LookupRep"
-    #pragma HLS                DATA_PACK variable=siARP_LookupRep
-
-#else
-
-    #pragma HLS INTERFACE   ap_stable        port=piMMIO_MacAddress
-    #pragma HLS INTERFACE   ap_stable        port=piMMIO_SubNetMask
-    #pragma HLS INTERFACE   ap_stable        port=piMMIO_GatewayAddr
-
-    #pragma HLS INTERFACE   axis             port=siL3MUX_Data
-    #pragma HLS INTERFACE   axis             port=soL2MUX_Data
-
-    #pragma HLS INTERFACE   axis             port=soARP_LookupReq
-
-    #pragma HLS INTERFACE   axis             port=siARP_LookupRep
-
-#endif
-
-    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW
+    #pragma HLS INLINE
+    #pragma HLS INTERFACE ap_ctrl_none port=return
 
     //--------------------------------------------------------------------------
     //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
@@ -594,6 +556,8 @@ void iptx(
     static stream<AxisIp4>         ssIAeToMAi_Data    ("ssIAeToMAi_Data");
     #pragma HLS STREAM    variable=ssIAeToMAi_Data    depth=16
     #pragma HLS DATA_PACK variable=ssIAeToMAi_Data
+
+    //-- PROCESS FUNCTIONS -----------------------------------------------------
 
     pHeaderChecksumAccumulator(
             siL3MUX_Data,
@@ -618,5 +582,143 @@ void iptx(
             siARP_LookupRep,
             soL2MUX_Data);
 }
+
+/*******************************************************************************
+ * @brief  Top of IP Transmitter Handler (IPTX)
+ *
+ * @param[in]  piMMIO_MacAddress  The MAC address from MMIO (in network order).
+ * @param[in]  piMMIO_SubNetMask  The sub-network-mask from [MMIO].
+ * @param[in]  piMMIO_GatewayAddr The default gateway address from [MMIO].
+ * @param[in]  siL3MUX_Data       The IP4 data stream from the L3 Multiplexer (L3MUX).
+ * @param[out] soL2MUX_Data       The ETH data stream to the L2 Multiplexer (L2MUX).
+ * @param[out] soARP_LookupReq    The IP4 address lookup request to AddressResolutionProtocol (ARP).
+ * @param[in]  siARP_LookupRep    The MAC address looked-up from [ARP].
+ *
+ *******************************************************************************/
+#if HLS_VERSION == 2017
+    void iptx_top(
+        //------------------------------------------------------
+        //-- MMIO Interfaces
+        //------------------------------------------------------
+        EthAddr                  piMMIO_MacAddress,
+        Ip4Addr                  piMMIO_SubNetMask,
+        Ip4Addr                  piMMIO_GatewayAddr,
+        //------------------------------------------------------
+        //-- L3MUX Interface
+        //------------------------------------------------------
+        stream<AxisIp4>         &siL3MUX_Data,
+        //------------------------------------------------------
+        //-- L2MUX Interface
+        //------------------------------------------------------
+        stream<AxisEth>         &soL2MUX_Data,
+        //------------------------------------------------------
+        //-- ARP Interface
+        //------------------------------------------------------
+        stream<Ip4Addr>         &soARP_LookupReq,
+        stream<ArpLkpReply>     &siARP_LookupRep)
+{
+    //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
+    #pragma HLS INTERFACE ap_ctrl_none port=return
+
+    /*********************************************************************/
+    /*** For the time being, we continue designing with the DEPRECATED ***/
+    /*** directives because the new PRAGMAs do not work for us.        ***/
+    /*********************************************************************/
+
+    #pragma HLS INTERFACE ap_stable          port=piMMIO_MacAddress
+    #pragma HLS INTERFACE ap_stable          port=piMMIO_SubNetMask
+    #pragma HLS INTERFACE ap_stable          port=piMMIO_GatewayAddr
+
+    #pragma HLS resource core=AXI4Stream variable=siL3MUX_Data    metadata="-bus_bundle siL3MUX_Data"
+    #pragma HLS resource core=AXI4Stream variable=soL2MUX_Data    metadata="-bus_bundle soL2MUX_Data"
+
+    #pragma HLS resource core=AXI4Stream variable=soARP_LookupReq metadata="-bus_bundle soARP_LookupReq"
+    #pragma HLS resource core=AXI4Stream variable=siARP_LookupRep metadata="-bus_bundle siARP_LookupRep"
+    #pragma HLS                DATA_PACK variable=siARP_LookupRep
+
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS DATAFLOW
+
+    //-- MAIN IPTX PROCESS -----------------------------------------------------
+    iptx(
+        //-- MMIO Interfaces
+        piMMIO_MacAddress,
+        piMMIO_SubNetMask,
+        piMMIO_GatewayAddr,
+        //-- L3MUX Interface
+        siL3MUX_Data,
+        //-- L2MUX Interface
+        soL2MUX_Data,
+        //-- ARP Interface
+        soARP_LookupReq,
+        siARP_LookupRep);
+
+}
+#else
+    void iptx_top(
+        //------------------------------------------------------
+        //-- MMIO Interfaces
+        //------------------------------------------------------
+        EthAddr                  piMMIO_MacAddress,
+        Ip4Addr                  piMMIO_SubNetMask,
+        Ip4Addr                  piMMIO_GatewayAddr,
+        //------------------------------------------------------
+        //-- L3MUX Interface
+        //------------------------------------------------------
+        stream<AxisRaw>         &siL3MUX_Data,
+        //------------------------------------------------------
+        //-- L2MUX Interface
+        //------------------------------------------------------
+        stream<AxisRaw>         &soL2MUX_Data,
+        //------------------------------------------------------
+        //-- ARP Interface
+        //------------------------------------------------------
+        stream<Ip4Addr>         &soARP_LookupReq,
+        stream<ArpLkpReply>     &siARP_LookupRep)
+{
+    //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
+    #pragma HLS INTERFACE ap_ctrl_none port=return
+
+    #pragma HLS INTERFACE   ap_stable        port=piMMIO_MacAddress
+    #pragma HLS INTERFACE   ap_stable        port=piMMIO_SubNetMask
+    #pragma HLS INTERFACE   ap_stable        port=piMMIO_GatewayAddr
+
+    #pragma HLS INTERFACE   axis off         port=siL3MUX_Data
+    #pragma HLS INTERFACE   axis off         port=soL2MUX_Data
+
+    #pragma HLS INTERFACE   axis off         port=soARP_LookupReq
+
+    #pragma HLS INTERFACE   axis off         port=siARP_LookupRep
+
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS DATAFLOW disable_start_propagation
+
+    //-- LOCAL INPUT and OUTPUT STREAMS ----------------------------------------
+    static stream<AxisIp4>          ssiL3MUX_Data ("ssiL3MUX_Data");
+    #pragma HLS STREAM     variable=ssiL3MUX_Data depth=8
+    static stream<AxisEth>          ssoL2MUX_Data ("ssoL2MUX_Data");
+
+    //-- INPUT STREAM CASTING --------------------------------------------------
+    pAxisRawCast(siL3MUX_Data, ssiL3MUX_Data);
+
+    //-- MAIN IPTX PROCESS -----------------------------------------------------
+    iptx(
+        //-- MMIO Interfaces
+        piMMIO_MacAddress,
+        piMMIO_SubNetMask,
+        piMMIO_GatewayAddr,
+        //-- L3MUX Interface
+        ssiL3MUX_Data,
+        //-- L2MUX Interface
+        ssoL2MUX_Data,
+        //-- ARP Interface
+        soARP_LookupReq,
+        siARP_LookupRep);
+
+    //-- OUTPUT STREAM CASTING -------------------------------------------------
+    pAxisRawCast(ssoL2MUX_Data, soL2MUX_Data);
+
+}
+#endif  // HLS_VERSION
 
 /*! \} */
