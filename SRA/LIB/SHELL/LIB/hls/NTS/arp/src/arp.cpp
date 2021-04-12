@@ -672,7 +672,6 @@ void arp(
     //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
 
-
     #pragma HLS INTERFACE ap_stable          port=piMMIO_MacAddress
     #pragma HLS INTERFACE ap_stable          port=piMMIO_Ip4Address
 
@@ -681,15 +680,16 @@ void arp(
 
     #pragma HLS INTERFACE axis register both port=siIPTX_MacLkpReq
     #pragma HLS INTERFACE axis register both port=soIPTX_MacLkpRep
+    #pragma HLS DATA_PACK                variable=soIPTX_MacLkpRep
 
     #pragma HLS INTERFACE axis register both port=soCAM_MacLkpReq
     #pragma HLS DATA_PACK                variable=soCAM_MacLkpReq
     #pragma HLS INTERFACE axis register both port=siCAM_MacLkpRep
     #pragma HLS DATA_PACK                variable=siCAM_MacLkpRep
-    #pragma HLS INTERFACE axis register both port=soCAM_MacUpdateReq
-    #pragma HLS DATA_PACK                variable=soCAM_MacUpdateReq
-    #pragma HLS INTERFACE axis register both port=siCAM_MacUpdateRep
-    #pragma HLS DATA_PACK                variable=siCAM_MacUpdateRep
+    #pragma HLS INTERFACE axis register both port=soCAM_MacUpdReq
+    #pragma HLS DATA_PACK                variable=soCAM_MacUpdReq
+    #pragma HLS INTERFACE axis register both port=siCAM_MacUpdRep
+    #pragma HLS DATA_PACK                variable=siCAM_MacUpdRep
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW disable_start_propagation
