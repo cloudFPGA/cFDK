@@ -373,6 +373,7 @@ void pEmulateCam(
 
 } // End-of: pEmulateCam()
 
+#if HLS_VERSION != 2017
 /*******************************************************************************
  * @brief A wrapper for the Toplevel of the Address Resolution Protocol (ARP)
  *         Server.
@@ -393,7 +394,7 @@ void pEmulateCam(
  *   entity and further connects it with base 'AxisRaw' streams as expected by
  *   the 'iprx_top'.
  *******************************************************************************/
-void arp_top_wrap(
+  void arp_top_wrap(
         //-- MMIO Interfaces
         EthAddr                      piMMIO_MacAddress,
         Ip4Addr                      piMMIO_Ip4Address,
@@ -433,6 +434,7 @@ void arp_top_wrap(
     //-- OUTPUT STREAM CASTING ----------------------------
     pAxisRawCast(ssoETH_Data, soETH_Data);
 }
+#endif
 
 /*******************************************************************************
  * @brief Main function.

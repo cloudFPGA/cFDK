@@ -624,7 +624,7 @@ void arp(
     #pragma HLS DATAFLOW
 
     //-- MAIN ARP PROCESS ------------------------------------------------------
-    void arp(
+    arp(
         //-- MMIO Interfaces
         piMMIO_MacAddress,
         piMMIO_Ip4Address,
