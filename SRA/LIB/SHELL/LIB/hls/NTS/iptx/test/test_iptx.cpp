@@ -307,6 +307,7 @@ int createGoldenFile(
     return(ret);
 }
 
+#if HLS_VERSION != 2017
 /*******************************************************************************
  * @brief A wrapper for the Toplevel of IP the IP Transmitter Handler (IPTX).
  *
@@ -357,6 +358,7 @@ void iptx_top_wrap(
     //-- OUTPUT STREAM CASTING ----------------------------
     pAxisRawCast(ssoL2MUX_Data, soL2MUX_Data);
 }
+#endif
 
 /*******************************************************************************
  * @brief Main function.
