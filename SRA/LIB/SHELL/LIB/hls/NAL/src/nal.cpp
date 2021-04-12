@@ -237,6 +237,17 @@ void pStatusMemory(
 #pragma HLS ARRAY_PARTITION variable=status complete dim=1
 #pragma HLS ARRAY_PARTITION variable=old_status complete dim=1
 
+  if(*layer_7_enabled == 0 || *role_decoupled == 1 )
+  {
+    //reset counters
+    packet_count_TX = 0x0;
+    packet_count_RX = 0x0;
+    last_rx_port = 0x0;
+    last_rx_node_id = 0x0;
+    last_tx_port = 0x0;
+    last_tx_node_id = 0x0;
+    //but don't stop here
+  }
   // ----- tables init -----
   if(!tables_initialized)
   {
@@ -246,17 +257,19 @@ void pStatusMemory(
       old_status[i] = 0x0;
     }
     tables_initialized = true;
-  } else if(*layer_7_enabled == 0 || *role_decoupled == 1 )
-  {
-    //reset counters
-    packet_count_TX = 0x0;
-    packet_count_RX = 0x0;
-    last_rx_port = 0x0;
-    last_rx_node_id = 0x0;
-    last_tx_port = 0x0;
-    last_tx_node_id = 0x0;
-    //return;
-  } else if(!sConfigUpdate.empty())
+  }
+  //else if(*layer_7_enabled == 0 || *role_decoupled == 1 )
+  //{
+  //  //reset counters
+  //  packet_count_TX = 0x0;
+  //  packet_count_RX = 0x0;
+  //  last_rx_port = 0x0;
+  //  last_rx_node_id = 0x0;
+  //  last_tx_port = 0x0;
+  //  last_tx_node_id = 0x0;
+  //  //return;
+  //}
+  else if(!sConfigUpdate.empty())
   {
     NalConfigUpdate ca = sConfigUpdate.read();
     if(ca.config_addr == NAL_CONFIG_OWN_RANK)
