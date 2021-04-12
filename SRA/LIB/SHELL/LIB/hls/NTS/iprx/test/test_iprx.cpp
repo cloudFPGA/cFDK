@@ -260,6 +260,7 @@ int createGoldenFiles(EthAddr myMacAddress,
     return(ret);
 }
 
+#if HLS_VERSION != 2017
 /*******************************************************************************
  * @brief A wrapper for the Toplevel of the IP Receive handler (IPRX).
  *
@@ -277,7 +278,7 @@ int createGoldenFiles(EthAddr myMacAddress,
  *   entity and further connects it with base 'AxisRaw' streams as expected by
  *   the 'iprx_top'.
  *******************************************************************************/
-void iprx_top_wrap(
+  void iprx_top_wrap(
     //-- MMIO Interfaces
     EthAddr              piMMIO_MacAddress,
     Ip4Addr              piMMIO_Ip4Address,
@@ -321,8 +322,8 @@ void iprx_top_wrap(
     pAxisRawCast(ssoICMP_Derr, soICMP_Derr);
     pAxisRawCast(ssoUOE_Data,  soUOE_Data);
     pAxisRawCast(ssoTOE_Data,  soTOE_Data);
-}
-
+  }
+#endif
 
 /*****************************************************************************
  * @brief Main function.
