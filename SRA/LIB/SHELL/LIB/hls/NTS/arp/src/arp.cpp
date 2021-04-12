@@ -104,7 +104,7 @@ void pArpPacketReceiver(
         stream<ArpBindPair>     &soACc_UpdateReq)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "APr");
 
@@ -234,7 +234,7 @@ void pArpPacketSender(
         stream<AxisEth>     &soETH_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "APr");
 
@@ -367,7 +367,7 @@ void pArpCamController(
     stream<RtlMacUpdateReply>   &siCAM_MacUpdRep)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "ACc");
 
@@ -506,54 +506,9 @@ void arp(
         stream<RtlMacUpdateReply>   &siCAM_MacUpdRep)
 {
     //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
-    #pragma HLS INTERFACE ap_ctrl_none port=return
-
-#if defined(USE_DEPRECATED_DIRECTIVES)
-
-    /*********************************************************************/
-    /*** For the time being, we continue designing with the DEPRECATED ***/
-    /*** directives because the new PRAGMAs do not work for us.        ***/
-    /*********************************************************************/
-
-    #pragma HLS INTERFACE ap_stable          port=piMMIO_MacAddress
-    #pragma HLS INTERFACE ap_stable          port=piMMIO_Ip4Address
-
-    #pragma HLS RESOURCE core=AXI4Stream variable=siIPRX_Data        metadata="-bus_bundle siIPRX_Data"
-    #pragma HLS RESOURCE core=AXI4Stream variable=soETH_Data         metadata="-bus_bundle soETH_Data"
-
-    #pragma HLS RESOURCE core=AXI4Stream variable=siIPTX_MacLkpReq   metadata="-bus_bundle siIPTX_MacLkpReq"
-    #pragma HLS RESOURCE core=AXI4Stream variable=soIPTX_MacLkpRep   metadata="-bus_bundle soIPTX_MacLkpRep"
-    #pragma HLS DATA_PACK                variable=soIPTX_MacLkpRep
-
-    #pragma HLS RESOURCE core=AXI4Stream variable=soCAM_MacLkpReq    metadata="-bus_bundle soCAM_MacLkpReq"
-    #pragma HLS DATA_PACK                variable=soCAM_MacLkpReq
-    #pragma HLS RESOURCE core=AXI4Stream variable=siCAM_MacLkpRep    metadata="-bus_bundle siCAM_MacLkpRep"
-    #pragma HLS DATA_PACK                variable=siCAM_MacLkpRep
-    #pragma HLS RESOURCE core=AXI4Stream variable=soCAM_MacUpdReq    metadata="-bus_bundle soCAM_MacUpdReq"
-    #pragma HLS DATA_PACK                variable=soCAM_MacUpdReq
-    #pragma HLS RESOURCE core=AXI4Stream variable=siCAM_MacUpdRep    metadata="-bus_bundle siCAM_MacUpdRep"
-    #pragma HLS DATA_PACK                variable=siCAM_MacUpdRep
-
-#else
-
-    #pragma HLS INTERFACE ap_stable   port=piMMIO_MacAddress
-    #pragma HLS INTERFACE ap_stable   port=piMMIO_Ip4Address
-
-    #pragma HLS INTERFACE axis        port=siIPRX_Data
-    #pragma HLS INTERFACE axis        port=soETH_Data
-
-	#pragma HLS INTERFACE axis        port=siIPTX_MacLkpReq
-	#pragma HLS INTERFACE axis        port=soIPTX_MacLkpRep
-
-	#pragma HLS INTERFACE axis        port=soCAM_MacLkpReq
-	#pragma HLS INTERFACE axis        port=siCAM_MacLkpRep
-    #pragma HLS INTERFACE axis        port=soCAM_MacUpdateReq
-	#pragma HLS INTERFACE axis        port=siCAM_MacUpdateRep
-
-#endif
-
-    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW
+    #pragma HLS INLINE
+    #pragma HLS INTERFACE ap_ctrl_none port=return
 
     //--------------------------------------------------------------------------
     //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
@@ -594,5 +549,176 @@ void arp(
         soCAM_MacUpdReq,
         siCAM_MacUpdRep);
 }
+
+/*******************************************************************************
+ * @brief Top of Address Resolution Protocol (ARP) Server.
+ *
+ * @param[in]  piMMIO_MacAddress The MAC  address from MMIO (in network order).
+ * @param[in]  piMMIO_Ip4Address The IPv4 address from MMIO (in network order).
+ * @param[in]  siIPRX_Data       Data stream from the IP Rx Handler (IPRX).
+ * @param[out] soETH_Data        Data stream to Ethernet (ETH).
+ * @param[in]  siIPTX_MacLkpReq  MAC lookup request from [IPTX].
+ * @param[out] soIPTX_MacLkpRep  MAC lookup reply to [IPTX].
+ * @param[out] soCAM_MacLkpReq   MAC lookup request to [CAM].
+ * @param[in]  siCAM_MacLkpRep   MAC lookup reply from [CAM].
+ * @param[out] soCAM_MacUpdReq   MAC update request to [CAM].
+ * @param[in]  siCAM_MacUpdRep   MAC update reply from [CAM].
+ *
+ *******************************************************************************/
+#if HLS_VERSION == 2017
+    void arp_top(
+        //------------------------------------------------------
+        //-- MMIO Interfaces
+        //------------------------------------------------------
+        EthAddr                      piMMIO_MacAddress,
+        Ip4Addr                      piMMIO_Ip4Address,
+        //------------------------------------------------------
+        //-- IPRX Interface
+        //------------------------------------------------------
+        stream<AxisEth>             &siIPRX_Data,
+        //------------------------------------------------------
+        //-- ETH Interface
+        //------------------------------------------------------
+        stream<AxisEth>             &soETH_Data,
+        //------------------------------------------------------
+        //-- IPTX Interfaces
+        //------------------------------------------------------
+        stream<Ip4Addr>             &siIPTX_MacLkpReq,
+        stream<ArpLkpReply>         &soIPTX_MacLkpRep,
+        //------------------------------------------------------
+        //-- CAM Interfaces
+        //------------------------------------------------------
+        stream<RtlMacLookupRequest> &soCAM_MacLkpReq,
+        stream<RtlMacLookupReply>   &siCAM_MacLkpRep,
+        stream<RtlMacUpdateRequest> &soCAM_MacUpdReq,
+        stream<RtlMacUpdateReply>   &siCAM_MacUpdRep)
+{
+    //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
+    #pragma HLS INTERFACE ap_ctrl_none port=return
+
+    /*********************************************************************/
+    /*** For the time being, we continue designing with the DEPRECATED ***/
+    /*** directives because the new PRAGMAs do not work for us.        ***/
+    /*********************************************************************/
+
+    #pragma HLS INTERFACE ap_stable          port=piMMIO_MacAddress
+    #pragma HLS INTERFACE ap_stable          port=piMMIO_Ip4Address
+
+    #pragma HLS RESOURCE core=AXI4Stream variable=siIPRX_Data        metadata="-bus_bundle siIPRX_Data"
+    #pragma HLS RESOURCE core=AXI4Stream variable=soETH_Data         metadata="-bus_bundle soETH_Data"
+
+    #pragma HLS RESOURCE core=AXI4Stream variable=siIPTX_MacLkpReq   metadata="-bus_bundle siIPTX_MacLkpReq"
+    #pragma HLS RESOURCE core=AXI4Stream variable=soIPTX_MacLkpRep   metadata="-bus_bundle soIPTX_MacLkpRep"
+    #pragma HLS DATA_PACK                variable=soIPTX_MacLkpRep
+
+    #pragma HLS RESOURCE core=AXI4Stream variable=soCAM_MacLkpReq    metadata="-bus_bundle soCAM_MacLkpReq"
+    #pragma HLS DATA_PACK                variable=soCAM_MacLkpReq
+    #pragma HLS RESOURCE core=AXI4Stream variable=siCAM_MacLkpRep    metadata="-bus_bundle siCAM_MacLkpRep"
+    #pragma HLS DATA_PACK                variable=siCAM_MacLkpRep
+    #pragma HLS RESOURCE core=AXI4Stream variable=soCAM_MacUpdReq    metadata="-bus_bundle soCAM_MacUpdReq"
+    #pragma HLS DATA_PACK                variable=soCAM_MacUpdReq
+    #pragma HLS RESOURCE core=AXI4Stream variable=siCAM_MacUpdRep    metadata="-bus_bundle siCAM_MacUpdRep"
+    #pragma HLS DATA_PACK                variable=siCAM_MacUpdRep
+
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS DATAFLOW
+
+    //-- MAIN ARP PROCESS ------------------------------------------------------
+    void arp(
+        //-- MMIO Interfaces
+        piMMIO_MacAddress,
+        piMMIO_Ip4Address,
+        //-- IPRX Interface
+        siIPRX_Data,
+        //-- ETH Interface
+        soETH_Data,
+        //-- IPTX Interfaces
+        siIPTX_MacLkpReq,
+        soIPTX_MacLkpRep,
+        //-- CAM Interfaces
+        soCAM_MacLkpReq,
+        siCAM_MacLkpRep,
+        soCAM_MacUpdReq,
+        siCAM_MacUpdRep);
+}
+#else
+    void arp_top(
+        //------------------------------------------------------
+        //-- MMIO Interfaces
+        //------------------------------------------------------
+        EthAddr                      piMMIO_MacAddress,
+        Ip4Addr                      piMMIO_Ip4Address,
+        //------------------------------------------------------
+        //-- IPRX Interface
+        //------------------------------------------------------
+        stream<AxisRaw>             &siIPRX_Data,
+        //------------------------------------------------------
+        //-- ETH Interface
+        //------------------------------------------------------
+        stream<AxisRaw>             &soETH_Data,
+        //------------------------------------------------------
+        //-- IPTX Interfaces
+        //------------------------------------------------------
+        stream<Ip4Addr>             &siIPTX_MacLkpReq,
+        stream<ArpLkpReply>         &soIPTX_MacLkpRep,
+        //------------------------------------------------------
+        //-- CAM Interfaces
+        //------------------------------------------------------
+        stream<RtlMacLookupRequest> &soCAM_MacLkpReq,
+        stream<RtlMacLookupReply>   &siCAM_MacLkpRep,
+        stream<RtlMacUpdateRequest> &soCAM_MacUpdReq,
+        stream<RtlMacUpdateReply>   &siCAM_MacUpdRep)
+{
+    //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
+    #pragma HLS INTERFACE ap_ctrl_none port=return
+
+
+    #pragma HLS INTERFACE ap_stable          port=piMMIO_MacAddress
+    #pragma HLS INTERFACE ap_stable          port=piMMIO_Ip4Address
+
+    #pragma HLS INTERFACE axis off           port=siIPRX_Data
+    #pragma HLS INTERFACE axis off           port=soETH_Data
+
+	#pragma HLS INTERFACE axis register both port=siIPTX_MacLkpReq
+	#pragma HLS INTERFACE axis register both port=soIPTX_MacLkpRep
+
+	#pragma HLS INTERFACE axis register both port=soCAM_MacLkpReq
+	#pragma HLS INTERFACE axis register both port=siCAM_MacLkpRep
+    #pragma HLS INTERFACE axis register both port=soCAM_MacUpdateReq
+	#pragma HLS INTERFACE axis register both port=siCAM_MacUpdateRep
+
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS DATAFLOW disable_start_propagation
+
+    //-- LOCAL INPUT and OUTPUT STREAMS ----------------------------------------
+    static stream<AxisEth>  ssiIPRX_Data;
+    static stream<AxisEth>  ssoETH_Data;
+
+    //-- INPUT STREAM CASTING --------------------------------------------------
+    pAxisRawCast(siIPRX_Data, ssiIPRX_Data);
+
+    //-- MAIN ARP PROCESS ------------------------------------------------------
+    arp(
+        //-- MMIO Interfaces
+        piMMIO_MacAddress,
+        piMMIO_Ip4Address,
+        //-- IPRX Interface
+        ssiIPRX_Data,
+        //-- ETH Interface
+        ssoETH_Data,
+        //-- IPTX Interfaces
+        siIPTX_MacLkpReq,
+        soIPTX_MacLkpRep,
+        //-- CAM Interfaces
+        soCAM_MacLkpReq,
+        siCAM_MacLkpRep,
+        soCAM_MacUpdReq,
+        siCAM_MacUpdRep);
+
+    //-- OUTPUT STREAM CASTING -------------------------------------------------
+    pAxisRawCast(ssoETH_Data,  soETH_Data);
+}
+
+#endif
 
 /*! \} */

@@ -373,11 +373,72 @@ void pEmulateCam(
 
 } // End-of: pEmulateCam()
 
+/*******************************************************************************
+ * @brief A wrapper for the Toplevel of the Address Resolution Protocol (ARP)
+ *         Server.
+ *
+ * @param[in]  piMMIO_MacAddress The MAC  address from MMIO (in network order).
+ * @param[in]  piMMIO_Ip4Address The IPv4 address from MMIO (in network order).
+ * @param[in]  siIPRX_Data       Data stream from the IP Rx Handler (IPRX).
+ * @param[out] soETH_Data        Data stream to Ethernet (ETH).
+ * @param[in]  siIPTX_MacLkpReq  MAC lookup request from [IPTX].
+ * @param[out] soIPTX_MacLkpRep  MAC lookup reply to [IPTX].
+ * @param[out] soCAM_MacLkpReq   MAC lookup request to [CAM].
+ * @param[in]  siCAM_MacLkpRep   MAC lookup reply from [CAM].
+ * @param[out] soCAM_MacUpdReq   MAC update request to [CAM].
+ * @param[in]  siCAM_MacUpdRep   MAC update reply from [CAM].
+ *
+ * @details
+ *  This process is a wrapper for the 'iprx_top' entity. It instantiates such an
+ *   entity and further connects it with base 'AxisRaw' streams as expected by
+ *   the 'iprx_top'.
+ *******************************************************************************/
+void arp_top_wrap(
+        //-- MMIO Interfaces
+        EthAddr                      piMMIO_MacAddress,
+        Ip4Addr                      piMMIO_Ip4Address,
+        //-- IPRX Interface
+        stream<AxisEth>             &siIPRX_Data,
+        //-- ETH Interface
+        stream<AxisEth>             &soETH_Data,
+        //-- IPTX Interfaces
+        stream<Ip4Addr>             &siIPTX_MacLkpReq,
+        stream<ArpLkpReply>         &soIPTX_MacLkpRep,
+        //-- CAM Interfaces
+        stream<RtlMacLookupRequest> &soCAM_MacLkpReq,
+        stream<RtlMacLookupReply>   &siCAM_MacLkpRep,
+        stream<RtlMacUpdateRequest> &soCAM_MacUpdReq,
+        stream<RtlMacUpdateReply>   &siCAM_MacUpdRep)
+{
+    //-- LOCAL INPUT and OUTPUT STREAMS -------------------
+    static stream<AxisRaw>          ssiIPRX_Data ("ssiIPRX_Data");
+    static stream<AxisRaw>          ssoETH_Data  ("ssoETH_Data");
+
+    //-- INPUT STREAM CASTING -----------------------------
+    pAxisRawCast(siIPRX_Data, ssiIPRX_Data);
+
+    //-- MAIN IPRX_TOP PROCESS ----------------------------
+    arp_top(
+        piMMIO_MacAddress,
+        piMMIO_Ip4Address,
+        ssiIPRX_Data,
+        ssoETH_Data,
+        siIPTX_MacLkpReq,
+        soIPTX_MacLkpRep,
+        soCAM_MacLkpReq,
+        siCAM_MacLkpRep,
+        soCAM_MacUpdReq,
+        siCAM_MacUpdRep);
+
+    //-- OUTPUT STREAM CASTING ----------------------------
+    pAxisRawCast(ssoETH_Data, soETH_Data);
+}
 
 /*******************************************************************************
  * @brief Main function.
  *
- * @param[in] argv[1], the filename of an input test vector (.e.g, ../../../../test/testVectors/siIPRX_Data_ArpFrame.dat)
+ * @param[in] inpFile, The pathame of an input test vector.
+ *             (e.g., ../../../../test/testVectors/siIPRX_Data_ArpFrame.dat)
  *******************************************************************************/
 int main(int argc, char* argv[]) {
 
@@ -498,26 +559,34 @@ int main(int argc, char* argv[]) {
     //-----------------------------------------------------
     tbRun = (nrErr == 0) ? (nrIPRX_ARS_Chunks + TB_GRACE_TIME) : 0;
     while (tbRun) {
-        //== RUN DUT ==================
-        arp(
-            //-- MMIO Interfaces
+      //-- RUN DUT --------------------------------------
+      #if HLS_VERSION == 2017
+        arp_top(
             myMacAddress,
             myIp4Address,
-            //-- IPRX Interface
             ssIPRX_ARS_Data,
-            //-- ETH Interface
             ssARS_ETH_Data,
-            //-- IPTX Interfaces
             ssIPTX_ARS_MacLkpReq,
             ssARS_IPTX_MacLkpRep,
-            //-- CAM Interfaces
             ssARS_CAM_MacLkpReq,
             ssCAM_ARS_MacLkpRep,
             ssARS_CAM_MacUpdReq,
-            ssCAM_ARS_MacUpdRep
-        );
+            ssCAM_ARS_MacUpdRep);
+      #else
+        arp_top_wrap(
+            myMacAddress,
+            myIp4Address,
+            ssIPRX_ARS_Data,
+            ssARS_ETH_Data,
+            ssIPTX_ARS_MacLkpReq,
+            ssARS_IPTX_MacLkpRep,
+            ssARS_CAM_MacLkpReq,
+            ssCAM_ARS_MacLkpRep,
+            ssARS_CAM_MacUpdReq,
+            ssCAM_ARS_MacUpdRep);
+      #endif
 
-        //== EMULATE ARP-CAM ==========
+        //-- EMULATE ARP CAM ------------------------------
         pEmulateCam(
             ssARS_CAM_MacLkpReq,
             ssCAM_ARS_MacLkpRep,
@@ -542,26 +611,34 @@ int main(int argc, char* argv[]) {
     tbRun = (nrErr == 0) ? (TB_GRACE_TIME) : 0;
     ssIPTX_ARS_MacLkpReq.write(RESERVED_SENDER_PROTOCOL_ADDRESS);
     while (tbRun) {
-        //== RUN DUT ==================
-        arp(
-            //-- MMIO Interfaces
+      //-- RUN DUT --------------------------------------
+      #if HLS_VERSION == 2017
+        arp_top(
             myMacAddress,
             myIp4Address,
-            //-- IPRX Interface
             ssIPRX_ARS_Data,
-            //-- ETH Interface
             ssARS_ETH_Data,
-            //-- IPTX Interfaces
             ssIPTX_ARS_MacLkpReq,
             ssARS_IPTX_MacLkpRep,
-            //-- CAM Interfaces
             ssARS_CAM_MacLkpReq,
             ssCAM_ARS_MacLkpRep,
             ssARS_CAM_MacUpdReq,
-            ssCAM_ARS_MacUpdRep
-        );
+            ssCAM_ARS_MacUpdRep);
+      #else
+        arp_top_wrap(
+            myMacAddress,
+            myIp4Address,
+            ssIPRX_ARS_Data,
+            ssARS_ETH_Data,
+            ssIPTX_ARS_MacLkpReq,
+            ssARS_IPTX_MacLkpRep,
+            ssARS_CAM_MacLkpReq,
+            ssCAM_ARS_MacLkpRep,
+           ssARS_CAM_MacUpdReq,
+           ssCAM_ARS_MacUpdRep);
+      #endif
 
-        //== EMULATE ARP-CAM ==========
+        //-- EMULATE ARP CAM ------------------------------
         pEmulateCam(
             ssARS_CAM_MacLkpReq,
             ssCAM_ARS_MacLkpRep,
@@ -589,26 +666,34 @@ int main(int argc, char* argv[]) {
         hostMapIter++;
     }
     while (tbRun) {
-        //== RUN DUT ==================
-        arp(
-            //-- MMIO Interfaces
+      //-- RUN DUT --------------------------------------
+      #if HLS_VERSION == 2017
+        arp_top(
             myMacAddress,
             myIp4Address,
-            //-- IPRX Interface
             ssIPRX_ARS_Data,
-            //-- ETH Interface
             ssARS_ETH_Data,
-            //-- IPTX Interfaces
             ssIPTX_ARS_MacLkpReq,
             ssARS_IPTX_MacLkpRep,
-            //-- CAM Interfaces
             ssARS_CAM_MacLkpReq,
             ssCAM_ARS_MacLkpRep,
             ssARS_CAM_MacUpdReq,
-            ssCAM_ARS_MacUpdRep
-        );
+            ssCAM_ARS_MacUpdRep);
+      #else
+        arp_top_wrap(
+            myMacAddress,
+            myIp4Address,
+            ssIPRX_ARS_Data,
+            ssARS_ETH_Data,
+            ssIPTX_ARS_MacLkpReq,
+            ssARS_IPTX_MacLkpRep,
+            ssARS_CAM_MacLkpReq,
+            ssCAM_ARS_MacLkpRep,
+            ssARS_CAM_MacUpdReq,
+            ssCAM_ARS_MacUpdRep);
+      #endif
 
-        //== EMULATE ARP-CAM ==========
+        //-- EMULATE ARP CAM ------------------------------
         pEmulateCam(
             ssARS_CAM_MacLkpReq,
             ssCAM_ARS_MacLkpRep,

@@ -45,25 +45,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../../../NTS/SimNtsUtils.hpp"
 #include "../../AxisEth.hpp"
 
-using namespace hls;
-
-//OBSOLETE_20200617 #define NO_OF_BROADCASTS 2
-
-//OBSOLETEE_20200617 const EthAddr     ETH_BROADCAST_MAC  = 0xFFFFFFFFFFFF; // Broadcast MAC Address
-//OBSOLETEE_20200617 const EtherType   ETH_ETHERTYPE_ARP  = 0x0806; // EtherType value ARP
-
-//OBSOLETEE_20200617 const ArpHwType   ARP_HTYPE_ETHERNET = 0x0001; //  Hardware type for Ethernet
-//OBSOLETEE_20200617 const ArpProtType ARP_PTYPE_IPV4     = 0x0800; // Protocol type for IPv4
-//OBSOLETEE_20200617 const ArpHwLen    ARP_HLEN_ETHERNET  =      6; // Hardware addr length for Ethernet
-//OBSOLETEE_20200617 const ArpProtLen  ARP_PLEN_IPV4      =      4; // Protocol addr length for IPv4
-//OBSOLETEE_20200617 const ArpOper     ARP_OPER_REQUEST   = 0x0001; // Operation is request
-//OBSOLETEE_20200617 const ArpOper     ARP_OPER_REPLY     = 0x0002; // Operation is reply
-
-//OBSOLETEE_20200617 const Ip4Addr     IP4_BROADCAST_ADD  = 0xFFFFFFFF; // Broadcast IP4 Address
-
-//OBSOLETE_20200617 typedef ap_uint<1> ArpLkpHit;
-//OBSOLETE_20200617 enum               ArpLkpHitStates { NO_HIT=0, HIT=1 };
-
 /************************************************
  * ARP Metadata
  *  Structure extracted from incoming ARP packet.
@@ -82,7 +63,6 @@ class ArpMeta  // ARP Metadata
     ArpSendProtAddr arpSendProtAddr;
     ArpMeta() {}
 };
-
 
 /********************************************
  * CAM / Lookup OpCodes
@@ -147,7 +127,9 @@ class RtlMacLookupReply {
  * ENTITY - ADDRESS RESOLUTION PROTOCOL (ARP) SERVER
  *
  *******************************************************************************/
-void arp(
+#if HLS_VERSION == 2017
+
+    void arp_top(
         //------------------------------------------------------
         //-- MMIO Interfaces
         //------------------------------------------------------
@@ -173,7 +155,37 @@ void arp(
         stream<RtlMacLookupReply>   &siCAM_MacLkpRep,
         stream<RtlMacUpdateRequest> &soCAM_MacUpdReq,
         stream<RtlMacUpdateReply>   &siCAM_MacUpdRep
-);
+    );
+
+#else
+    void arp_top(
+        //------------------------------------------------------
+        //-- MMIO Interfaces
+        //------------------------------------------------------
+        EthAddr                      piMMIO_MacAddress,
+        Ip4Addr                      piMMIO_Ip4Address,
+        //------------------------------------------------------
+        //-- IPRX Interface
+        //------------------------------------------------------
+        stream<AxisRaw>             &siIPRX_Data,
+        //------------------------------------------------------
+        //-- ETH Interface
+        //------------------------------------------------------
+        stream<AxisRaw>             &soETH_Data,
+        //------------------------------------------------------
+        //-- IPTX Interfaces
+        //------------------------------------------------------
+        stream<Ip4Addr>             &siIPTX_MacLkpReq,
+        stream<ArpLkpReply>         &soIPTX_MacLkpRep,
+        //------------------------------------------------------
+        //-- CAM Interfaces
+        //------------------------------------------------------
+        stream<RtlMacLookupRequest> &soCAM_MacLkpReq,
+        stream<RtlMacLookupReply>   &siCAM_MacLkpRep,
+        stream<RtlMacUpdateRequest> &soCAM_MacUpdReq,
+        stream<RtlMacUpdateReply>   &siCAM_MacUpdRep
+    );
+#endif    // HLS_VERSION
 
 #endif
 
