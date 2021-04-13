@@ -79,7 +79,7 @@ using namespace hls;
  *******************************************************************************/
 bool camLookup(FourTuple key, RtlSessId &value)
 {
-    #pragma HLS pipeline II=1
+    #pragma HLS pipeline II=1 enable_flush
     if ((CamArray0.key == key) && (CamArray0.valid == true)) {
         value = CamArray0.value;
         return true;
@@ -125,7 +125,7 @@ bool camLookup(FourTuple key, RtlSessId &value)
  *******************************************************************************/
 bool camInsert(KeyValuePair kVP)
 {
-    #pragma HLS pipeline II=1
+    #pragma HLS pipeline II=1 enable_flush
 
     if (CamArray0.valid == false) {
         CamArray0 = kVP;
@@ -173,7 +173,7 @@ bool camInsert(KeyValuePair kVP)
   ******************************************************************************/
 bool camDelete(FourTuple key)
 {
-    #pragma HLS pipeline II=1
+    #pragma HLS pipeline II=1 enable_flush
 
     if ((CamArray0.key == key) && (CamArray0.valid == true)) {
         CamArray0.valid = false;
@@ -227,7 +227,7 @@ bool camDelete(FourTuple key)
  *    all fields are mapped.
  *   Also, note that the DATA_PACK optimization does not support packing
  *    structs which contain other structs.
- *   Finally, make sure to acheive II=1, otherwise co-simulation will not work.
+ *   Finally, make sure to achieve II=1, otherwise co-simulation will not work.
  *
  *******************************************************************************/
 void toecam(
@@ -245,21 +245,8 @@ void toecam(
 {
     //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
-
-    //-- MMIO Interfaces
-    #pragma HLS INTERFACE ap_none register port=poMMIO_CamReady name=poMMIO_CamReady
-    //-- CAM / Session Lookup & Update Interfaces -----------------------------
-    #pragma HLS resource core=AXI4Stream variable=siTOE_SssLkpReq metadata="-bus_bundle siTOE_SssLkpReq"
-    #pragma HLS DATA_PACK                variable=siTOE_SssLkpReq
-    #pragma HLS resource core=AXI4Stream variable=soTOE_SssLkpRep metadata="-bus_bundle soTOE_SssLkpRep"
-    #pragma HLS DATA_PACK                variable=soTOE_SssLkpRep
-    #pragma HLS resource core=AXI4Stream variable=siTOE_SssUpdReq metadata="-bus_bundle siTOE_SssUpdReq"
-    #pragma HLS DATA_PACK                variable=siTOE_SssUpdReq
-    #pragma HLS resource core=AXI4Stream variable=soTOE_SssUpdRep metadata="-bus_bundle soTOE_SssUpdRep"
-    #pragma HLS DATA_PACK                variable=soTOE_SssUpdRep
-
-    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS DATAFLOW interval=1
+    #pragma HLS INLINE
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "CAM");
 
@@ -365,5 +352,106 @@ void toecam(
     } // End-of: switch()
 
 }
+
+/*******************************************************************************
+ * @brief  Top of Content-Addressable Memory (TOECAM).
+ *
+ * @param[out] poMMIO_CamReady  A pointer to a CAM ready signal.
+ * @param[in]  siTOE_SssLkpReq  Session lookup request from TCP Offload Engine (TOE).
+ * @param[out] soTOE_SssLkpRep  Session lookup reply   to   [TOE].
+ * @param[in]  siTOE_SssUpdReq  Session update request from TOE.
+ * @param[out] soTOE_SssUpdRep  Session update reply   to   TOE.
+ *
+ *******************************************************************************/
+#if HLS_VERSION == 2017
+    void toecam_top(
+        //------------------------------------------------------
+        //-- MMIO Interfaces
+        //------------------------------------------------------
+        ap_uint<1>                          *poMMIO_CamReady,
+        //------------------------------------------------------
+        //-- CAM / This / Session Lookup & Update Interfaces
+        //------------------------------------------------------
+        stream<CamSessionLookupRequest>     &siTOE_SssLkpReq,
+        stream<CamSessionLookupReply>       &soTOE_SssLkpRep,
+        stream<CamSessionUpdateRequest>     &siTOE_SssUpdReq,
+        stream<CamSessionUpdateReply>       &soTOE_SssUpdRep)
+{
+    //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
+    #pragma HLS INTERFACE ap_ctrl_none port=return
+
+    /*********************************************************************/
+    /*** For the time being, we continue designing with the DEPRECATED ***/
+    /*** directives because the new PRAGMAs do not work for us.        ***/
+    /*********************************************************************/
+
+    #pragma HLS INTERFACE ap_none register port=poMMIO_CamReady name=poMMIO_CamReady
+
+    #pragma HLS resource core=AXI4Stream variable=siTOE_SssLkpReq metadata="-bus_bundle siTOE_SssLkpReq"
+    #pragma HLS DATA_PACK                variable=siTOE_SssLkpReq
+    #pragma HLS resource core=AXI4Stream variable=soTOE_SssLkpRep metadata="-bus_bundle soTOE_SssLkpRep"
+    #pragma HLS DATA_PACK                variable=soTOE_SssLkpRep
+    #pragma HLS resource core=AXI4Stream variable=siTOE_SssUpdReq metadata="-bus_bundle siTOE_SssUpdReq"
+    #pragma HLS DATA_PACK                variable=siTOE_SssUpdReq
+    #pragma HLS resource core=AXI4Stream variable=soTOE_SssUpdRep metadata="-bus_bundle soTOE_SssUpdRep"
+    #pragma HLS DATA_PACK                variable=soTOE_SssUpdRep
+
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS DATAFLOW
+
+    //-- MAIN IPTX PROCESS -----------------------------------------------------
+    toecam(
+        //-- MMIO Interfaces
+        poMMIO_CamReady,
+        //-- CAM / This / Session Lookup & Update Interfaces
+        siTOE_SssLkpReq,
+        soTOE_SssLkpRep,
+        siTOE_SssUpdReq,
+        soTOE_SssUpdRep);
+
+}
+#else
+    void toecam_top(
+        //------------------------------------------------------
+        //-- MMIO Interfaces
+        //------------------------------------------------------
+        ap_uint<1>                          *poMMIO_CamReady,
+        //------------------------------------------------------
+        //-- CAM / This / Session Lookup & Update Interfaces
+        //------------------------------------------------------
+        stream<CamSessionLookupRequest>     &siTOE_SssLkpReq,
+        stream<CamSessionLookupReply>       &soTOE_SssLkpRep,
+        stream<CamSessionUpdateRequest>     &siTOE_SssUpdReq,
+        stream<CamSessionUpdateReply>       &soTOE_SssUpdRep)
+{
+    //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
+    #pragma HLS INTERFACE ap_ctrl_none port=return
+
+    #pragma HLS INTERFACE ap_none register port=poMMIO_CamReady name=poMMIO_CamReady
+
+    #pragma HLS INTERFACE axis off         port=siTOE_SssLkpReq
+    #pragma HLS DATA_PACK              variable=siTOE_SssLkpReq
+    #pragma HLS INTERFACE axis off         port=soTOE_SssLkpRep
+    #pragma HLS DATA_PACK              variable=soTOE_SssLkpRep
+    #pragma HLS INTERFACE axis off         port=siTOE_SssUpdReq
+    #pragma HLS DATA_PACK              variable=siTOE_SssUpdReq
+    #pragma INTERFACE axis off             port=soTOE_SssUpdRep
+    #pragma HLS DATA_PACK              variable=soTOE_SssUpdRep
+
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS DATAFLOW disable_start_propagation
+
+    //-- MAIN IPTX PROCESS -----------------------------------------------------
+    toecam(
+        //-- MMIO Interfaces
+        poMMIO_CamReady,
+        //-- CAM / This / Session Lookup & Update Interfaces
+        siTOE_SssLkpReq,
+        soTOE_SssLkpRep,
+        siTOE_SssUpdReq,
+        soTOE_SssUpdRep);
+
+}
+#endif  // HLS_VERSION
 
 /*! \} */

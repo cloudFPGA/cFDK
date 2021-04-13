@@ -34,12 +34,10 @@
 #include "../../../NTS/nts_utils.hpp"
 #include "../../../NTS/SimNtsUtils.hpp"
 
-using namespace hls;
 
 /*******************************************************************************
  * INTERNAL TYPES and CLASSES USED BY THIS CAM
  *******************************************************************************/
-
 
 //=========================================================
 //== KEY-VALUE PAIR
@@ -56,93 +54,11 @@ class KeyValuePair {
 
 
 /*******************************************************************************
- * (OBSOLETE) RTL TYPES and CLASSES USED BY TOECAM
- *******************************************************************************
- * Warning:
- *   Don't change the order of the fields in the session-
- *   lookup-request, session-lookup-reply, session-update-
- *   request and session-update-reply as these structures
- *   end up being mapped to a physical Axi4-Stream interface
- *   between the TOE and the CAM.
- * Info: The member elements of the struct are placed into
- *   the physical vector interface in the order they appear
- *   in the C code: the first element of the struct is alig-
- *   ned on the LSB of the vector and the final element of
- *   the struct is aligned with the MSB of the vector.
- *******************************************************************************/
-/*** OBSOLETE_20200723 ************
-//=========================================================
-//== RTL - Session Identifier
-//=========================================================
-typedef ap_uint<14> RtlSessId;
-
-//=========================================================
-//== RTL - Session Lookup Request
-//=========================================================
-class RtlSessionLookupRequest {
-  public:
-    FourTuple        key;       // 96 bits
-    LkpSrcBit        source;    //  1 bit : '0' is [RXe], '1' is [TAi]
-
-    RtlSessionLookupRequest() {}
-    RtlSessionLookupRequest(FourTuple tuple, LkpSrcBit src)
-                : key(tuple), source(src) {}
-};
-
-//=========================================================
-//== RTL - Session Lookup Reply
-//=========================================================
-class RtlSessionLookupReply {
-  public:
-    RtlSessId        sessionID; // 14 bits
-    LkpSrcBit        source;    //  1 bit : '0' is [RXe], '1' is [TAi]
-    bool             hit;       //  1 bit
-
-    RtlSessionLookupReply() {}
-    RtlSessionLookupReply(bool hit, LkpSrcBit src) :
-        hit(hit), sessionID(0), source(src) {}
-    RtlSessionLookupReply(bool hit, RtlSessId id, LkpSrcBit src) :
-        hit(hit), sessionID(id), source(src) {}
-};
-
-//=========================================================
-//== RTL - Session Update Request
-//=========================================================
-class RtlSessionUpdateRequest {
-  public:
-    FourTuple        key;       // 96 bits
-    RtlSessId        value;     // 14 bits
-    LkpSrcBit        source;    //  1 bit : '0' is [RXe],  '1' is [TAi]
-    LkpOpBit         op;        //  1 bit : '0' is INSERT, '1' is DELETE
-
-    RtlSessionUpdateRequest() {}
-    RtlSessionUpdateRequest(FourTuple key, RtlSessId value, LkpOpBit op, LkpSrcBit src) :
-        key(key), value(value), op(op), source(src) {}
-};
-
-//=========================================================
-//== RTL - Session Update Reply
-//=========================================================
-class RtlSessionUpdateReply {
-  public:
-    RtlSessId        sessionID; // 14 bits
-    LkpSrcBit        source;    //  1 bit : '0' is [RXe],  '1' is [TAi]
-    LkpOpBit         op;        //  1 bit : '0' is INSERT, '1' is DELETE
-
-    RtlSessionUpdateReply() {}
-    RtlSessionUpdateReply(LkpOpBit op, LkpSrcBit src) :
-        op(op), source(src) {}
-    RtlSessionUpdateReply(RtlSessId id, LkpOpBit op, LkpSrcBit src) :
-        sessionID(id), op(op), source(src) {}
-};
-*********************************/
-
-/*******************************************************************************
  *
  * ENTITY - CONTENT ADDRESSABLE MEMORY (TOECAM)
  *
  *******************************************************************************/
-void toecam(
+void toecam_top(
         //------------------------------------------------------
         //-- MMIO Interfaces
         //------------------------------------------------------

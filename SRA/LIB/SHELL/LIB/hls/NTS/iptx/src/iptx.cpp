@@ -41,7 +41,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace hls;
 
-//OBSOLETE_20210409 #define USE_DEPRECATED_DIRECTIVES
 
 /************************************************
  * HELPERS FOR THE DEBUGGING TRACES
@@ -688,8 +687,7 @@ void iptx(
 
     #pragma HLS INTERFACE   axis off         port=soARP_LookupReq
     #pragma HLS INTERFACE   axis off         port=siARP_LookupRep
-    #pragma HLS                DATA_PACK variable=siARP_LookupRep
-
+    #pragma HLS DATA_PACK                variable=siARP_LookupRep
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW disable_start_propagation

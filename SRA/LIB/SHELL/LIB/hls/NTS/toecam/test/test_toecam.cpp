@@ -301,7 +301,7 @@ int main(int argc, char* argv[]) {
         //-------------------------------------------------
         //-- RUN DUT
         //-------------------------------------------------
-        toecam(
+        toecam_top(
             //-- MMIO Interfaces
             &sMMIO_CamReady,
             //-- Session Lookup & Update Interfaces
