@@ -435,7 +435,7 @@ void toecam(
     #pragma HLS DATA_PACK              variable=soTOE_SssLkpRep
     #pragma HLS INTERFACE axis off         port=siTOE_SssUpdReq
     #pragma HLS DATA_PACK              variable=siTOE_SssUpdReq
-    #pragma HLD INTERFACE axis off         port=soTOE_SssUpdRep
+    #pragma HLS INTERFACE axis off         port=soTOE_SssUpdRep
     #pragma HLS DATA_PACK              variable=soTOE_SssUpdRep
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
