@@ -373,17 +373,21 @@ void pStatusMemory(
 
     //status[NAL_STATUS_RX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_RX_cnt;
     status[NAL_STATUS_RX_NODEID_ERROR] = (((ap_uint<32>) port_corrections_TX_cnt) << 16) | ( 0xFFFF & ((ap_uint<16>) node_id_missmatch_RX_cnt));
-    status[NAL_STATUS_LAST_RX_NODE_ID] = (ap_uint<32>) (( (ap_uint<32>) last_rx_port) << 16) | ( (ap_uint<32>) last_rx_node_id);
     //status[NAL_STATUS_TX_NODEID_ERROR] = (ap_uint<32>) node_id_missmatch_TX_cnt;
     status[NAL_STATUS_TX_NODEID_ERROR] = (((ap_uint<32>) tcp_new_connection_failure_cnt) << 16) | ( 0xFFFF & ((ap_uint<16>) node_id_missmatch_TX_cnt));
-    status[NAL_STATUS_LAST_TX_NODE_ID] = (ap_uint<32>) (((ap_uint<32>) last_tx_port) << 16) | ((ap_uint<32>) last_tx_node_id);
     //status[NAL_STATUS_TX_PORT_CORRECTIONS] = (((ap_uint<32>) tcp_new_connection_failure_cnt) << 16) | ((ap_uint<16>) port_corrections_TX_cnt);
-    status[NAL_STATUS_PACKET_CNT_RX] = (ap_uint<32>) packet_count_RX;
-    status[NAL_STATUS_PACKET_CNT_TX] = (ap_uint<32>) packet_count_TX;
 
     status[NAL_UNAUTHORIZED_ACCESS] = (ap_uint<32>) unauthorized_access_cnt;
     status[NAL_AUTHORIZED_ACCESS] = (ap_uint<32>) authorized_access_cnt;
 
+    //pause processing for ROLE counters
+    if(*layer_7_enabled == 1 && *role_decoupled == 0 )
+    {
+      status[NAL_STATUS_LAST_RX_NODE_ID] = (ap_uint<32>) (( (ap_uint<32>) last_rx_port) << 16) | ( (ap_uint<32>) last_rx_node_id);
+      status[NAL_STATUS_LAST_TX_NODE_ID] = (ap_uint<32>) (((ap_uint<32>) last_tx_port) << 16) | ((ap_uint<32>) last_tx_node_id);
+      status[NAL_STATUS_PACKET_CNT_RX] = (ap_uint<32>) packet_count_RX;
+      status[NAL_STATUS_PACKET_CNT_TX] = (ap_uint<32>) packet_count_TX;
+    }
 
     //check for differences
     if(!sStatusUpdate.full())
