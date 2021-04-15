@@ -46,7 +46,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../../AxisIp4.hpp"
 #include "../../AxisPsd4.hpp"
 
-using namespace hls;
 
 /*******************************************************************************
  * CONSTANTS DERIVED FROM THE NTS CONFIGURATION FILE
@@ -79,7 +78,7 @@ class IpAddrPair {
  * ENTITY - UDP OFFLOAD ENGINE (UOE)
  *
  ******************************************************************************/
-void uoe(
+void uoe_top(
 
         //------------------------------------------------------
         //-- MMIO Interface
@@ -90,12 +89,12 @@ void uoe(
         //------------------------------------------------------
         //-- IPRX / IP Rx / Data Interface
         //------------------------------------------------------
-        stream<AxisIp4>         &siIPRX_Data,
+        stream<AxisRaw>         &siIPRX_Data,
 
         //------------------------------------------------------
         //-- IPTX / IP Tx / Data Interface
         //------------------------------------------------------
-        stream<AxisIp4>         &soIPTX_Data,
+        stream<AxisRaw>         &soIPTX_Data,
 
         //------------------------------------------------------
         //-- UAIF / Control Port Interfaces
@@ -121,7 +120,7 @@ void uoe(
         //------------------------------------------------------
         //-- ICMP / Message Data Interface (Port Unreachable)
         //------------------------------------------------------
-        stream<AxisIcmp>         &soICMP_Data
+        stream<AxisRaw>         &soICMP_Data
 );
 
 #endif

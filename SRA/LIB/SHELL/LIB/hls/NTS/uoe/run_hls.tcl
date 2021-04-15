@@ -1,12 +1,23 @@
-# *****************************************************************************
-# *                            cloudFPGA
-# *            All rights reserved -- Property of IBM
-# *----------------------------------------------------------------------------
-# * Created : Mar 2020
-# * Authors : Francois Abel  
+# *
+# * Copyright 2016 -- 2020 IBM Corporation
+# *
+# * Licensed under the Apache License, Version 2.0 (the "License");
+# * you may not use this file except in compliance with the License.
+# * You may obtain a copy of the License at
+# *
+# *     http://www.apache.org/licenses/LICENSE-2.0
+# *
+# * Unless required by applicable law or agreed to in writing, software
+# * distributed under the License is distributed on an "AS IS" BASIS,
+# * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# * See the License for the specific language governing permissions and
+# * limitations under the License.
+# *
+
+# ******************************************************************************
 # * 
-# * Description : A Tcl script for the HLS batch syhthesis of the UOE core 
-# *   module used by the SHELL of the cloudFPGA module.
+# * Description : A Tcl script to simulate, synthesize and package the current
+# *                HLS core as an IP.
 # * 
 # * Synopsis : vivado_hls -f <this_file>
 # *
@@ -22,12 +33,25 @@ set solutionName   "solution1"
 set xilPartName    "xcku060-ffva1156-2-i"
 
 set ipName         ${projectName}
-set ipDisplayName  "UDP Offload Engine for cloudFPGA"
-set ipDescription  "Handles UDP packets."
+set ipDisplayName  "UDP Offload Engine for cloudFPGA (UOE)"
+set ipDescription  "Handles UDP datagrams."
 set ipVendor       "IBM"
 set ipLibrary      "hls"
 set ipVersion      "1.0"
 set ipPkgFormat    "ip_catalog"
+set ipRtl          "vhdl"
+
+# Retreive the Vivado version 
+#-------------------------------------------------
+set VIVADO_VERSION [file tail $::env(XILINX_VIVADO)]
+set HLS_VERSION    [expr entier(${VIVADO_VERSION})]
+
+# Retrieve the HLS target goals from ENV
+#-------------------------------------------------
+set hlsCSim      $::env(hlsCSim)
+set hlsCSynth    $::env(hlsCSynth)
+set hlsCoSim     $::env(hlsCoSim)
+set hlsRtl       $::env(hlsRtl)
 
 # Set Project Environment Variables  
 #-------------------------------------------------
@@ -37,31 +61,25 @@ set testDir      ${currDir}/test
 set implDir      ${currDir}/${projectName}_prj/${solutionName}/impl/ip 
 set repoDir      ${currDir}/../../ip
 
-# Retrieve the HLS target goals from ENV
-#-------------------------------------------------
-set hlsCSim      $::env(hlsCSim)
-set hlsCSynth    $::env(hlsCSynth)
-set hlsCoSim     $::env(hlsCoSim)
-set hlsRtl       $::env(hlsRtl)
-
 # Open and Setup Project
 #-------------------------------------------------
 open_project  ${projectName}_prj
-set_top       ${projectName}
 
 # Add files
 #-------------------------------------------------
-add_files     ${srcDir}/${projectName}.cpp
-
+add_files     ${srcDir}/${projectName}.cpp -cflags "-DHLS_VERSION=${HLS_VERSION}"
 add_files     ${currDir}/../../NTS/nts_utils.cpp
-add_files     ${currDir}/../../NTS/SimNtsUtils.cpp
 
-add_files -tb ${testDir}/test_${projectName}.cpp
+add_files -tb ${testDir}/test_${projectName}.cpp -cflags "-DHLS_VERSION=${HLS_VERSION}"
+add_files -tb ${currDir}/../../NTS/SimNtsUtils.cpp
+
+# Set toplevel
+#-------------------------------------------------
+set_top       ${projectName}_top
 
 # Create a solution
 #-------------------------------------------------
 open_solution ${solutionName}
-
 set_part      ${xilPartName}
 create_clock -period 6.4 -name default
 
@@ -90,8 +108,21 @@ config_rtl -reset control
 #               PIPOs), these start FIFOs can be removed, at user's risk, locally for a given 
 #               dataflow region.
 #------------------------------------------------------------------------------------------------
-# [TODO - Check vivado_hls version and only enable this command if >= 2018]
-# config_rtl -disable_start_propagation
+if { [format "%.1f" ${VIVADO_VERSION}] > 2017.4 } { 
+	config_rtl -disable_start_propagation
+}
+
+#---------------------------------------------------------------
+# Configuring the behavior of the dataflow checking (see UG902)
+#---------------------------------------------------------------
+# -strict_mode: Vivado HLS has a dataflow checker which, when enabled, checks the code to see if it
+#               is in the recommended canonical form. Otherwise it will emit an error/warning
+#               message to the user. By default this checker is set to 'warning'. It can be set to
+#               'error' or can be disabled by selecting the 'off' mode.
+#-------------------------------------------------------------------------------------------------
+if { [format "%.1f" ${VIVADO_VERSION}] > 2018.1 } { 
+	config_dataflow -strict_mode  error
+}
 
 #----------------------------------------------------
 # Configuring the behavior of the front-end compiler
@@ -108,30 +139,35 @@ config_compile -name_max_length 256 -pipeline_loops 0
 #-------------------------------------------------
 if { $hlsCSim} {
     csim_design -setup -clean -compiler gcc
+    puts "#############################################################"
+    puts "####                                                     ####"
+    puts "####          SUCCESSFUL END OF COMPILATION              ####"
+    puts "####                                                     ####"
+    puts "#############################################################"
     csim_design -argv "0 ../../../../test/testVectors/siIPRX_OneDatagram.dat"
     csim_design -argv "0 ../../../../test/testVectors/siIPRX_FourDatagrams.dat"
     csim_design -argv "0 ../../../../test/testVectors/siIPRX_RampDgrmSize.dat"
     csim_design -argv "0 ../../../../test/testVectors/siIPRX_WeirdDatagrams.dat"
     csim_design -argv "0 ../../../../test/testVectors/siIPRX_ShortMix.dat"
     csim_design -argv "0 ../../../../test/testVectors/siIPRX_NoCsum.dat"
-    csim_design -argv "1 ../../../../test/testVectors/siURIF_OneDatagram.dat"
-    csim_design -argv "1 ../../../../test/testVectors/siURIF_RampDgrmSize.dat"
-    csim_design -argv "1 ../../../../test/testVectors/siURIF_LongDatagrams.dat"
-    csim_design -argv "2 ../../../../test/testVectors/siURIF_OneDatagram.dat"
-    csim_design -argv "2 ../../../../test/testVectors/siURIF_RampDgrmSize.dat"
-    csim_design -argv "2 ../../../../test/testVectors/siURIF_LongDatagrams.dat"
+    csim_design -argv "1 ../../../../test/testVectors/siUAIF_OneDatagram.dat"
+    csim_design -argv "1 ../../../../test/testVectors/siUAIF_RampDgrmSize.dat"
+    csim_design -argv "1 ../../../../test/testVectors/siUAIF_LongDatagrams.dat"
+    csim_design -argv "2 ../../../../test/testVectors/siUAIF_OneDatagram.dat"
+    csim_design -argv "2 ../../../../test/testVectors/siUAIF_RampDgrmSize.dat"
+    csim_design -argv "2 ../../../../test/testVectors/siUAIF_LongDatagrams.dat"
     csim_design -argv "3"
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF C SIMULATION             ####"
     puts "####                                                     ####"
-    puts "#############################################################" 
-}  
+    puts "#############################################################"
+}
 
 #-------------------------------------------------
 # Run C Synthesis (refer to UG902)
 #-------------------------------------------------
-if { $hlsCSynth} { 
+if { $hlsCSynth} {
     csynth_design
     puts "#############################################################"
     puts "####                                                     ####"
@@ -151,12 +187,12 @@ if { $hlsCoSim } {
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_WeirdDatagrams.dat"
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_ShortMix.dat"
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_NoCsum.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/siURIF_OneDatagram.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/siURIF_RampDgrmSize.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/siURIF_LongDatagrams.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "2 ../../../../test/testVectors/siURIF_OneDatagram.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "2 ../../../../test/testVectors/siURIF_RampDgrmSize.dat"
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "2 ../../../../test/testVectors/siURIF_LongDatagrams.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/siUAIF_OneDatagram.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/siUAIF_RampDgrmSize.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/siUAIF_LongDatagrams.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "2 ../../../../test/testVectors/siUAIF_OneDatagram.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "2 ../../../../test/testVectors/siUAIF_RampDgrmSize.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none -argv "2 ../../../../test/testVectors/siUAIF_LongDatagrams.dat"
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF CO-SIMULATION            ####"
@@ -195,13 +231,13 @@ if { $hlsCoSim } {
 if { $hlsRtl } {
     switch $hlsRtl {
         1 {
-            export_design -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+            export_design                          -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
         }
         2 {
-            export_design -flow syn -rtl verilog -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+            export_design -flow syn  -rtl ${ipRtl} -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
         }
         3 {
-            export_design -flow impl -rtl verilog -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+            export_design -flow impl -rtl ${ipRtl} -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
         }
         default { 
             puts "####  INVALID VALUE ($hlsRtl) ####"
@@ -213,9 +249,10 @@ if { $hlsRtl } {
     puts "####          SUCCESSFUL EXPORT OF THE DESIGN            ####"
     puts "####                                                     ####"
     puts "#############################################################"
+
 }
 
-
+#--------------------------------------------------
 # Exit Vivado HLS
 #--------------------------------------------------
 exit

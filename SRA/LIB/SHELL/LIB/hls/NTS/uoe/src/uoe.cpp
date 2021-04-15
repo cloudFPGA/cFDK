@@ -1666,7 +1666,7 @@ void pTxEngine(
 
 
 /*******************************************************************************
- * @brief 	Main process of the UDP Offload Engine (UOE).
+ * @brief  Main process of the UDP Offload Engine (UOE).
  *
  * -- MMIO Interface
  * @param[in]  piMMIO_En      Enable signal from [SHELL/MMIO].
@@ -1692,23 +1692,19 @@ void pTxEngine(
  *
  *******************************************************************************/
 void uoe(
-
         //------------------------------------------------------
         //-- MMIO Interface
         //------------------------------------------------------
         CmdBit                           piMMIO_En,
         stream<StsBool>                 &soMMIO_Ready,
-
         //------------------------------------------------------
         //-- IPRX / IP Rx / Data Interface
         //------------------------------------------------------
         stream<AxisIp4>                 &siIPRX_Data,
-
         //------------------------------------------------------
         //-- IPTX / IP Tx / Data Interface
         //------------------------------------------------------
         stream<AxisIp4>                 &soIPTX_Data,
-
         //------------------------------------------------------
         //-- UAIF / Control Port Interfaces
         //------------------------------------------------------
@@ -1716,20 +1712,108 @@ void uoe(
         stream<UdpAppLsnRep>            &soUAIF_LsnRep,
         stream<UdpAppClsReq>            &siUAIF_ClsReq,
         stream<UdpAppClsRep>            &soUAIF_ClsRep,
-
         //------------------------------------------------------
         //-- UAIF / Rx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>              &soUAIF_Data,
         stream<UdpAppMeta>              &soUAIF_Meta,
-
         //------------------------------------------------------
         //-- UAIF / Tx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>              &siUAIF_Data,
         stream<UdpAppMeta>              &siUAIF_Meta,
         stream<UdpAppDLen>              &siUAIF_DLen,
+        //------------------------------------------------------
+        //-- ICMP / Message Data Interface (Port Unreachable)
+        //------------------------------------------------------
+        stream<AxisIcmp>                &soICMP_Data)
+{
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS DATAFLOW
+    #pragma HLS INLINE
+    #pragma HLS INTERFACE ap_ctrl_none port=return
 
+    //-- PROCESS FUNCTIONS -----------------------------------------------------
+
+    pRxEngine(
+            soMMIO_Ready,
+            siIPRX_Data,
+            siUAIF_LsnReq,
+            soUAIF_LsnRep,
+            siUAIF_ClsReq,
+            soUAIF_ClsRep,
+            soUAIF_Data,
+            soUAIF_Meta,
+            soICMP_Data);
+
+    pTxEngine(
+            piMMIO_En,
+            siUAIF_Data,
+            siUAIF_Meta,
+            siUAIF_DLen,
+            soIPTX_Data);
+
+}
+
+/*******************************************************************************
+ * @brief Top of UDP Offload Engine (UOE)
+ *
+ * -- MMIO Interface
+ * @param[in]  piMMIO_En      Enable signal from [SHELL/MMIO].
+ * @param[out] soMMIO_Ready   UOE ready stream to [SHELL/MMIO].
+ * -- IPRX / IP Rx / Data Interface
+ * @param[in]  siIPRX_Data    IP4 data stream from IpRxHAndler (IPRX).
+ * -- IPTX / IP Tx / Data Interface
+ * @param[out] soIPTX_Data    IP4 data stream to IpTxHandler (IPTX).
+ * -- UAIF / Control Port Interfaces
+ * @param[in]  siUAIF_LsnReq  UDP open  port request from UdpAppInterface (UAIF).
+ * @param[out] soUAIF_LsnRep  UDP open  port reply   to   [UAIF] (0=closed/1=opened).
+ * @param[in]  siUAIF_ClsReq  UDP close port request from [UAIF].
+ * @param[out] soUAIF_ClsRep  UDP close port reply   to   [UAIF] (0=closed/1=opened).
+ * -- UAIF / Rx Data Interfaces
+ * @param[out] soUAIF_Data    UDP data stream to [UAIF].
+ * @param[out] soUAIF_Meta    UDP metadata stream to [UAIF].
+ * -- UAIF / Tx Data Interfaces
+ * @param[in]  siUAIF_Data    UDP data stream from [UAIF].
+ * @param[in]  siUAIF_Meta    UDP metadata stream from [UAIF].
+ * @param[in]  siUAIF_DLen    UDP data length form [UAIF].
+ * -- ICMP / Message Data Interface
+ * @param[out] soICMP_Data    Data stream to [ICMP].
+ *
+ *******************************************************************************/
+#if HLS_VERSION == 2017
+    void uoe_top(
+        //------------------------------------------------------
+        //-- MMIO Interface
+        //------------------------------------------------------
+        CmdBit                           piMMIO_En,
+        stream<StsBool>                 &soMMIO_Ready,
+        //------------------------------------------------------
+        //-- IPRX / IP Rx / Data Interface
+        //------------------------------------------------------
+        stream<AxisIp4>                 &siIPRX_Data,
+        //------------------------------------------------------
+        //-- IPTX / IP Tx / Data Interface
+        //------------------------------------------------------
+        stream<AxisIp4>                 &soIPTX_Data,
+        //------------------------------------------------------
+        //-- UAIF / Control Port Interfaces
+        //------------------------------------------------------
+        stream<UdpAppLsnReq>            &siUAIF_LsnReq,
+        stream<UdpAppLsnRep>            &soUAIF_LsnRep,
+        stream<UdpAppClsReq>            &siUAIF_ClsReq,
+        stream<UdpAppClsRep>            &soUAIF_ClsRep,
+        //------------------------------------------------------
+        //-- UAIF / Rx Data Interfaces
+        //------------------------------------------------------
+        stream<UdpAppData>              &soUAIF_Data,
+        stream<UdpAppMeta>              &soUAIF_Meta,
+        //------------------------------------------------------
+        //-- UAIF / Tx Data Interfaces
+        //------------------------------------------------------
+        stream<UdpAppData>              &siUAIF_Data,
+        stream<UdpAppMeta>              &siUAIF_Meta,
+        stream<UdpAppDLen>              &siUAIF_DLen,
         //------------------------------------------------------
         //-- ICMP / Message Data Interface (Port Unreachable)
         //------------------------------------------------------
@@ -1739,13 +1823,10 @@ void uoe(
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
 
-#if defined(USE_DEPRECATED_DIRECTIVES)
-
     /*********************************************************************/
     /*** For the time being, we continue designing with the DEPRECATED ***/
     /*** directives because the new PRAGMAs do not work for us.        ***/
     /*********************************************************************/
-
     #pragma HLS INTERFACE ap_stable          port=piMMIO_En         name=piMMIO_En
 
     #pragma HLS RESOURCE core=AXI4Stream variable=soMMIO_Ready      metadata="-bus_bundle soMMIO_Ready"
@@ -1769,60 +1850,140 @@ void uoe(
 
     #pragma HLS RESOURCE core=AXI4Stream variable=soICMP_Data       metadata="-bus_bundle soICMP_Data"
 
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS DATAFLOW
+
+    //-- MAIN IPRX PROCESS -----------------------------------------------------
+    uoe(
+        //-- MMIO Interface
+        piMMIO_En,
+        soMMIO_Ready,
+        //-- IPRX / IP Rx / Data Interface
+        siIPRX_Data,
+        //-- IPTX / IP Tx / Data Interface
+        soIPTX_Data,
+        //-- UAIF / Control Port Interfaces
+        siUAIF_LsnReq,
+        soUAIF_LsnRep,
+        siUAIF_ClsReq,
+        soUAIF_ClsRep,
+        //-- UAIF / Rx Data Interfaces
+        soUAIF_Data,
+        soUAIF_Meta,
+        //-- UAIF / Tx Data Interfaces
+        siUAIF_Data,
+        siUAIF_Meta,
+        siUAIF_DLen,
+        //-- ICMP / Message Data Interface (Port Unreachable)
+        soICMP_Data);
+
+}
 #else
+    void uoe_top(
+        //------------------------------------------------------
+        //-- MMIO Interface
+        //------------------------------------------------------
+        CmdBit                           piMMIO_En,
+        stream<StsBool>                 &soMMIO_Ready,
+        //------------------------------------------------------
+        //-- IPRX / IP Rx / Data Interface
+        //------------------------------------------------------
+        stream<AxisRaw>                 &siIPRX_Data,
+        //------------------------------------------------------
+        //-- IPTX / IP Tx / Data Interface
+        //------------------------------------------------------
+        stream<AxisRaw>                 &soIPTX_Data,
+        //------------------------------------------------------
+        //-- UAIF / Control Port Interfaces
+        //------------------------------------------------------
+        stream<UdpAppLsnReq>            &siUAIF_LsnReq,
+        stream<UdpAppLsnRep>            &soUAIF_LsnRep,
+        stream<UdpAppClsReq>            &siUAIF_ClsReq,
+        stream<UdpAppClsRep>            &soUAIF_ClsRep,
+        //------------------------------------------------------
+        //-- UAIF / Rx Data Interfaces
+        //------------------------------------------------------
+        stream<UdpAppData>              &soUAIF_Data,
+        stream<UdpAppMeta>              &soUAIF_Meta,
+        //------------------------------------------------------
+        //-- UAIF / Tx Data Interfaces
+        //------------------------------------------------------
+        stream<UdpAppData>              &siUAIF_Data,
+        stream<UdpAppMeta>              &siUAIF_Meta,
+        stream<UdpAppDLen>              &siUAIF_DLen,
+        //------------------------------------------------------
+        //-- ICMP / Message Data Interface (Port Unreachable)
+        //------------------------------------------------------
+        stream<AxisRaw>                 &soICMP_Data)
+{
+
+    //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
+    #pragma HLS INTERFACE ap_ctrl_none port=return
+
     #pragma HLS INTERFACE ap_stable          port=piMMIO_En         name=piMMIO_En
 
     #pragma HLS INTERFACE axis register both port=soMMIO_Ready      name=soMMIO_Ready
 
-    #pragma HLS INTERFACE axis register both port=siIPRX_Data       name=siIPRX_Data
-    #pragma HLS INTERFACE axis register both port=soIPTX_Data       name=soIPTX_Data
-    #pragma HLS DATA_PACK                variable=soIPTX_Data       instance=soIPTX_Data
+    #pragma HLS INTERFACE axis off           port=siIPRX_Data       name=siIPRX_Data
+    #pragma HLS INTERFACE axis off           port=soIPTX_Data       name=soIPTX_Data
 
-    #pragma HLS INTERFACE axis register both port=siUAIF_LsnReq     name=siUAIF_LsnReq
-    #pragma HLS INTERFACE axis register both port=soUAIF_LsnRep     name=soUAIF_LsnRep
-    #pragma HLS INTERFACE axis register both port=siUAIF_ClsReq     name=siUAIF_ClsReq
-    #pragma HLS INTERFACE axis register both port=soUAIF_ClsRep     name=soUAIF_ClsRep
+    #pragma HLS INTERFACE axis off           port=siUAIF_LsnReq     name=siUAIF_LsnReq
+    #pragma HLS INTERFACE axis off           port=soUAIF_LsnRep     name=soUAIF_LsnRep
+    #pragma HLS INTERFACE axis off           port=siUAIF_ClsReq     name=siUAIF_ClsReq
+    #pragma HLS INTERFACE axis off           port=soUAIF_ClsRep     name=soUAIF_ClsRep
 
-    #pragma HLS INTERFACE axis register both port=soUAIF_Data       name=soUAIF_Data
-    #pragma HLS INTERFACE axis register both port=soUAIF_Meta       name=soUAIF_Meta
+    #pragma HLS INTERFACE axis off           port=soUAIF_Data       name=soUAIF_Data
+    #pragma HLS INTERFACE axis off           port=soUAIF_Meta       name=soUAIF_Meta
     #pragma HLS DATA_PACK                variable=soUAIF_Meta   instance=soUAIF_Meta
 
-    #pragma HLS INTERFACE axis register both port=siUAIF_Data       name=siUAIF_Data
-    #pragma HLS INTERFACE axis  register both port=siUAIF_Meta       name=siUAIF_Meta
+    #pragma HLS INTERFACE axis off           port=siUAIF_Data       name=siUAIF_Data
+    #pragma HLS INTERFACE axis off           port=siUAIF_Meta       name=siUAIF_Meta
     #pragma HLS DATA_PACK                variable=siUAIF_Meta   instance=siUAIF_Meta
-    #pragma HLS INTERFACE axis register both port=siUAIF_DLen       name=siUAIF_DLen
+    #pragma HLS INTERFACE axis off           port=siUAIF_DLen       name=siUAIF_DLen
 
-    #pragma HLS INTERFACE axis register both port=soICMP_Data       name=soICMP_Data
+    #pragma HLS INTERFACE axis off           port=soICMP_Data       name=soICMP_Data
 
-#endif
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS DATAFLOW disable_start_propagation
 
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS DATAFLOW interval=1
+    //-- LOCAL INPUT and OUTPUT STREAMS ----------------------------------------
+    static stream<AxisIp4>            ssiIPRX_Data;
+    #pragma HLS STREAM       variable=ssiIPRX_Data  depth=32
+    static stream<AxisIp4>            ssoIPTX_Data;
+    static stream<AxisIcmp>           ssoICMP_Data;
 
-    //-------------------------------------------------------------------------
-    //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
-    //-------------------------------------------------------------------------
+    //-- INPUT STREAM CASTING --------------------------------------------------
+    pAxisRawCast(siIPRX_Data, ssiIPRX_Data);
 
-    //-- PROCESS FUNCTIONS ----------------------------------------------------
+    //-- MAIN IPRX PROCESS -----------------------------------------------------
+    uoe(
+        //-- MMIO Interface
+        piMMIO_En,
+        soMMIO_Ready,
+        //-- IPRX / IP Rx / Data Interface
+        ssiIPRX_Data,
+        //-- IPTX / IP Tx / Data Interface
+        ssoIPTX_Data,
+        //-- UAIF / Control Port Interfaces
+        siUAIF_LsnReq,
+        soUAIF_LsnRep,
+        siUAIF_ClsReq,
+        soUAIF_ClsRep,
+        //-- UAIF / Rx Data Interfaces
+        soUAIF_Data,
+        soUAIF_Meta,
+        //-- UAIF / Tx Data Interfaces
+        siUAIF_Data,
+        siUAIF_Meta,
+        siUAIF_DLen,
+        //-- ICMP / Message Data Interface (Port Unreachable)
+        ssoICMP_Data);
 
-    pRxEngine(
-            soMMIO_Ready,
-            siIPRX_Data,
-            siUAIF_LsnReq,
-            soUAIF_LsnRep,
-            siUAIF_ClsReq,
-            soUAIF_ClsRep,
-            soUAIF_Data,
-            soUAIF_Meta,
-            soICMP_Data);
-
-    pTxEngine(
-            piMMIO_En,
-            siUAIF_Data,
-            siUAIF_Meta,
-            siUAIF_DLen,
-            soIPTX_Data);
+    //-- OUTPUT STREAM CASTING ----------------------------
+    pAxisRawCast(ssoIPTX_Data, soIPTX_Data);
+    pAxisRawCast(ssoICMP_Data, soICMP_Data);
 
 }
+#endif  // HLS_VERSION
 
 /*! \} */

@@ -154,9 +154,9 @@ int createUdpTxTraffic(
         int                &nrFeededChunks)
 {
 
-    int  nrURIF_UOE_MetaChunks = 0;
-    int  nrURIF_UOE_MetaGrams  = 0;
-    int  nrURIF_UOE_MetaBytes  = 0;
+    int  nrUAIF_UOE_MetaChunks = 0;
+    int  nrUAIF_UOE_MetaGrams  = 0;
+    int  nrUAIF_UOE_MetaBytes  = 0;
 
     //-- STEP-1: FEED AXIS DATA STREAM FROM DAT FILE --------------------------
     int  nrDataChunks=0, nrDataGrams=0, nrDataBytes=0;
@@ -275,7 +275,7 @@ bool readDatagramFromFile(const char *myName,  SimUdpDatagram &appDatagram,
 }
 
 /*****************************************************************************
- * @brief Create the golden IPTX reference file from an input URIF test file.
+ * @brief Create the golden IPTX reference file from an input UAIF test file.
  *
  * @param[in]  inpData_FileName  The input data file to generate from.
  * @param[in]  outData_GoldName  The output data gold file to create.
@@ -572,6 +572,85 @@ int createGoldenRxFiles(
     return(ret);
 }
 
+#if HLS_VERSION != 2017
+/*******************************************************************************
+ * @brief A wrapper for the Toplevel of the UDP Offload Engine (UOE)
+ *
+ * @param[in]  piMMIO_En      Enable signal from [SHELL/MMIO].
+ * @param[out] soMMIO_Ready   UOE ready stream to [SHELL/MMIO].
+ * @param[in]  siIPRX_Data    IP4 data stream from IpRxHAndler (IPRX).
+ * @param[out] soIPTX_Data    IP4 data stream to IpTxHandler (IPTX).
+ * @param[in]  siUAIF_LsnReq  UDP open  port request from UdpAppInterface (UAIF).
+ * @param[out] soUAIF_LsnRep  UDP open  port reply   to   [UAIF] (0=closed/1=opened).
+ * @param[in]  siUAIF_ClsReq  UDP close port request from [UAIF].
+ * @param[out] soUAIF_ClsRep  UDP close port reply   to   [UAIF] (0=closed/1=opened).
+ * @param[out] soUAIF_Data    UDP data stream to [UAIF].
+ * @param[out] soUAIF_Meta    UDP metadata stream to [UAIF].
+ * @param[in]  siUAIF_Data    UDP data stream from [UAIF].
+ * @param[in]  siUAIF_Meta    UDP metadata stream from [UAIF].
+ * @param[in]  siUAIF_DLen    UDP data length form [UAIF].
+ * @param[out] soICMP_Data    Data stream to [ICMP].
+ *
+ * @details
+ *  This process is a wrapper for the 'uoe_top' entity. It instantiates such an
+ *   entity and further connects it with base 'AxisRaw' streams as expected by
+ *   the 'uoe_top'.
+ *******************************************************************************/
+  void uoe_top_wrap(
+        //-- MMIO Interface
+        CmdBit                           piMMIO_En,
+        stream<StsBool>                 &soMMIO_Ready,
+        //-- IPRX / IP Rx / Data Interface
+        stream<AxisIp4>                 &siIPRX_Data,
+        //-- IPTX / IP Tx / Data Interface
+        stream<AxisIp4>                 &soIPTX_Data,
+        //-- UAIF / Control Port Interfaces
+        stream<UdpAppLsnReq>            &siUAIF_LsnReq,
+        stream<UdpAppLsnRep>            &soUAIF_LsnRep,
+        stream<UdpAppClsReq>            &siUAIF_ClsReq,
+        stream<UdpAppClsRep>            &soUAIF_ClsRep,
+        //-- UAIF / Rx Data Interfaces
+        stream<UdpAppData>              &soUAIF_Data,
+        stream<UdpAppMeta>              &soUAIF_Meta,
+        //-- UAIF / Tx Data Interfaces
+        stream<UdpAppData>              &siUAIF_Data,
+        stream<UdpAppMeta>              &siUAIF_Meta,
+        stream<UdpAppDLen>              &siUAIF_DLen,
+        //-- ICMP / Message Data Interface (Port Unreachable)
+        stream<AxisIcmp>                &soICMP_Data)
+{
+    //-- LOCAL INPUT and OUTPUT STREAMS -------------------
+    static stream<AxisRaw>              ssiIPRX_Data("ssiIPRX_Data");
+    static stream<AxisRaw>              ssoIPTX_Data("ssoIPTX_Data");
+    static stream<AxisRaw>              ssoICMP_Data("ssoICMP_Data");
+
+    //-- INPUT STREAM CASTING -----------------------------
+    pAxisRawCast(siIPRX_Data, ssiIPRX_Data);
+
+    //-- MAIN IPRX_TOP PROCESS ----------------------------
+    uoe_top(
+        piMMIO_En,
+        soMMIO_Ready,
+        ssiIPRX_Data,
+        ssoIPTX_Data,
+        siUAIF_LsnReq,
+        soUAIF_LsnRep,
+        siUAIF_ClsReq,
+        soUAIF_ClsRep,
+        soUAIF_Data,
+        soUAIF_Meta,
+        siUAIF_Data,
+        siUAIF_Meta,
+        siUAIF_DLen,
+        ssoICMP_Data);
+
+    //-- OUTPUT STREAM CASTING ----------------------------
+    pAxisRawCast(ssoIPTX_Data, soIPTX_Data);
+    pAxisRawCast(ssoICMP_Data, soICMP_Data);
+  }
+#endif
+
+
 /*****************************************************************************
  * @brief Main function.
  *
@@ -589,10 +668,10 @@ int createGoldenRxFiles(
  *       IF (mode==0)
  *         inpFile1 = siIPRX_<FileName>.dat
  *       ELSE-IF (mode == 1 or mode == 2)
- *         inpFile1 = siURIF_<Filename>.dat
+ *         inpFile1 = siUAIF_<Filename>.dat
  *       ELSE-IF (mode == 3)
  *         inpFile1 = siIPRX_<FileName>.dat
- *         inpFile2 = siURIF_<Filename>.dat
+ *         inpFile2 = siUAIF_<Filename>.dat
  *
  * @todo Add coverage for the closing of a port.
  ******************************************************************************/
@@ -622,17 +701,17 @@ int main(int argc, char *argv[]) {
     stream<AxisIp4>         ssIPRX_UOE_Data    ("ssIPRX_UOE_Data");
     stream<AxisIp4>         ssUOE_IPTX_Data    ("ssUOE_IPTX_Data");
 
-    stream<UdpPort>         ssURIF_UOE_LsnReq  ("ssURIF_UOE_LsnReq");
-    stream<StsBool>         ssUOE_URIF_LsnRep  ("ssUOE_URIF_LsnRep");
-    stream<UdpPort>         ssURIF_UOE_ClsReq  ("ssURIF_UOE_ClsReq");
-    stream<StsBool>         ssUOE_URIF_ClsRep  ("ssUOE_URIF_ClsRep");
+    stream<UdpPort>         ssUAIF_UOE_LsnReq  ("ssUAIF_UOE_LsnReq");
+    stream<StsBool>         ssUOE_UAIF_LsnRep  ("ssUOE_UAIF_LsnRep");
+    stream<UdpPort>         ssUAIF_UOE_ClsReq  ("ssUAIF_UOE_ClsReq");
+    stream<StsBool>         ssUOE_UAIF_ClsRep  ("ssUOE_UAIF_ClsRep");
 
-    stream<AxisApp>         ssUOE_URIF_Data    ("ssUOE_URIF_Data");
-    stream<UdpAppMeta>      ssUOE_URIF_Meta    ("ssUOE_URIF_Meta");
+    stream<AxisApp>         ssUOE_UAIF_Data    ("ssUOE_UAIF_Data");
+    stream<UdpAppMeta>      ssUOE_UAIF_Meta    ("ssUOE_UAIF_Meta");
 
-    stream<AxisApp>         ssURIF_UOE_Data    ("ssURIF_UOE_Data");
-    stream<UdpAppMeta>      ssURIF_UOE_Meta    ("ssURIF_UOE_Meta");
-    stream<UdpAppDLen>      ssURIF_UOE_DLen    ("ssURIF-UOE_DLen");
+    stream<AxisApp>         ssUAIF_UOE_Data    ("ssUAIF_UOE_Data");
+    stream<UdpAppMeta>      ssUAIF_UOE_Meta    ("ssUAIF_UOE_Meta");
+    stream<UdpAppDLen>      ssUAIF_UOE_DLen    ("ssUAIF-UOE_DLen");
 
     stream<AxisIcmp>        ssUOE_ICMP_Data    ("ssUOE_ICMP_Data");
 
@@ -647,7 +726,7 @@ int main(int argc, char *argv[]) {
     case TX_DGRM_MODE:
     case TX_STRM_MODE:
         if (argc < 3) {
-            printFatal(THIS_NAME, "Expected a minimum of 2 parameters with one of the following synopsis:\n \t\t mode(0)   siIPRX_<Filename>.dat\n \t\t mode(1|2) siURIF_<Filename>.dat\n");
+            printFatal(THIS_NAME, "Expected a minimum of 2 parameters with one of the following synopsis:\n \t\t mode(0)   siIPRX_<Filename>.dat\n \t\t mode(1|2) siUAIF_<Filename>.dat\n");
         }
         break;
     case BIDIR_MODE:
@@ -662,7 +741,7 @@ int main(int argc, char *argv[]) {
         }
         break;
     default:
-        printFatal(THIS_NAME, "Expected a minimum of 2 or 3 parameters with one of the following synopsis:\n \t\t mode(0|3) siIPRX_<Filename>.dat\n \t\t mode(1)   siURIF_<Filename>.dat\n \t\t mode(2)   siIPRX_<Filename>.dat siURIF_<Filename>.dat\n");
+        printFatal(THIS_NAME, "Expected a minimum of 2 or 3 parameters with one of the following synopsis:\n \t\t mode(0|3) siIPRX_<Filename>.dat\n \t\t mode(1)   siUAIF_<Filename>.dat\n \t\t mode(2)   siIPRX_<Filename>.dat siUAIF_<Filename>.dat\n");
     }
 
     printInfo(THIS_NAME, "############################################################################\n");
@@ -679,29 +758,39 @@ int main(int argc, char *argv[]) {
         // Wait until UOE is ready (~2^16 cycles)
         bool isReady = false;
         do {
-            uoe(
-                //-- MMIO Interface
+            #if HLS_VERSION == 2017
+            uoe_top(
                 sMMIO_UOE_Enable,
                 ssUOE_MMIO_Ready,
-                //-- IPRX / IP Rx / Data Interface
                 ssIPRX_UOE_Data,
-                //-- IPTX / IP Tx / Data Interface
                 ssUOE_IPTX_Data,
-                //-- URIF / Control Port Interfaces
-                ssURIF_UOE_LsnReq,
-                ssUOE_URIF_LsnRep,
-                ssURIF_UOE_ClsReq,
-                ssUOE_URIF_ClsRep,
-                //-- URIF / Rx Data Interfaces
-                ssUOE_URIF_Data,
-                ssUOE_URIF_Meta,
-                //-- URIF / Tx Data Interfaces
-                ssURIF_UOE_Data,
-                ssURIF_UOE_Meta,
-                ssURIF_UOE_DLen,
-                //-- ICMP / Message Data Interface
-                ssUOE_ICMP_Data
-            );
+                ssUAIF_UOE_LsnReq,
+                ssUOE_UAIF_LsnRep,
+                ssUAIF_UOE_ClsReq,
+                ssUOE_UAIF_ClsRep,
+                ssUOE_UAIF_Data,
+                ssUOE_UAIF_Meta,
+                ssUAIF_UOE_Data,
+                ssUAIF_UOE_Meta,
+                ssUAIF_UOE_DLen,
+                ssUOE_ICMP_Data);
+            #else
+            uoe_top_wrap(
+                sMMIO_UOE_Enable,
+                ssUOE_MMIO_Ready,
+                ssIPRX_UOE_Data,
+                ssUOE_IPTX_Data,
+                ssUAIF_UOE_LsnReq,
+                ssUOE_UAIF_LsnRep,
+                ssUAIF_UOE_ClsReq,
+                ssUOE_UAIF_ClsRep,
+                ssUOE_UAIF_Data,
+                ssUOE_UAIF_Meta,
+                ssUAIF_UOE_Data,
+                ssUAIF_UOE_Meta,
+                ssUAIF_UOE_DLen,
+                ssUOE_ICMP_Data);
+            #endif
             if (!ssUOE_MMIO_Ready.empty()) {
                 isReady = ssUOE_MMIO_Ready.read();
             }
@@ -713,31 +802,41 @@ int main(int argc, char *argv[]) {
         //--    Expected response is: Nothing.
         //---------------------------------------------------------------
         printInfo(THIS_NAME, "== OPEN-TEST #1 : Request to close a port that isn't open.\n");
-        ssURIF_UOE_ClsReq.write(0x1532);
+        ssUAIF_UOE_ClsReq.write(0x1532);
         for (int i=0; i<10; ++i) {
-            uoe(
-                //-- MMIO Interface
-                sMMIO_UOE_Enable,
-                ssUOE_MMIO_Ready,
-                //-- IPRX / IP Rx / Data Interface
-                ssIPRX_UOE_Data,
-                //-- IPTX / IP Tx / Data Interface
-                ssUOE_IPTX_Data,
-                //-- URIF / Control Port Interfaces
-                ssURIF_UOE_LsnReq,
-                ssUOE_URIF_LsnRep,
-                ssURIF_UOE_ClsReq,
-                ssUOE_URIF_ClsRep,
-                //-- URIF / Rx Data Interfaces
-                ssUOE_URIF_Data,
-                ssUOE_URIF_Meta,
-                //-- URIF / Tx Data Interfaces
-                ssURIF_UOE_Data,
-                ssURIF_UOE_Meta,
-                ssURIF_UOE_DLen,
-                //-- ICMP / Message Data Interface
-                ssUOE_ICMP_Data
-            );
+			#if HLS_VERSION == 2017
+			uoe_top(
+				sMMIO_UOE_Enable,
+				ssUOE_MMIO_Ready,
+				ssIPRX_UOE_Data,
+				ssUOE_IPTX_Data,
+				ssUAIF_UOE_LsnReq,
+				ssUOE_UAIF_LsnRep,
+				ssUAIF_UOE_ClsReq,
+				ssUOE_UAIF_ClsRep,
+				ssUOE_UAIF_Data,
+				ssUOE_UAIF_Meta,
+				ssUAIF_UOE_Data,
+				ssUAIF_UOE_Meta,
+				ssUAIF_UOE_DLen,
+				ssUOE_ICMP_Data);
+			#else
+			uoe_top_wrap(
+				sMMIO_UOE_Enable,
+				ssUOE_MMIO_Ready,
+				ssIPRX_UOE_Data,
+				ssUOE_IPTX_Data,
+				ssUAIF_UOE_LsnReq,
+				ssUOE_UAIF_LsnRep,
+				ssUAIF_UOE_ClsReq,
+				ssUOE_UAIF_ClsRep,
+				ssUOE_UAIF_Data,
+				ssUOE_UAIF_Meta,
+				ssUAIF_UOE_Data,
+				ssUAIF_UOE_Meta,
+				ssUAIF_UOE_DLen,
+				ssUOE_ICMP_Data);
+			#endif
             //-- INCREMENT GLOBAL SIMULATION COUNTER
             stepSim();
         }
@@ -750,37 +849,47 @@ int main(int argc, char *argv[]) {
         printInfo(THIS_NAME, "== OPEN-TEST #2 : Request to open a port.\n");
         portToOpen = 0x80;
         printInfo(THIS_NAME, "Now - Trying to open port #%d.\n", portToOpen.to_int());
-        ssURIF_UOE_LsnReq.write(0x80);
+        ssUAIF_UOE_LsnReq.write(0x80);
         for (int i=0; i<3; ++i) {
-            uoe(
-                    //-- MMIO Interface
-                    sMMIO_UOE_Enable,
-                    ssUOE_MMIO_Ready,
-                    //-- IPRX / IP Rx / Data Interface
-                    ssIPRX_UOE_Data,
-                    //-- IPTX / IP Tx / Data Interface
-                    ssUOE_IPTX_Data,
-                    //-- URIF / Control Port Interfaces
-                    ssURIF_UOE_LsnReq,
-                    ssUOE_URIF_LsnRep,
-                    ssURIF_UOE_ClsReq,
-	                ssUOE_URIF_ClsRep,
-                    //-- URIF / Rx Data Interfaces
-                    ssUOE_URIF_Data,
-                    ssUOE_URIF_Meta,
-                    //-- URIF / Tx Data Interfaces
-                    ssURIF_UOE_Data,
-                    ssURIF_UOE_Meta,
-                    ssURIF_UOE_DLen,
-                    //-- ICMP / Message Data Interface
-                    ssUOE_ICMP_Data
-            );
+			#if HLS_VERSION == 2017
+			uoe_top(
+				sMMIO_UOE_Enable,
+				ssUOE_MMIO_Ready,
+				ssIPRX_UOE_Data,
+				ssUOE_IPTX_Data,
+				ssUAIF_UOE_LsnReq,
+				ssUOE_UAIF_LsnRep,
+				ssUAIF_UOE_ClsReq,
+				ssUOE_UAIF_ClsRep,
+				ssUOE_UAIF_Data,
+				ssUOE_UAIF_Meta,
+				ssUAIF_UOE_Data,
+				ssUAIF_UOE_Meta,
+				ssUAIF_UOE_DLen,
+				ssUOE_ICMP_Data);
+			#else
+			uoe_top_wrap(
+				sMMIO_UOE_Enable,
+				ssUOE_MMIO_Ready,
+				ssIPRX_UOE_Data,
+				ssUOE_IPTX_Data,
+				ssUAIF_UOE_LsnReq,
+				ssUOE_UAIF_LsnRep,
+				ssUAIF_UOE_ClsReq,
+				ssUOE_UAIF_ClsRep,
+				ssUOE_UAIF_Data,
+				ssUOE_UAIF_Meta,
+				ssUAIF_UOE_Data,
+				ssUAIF_UOE_Meta,
+				ssUAIF_UOE_DLen,
+				ssUOE_ICMP_Data);
+			#endif
             //-- INCREMENT GLOBAL SIMULATION COUNTER
             stepSim();
         }
         openReply = false;
-        if (!ssUOE_URIF_LsnRep.empty()) {
-            openReply = ssUOE_URIF_LsnRep.read();
+        if (!ssUOE_UAIF_LsnRep.empty()) {
+            openReply = ssUOE_UAIF_LsnRep.read();
             if (openReply) {
                 printInfo(THIS_NAME, "OK - Port #%d was successfully opened.\n", portToOpen.to_int());
             }
@@ -801,32 +910,43 @@ int main(int argc, char *argv[]) {
         printInfo(THIS_NAME, "== OPEN-TEST #3 : Request to close an opened port.\n");
         UdpPort portToClose = portToOpen;
         printInfo(THIS_NAME, "Now - Trying to close port #%d.\n", portToOpen.to_int());
-        ssURIF_UOE_ClsReq.write(portToClose);
+        ssUAIF_UOE_ClsReq.write(portToClose);
         for (int i=0; i<10; ++i) {
-        uoe(
-            //-- MMIO Interface
-            sMMIO_UOE_Enable,
-            ssUOE_MMIO_Ready,
-            //-- IPRX / IP Rx / Data Interface
-            ssIPRX_UOE_Data,
-            //-- IPTX / IP Tx / Data Interface
-            ssUOE_IPTX_Data,
-            //-- URIF / Control Port Interfaces
-            ssURIF_UOE_LsnReq,
-            ssUOE_URIF_LsnRep,
-            ssURIF_UOE_ClsReq,
-            ssUOE_URIF_ClsRep,
-            //-- URIF / Rx Data Interfaces
-            ssUOE_URIF_Data,
-            ssUOE_URIF_Meta,
-            //-- URIF / Tx Data Interfaces
-            ssURIF_UOE_Data,
-            ssURIF_UOE_Meta,
-            ssURIF_UOE_DLen,
-            //-- ICMP / Message Data Interface
-            ssUOE_ICMP_Data);
-        //-- INCREMENT GLOBAL SIMULATION COUNTER
-        stepSim();
+			#if HLS_VERSION == 2017
+			uoe_top(
+				sMMIO_UOE_Enable,
+				ssUOE_MMIO_Ready,
+				ssIPRX_UOE_Data,
+				ssUOE_IPTX_Data,
+				ssUAIF_UOE_LsnReq,
+				ssUOE_UAIF_LsnRep,
+				ssUAIF_UOE_ClsReq,
+				ssUOE_UAIF_ClsRep,
+				ssUOE_UAIF_Data,
+				ssUOE_UAIF_Meta,
+				ssUAIF_UOE_Data,
+				ssUAIF_UOE_Meta,
+				ssUAIF_UOE_DLen,
+				ssUOE_ICMP_Data);
+			#else
+			uoe_top_wrap(
+				sMMIO_UOE_Enable,
+				ssUOE_MMIO_Ready,
+				ssIPRX_UOE_Data,
+				ssUOE_IPTX_Data,
+				ssUAIF_UOE_LsnReq,
+				ssUOE_UAIF_LsnRep,
+				ssUAIF_UOE_ClsReq,
+				ssUOE_UAIF_ClsRep,
+				ssUOE_UAIF_Data,
+				ssUOE_UAIF_Meta,
+				ssUAIF_UOE_Data,
+				ssUAIF_UOE_Meta,
+				ssUAIF_UOE_DLen,
+				ssUOE_ICMP_Data);
+			#endif
+        	//-- INCREMENT GLOBAL SIMULATION COUNTER
+         	stepSim();
         }
         printInfo(THIS_NAME, "== OPEN-TEST #3 : Done.\n\n");
 
@@ -862,32 +982,43 @@ int main(int argc, char *argv[]) {
 
         int tbRun = ipPacket.size() + 25;
         while (tbRun) {
-            uoe(
-                //-- MMIO Interface
-                sMMIO_UOE_Enable,
-                ssUOE_MMIO_Ready,
-                //-- IPRX / IP Rx / Data Interface
-                ssIPRX_UOE_Data,
-                //-- IPTX / IP Tx / Data Interface
-                ssUOE_IPTX_Data,
-                //-- URIF / Control Port Interfaces
-                ssURIF_UOE_LsnReq,
-                ssUOE_URIF_LsnRep,
-                ssURIF_UOE_ClsReq,
-                ssUOE_URIF_ClsRep,
-                //-- URIF / Rx Data Interfaces
-                ssUOE_URIF_Data,
-                ssUOE_URIF_Meta,
-                //-- URIF / Tx Data Interfaces
-                ssURIF_UOE_Data,
-                ssURIF_UOE_Meta,
-                ssURIF_UOE_DLen,
-                //-- ICMP / Message Data Interface
-                ssUOE_ICMP_Data);
+			#if HLS_VERSION == 2017
+			uoe_top(
+				sMMIO_UOE_Enable,
+				ssUOE_MMIO_Ready,
+				ssIPRX_UOE_Data,
+				ssUOE_IPTX_Data,
+				ssUAIF_UOE_LsnReq,
+				ssUOE_UAIF_LsnRep,
+				ssUAIF_UOE_ClsReq,
+				ssUOE_UAIF_ClsRep,
+				ssUOE_UAIF_Data,
+				ssUOE_UAIF_Meta,
+				ssUAIF_UOE_Data,
+				ssUAIF_UOE_Meta,
+				ssUAIF_UOE_DLen,
+				ssUOE_ICMP_Data);
+			#else
+			uoe_top_wrap(
+				sMMIO_UOE_Enable,
+				ssUOE_MMIO_Ready,
+				ssIPRX_UOE_Data,
+				ssUOE_IPTX_Data,
+				ssUAIF_UOE_LsnReq,
+				ssUOE_UAIF_LsnRep,
+				ssUAIF_UOE_ClsReq,
+				ssUOE_UAIF_ClsRep,
+				ssUOE_UAIF_Data,
+				ssUOE_UAIF_Meta,
+				ssUAIF_UOE_Data,
+				ssUAIF_UOE_Meta,
+				ssUAIF_UOE_DLen,
+				ssUOE_ICMP_Data);
+			#endif
             tbRun--;
             stepSim();
-            if (!ssUOE_URIF_Data.empty()) {
-                UdpAppData appData = ssUOE_URIF_Data.read();
+            if (!ssUOE_UAIF_Data.empty()) {
+                UdpAppData appData = ssUOE_UAIF_Data.read();
                 printError(THIS_NAME, "Received unexpected data from [UOE]");
                 printAxisRaw(THIS_NAME, appData);
                 nrErr++;
@@ -926,18 +1057,20 @@ int main(int argc, char *argv[]) {
         printInfo(THIS_NAME, "== RX-TEST : Send IPv4 traffic to an opened port.\n");
 
         //-- CREATE DUT OUTPUT TRAFFIC AS STREAMS -------------------
-        string           ofsURIF_Data_FileName      = "../../../../test/simOutFiles/soURIF_Data.dat";
-        string           ofsURIF_Meta_FileName      = "../../../../test/simOutFiles/soURIF_Meta.dat";
-        string           ofsURIF_Gold_Data_FileName = "../../../../test/simOutFiles/soURIF_Gold_Data.dat";
-        string           ofsURIF_Gold_Meta_FileName = "../../../../test/simOutFiles/soURIF_Gold_Meta.dat";
+        string           ofsUAIF_Data_FileName      = "../../../../test/simOutFiles/soUAIF_Data.dat";
+        string           ofsUAIF_Meta_FileName      = "../../../../test/simOutFiles/soUAIF_Meta.dat";
+        string           ofsUAIF_Gold_Data_FileName = "../../../../test/simOutFiles/soUAIF_Gold_Data.dat";
+        string           ofsUAIF_Gold_Meta_FileName = "../../../../test/simOutFiles/soUAIF_Gold_Meta.dat";
         vector<string>   ofNames;
-        ofNames.push_back(ofsURIF_Data_FileName);
-        ofNames.push_back(ofsURIF_Meta_FileName);
+        ofNames.push_back(ofsUAIF_Data_FileName);
+        ofNames.push_back(ofsUAIF_Meta_FileName);
         ofstream         ofStreams[ofNames.size()]; // Stored in the same order
 
-        //-- Remove previous old files and open new files
+        //-- Remove all previous '.dat' files and open new files
+        string rmCmd = "rm ../../../../test/simOutFiles/*.dat";
+        system(rmCmd.c_str());
         for (int i = 0; i < ofNames.size(); i++) {
-            remove(ofNames[i].c_str());
+            //OBSOLETE_20210415 remove(ofNames[i].c_str());
             if (not isDatFile(ofNames[i])) {
                 printError(THIS_NAME, "File \'%s\' is not of type \'DAT\'.\n", ofNames[i].c_str());
                 nrErr++;
@@ -955,8 +1088,8 @@ int main(int argc, char *argv[]) {
 
         //-- Create golden Rx files
         set<UdpPort> udpDstPorts;
-        if (createGoldenRxFiles(string(argv[2]), ofsURIF_Gold_Data_FileName,
-                ofsURIF_Gold_Meta_FileName, udpDstPorts) != NTS_OK) {
+        if (createGoldenRxFiles(string(argv[2]), ofsUAIF_Gold_Data_FileName,
+                ofsUAIF_Gold_Meta_FileName, udpDstPorts) != NTS_OK) {
             printError(THIS_NAME, "Failed to create golden Rx files. \n");
             nrErr++;
         }
@@ -964,29 +1097,39 @@ int main(int argc, char *argv[]) {
         // Wait until UOE is ready (~2^16 cycles)
         bool isReady = false;
         do {
-            uoe(
-                //-- MMIO Interface
-                sMMIO_UOE_Enable,
-                ssUOE_MMIO_Ready,
-                //-- IPRX / IP Rx / Data Interface
-                ssIPRX_UOE_Data,
-                //-- IPTX / IP Tx / Data Interface
-                ssUOE_IPTX_Data,
-                //-- URIF / Control Port Interfaces
-                ssURIF_UOE_LsnReq,
-                ssUOE_URIF_LsnRep,
-                ssURIF_UOE_ClsReq,
-                ssUOE_URIF_ClsRep,
-                //-- URIF / Rx Data Interfaces
-                ssUOE_URIF_Data,
-                ssUOE_URIF_Meta,
-                //-- URIF / Tx Data Interfaces
-                ssURIF_UOE_Data,
-                ssURIF_UOE_Meta,
-                ssURIF_UOE_DLen,
-                //-- ICMP / Message Data Interface
-                ssUOE_ICMP_Data
-            );
+			#if HLS_VERSION == 2017
+			uoe_top(
+				sMMIO_UOE_Enable,
+				ssUOE_MMIO_Ready,
+				ssIPRX_UOE_Data,
+				ssUOE_IPTX_Data,
+				ssUAIF_UOE_LsnReq,
+				ssUOE_UAIF_LsnRep,
+				ssUAIF_UOE_ClsReq,
+				ssUOE_UAIF_ClsRep,
+				ssUOE_UAIF_Data,
+				ssUOE_UAIF_Meta,
+				ssUAIF_UOE_Data,
+				ssUAIF_UOE_Meta,
+				ssUAIF_UOE_DLen,
+				ssUOE_ICMP_Data);
+			#else
+			uoe_top_wrap(
+				sMMIO_UOE_Enable,
+				ssUOE_MMIO_Ready,
+				ssIPRX_UOE_Data,
+				ssUOE_IPTX_Data,
+				ssUAIF_UOE_LsnReq,
+				ssUOE_UAIF_LsnRep,
+				ssUAIF_UOE_ClsReq,
+				ssUOE_UAIF_ClsRep,
+				ssUOE_UAIF_Data,
+				ssUOE_UAIF_Meta,
+				ssUAIF_UOE_Data,
+				ssUAIF_UOE_Meta,
+				ssUAIF_UOE_DLen,
+				ssUOE_ICMP_Data);
+			#endif
             if (!ssUOE_MMIO_Ready.empty()) {
                 isReady = ssUOE_MMIO_Ready.read();
             }
@@ -996,31 +1139,41 @@ int main(int argc, char *argv[]) {
         // Request to open a set of UDP ports in listen mode
         for (set<UdpPort>::iterator it=udpDstPorts.begin(); it!=udpDstPorts.end(); ++it) {
             portToOpen = *it;
-            ssURIF_UOE_LsnReq.write(portToOpen);
+            ssUAIF_UOE_LsnReq.write(portToOpen);
             for (int i=0; i<2; ++i) {
-                uoe(
-                    //-- MMIO Interface
-                    sMMIO_UOE_Enable,
-                    ssUOE_MMIO_Ready,
-                    //-- IPRX / IP Rx / Data Interface
-                    ssIPRX_UOE_Data,
-                    //-- IPTX / IP Tx / Data Interface
-                    ssUOE_IPTX_Data,
-                    //-- URIF / Control Port Interfaces
-                    ssURIF_UOE_LsnReq,
-                    ssUOE_URIF_LsnRep,
-                    ssURIF_UOE_ClsReq,
-	                ssUOE_URIF_ClsRep,
-                    //-- URIF / Rx Data Interfaces
-                    ssUOE_URIF_Data,
-                    ssUOE_URIF_Meta,
-                    //-- URIF / Tx Data Interfaces
-                    ssURIF_UOE_Data,
-                    ssURIF_UOE_Meta,
-                    ssURIF_UOE_DLen,
-                    //-- ICMP / Message Data Interface
-                    ssUOE_ICMP_Data
-                );
+				#if HLS_VERSION == 2017
+				uoe_top(
+					sMMIO_UOE_Enable,
+					ssUOE_MMIO_Ready,
+					ssIPRX_UOE_Data,
+					ssUOE_IPTX_Data,
+					ssUAIF_UOE_LsnReq,
+					ssUOE_UAIF_LsnRep,
+					ssUAIF_UOE_ClsReq,
+					ssUOE_UAIF_ClsRep,
+					ssUOE_UAIF_Data,
+					ssUOE_UAIF_Meta,
+					ssUAIF_UOE_Data,
+					ssUAIF_UOE_Meta,
+					ssUAIF_UOE_DLen,
+					ssUOE_ICMP_Data);
+				#else
+				uoe_top_wrap(
+					sMMIO_UOE_Enable,
+					ssUOE_MMIO_Ready,
+					ssIPRX_UOE_Data,
+					ssUOE_IPTX_Data,
+					ssUAIF_UOE_LsnReq,
+					ssUOE_UAIF_LsnRep,
+					ssUAIF_UOE_ClsReq,
+					ssUOE_UAIF_ClsRep,
+					ssUOE_UAIF_Data,
+					ssUOE_UAIF_Meta,
+					ssUAIF_UOE_Data,
+					ssUAIF_UOE_Meta,
+					ssUAIF_UOE_DLen,
+					ssUOE_ICMP_Data);
+				#endif
                 stepSim();
             }
         }
@@ -1028,8 +1181,8 @@ int main(int argc, char *argv[]) {
         for (set<UdpPort>::iterator it=udpDstPorts.begin(); it!=udpDstPorts.end(); ++it) {
             portToOpen = *it;
             openReply = false;
-            if (!ssUOE_URIF_LsnRep.empty()) {
-                openReply = ssUOE_URIF_LsnRep.read();
+            if (!ssUOE_UAIF_LsnRep.empty()) {
+                openReply = ssUOE_UAIF_LsnRep.read();
                 if (not openReply) {
                     printError(THIS_NAME, "KO - Failed to open port #%d (0x%4.4X).\n",
                             portToOpen.to_int(), portToOpen.to_int());
@@ -1060,28 +1213,39 @@ int main(int argc, char *argv[]) {
         //-- RUN SIMULATION FOR IPRX->UOE INPUT TRAFFIC -----------------------
         int tbRun = (nrErr == 0) ? (nrIPRX_UOE_Chunks + TB_GRACE_TIME) : 0;
         while (tbRun) {
-            uoe(
-                //-- MMIO Interface
-                sMMIO_UOE_Enable,
-                ssUOE_MMIO_Ready,
-                //-- IPRX / IP Rx / Data Interface
-                ssIPRX_UOE_Data,
-                //-- IPTX / IP Tx / Data Interface
-                ssUOE_IPTX_Data,
-                //-- URIF / Control Port Interfaces
-                ssURIF_UOE_LsnReq,
-                ssUOE_URIF_LsnRep,
-                ssURIF_UOE_ClsReq,
-                ssUOE_URIF_ClsRep,
-                //-- URIF / Rx Data Interfaces
-                ssUOE_URIF_Data,
-                ssUOE_URIF_Meta,
-                //-- URIF / Tx Data Interfaces
-                ssURIF_UOE_Data,
-                ssURIF_UOE_Meta,
-                ssURIF_UOE_DLen,
-                //-- ICMP / Message Data Interface
-                ssUOE_ICMP_Data);
+			#if HLS_VERSION == 2017
+			uoe_top(
+				sMMIO_UOE_Enable,
+				ssUOE_MMIO_Ready,
+				ssIPRX_UOE_Data,
+				ssUOE_IPTX_Data,
+				ssUAIF_UOE_LsnReq,
+				ssUOE_UAIF_LsnRep,
+				ssUAIF_UOE_ClsReq,
+				ssUOE_UAIF_ClsRep,
+				ssUOE_UAIF_Data,
+				ssUOE_UAIF_Meta,
+				ssUAIF_UOE_Data,
+				ssUAIF_UOE_Meta,
+				ssUAIF_UOE_DLen,
+				ssUOE_ICMP_Data);
+			#else
+			uoe_top_wrap(
+				sMMIO_UOE_Enable,
+				ssUOE_MMIO_Ready,
+				ssIPRX_UOE_Data,
+				ssUOE_IPTX_Data,
+				ssUAIF_UOE_LsnReq,
+				ssUOE_UAIF_LsnRep,
+				ssUAIF_UOE_ClsReq,
+				ssUOE_UAIF_ClsRep,
+				ssUOE_UAIF_Data,
+				ssUOE_UAIF_Meta,
+				ssUAIF_UOE_Data,
+				ssUAIF_UOE_Meta,
+				ssUAIF_UOE_DLen,
+				ssUOE_ICMP_Data);
+			#endif
             tbRun--;
             stepSim();
         }
@@ -1091,23 +1255,23 @@ int main(int argc, char *argv[]) {
         printInfo(THIS_NAME, "############################################################################\n");
         stepSim();
 
-        //-- DRAIN UOE-->URIF DATA OUTPUT STREAM ------------------------------
-        int nrUOE_URIF_DataChunks=0, nrUOE_URIF_DataGrams=0, nrUOE_URIF_DataBytes=0;
-        if (not drainAxisToFile(ssUOE_URIF_Data, "ssUOE_URIF_Data",
-            ofNames[0], nrUOE_URIF_DataChunks, nrUOE_URIF_DataGrams, nrUOE_URIF_DataBytes)) {
-            printError(THIS_NAME, "Failed to drain UOE-to-URIF data traffic from DUT. \n");
+        //-- DRAIN UOE-->UAIF DATA OUTPUT STREAM ------------------------------
+        int nrUOE_UAIF_DataChunks=0, nrUOE_UAIF_DataGrams=0, nrUOE_UAIF_DataBytes=0;
+        if (not drainAxisToFile(ssUOE_UAIF_Data, "ssUOE_UAIF_Data",
+            ofNames[0], nrUOE_UAIF_DataChunks, nrUOE_UAIF_DataGrams, nrUOE_UAIF_DataBytes)) {
+            printError(THIS_NAME, "Failed to drain UOE-to-UAIF data traffic from DUT. \n");
             nrErr++;
         }
         else {
-            printInfo(THIS_NAME, "Done with the draining of the UOE-to-URIF data traffic:\n");
+            printInfo(THIS_NAME, "Done with the draining of the UOE-to-UAIF data traffic:\n");
             printInfo(THIS_NAME, "\tReceived %d chunks in %d datagrams, for a total of %d bytes.\n\n",
-                      nrUOE_URIF_DataChunks, nrUOE_URIF_DataGrams, nrUOE_URIF_DataBytes);
+                      nrUOE_UAIF_DataChunks, nrUOE_UAIF_DataGrams, nrUOE_UAIF_DataBytes);
         }
-        //-- DRAIN UOE-->URIF META OUTPUT STREAM ------------------------------
-        int nrUOE_URIF_MetaChunks=0, nrUOE_URIF_MetaGrams=0, nrUOE_URIF_MetaBytes=0;
-        if (not drainUdpMetaStreamToFile(ssUOE_URIF_Meta, "ssUOE_URIF_Meta",
-                ofNames[1], nrUOE_URIF_MetaChunks, nrUOE_URIF_MetaGrams, nrUOE_URIF_MetaBytes)) {
-            printError(THIS_NAME, "Failed to drain UOE-to-URIF meta traffic from DUT. \n");
+        //-- DRAIN UOE-->UAIF META OUTPUT STREAM ------------------------------
+        int nrUOE_UAIF_MetaChunks=0, nrUOE_UAIF_MetaGrams=0, nrUOE_UAIF_MetaBytes=0;
+        if (not drainUdpMetaStreamToFile(ssUOE_UAIF_Meta, "ssUOE_UAIF_Meta",
+                ofNames[1], nrUOE_UAIF_MetaChunks, nrUOE_UAIF_MetaGrams, nrUOE_UAIF_MetaBytes)) {
+            printError(THIS_NAME, "Failed to drain UOE-to-UAIF meta traffic from DUT. \n");
             nrErr++;
         }
 
@@ -1115,19 +1279,19 @@ int main(int argc, char *argv[]) {
         //-- COMPARE OUTPUT DAT and GOLD STREAMS
         //---------------------------------------------------------------
         int res = system(("diff --brief -w " + \
-                           std::string(ofsURIF_Data_FileName) + " " + \
-                           std::string(ofsURIF_Gold_Data_FileName) + " ").c_str());
+                           std::string(ofsUAIF_Data_FileName) + " " + \
+                           std::string(ofsUAIF_Gold_Data_FileName) + " ").c_str());
         if (res) {
             printError(THIS_NAME, "File \'%s\' does not match \'%s\'.\n", \
-                       ofsURIF_Data_FileName.c_str(), ofsURIF_Gold_Data_FileName.c_str());
+                       ofsUAIF_Data_FileName.c_str(), ofsUAIF_Gold_Data_FileName.c_str());
             nrErr += 1;
         }
         res = system(("diff --brief -w " + \
-                       std::string(ofsURIF_Meta_FileName) + " " + \
-                       std::string(ofsURIF_Gold_Meta_FileName) + " ").c_str());
+                       std::string(ofsUAIF_Meta_FileName) + " " + \
+                       std::string(ofsUAIF_Gold_Meta_FileName) + " ").c_str());
         if (res) {
             printError(THIS_NAME, "File \'%s\' does not match \'%s\'.\n", \
-                       ofsURIF_Meta_FileName.c_str(), ofsURIF_Gold_Meta_FileName.c_str());
+                       ofsUAIF_Meta_FileName.c_str(), ofsUAIF_Gold_Meta_FileName.c_str());
             nrErr += 1;
         }
 
@@ -1135,7 +1299,7 @@ int main(int argc, char *argv[]) {
 
     if ((tbMode == TX_DGRM_MODE) or (tbMode == TX_STRM_MODE)) {
         //---------------------------------------------------------------
-        //-- TX_MODE: Read in the test input data for the URIF side.
+        //-- TX_MODE: Read in the test input data for the UAIF side.
         //---------------------------------------------------------------
         printInfo(THIS_NAME, "== TX-TEST : Send UDP datagram traffic to DUT.\n");
 
@@ -1143,12 +1307,14 @@ int main(int argc, char *argv[]) {
         string      ofsIPTX_Data_FileName = "../../../../test/simOutFiles/soIPTX_Data.dat";
         string      ofsIPTX_Gold_FileName = "../../../../test/simOutFiles/soIPTX_Gold.dat";
 
-        //-- Remove previous data file and open a new file
+        //-- Remove all previous 'dat' files and open a new file
         if (not isDatFile(ofsIPTX_Data_FileName)) {
             printFatal(THIS_NAME, "File \'%s\' is not of type \'DAT\'.\n", ofsIPTX_Data_FileName.c_str());
         }
         else {
-            remove(ofsIPTX_Data_FileName.c_str());
+            string rmCmd = "rm ../../../../test/simOutFiles/*.dat";
+            system(rmCmd.c_str());
+            //OBSOLETE_20210415 remove(ofsIPTX_Data_FileName.c_str());
             if (!ofsIPTX_Data.is_open()) {
                 ofsIPTX_Data.open(ofsIPTX_Data_FileName.c_str(), ofstream::out);
                 if (!ofsIPTX_Data) {
@@ -1166,76 +1332,87 @@ int main(int argc, char *argv[]) {
             printFatal(THIS_NAME, "Failed to create golden UOE->IPTX file. \n");
         }
 
-        //-- CREATE THE URIF->UOE INPUT {DATA,META,DLEN} AS STREAMS -----------
-        int nrURIF_UOE_Chunks=0;
-        if (not createUdpTxTraffic(ssURIF_UOE_Data, "ssURIF_UOE_Data",
-                                   ssURIF_UOE_Meta, "ssURIF_UOE_Meta",
-                                   ssURIF_UOE_DLen, "ssURIF_UOE_DLen",
+        //-- CREATE THE UAIF->UOE INPUT {DATA,META,DLEN} AS STREAMS -----------
+        int nrUAIF_UOE_Chunks=0;
+        if (not createUdpTxTraffic(ssUAIF_UOE_Data, "ssUAIF_UOE_Data",
+                                   ssUAIF_UOE_Meta, "ssUAIF_UOE_Meta",
+                                   ssUAIF_UOE_DLen, "ssUAIF_UOE_DLen",
                                    string(argv[2]),
                                    udpSocketPairs,
                                    updDataLengths,
-                                   nrURIF_UOE_Chunks)) {
-            printFatal(THIS_NAME, "Failed to create the URIF->UOE traffic as streams.\n");
+                                   nrUAIF_UOE_Chunks)) {
+            printFatal(THIS_NAME, "Failed to create the UAIF->UOE traffic as streams.\n");
         }
 
         //-- RUN SIMULATION ---------------------------------------------------
-         int tbRun = (nrErr == 0) ? (nrURIF_UOE_Chunks + TB_GRACE_TIME) : 0;
-         while (tbRun) {
-             uoe(
-                 //-- MMIO Interface
-                 sMMIO_UOE_Enable,
-                 ssUOE_MMIO_Ready,
-                 //-- IPRX / IP Rx / Data Interface
-                 ssIPRX_UOE_Data,
-                 //-- IPTX / IP Tx / Data Interface
-                 ssUOE_IPTX_Data,
-                 //-- URIF / Control Port Interfaces
-                 ssURIF_UOE_LsnReq,
-                 ssUOE_URIF_LsnRep,
-                 ssURIF_UOE_ClsReq,
-                 ssUOE_URIF_ClsRep,
-                 //-- URIF / Rx Data Interfaces
-                 ssUOE_URIF_Data,
-                 ssUOE_URIF_Meta,
-                 //-- URIF / Tx Data Interfaces
-                 ssURIF_UOE_Data,
-                 ssURIF_UOE_Meta,
-                 ssURIF_UOE_DLen,
-                 //-- ICMP / Message Data Interface
-                 ssUOE_ICMP_Data);
-             tbRun--;
-             stepSim();
-         }
+        int tbRun = (nrErr == 0) ? (nrUAIF_UOE_Chunks + TB_GRACE_TIME) : 0;
+        while (tbRun) {
+			#if HLS_VERSION == 2017
+			uoe_top(
+				sMMIO_UOE_Enable,
+				ssUOE_MMIO_Ready,
+				ssIPRX_UOE_Data,
+				ssUOE_IPTX_Data,
+				ssUAIF_UOE_LsnReq,
+				ssUOE_UAIF_LsnRep,
+				ssUAIF_UOE_ClsReq,
+				ssUOE_UAIF_ClsRep,
+				ssUOE_UAIF_Data,
+				ssUOE_UAIF_Meta,
+				ssUAIF_UOE_Data,
+				ssUAIF_UOE_Meta,
+				ssUAIF_UOE_DLen,
+				ssUOE_ICMP_Data);
+			#else
+			uoe_top_wrap(
+				sMMIO_UOE_Enable,
+				ssUOE_MMIO_Ready,
+				ssIPRX_UOE_Data,
+				ssUOE_IPTX_Data,
+				ssUAIF_UOE_LsnReq,
+				ssUOE_UAIF_LsnRep,
+				ssUAIF_UOE_ClsReq,
+				ssUOE_UAIF_ClsRep,
+				ssUOE_UAIF_Data,
+				ssUOE_UAIF_Meta,
+				ssUAIF_UOE_Data,
+				ssUAIF_UOE_Meta,
+				ssUAIF_UOE_DLen,
+				ssUOE_ICMP_Data);
+			#endif
+            tbRun--;
+            stepSim();
+        }
 
-         printInfo(THIS_NAME, "############################################################################\n");
-         printInfo(THIS_NAME, "## TESTBENCH 'test_uoe' ENDS HERE                                         ##\n");
-         printInfo(THIS_NAME, "############################################################################\n");
-         stepSim();
+        printInfo(THIS_NAME, "############################################################################\n");
+        printInfo(THIS_NAME, "## TESTBENCH 'test_uoe' ENDS HERE                                         ##\n");
+        printInfo(THIS_NAME, "############################################################################\n");
+        stepSim();
 
-         //-- DRAIN UOE-->IPTX DATA OUTPUT STREAM -----------------------------
-         int nrUOE_IPTX_Chunks=0, nrUOE_IPTX_Packets=0, nrUOE_IPTX_Bytes=0;
-         if (not drainAxisToFile(ssUOE_IPTX_Data, "ssUOE_IPTX_Data",
-                ofsIPTX_Data_FileName, nrUOE_IPTX_Chunks, nrUOE_IPTX_Packets, nrUOE_IPTX_Bytes)) {
-             printError(THIS_NAME, "Failed to drain UOE-to-IPTX data traffic from DUT. \n");
-             nrErr++;
-         }
-         else {
-             printInfo(THIS_NAME, "Done with the draining of the UOE-to-IPTX data traffic:\n");
-             printInfo(THIS_NAME, "\tReceived %d chunks in %d packets, for a total of %d bytes.\n\n",
-                       nrUOE_IPTX_Chunks, nrUOE_IPTX_Packets, nrUOE_IPTX_Bytes);
-         }
+        //-- DRAIN UOE-->IPTX DATA OUTPUT STREAM -----------------------------
+        int nrUOE_IPTX_Chunks=0, nrUOE_IPTX_Packets=0, nrUOE_IPTX_Bytes=0;
+        if (not drainAxisToFile(ssUOE_IPTX_Data, "ssUOE_IPTX_Data",
+               ofsIPTX_Data_FileName, nrUOE_IPTX_Chunks, nrUOE_IPTX_Packets, nrUOE_IPTX_Bytes)) {
+            printError(THIS_NAME, "Failed to drain UOE-to-IPTX data traffic from DUT. \n");
+            nrErr++;
+        }
+        else {
+            printInfo(THIS_NAME, "Done with the draining of the UOE-to-IPTX data traffic:\n");
+            printInfo(THIS_NAME, "\tReceived %d chunks in %d packets, for a total of %d bytes.\n\n",
+                      nrUOE_IPTX_Chunks, nrUOE_IPTX_Packets, nrUOE_IPTX_Bytes);
+        }
 
-         //---------------------------------------------------------------
-         //-- COMPARE OUTPUT DAT and GOLD STREAMS
-         //---------------------------------------------------------------
-         int res = myDiffTwoFiles(std::string(ofsIPTX_Data_FileName),
-                                  std::string(ofsIPTX_Gold_FileName));
+        //---------------------------------------------------------------
+        //-- COMPARE OUTPUT DAT and GOLD STREAMS
+        //---------------------------------------------------------------
+        int res = myDiffTwoFiles(std::string(ofsIPTX_Data_FileName),
+                                 std::string(ofsIPTX_Gold_FileName));
 
-         if (res) {
-             printError(THIS_NAME, "File \'%s\' does not match \'%s\'.\n", \
-                        ofsIPTX_Data_FileName.c_str(), ofsIPTX_Gold_FileName.c_str());
-             nrErr += 1;
-         }
+        if (res) {
+            printError(THIS_NAME, "File \'%s\' does not match \'%s\'.\n", \
+                       ofsIPTX_Data_FileName.c_str(), ofsIPTX_Gold_FileName.c_str());
+            nrErr += 1;
+        }
 
     } // End-of: if (tbMode == TX_MODE)
 

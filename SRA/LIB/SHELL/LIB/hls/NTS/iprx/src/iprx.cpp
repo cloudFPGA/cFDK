@@ -1097,6 +1097,6 @@ void iprx(
     pAxisRawCast(ssoTOE_Data,  soTOE_Data);
 
 }
-#endif
+#endif  //  HLS_VERSION
 
 /*! \} */
