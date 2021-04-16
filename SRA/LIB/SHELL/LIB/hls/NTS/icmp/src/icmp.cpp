@@ -1,5 +1,5 @@
 /************************************************
-Copyright (c) 2016-2019, IBM Research.
+Copyright (c) 2016-2020, IBM Research.
 Copyright (c) 2015, Xilinx, Inc.
 
 All rights reserved.
@@ -40,8 +40,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "icmp.hpp"
 
 using namespace hls;
-
-#define USE_DEPRECATED_DIRECTIVES
 
 /************************************************
  * HELPERS FOR THE DEBUGGING TRACES
@@ -235,8 +233,6 @@ void pIcmpChecksumChecker(
             for (int i=2; i<4; i++) {
               #pragma HLS UNROLL
                 ap_uint<16> temp;
-                //OBSOLETE_20200618 temp( 7, 0) = currWord.tdata.range(i*16+15, i*16+8);
-                //OBSOLETE_20200618 temp(15, 8) = currWord.tdata.range(i*16+ 7, i*16+0);
                 temp( 7, 0) = currChunk.getLE_TData(i*16+15, i*16+8);
                 temp(15, 8) = currChunk.getLE_TData(i*16+ 7, i*16+0);
                 icc_subSums[i] += temp;
@@ -487,10 +483,8 @@ void pIpHeaderAppender(
         case AIH_STREAM:
             if (!siCMb_Data.empty() && !soICi_Data.full()) {
                 AxisIp4  outputChunk(0, 0xFF, 0);
-                //OBSOLETE_20200618 outputWord.tdata.range(31, 0) = iha_icmpData.tdata.range(63, 32);
                 outputChunk.setLE_TData(iha_icmpData.getLE_TData(63, 32), 31,  0);
                 iha_icmpData = siCMb_Data.read();
-                //OBSOLETE_20200618 outputWord.tdata.range(63, 32) = iha_icmpData.tdata.range(31,  0);
                 outputChunk.setLE_TData(iha_icmpData.getLE_TData(31,  0), 63, 32);
                 if (iha_icmpData.getLE_TLast()) {
                     if (iha_icmpData.getLE_TKeep(7, 4) == 0) {
@@ -508,8 +502,6 @@ void pIpHeaderAppender(
         case AIH_RESIDUE:
             if (!soICi_Data.full()) {
                 AxisIp4 outputChunk(0, 0, 1);
-                //OBSOLETE_outputWord.tdata.range(31, 0) = iha_icmpData.tdata.range(63, 32);
-                //OBSOLETE_outputWord.tkeep.range( 3, 0) = iha_icmpData.tkeep.range(7, 4);
                 outputChunk.setLE_TData(iha_icmpData.getLE_TData(63, 32), 31, 0);
                 outputChunk.setLE_TKeep(iha_icmpData.getLE_TKeep( 7,  4),  3, 0);
                 soICi_Data.write(outputChunk);
@@ -655,8 +647,8 @@ void pIcmpChecksumInserter(
 }
 
 
-/******************************************************************************
- * @brief   Main process of the Internet Control Message Protocol (ICMP) Server.
+/*******************************************************************************
+ * @brief  Main process of the Internet Control Message Protocol (ICMP) Server.
  *
  * @param[in]  piMMIO_MacAddress The MAC  address from MMIO (in network order).
  * @param[in]  siIPRX_Data       The data stream from the IP Rx handler (IPRX).
@@ -698,35 +690,10 @@ void icmp(
         //------------------------------------------------------
         stream<AxisIp4>     &soIPTX_Data)
 {
-        //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
-        #pragma HLS INTERFACE ap_ctrl_none port=return
-
-#if defined(USE_DEPRECATED_DIRECTIVES)
-
-    /*********************************************************************/
-    /*** For the time being, we continue designing with the DEPRECATED ***/
-    /*** directives because the new PRAGMAs do not work for us.        ***/
-    /*********************************************************************/
-
-    #pragma HLS INTERFACE ap_stable           port=piMMIO_Ip4Address
-
-    #pragma HLS RESOURCE core=AXI4Stream variable=siIPRX_Data   metadata="-bus_bundle siIPRX_Data"
-    #pragma HLS RESOURCE core=AXI4Stream variable=siIPRX_Derr   metadata="-bus_bundle siIPRX_Derr"
-    #pragma HLS RESOURCE core=AXI4Stream variable=siUOE_Data    metadata="-bus_bundle siUOE_Data"
-    #pragma HLS RESOURCE core=AXI4Stream variable=soIPTX_Data   metadata="-bus_bundle soIPTX_Data"
-
-#else
-
-    #pragma HLS INTERFACE ap_stable           port=piMMIO_Ip4Address
-    #pragma HLS INTERFACE axis                port=siIPRX_Data
-    #pragma HLS INTERFACE axis                port=siIPRX_Derr
-    #pragma HLS _NTERFACE axis                port=siUOE_Data
-    #pragma HLS INTERFACE axis                port=soIPTX_Data
-
-#endif
-
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW
+    #pragma HLS INLINE
+    #pragma HLS INTERFACE ap_ctrl_none port=return
 
     //--------------------------------------------------------------------------
     //-- LOCAL STREAMS (Sorted by the name of the modules which generate them)
@@ -785,5 +752,127 @@ void icmp(
             soIPTX_Data);
 
 }
+
+/*******************************************************************************
+ * @brief  Top of the Internet Control Message Protocol (ICMP) Server.
+ *
+ * @param[in]  piMMIO_MacAddress The MAC  address from MMIO (in network order).
+ * @param[in]  siIPRX_Data       The data stream from the IP Rx handler (IPRX).
+ * @param[in]  siIPRX_Derr       Erroneous IP data stream from [IPRX].
+ * @param[in]  siUOE_Data        A copy of the first IPv4 bytes that caused the error.
+ * @param[out] soIPTX_Data       The data stream to the IpTxHandler (IPTX).
+ *
+ *******************************************************************************/
+#if HLS_VERSION == 2017
+    void icmp_top(
+        //------------------------------------------------------
+        //-- MMIO Interfaces
+        //------------------------------------------------------
+        Ip4Addr              piMMIO_Ip4Address,
+        //------------------------------------------------------
+        //-- IPRX Interfaces
+        //------------------------------------------------------
+        stream<AxisIp4>     &siIPRX_Data,
+        stream<AxisIp4>     &siIPRX_Derr,
+        //------------------------------------------------------
+        //-- UOE Interface
+        //------------------------------------------------------
+        stream<AxisIcmp>    &siUOE_Data,
+        //------------------------------------------------------
+        //-- IPTX Interface
+        //------------------------------------------------------
+        stream<AxisIp4>     &soIPTX_Data)
+{
+    //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
+    #pragma HLS INTERFACE ap_ctrl_none port=return
+
+    /*********************************************************************/
+    /*** For the time being, we continue designing with the DEPRECATED ***/
+    /*** directives because the new PRAGMAs do not work for us.        ***/
+    /*********************************************************************/
+    #pragma HLS INTERFACE ap_stable          port=piMMIO_Ip4Address
+
+    #pragma HLS RESOURCE core=AXI4Stream variable=siIPRX_Data   metadata="-bus_bundle siIPRX_Data"
+    #pragma HLS RESOURCE core=AXI4Stream variable=siIPRX_Derr   metadata="-bus_bundle siIPRX_Derr"
+    #pragma HLS RESOURCE core=AXI4Stream variable=siUOE_Data    metadata="-bus_bundle siUOE_Data"
+    #pragma HLS RESOURCE core=AXI4Stream variable=soIPTX_Data   metadata="-bus_bundle soIPTX_Data"
+
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS DATAFLOW
+
+    //-- MAIN ICMP PROCESS -----------------------------------------------------
+	icmp(
+	    //-- MMIO Interfaces
+	    piMMIO_Ip4Address,
+	    //-- IPRX Interfaces
+	    siIPRX_Data,
+	    siIPRX_Derr,
+	    //-- UOE Interface
+	    siUOE_Data,
+	    //-- IPTX Interface
+	    soIPTX_Data);
+}
+#else
+    void icmp_top(
+        //------------------------------------------------------
+        //-- MMIO Interfaces
+        //------------------------------------------------------
+        Ip4Addr              piMMIO_Ip4Address,
+        //------------------------------------------------------
+        //-- IPRX Interfaces
+        //------------------------------------------------------
+        stream<AxisRaw>     &siIPRX_Data,
+        stream<AxisRaw>     &siIPRX_Derr,
+        //------------------------------------------------------
+        //-- UOE Interface
+        //------------------------------------------------------
+        stream<AxisRaw>     &siUOE_Data,
+        //------------------------------------------------------
+        //-- IPTX Interface
+        //------------------------------------------------------
+        stream<AxisRaw>     &soIPTX_Data)
+{
+    //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
+    #pragma HLS INTERFACE ap_ctrl_none port=return
+
+    #pragma HLS INTERFACE ap_stable port=piMMIO_Ip4Address
+
+    #pragma HLS INTERFACE axis off  port=siIPRX_Data
+    #pragma HLS INTERFACE axis off  port=siIPRX_Derr
+    #pragma HLS INTERFACE axis off  port=siUOE_Data
+    #pragma HLS INTERFACE axis off  port=soIPTX_Data
+
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS DATAFLOW disable_start_propagation
+
+    //-- LOCAL INPUT and OUTPUT STREAMS ----------------------------------------
+    static stream<AxisIp4>      ssiIPRX_Data ("ssiIPRX_Data");
+    #pragma HLS STREAM variable=ssiIPRX_Data depth=32
+    static stream<AxisIp4>      ssiIPRX_Derr ("ssiIPRX_Derr");
+    static stream<AxisIcmp>     ssiUOE_Data  ("ssiUOE_Data");
+    static stream<AxisIp4>      ssoIPTX_Data ("ssoIPTX_Data");
+
+    //-- INPUT STREAM CASTING --------------------------------------------------
+    pAxisRawCast(siIPRX_Data, ssiIPRX_Data);
+    pAxisRawCast(siIPRX_Derr, ssiIPRX_Derr);
+    pAxisRawCast(siUOE_Data,  ssiUOE_Data);
+
+    //-- MAIN ICMP PROCESS -----------------------------------------------------
+	icmp(
+	    //-- MMIO Interfaces
+	    piMMIO_Ip4Address,
+	    //-- IPRX Interfaces
+	    ssiIPRX_Data,
+	    ssiIPRX_Derr,
+	    //-- UOE Interface
+	    ssiUOE_Data,
+	    //-- IPTX Interface
+	    ssoIPTX_Data);
+
+    //-- OUTPUT STREAM CASTING -------------------------------------------------
+    pAxisRawCast(ssoIPTX_Data, soIPTX_Data);
+
+}
+#endif
 
  /*! \} */

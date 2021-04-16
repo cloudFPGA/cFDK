@@ -225,16 +225,74 @@ int createGoldenFile(
     return(ret);
 }
 
+#if HLS_VERSION != 2017
+/*******************************************************************************
+ * @brief A wrapper for Toplevel of Internet Control Message Protocol (ICMP).
+ *
+ * @param[in]  piMMIO_MacAddress The MAC  address from MMIO (in network order).
+ * @param[in]  siIPRX_Data       The data stream from the IP Rx handler (IPRX).
+ * @param[in]  siIPRX_Derr       Erroneous IP data stream from [IPRX].
+ * @param[in]  siUOE_Data        A copy of the first IPv4 bytes that caused the error.
+ * @param[out] soIPTX_Data       The data stream to the IpTxHandler (IPTX).
+ *
+ * @details
+ *  This process is a wrapper for the 'icmp_top' entity. It instantiates such an
+ *   entity and further connects it with base 'AxisRaw' streams as expected by
+ *   the 'icmp_top'.
+ *******************************************************************************/
+void icmp_top_wrap(
+        //-- MMIO Interfaces
+        Ip4Addr              piMMIO_Ip4Address,
+        //-- IPRX Interfaces
+        stream<AxisIp4>     &siIPRX_Data,
+        stream<AxisIp4>     &siIPRX_Derr,
+        //-- UOE Interface
+        stream<AxisIcmp>    &siUOE_Data,
+        //-- IPTX Interface
+        stream<AxisIp4>     &soIPTX_Data)
+{
+    //-- LOCAL INPUT and OUTPUT STREAMS ----------------------------------------
+    static stream<AxisRaw>     ssiIPRX_Data ("ssiIPRX_Data");
+    static stream<AxisRaw>     ssiIPRX_Derr ("ssiIPRX_Derr");
+    static stream<AxisRaw>     ssiUOE_Data  ("ssiUOE_Data");
+    static stream<AxisRaw>     ssoIPTX_Data ("ssoIPTX_Data");
+
+    //-- INPUT STREAM CASTING --------------------------------------------------
+    pAxisRawCast(siIPRX_Data, ssiIPRX_Data);
+    pAxisRawCast(siIPRX_Derr, ssiIPRX_Derr);
+    pAxisRawCast(siUOE_Data,  ssiUOE_Data);
+
+    //-- MAIN ICMP PROCESS -----------------------------------------------------
+	icmp_top(
+	    //-- MMIO Interfaces
+	    piMMIO_Ip4Address,
+	    //-- IPRX Interfaces
+	    ssiIPRX_Data,
+	    ssiIPRX_Derr,
+	    //-- UOE Interface
+	    ssiUOE_Data,
+	    //-- IPTX Interface
+	    ssoIPTX_Data);
+
+    //-- OUTPUT STREAM CASTING -------------------------------------------------
+    pAxisRawCast(ssoIPTX_Data, soIPTX_Data);
+}
+#endif
 
 /*******************************************************************************
  * @brief Main function.
  *
- * @param[in] argv[1] the filename of an input test vector (.e.g, ../../../../test/testVectors/siIPRX_Data_OnePacket.dat)
+ * @param[in] inpFile  The pathname of the input test vector file.
  *******************************************************************************/
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
 
-    gSimCycCnt = 0;  // Simulation cycle counter is a global variable
+    //------------------------------------------------------
+    //-- TESTBENCH GLOBAL VARIABLES
+    //------------------------------------------------------
+    gTraceEvent   = false;
+    gFatalError   = false;
+    gSimCycCnt    = 0;
+    gMaxSimCycles = TB_STARTUP_DELAY + TB_MAX_SIM_CYCLES;
 
     //------------------------------------------------------
     //-- TESTBENCH LOCAL VARIABLES
@@ -243,8 +301,8 @@ int main(int argc, char* argv[])
     int     tbRun  = 0;  // Total duration of the test (in clock cycles0
     Ip4Addr myIp4Address  = 0x01010101; // Might be overwritten by the content of the DAT file.
 
-    string  ofsICMP_IPTX_Data_FileName = "../../../../test/soIPTX_Data.dat";
-    string  ofsICMP_IPTX_Gold_FileName = "../../../../test/soIPTX_Gold.dat";
+    string  ofsICMP_IPTX_Data_FileName = "../../../../test/simOutFiles/soIPTX_Data.dat";
+    string  ofsICMP_IPTX_Gold_FileName = "../../../../test/simOutFiles/soIPTX_Gold.dat";
 
     //------------------------------------------------------
     //-- DUT STREAM INTERFACES and RELATED VARIABLEs
@@ -294,8 +352,8 @@ int main(int argc, char* argv[])
     //-- CREATE DUT OUTPUT TRAFFIC AS STREAMS
     //------------------------------------------------------
     ofstream    ofsIPTX_Data;
-    string      ofsIPTX_Data_FileName = "../../../../test/soIPTX_Data.dat";
-    string      ofsIPTX_Gold_FileName = "../../../../test/soIPTX_Gold.dat";
+    string      ofsIPTX_Data_FileName = "../../../../test/simOutFiles/soIPTX_Data.dat";
+    string      ofsIPTX_Gold_FileName = "../../../../test/simOutFiles/soIPTX_Gold.dat";
 
     //-- Remove previous file
     remove(ofsIPTX_Data_FileName.c_str());
@@ -332,14 +390,22 @@ int main(int argc, char* argv[])
     //-----------------------------------------------------
     tbRun = (nrErr == 0) ? (nrIPRX_ICMP_Chunks + TB_GRACE_TIME) : 0;
     while (tbRun) {
-        //== RUN DUT ==================
-        icmp(
+        //-- RUN DUT --------------------------------------
+      #if HLS_VERSION == 2017
+        icmp_top(
             myIp4Address,
             ssIPRX_ICMP_Data,
             ssIPRX_ICMP_Derr,
             ssUDP_ICMP_Data,
-            ssICMP_IPTX_Data
-        );
+            ssICMP_IPTX_Data);
+      #else
+        icmp_top_wrap(
+            myIp4Address,
+            ssIPRX_ICMP_Data,
+            ssIPRX_ICMP_Derr,
+            ssUDP_ICMP_Data,
+            ssICMP_IPTX_Data);
+      #endif
         tbRun--;
         stepSim();
     } // End-of: while()

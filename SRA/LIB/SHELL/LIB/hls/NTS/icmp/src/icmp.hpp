@@ -40,23 +40,11 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _ICMP_H_
 #define _ICMP_H_
 
-/*** OBSOLETE_20200618 ******
-#include <stdio.h>
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <math.h>
-#include <hls_stream.h>
-#include "ap_int.h"
-#include <stdint.h>
-#include <cstdlib>
-*****************************/
 #include "../../../NTS/nts.hpp"
 #include "../../../NTS/nts_utils.hpp"
 #include "../../../NTS/SimNtsUtils.hpp"
 #include "../../AxisEth.hpp"
 
-using namespace hls;
 
 const IcmpType  ICMP_ECHO_REPLY              = 0x00; // Echo reply (used to ping)
 const IcmpType  ICMP_DESTINATION_UNREACHABLE = 0x03; //
@@ -76,7 +64,7 @@ typedef ap_uint<17> LE_Sum17; // 16-bit 1's complement sum with carry
  * ENTITY - INTERNET CONTROL MESSAGE PROTOCOL (ICMP) SERVER
  *
  *******************************************************************************/
-void icmp(
+void icmp_top(
         //------------------------------------------------------
         //-- MMIO Interface
         //------------------------------------------------------
@@ -85,18 +73,18 @@ void icmp(
         //------------------------------------------------------
         //-- IPRX Interfaces
         //------------------------------------------------------
-        stream<AxisIp4>    &siIPRX_Data,
-        stream<AxisIp4>    &siIPRX_Derr,
+        stream<AxisRaw>    &siIPRX_Data,
+        stream<AxisRaw>    &siIPRX_Derr,
 
         //------------------------------------------------------
         //-- UOE Interface
         //------------------------------------------------------
-        stream<AxisIcmp>   &siUOE_Data,
+        stream<AxisRaw>    &siUOE_Data,
 
         //------------------------------------------------------
         //-- IPTX Interface
         //------------------------------------------------------
-        stream<AxisIp4>    &soIPTX_Data
+        stream<AxisRaw>    &soIPTX_Data
 
 );
 

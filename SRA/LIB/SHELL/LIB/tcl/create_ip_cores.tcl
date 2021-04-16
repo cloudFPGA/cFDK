@@ -1018,7 +1018,7 @@ update_ip_catalog
 # IBM-HSL-IP : Address Resolution Server 
 #------------------------------------------------------------------------------
 set ipModName "AddressResolutionServer"
-set ipName    "arp"
+set ipName    "arp_top"
 set ipVendor  "IBM"
 set ipLibrary "hls"
 set ipVersion "1.0"
@@ -1032,7 +1032,7 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 # IBM-HSL-IP : Content-Addressable Memory 
 #------------------------------------------------------------------------------
 set ipModName "ContentAddressableMemory"
-set ipName    "toecam"
+set ipName    "toecam_top"
 set ipVendor  "IBM"
 set ipLibrary "hls"
 set ipVersion "1.0"
@@ -1047,7 +1047,7 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 # IBM-HSL-IP : Internet Control Message Process 
 #------------------------------------------------------------------------------
 set ipModName "InternetControlMessageProcess"
-set ipName    "icmp"
+set ipName    "icmp_top"
 set ipVendor  "IBM"
 set ipLibrary "hls"
 set ipVersion "1.0"
@@ -1122,7 +1122,7 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 # IBM-HSL-IP : UDP Offload Engine
 #------------------------------------------------------------------------------
 set ipModName "UdpOffloadEngine"
-set ipName    "uoe"
+set ipName    "uoe_top"
 set ipVendor  "IBM"
 set ipLibrary "hls"
 set ipVersion "1.0"
