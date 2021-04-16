@@ -64,7 +64,34 @@ typedef ap_uint<17> LE_Sum17; // 16-bit 1's complement sum with carry
  * ENTITY - INTERNET CONTROL MESSAGE PROTOCOL (ICMP) SERVER
  *
  *******************************************************************************/
-void icmp_top(
+#if HLS_VERSION == 2017
+
+    void icmp_top(
+        //------------------------------------------------------
+        //-- MMIO Interface
+        //------------------------------------------------------
+        Ip4Addr             piMMIO_Ip4Address,
+
+        //------------------------------------------------------
+        //-- IPRX Interfaces
+        //------------------------------------------------------
+        stream<AxisIp4>    &siIPRX_Data,
+        stream<AxisIp4>    &siIPRX_Derr,
+
+        //------------------------------------------------------
+        //-- UOE Interface
+        //------------------------------------------------------
+        stream<AxisIcmp>   &siUOE_Data,
+
+        //------------------------------------------------------
+        //-- IPTX Interface
+        //------------------------------------------------------
+        stream<AxisIp4>    &soIPTX_Data
+    );
+
+#else
+
+    void icmp_top(
         //------------------------------------------------------
         //-- MMIO Interface
         //------------------------------------------------------
@@ -85,8 +112,9 @@ void icmp_top(
         //-- IPTX Interface
         //------------------------------------------------------
         stream<AxisRaw>    &soIPTX_Data
+    );
 
-);
+#endif  // HLS_VERSION
 
 #endif
 
