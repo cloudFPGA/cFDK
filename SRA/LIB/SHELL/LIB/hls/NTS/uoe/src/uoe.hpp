@@ -78,8 +78,56 @@ class IpAddrPair {
  * ENTITY - UDP OFFLOAD ENGINE (UOE)
  *
  ******************************************************************************/
-void uoe_top(
+#if HLS_VERSION == 2017
 
+    void uoe_top(
+
+        //------------------------------------------------------
+        //-- MMIO Interface
+        //------------------------------------------------------
+        CmdBit                   piMMIO_En,
+        stream<StsBool>         &soMMIO_Ready,
+
+        //------------------------------------------------------
+        //-- IPRX / IP Rx / Data Interface
+        //------------------------------------------------------
+        stream<AxisIp4>         &siIPRX_Data,
+
+        //------------------------------------------------------
+        //-- IPTX / IP Tx / Data Interface
+        //------------------------------------------------------
+        stream<AxisIp4>         &soIPTX_Data,
+
+        //------------------------------------------------------
+        //-- UAIF / Control Port Interfaces
+        //------------------------------------------------------
+        stream<UdpAppLsnReq>    &siUAIF_LsnReq,
+        stream<UdpAppLsnRep>    &soUAIF_LsnRep,
+        stream<UdpAppClsReq>    &siUAIF_ClsReq,
+        stream<UdpAppClsRep>    &soUAIF_ClsRep,
+
+        //------------------------------------------------------
+        //-- UAIF / Rx Data Interfaces
+        //------------------------------------------------------
+        stream<UdpAppData>      &soUAIF_Data,
+        stream<UdpAppMeta>      &soUAIF_Meta,
+
+        //------------------------------------------------------
+        //-- UAIF / Tx Data Interfaces
+        //------------------------------------------------------
+        stream<UdpAppData>      &siUAIF_Data,
+        stream<UdpAppMeta>      &siUAIF_Meta,
+        stream<UdpAppDLen>      &siUAIF_DLen,
+
+        //------------------------------------------------------
+        //-- ICMP / Message Data Interface (Port Unreachable)
+        //------------------------------------------------------
+        stream<AxisIcmp>        &soICMP_Data
+    );
+
+#else
+
+    void uoe_top(
         //------------------------------------------------------
         //-- MMIO Interface
         //------------------------------------------------------
@@ -121,7 +169,9 @@ void uoe_top(
         //-- ICMP / Message Data Interface (Port Unreachable)
         //------------------------------------------------------
         stream<AxisRaw>         &soICMP_Data
-);
+    );
+
+#endif  // HLS_VERSION
 
 #endif
 
