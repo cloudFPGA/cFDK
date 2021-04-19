@@ -246,7 +246,10 @@ void pStatusMemory(
       old_status[i] = 0x0;
     }
     tables_initialized = true;
-  } else if(*layer_7_enabled == 0 || *role_decoupled == 1 )
+  //} else if(*layer_7_enabled == 0 || *role_decoupled == 1 )
+  } else if(*layer_7_enabled == 0 || *role_decoupled == 1
+      && (packet_count_TX > 0 || packet_count_RX > 0 )
+      )
   {
     //reset counters
     packet_count_TX = 0x0;
