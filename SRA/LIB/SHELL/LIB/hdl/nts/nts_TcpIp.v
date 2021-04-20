@@ -466,7 +466,7 @@ module NetworkTransportStack_TcpIp (
   assign siMEM_RxP_RdSts_tready = sHIGH_1b1; // [FIXME - Add RxP_RdSts to TOE]
   
   //============================================================================
-  //  INST: IP RX-HANDLER
+  //  INST: IP-RX-HANDLER
   //============================================================================
   IpRxHandler IPRX (
     //------------------------------------------------------
@@ -538,7 +538,7 @@ module NetworkTransportStack_TcpIp (
   ); // End of IPRX
 
   //============================================================================
-  //  INST: AXI4-STREAM REGISTER SLICE (IPRX ==>[ARS0]==> ARP)
+  //  INST: AXI4-STREAM-REGISTER-SLICE (IPRX ==>[ARS0]==> ARP)
   //============================================================================
   AxisRegisterSlice_64 ARS0 (
     .aclk           (piShlClk),
@@ -558,7 +558,7 @@ module NetworkTransportStack_TcpIp (
   );
 
   //============================================================================
-  //  INST: AXI4-STREAM REGISTER SLICE (IPRX ==>[ARS1]==> ICMP)
+  //  INST: AXI4-STREAM-REGISTER-SLICE (IPRX ==>[ARS1]==> ICMP)
   //============================================================================
   AxisRegisterSlice_64 ARS1 (
     .aclk           (piShlClk),
@@ -578,7 +578,7 @@ module NetworkTransportStack_TcpIp (
   );
   
   //============================================================================
-  //  INST: ARP 
+  //  INST: ADDRESS-RESOLUTION-PROCESS 
   //============================================================================
   `ifdef USE_DEPRECATED_DIRECTIVES
   AddressResolutionProcess #(32, 48, 1) ARP (
@@ -625,15 +625,10 @@ module NetworkTransportStack_TcpIp (
   //============================================================================
   //  INST: TCP-OFFLOAD-ENGINE
   //============================================================================
-  `ifdef 0
-  TcpOffloadEngine TOE (
-   `ifdef USE_DEPRECATED_DIRECTIVES
+  `ifdef USE_DEPRECATED_DIRECTIVES
+  TcpOffloadEngine TOE (  
     .aclk                      (piShlClk),
     .aresetn                   (~piMMIO_Layer4Rst),
-   `else
-    .ap_clk                    (piShlClk),
-    .ap_rst_n                  (~piMMIO_Layer4Rst),
-   `endif
     //------------------------------------------------------
     //-- MMIO Interfaces
     //------------------------------------------------------    
@@ -810,10 +805,190 @@ module NetworkTransportStack_TcpIp (
     .poDBG_SssRegCnt_V         ()
     // .poSimCycCount_V        ()
   );  // End of TOE
-  `endif
+  `else
+    TcpOffloadEngine TOE (  
+    .ap_clk                    (piShlClk),
+    .ap_rst_n                  (~piMMIO_Layer4Rst),
+    //------------------------------------------------------
+    //-- MMIO Interfaces
+    //------------------------------------------------------    
+    .piMMIO_IpAddr_V           (piMMIO_Ip4Address),
+    .poNTS_Ready_V             (),     // [FIXME-ssTOE_RML_Ready_tdata]
+    //------------------------------------------------------
+    //-- IPRX / IP Rx Data Interface
+    //------------------------------------------------------
+    .siIPRX_Data_TDATA         (ssARS2_TOE_Data_tdata),
+    .siIPRX_Data_TKEEP         (ssARS2_TOE_Data_tkeep),
+    .siIPRX_Data_TLAST         (ssARS2_TOE_Data_tlast),
+    .siIPRX_Data_TVALID        (ssARS2_TOE_Data_tvalid),
+    .siIPRX_Data_TREADY        (ssARS2_TOE_Data_tready),
+    //------------------------------------------------------
+    //-- IPTX / IP Tx Data Interface (via ARS4/L3MUX)
+    //------------------------------------------------------
+    .soIPTX_Data_TDATA         (ssTOE_ARS4_Data_tdata),
+    .soIPTX_Data_TKEEP         (ssTOE_ARS4_Data_tkeep),
+    .soIPTX_Data_TLAST         (ssTOE_ARS4_Data_tlast),
+    .soIPTX_Data_TVALID        (ssTOE_ARS4_Data_tvalid),
+    .soIPTX_Data_TREADY        (ssTOE_ARS4_Data_tready),
+    //------------------------------------------------------
+    //-- TAIF / APP Rx Data Interfaces
+    //------------------------------------------------------
+    //-- To   APP / Data Notification
+    .soTAIF_Notif_V_TDATA      (soAPP_Tcp_Notif_tdata),
+    .soTAIF_Notif_V_TVALID     (soAPP_Tcp_Notif_tvalid),  
+    .soTAIF_Notif_V_TREADY     (soAPP_Tcp_Notif_tready),
+    //-- From APP / Data Read Request
+    .siTAIF_DReq_V_TDATA       (siAPP_Tcp_DReq_tdata),
+    .siTAIF_DReq_V_TVALID      (siAPP_Tcp_DReq_tvalid),
+    .siTAIF_DReq_V_TREADY      (siAPP_Tcp_DReq_tready),
+    //-- To   APP / Data Stream
+    .soTAIF_Data_TDATA         (soAPP_Tcp_Data_tdata),
+    .soTAIF_Data_TKEEP         (soAPP_Tcp_Data_tkeep),
+    .soTAIF_Data_TLAST         (soAPP_Tcp_Data_tlast),
+    .soTAIF_Data_TVALID        (soAPP_Tcp_Data_tvalid),
+    .soTAIF_Data_TREADY        (soAPP_Tcp_Data_tready),
+    //-- To   APP / Metadata
+    .soTAIF_Meta_V_V_TDATA     (soAPP_Tcp_Meta_tdata),
+    .soTAIF_Meta_V_V_TVALID    (soAPP_Tcp_Meta_tvalid),
+    .soTAIF_Meta_V_V_TREADY    (soAPP_Tcp_Meta_tready),
+    //------------------------------------------------------
+    //-- TAIF / APP Rx Ctrl Interfaces
+    //------------------------------------------------------
+    //-- From APP / Listen Port Request
+    .siTAIF_LsnReq_V_V_TDATA   (siAPP_Tcp_LsnReq_tdata),
+    .siTAIF_LsnReq_V_V_TVALID  (siAPP_Tcp_LsnReq_tvalid),
+    .siTAIF_LsnReq_V_V_TREADY  (siAPP_Tcp_LsnReq_tready),
+    //-- To   APP / Listen Port Reply
+    .soTAIF_LsnRep_V_TDATA     (soAPP_Tcp_LsnRep_tdata),
+    .soTAIF_LsnRep_V_TVALID    (soAPP_Tcp_LsnRep_tvalid),
+    .soTAIF_LsnRep_V_TREADY    (soAPP_Tcp_LsnRep_tready),
+    //------------------------------------------------------
+    //-- TAIF / APP Tx Data Flow Interfaces
+    //------------------------------------------------------
+    //-- From APP / Data Stream
+    .siTAIF_Data_TDATA         (siAPP_Tcp_Data_tdata),
+    .siTAIF_Data_TKEEP         (siAPP_Tcp_Data_tkeep),
+    .siTAIF_Data_TLAST         (siAPP_Tcp_Data_tlast),
+    .siTAIF_Data_TVALID        (siAPP_Tcp_Data_tvalid),
+    .siTAIF_Data_TREADY        (siAPP_Tcp_Data_tready),
+    //-- From APP / Send Request
+    .siTAIF_SndReq_V_TDATA     (siAPP_Tcp_SndReq_tdata),
+    .siTAIF_SndReq_V_TVALID    (siAPP_Tcp_SndReq_tvalid),
+    .siTAIF_SndReq_V_TREADY    (siAPP_Tcp_SndReq_tready),
+    //-- To  APP / Send Reply
+    .soTAIF_SndRep_V_TDATA     (soAPP_Tcp_SndRep_tdata),
+    .soTAIF_SndRep_V_TVALID    (soAPP_Tcp_SndRep_tvalid),
+    .soTAIF_SndRep_V_TREADY    (soAPP_Tcp_SndRep_tready),
+    //------------------------------------------------------
+    //-- TAIF / APP Tx Ctrl Flow Interfaces
+    //------------------------------------------------------
+    //-- From APP / Open Session Request
+    .siTAIF_OpnReq_V_TDATA     (siAPP_Tcp_OpnReq_tdata),
+    .siTAIF_OpnReq_V_TVALID    (siAPP_Tcp_OpnReq_tvalid),
+    .siTAIF_OpnReq_V_TREADY    (siAPP_Tcp_OpnReq_tready),
+    //-- To   APP / Open Session Reply
+    .soTAIF_OpnRep_V_TDATA     (soAPP_Tcp_OpnRep_tdata),
+    .soTAIF_OpnRep_V_TVALID    (soAPP_Tcp_OpnRep_tvalid),
+    .soTAIF_OpnRep_V_TREADY    (soAPP_Tcp_OpnRep_tready),
+    //-- From APP / Close Session Request
+    .siTAIF_ClsReq_V_V_TDATA   (siAPP_Tcp_ClsReq_tdata),
+    .siTAIF_ClsReq_V_V_TVALID  (siAPP_Tcp_ClsReq_tvalid),
+    .siTAIF_ClsReq_V_V_TREADY  (siAPP_Tcp_ClsReq_tready),
+    //-- To   APP / Close Session Status
+    // [FIXME-TODO]
+    //------------------------------------------------------
+    //-- MEM / RxP Interface
+    //------------------------------------------------------
+    //-- Receive Path / S2MM-AXIS --------------------------
+    //---- Stream Read Status ------------------
+    // [INFO] Not used
+    //---- Stream Read Command -----------------
+    .soMEM_RxP_RdCmd_V_TDATA   (soMEM_RxP_RdCmd_tdata),
+    .soMEM_RxP_RdCmd_V_TVALID  (soMEM_RxP_RdCmd_tvalid),
+    .soMEM_RxP_RdCmd_V_TREADY  (soMEM_RxP_RdCmd_tready),
+    //---- Stream Data Input Channel -----------
+    .siMEM_RxP_Data_TDATA      (siMEM_RxP_Data_tdata),
+    .siMEM_RxP_Data_TKEEP      (siMEM_RxP_Data_tkeep),
+    .siMEM_RxP_Data_TLAST      (siMEM_RxP_Data_tlast),
+    .siMEM_RxP_Data_TVALID     (siMEM_RxP_Data_tvalid),  
+    .siMEM_RxP_Data_TREADY     (siMEM_RxP_Data_tready),
+    //---- Stream Write Status -----------------
+    .siMEM_RxP_WrSts_V_TDATA   (siMEM_RxP_WrSts_tdata),
+    .siMEM_RxP_WrSts_V_TVALID  (siMEM_RxP_WrSts_tvalid), 
+    .siMEM_RxP_WrSts_V_TREADY  (siMEM_RxP_WrSts_tready),
+    //---- Stream Write Command ----------------
+    .soMEM_RxP_WrCmd_V_TDATA   (soMEM_RxP_WrCmd_tdata),
+    .soMEM_RxP_WrCmd_V_TVALID  (soMEM_RxP_WrCmd_tvalid),
+    .soMEM_RxP_WrCmd_V_TREADY  (soMEM_RxP_WrCmd_tready),
+    //---- Stream Data Output Channel ----------
+    .soMEM_RxP_Data_TDATA      (soMEM_RxP_Data_tdata),
+    .soMEM_RxP_Data_TKEEP      (soMEM_RxP_Data_tkeep),
+    .soMEM_RxP_Data_TLAST      (soMEM_RxP_Data_tlast),
+    .soMEM_RxP_Data_TVALID     (soMEM_RxP_Data_tvalid),
+    .soMEM_RxP_Data_TREADY     (soMEM_RxP_Data_tready),
+    //------------------------------------------------------
+    //-- MEM / TxP Interface
+    //------------------------------------------------------
+    //-- Transmit Path / S2MM-AXIS -------------------------
+    //---- Stream Read Status ------------------
+    // [INFO] Not used
+    //---- Stream Read Command -----------------
+    .soMEM_TxP_RdCmd_V_TDATA   (soMEM_TxP_RdCmd_tdata),
+    .soMEM_TxP_RdCmd_V_TVALID  (soMEM_TxP_RdCmd_tvalid),
+    .soMEM_TxP_RdCmd_V_TREADY  (soMEM_TxP_RdCmd_tready),
+    //---- Stream Data Input Channel ----------- 
+    .siMEM_TxP_Data_TDATA      (siMEM_TxP_Data_tdata),
+    .siMEM_TxP_Data_TKEEP      (siMEM_TxP_Data_tkeep),
+    .siMEM_TxP_Data_TLAST      (siMEM_TxP_Data_tlast),
+    .siMEM_TxP_Data_TVALID     (siMEM_TxP_Data_tvalid),
+    .siMEM_TxP_Data_TREADY     (siMEM_TxP_Data_tready),
+    //---- Stream Write Status -----------------
+    .siMEM_TxP_WrSts_V_TDATA   (siMEM_TxP_WrSts_tdata),
+    .siMEM_TxP_WrSts_V_TVALID  (siMEM_TxP_WrSts_tvalid),
+    .siMEM_TxP_WrSts_V_TREADY  (siMEM_TxP_WrSts_tready),
+    //---- Stream Write Command ----------------
+    .soMEM_TxP_WrCmd_V_TDATA   (soMEM_TxP_WrCmd_tdata),
+    .soMEM_TxP_WrCmd_V_TVALID  (soMEM_TxP_WrCmd_tvalid),
+    .soMEM_TxP_WrCmd_V_TREADY  (soMEM_TxP_WrCmd_tready),
+    //---- Stream Data Output Channel ----------
+    .soMEM_TxP_Data_TDATA      (soMEM_TxP_Data_tdata),
+    .soMEM_TxP_Data_TKEEP      (soMEM_TxP_Data_tkeep),
+    .soMEM_TxP_Data_TLAST      (soMEM_TxP_Data_tlast),
+    .soMEM_TxP_Data_TVALID     (soMEM_TxP_Data_tvalid),
+    .soMEM_TxP_Data_TREADY     (soMEM_TxP_Data_tready),
+    //------------------------------------------------------
+    //-- CAM / Session Lookup Interfaces
+    //------------------------------------------------------
+    //-- To   CAM / TCP Session Lookup Request
+    .soCAM_SssLkpReq_V_TDATA   (ssTOE_CAM_LkpReq_tdata),
+    .soCAM_SssLkpReq_V_TVALID  (ssTOE_CAM_LkpReq_tvalid),
+    .soCAM_SssLkpReq_V_TREADY  (ssTOE_CAM_LkpReq_tready),
+    //-- From CAM / TCP Session Lookup Reply
+    .siCAM_SssLkpRep_V_TDATA   (ssCAM_TOE_LkpRep_tdata),
+    .siCAM_SssLkpRep_V_TVALID  (ssCAM_TOE_LkpRep_tvalid),
+    .siCAM_SssLkpRep_V_TREADY  (ssCAM_TOE_LkpRep_tready),
+    //------------------------------------------------------
+    //-- CAM / Session Update Interfaces
+    //------------------------------------------------------
+    //-- To    CAM / TCP Session Update Request
+    .soCAM_SssUpdReq_V_TDATA   (ssTOE_CAM_UpdReq_tdata),
+    .soCAM_SssUpdReq_V_TVALID  (ssTOE_CAM_UpdReq_tvalid),
+    .soCAM_SssUpdReq_V_TREADY  (ssTOE_CAM_UpdReq_tready),
+    //-- From CAM / TCP Session Update Reply
+    .siCAM_SssUpdRep_V_TDATA   (ssCAM_TOE_UpdRpl_tdata),
+    .siCAM_SssUpdRep_V_TVALID  (ssCAM_TOE_UpdRpl_tvalid),
+    .siCAM_SssUpdRep_V_TREADY  (ssCAM_TOE_UpdRpl_tready),
+    //------------------------------------------------------
+    //-- DEBUG / Not Used
+    //------------------------------------------------------
+    .poDBG_SssRelCnt_V         (),
+    .poDBG_SssRegCnt_V         ()
+    // .poSimCycCount_V        ()
+  );  // End of TOE 
+  `endif  // HLS_VERSION
   
   //============================================================================
-  //  INST: CONTENT ADDRESSABLE MEMORY
+  //  INST: CONTENT-ADDRESSABLE-MEMORY
   //============================================================================  
 `define USE_FAKE_CAM
 
@@ -910,7 +1085,7 @@ module NetworkTransportStack_TcpIp (
 `endif  // USE_FAKE_CAM
   
   //============================================================================
-  //  INST: AXI4-STREAM REGISTER SLICE (IPRX ==>[ARS2]==> TOE)
+  //  INST: AXI4-STREAM-REGISTER-SLICE (IPRX ==>[ARS2]==> TOE)
   //============================================================================
   AxisRegisterSlice_64 ARS2 (
     .aclk           (piShlClk),
@@ -930,7 +1105,7 @@ module NetworkTransportStack_TcpIp (
   ); 
   
   //============================================================================
-  //  INST: AXI4-STREAM REGISTER SLICE (TOE ==>[ARS4]==> IPTX)
+  //  INST: AXI4-STREAM-REGISTER-SLICE (TOE ==>[ARS4]==> IPTX)
   //============================================================================
   AxisRegisterSlice_64 ARS4 (
     .aclk           (piShlClk),
@@ -1128,7 +1303,7 @@ module NetworkTransportStack_TcpIp (
 
 
   //============================================================================
-  //  INST: AXI4-STREAM REGISTER SLICE (IPRX ==>[ARS3]==> UOE)
+  //  INST: AXI4-STREAM-REGISTER-SLICE (IPRX ==>[ARS3]==> UOE)
   //============================================================================
   AxisRegisterSlice_64 ARS3 (
     .aclk           (piShlClk),
@@ -1202,7 +1377,7 @@ module NetworkTransportStack_TcpIp (
   ); // End of: ICMP
 
   //============================================================================
-  //  INST: L3MUX AXI4-STREAM INTERCONNECT RTL (Muxes ICMP, TOE, and UOE)
+  //  INST: L3MUX-AXI4-STREAM-INTERCONNECT-RTL (Muxes ICMP, TOE, and UOE)
   //============================================================================
   AxisInterconnectRtl_3S1M_D8 L3MUX (   
     .ACLK               (piShlClk),                         
@@ -1257,7 +1432,7 @@ module NetworkTransportStack_TcpIp (
   );
   
   //============================================================================
-  //  INST: IP TX-HANDLER
+  //  INST: IP-TX-HANDLER
   //============================================================================
   `ifdef USE_DEPRECATED_DIRECTIVES
    IpTxHandler IPTX (
@@ -1338,7 +1513,7 @@ module NetworkTransportStack_TcpIp (
   `endif  // End of USE_DEPRECATED_DIRECTIVES
 
   //============================================================================
-  //  INST: L2MUX AXI4-STREAM INTERCONNECT RTL (Muxes IP and ARP)
+  //  INST: L2MUX-AXI4-STREAM-INTERCONNECT-RTL (Muxes IP and ARP)
   //============================================================================
   AxisInterconnectRtl_2S1M_D8 L2MUX (
     .ACLK                 (piShlClk), 
@@ -1384,7 +1559,7 @@ module NetworkTransportStack_TcpIp (
   );
 
   //============================================================================
-  //  INST: READY LOGIC BARRIER
+  //  INST: READY-LOGIC-BARRIER
   //============================================================================
   ReadyLogicBarrier RLB (
     .ap_clk                   (piShlClk),

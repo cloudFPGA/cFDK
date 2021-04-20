@@ -1107,7 +1107,7 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 # IBM-HSL-IP : TCP Offload Engine
 #------------------------------------------------------------------------------
 set ipModName "TcpOffloadEngine"
-set ipName    "toe"
+set ipName    "toe_top"
 set ipVendor  "IBM"
 set ipLibrary "hls"
 set ipVersion "1.0"
