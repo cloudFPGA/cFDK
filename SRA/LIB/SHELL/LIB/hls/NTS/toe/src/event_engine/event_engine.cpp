@@ -81,7 +81,7 @@ void event_engine(
         stream<SigBit>          &siTXe_RxEventSig)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = THIS_NAME;
 

@@ -133,7 +133,7 @@ void pTcpLengthExtract(
         stream<TcpSegLen>   &soIph_TcpSegLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     const char *myName = concat3(THIS_NAME, "/", "Tle");
@@ -307,7 +307,7 @@ void pInsertPseudoHeader(
         stream<AxisPsd4>    &soCsa_PseudoPkt)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     const char *myName = concat3(THIS_NAME, "/", "Iph");
@@ -434,7 +434,7 @@ void pCheckSumAccumulator(
         stream<TcpPort>           &soPRt_GetState)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     const char *myName = concat3(THIS_NAME, "/", "Csa");
@@ -681,7 +681,7 @@ void pTcpInvalidDropper(
         stream<AxisApp>     &soTsd_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     const char *myName = concat3(THIS_NAME, "/", "Tid");
@@ -749,7 +749,7 @@ void pTcpSegmentDropper(
         stream<AxisApp>     &soMwr_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     const char *myName = concat3(THIS_NAME, "/", "Tsd");
@@ -834,7 +834,7 @@ void pRxMemoryWriter(
         stream<FlagBool>    &soRan_SplitSeg)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     const char *myName = concat3(THIS_NAME, "/", "Mwr");
@@ -1032,7 +1032,7 @@ void pRxAppNotifier(
         stream<FlagBool>      &siMwr_SplitSeg)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     const char *myName = concat3(THIS_NAME, "/", "Ran");
@@ -1144,7 +1144,7 @@ void pMetaDataHandler(
         stream<RXeFsmMeta>          &soFsm_Meta)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     const char *myName = concat3(THIS_NAME, "/", "Mdh");
@@ -1296,7 +1296,7 @@ void pFiniteStateMachine(
         stream<TcpAppNotif>         &soRan_RxNotif)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     const char *myName = concat3(THIS_NAME, "/", "Fsm");
@@ -1827,7 +1827,7 @@ void pEventMultiplexer(
         stream<ExtendedEvent>    &soEVe_Event)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     const char *myName = concat3(THIS_NAME, "/", "Evm");

@@ -119,7 +119,7 @@ void pMetaDataLoader(
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "Mdl");
 
@@ -597,7 +597,7 @@ void pSocketPairSplitter(
         stream<SocketPair>      &soPhc_SocketPair)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     const char *myName  = concat3(THIS_NAME, "/", "Sps");
@@ -682,7 +682,7 @@ void pIpHeaderConstructor(
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "Ihc");
 
@@ -790,7 +790,7 @@ void pPseudoHeaderConstructor(
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "Phc");
 
@@ -915,7 +915,7 @@ void pTcpSegStitcher(
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "Tss");
 
@@ -1180,7 +1180,7 @@ void pSubChecksumAccumulators(
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static bool                sca_doForwardChunk=false;
@@ -1247,7 +1247,7 @@ void pTcpChecksumAccumulator(
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "Tca");
 
@@ -1291,7 +1291,7 @@ void pIpPktStitcher(
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "Ips");
 
@@ -1393,7 +1393,7 @@ void pTxMemoryReader(
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "Mrd");
 

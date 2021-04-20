@@ -63,7 +63,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../../../NTS/SimNtsUtils.hpp"
 #include "../../../MEM/mem.hpp"
 
-using namespace hls;
 
 /*******************************************************************************
  * CONSTANTS DERIVED FROM THE NTS CONFIGURATION FILE
@@ -91,14 +90,6 @@ static const TcpSegLen THEIR_MSS = ZYC2_MSS; // 1352
 extern uint32_t      packetCounter;  // [FIXME] Remove
 extern uint32_t      idleCycCnt;     // [FIXME] Remove
 extern unsigned int  gSimCycCnt;     // [FIXME] Remove
-
-//OBSOLETE_20210104 #define OOO_N 4     // number of OOO blocks accepted
-//OBSOLETE_20210104 #define OOO_W 4288  // window {max(offset + length)} of sequence numbers beyond recvd accepted
-//OBSOLETE_20210104 static const int OOO_N_BITS = 3;        // bits required to represent OOO_N+1, need 0 to show no OOO blocks are valid
-//OBSOLETE_20210104 static const int OOO_W_BITS = 13;       // bits required to represent OOO_W
-//OBSOLETE_20210104 static const int OOO_L_BITS = 13;       // max length in bits of OOO blocks allowed
-
-//OBSOLETE_20210104 static const ap_uint<32> SEQ_mid = 2147483648; // used in Modulo Arithmetic Comparison 2^(32-1) of sequence numbers etc.
 
 #ifndef __SYNTHESIS__
   // HowTo - You should adjust the value of 'TIME_1s' such that the testbench
@@ -159,8 +150,6 @@ extern unsigned int  gSimCycCnt;     // [FIXME] Remove
   static const ap_uint<32> TIME_60s       = ( 60.0/0.0000000064/TOE_MAX_SESSIONS) + 1;
   static const ap_uint<32> TIME_120s      = (120.0/0.0000000064/TOE_MAX_SESSIONS) + 1;
 #endif
-
-  //OBSOLETE_20210104 #define BROADCASTCHANNELS 2
 
 
 /*******************************************************************************
@@ -682,8 +671,9 @@ template<typename T> void pStreamMux(
  * ENTITY - TCP OFFLOAD ENGINE (TOE)
  *
  *******************************************************************************/
-void toe(
+#if HLS_VERSION == 2017
 
+    void toe_top(
         //------------------------------------------------------
         //-- MMIO Interfaces
         //------------------------------------------------------
@@ -761,9 +751,9 @@ void toe(
         //-- CAM / Session Lookup & Update Interfaces
         //------------------------------------------------------
         stream<CamSessionLookupRequest>         &soCAM_SssLkpReq,
-        stream<CamSessionLookupReply>           &siCAM_SssLkpRpl,
+        stream<CamSessionLookupReply>           &siCAM_SssLkpRep,
         stream<CamSessionUpdateRequest>         &soCAM_SssUpdReq,
-        stream<CamSessionUpdateReply>           &siCAM_SssUpdRpl,
+        stream<CamSessionUpdateReply>           &siCAM_SssUpdRep,
 
         //------------------------------------------------------
         //-- DEBUG / Interfaces
@@ -775,7 +765,105 @@ void toe(
         //-- DEBUG / SimCycCounter
         ap_uint<32>                        &poSimCycCount
         #endif
-);
+    );
+
+#else
+
+    void toe_top(
+        //------------------------------------------------------
+        //-- MMIO Interfaces
+        //------------------------------------------------------
+        Ip4Addr                                  piMMIO_IpAddr,
+
+        //------------------------------------------------------
+        //-- NTS Interfaces
+        //------------------------------------------------------
+        StsBit                                  &poNTS_Ready,
+
+        //------------------------------------------------------
+        //-- IPRX / IP Rx / Data Interface
+        //------------------------------------------------------
+        stream<AxisRaw>                         &siIPRX_Data,
+
+        //------------------------------------------------------
+        //-- IPTX / IP Tx / Data Interface
+        //------------------------------------------------------
+        stream<AxisRaw>                         &soIPTX_Data,
+
+        //------------------------------------------------------
+        //-- TAIF / Receive Data Interfaces
+        //------------------------------------------------------
+        stream<TcpAppNotif>                     &soTAIF_Notif,
+        stream<TcpAppRdReq>                     &siTAIF_DReq,
+        stream<TcpAppData>                      &soTAIF_Data,
+        stream<TcpAppMeta>                      &soTAIF_Meta,
+
+        //------------------------------------------------------
+        //-- TAIF / Listen Interfaces
+        //------------------------------------------------------
+        stream<TcpAppLsnReq>                    &siTAIF_LsnReq,
+        stream<TcpAppLsnRep>                    &soTAIF_LsnRep,
+
+        //------------------------------------------------------
+        //-- TAIF / Send Data Interfaces
+        //------------------------------------------------------
+        stream<TcpAppData>                      &siTAIF_Data,
+        stream<TcpAppSndReq>                    &siTAIF_SndReq,
+        stream<TcpAppSndRep>                    &soTAIF_SndRep,
+
+        //------------------------------------------------------
+        //-- TAIF / Open Connection Interfaces
+        //------------------------------------------------------
+        stream<TcpAppOpnReq>                    &siTAIF_OpnReq,
+        stream<TcpAppOpnRep>                    &soTAIF_OpnRep,
+
+        //------------------------------------------------------
+        //-- TAIF / Close Interfaces
+        //------------------------------------------------------
+        stream<TcpAppClsReq>                    &siTAIF_ClsReq,
+        //-- Not Used                           &soTAIF_ClsSts,
+
+        //------------------------------------------------------
+        //-- MEM / Rx PATH / S2MM Interface
+        //------------------------------------------------------
+        //-- Not Used                           &siMEM_RxP_RdSts,
+        stream<DmCmd>                           &soMEM_RxP_RdCmd,
+        stream<AxisApp>                         &siMEM_RxP_Data,
+        stream<DmSts>                           &siMEM_RxP_WrSts,
+        stream<DmCmd>                           &soMEM_RxP_WrCmd,
+        stream<AxisApp>                         &soMEM_RxP_Data,
+
+        //------------------------------------------------------
+        //-- MEM / Tx PATH / S2MM Interface
+        //------------------------------------------------------
+        //-- Not Used                           &siMEM_TxP_RdSts,
+        stream<DmCmd>                           &soMEM_TxP_RdCmd,
+        stream<AxisApp>                         &siMEM_TxP_Data,
+        stream<DmSts>                           &siMEM_TxP_WrSts,
+        stream<DmCmd>                           &soMEM_TxP_WrCmd,
+        stream<AxisApp>                         &soMEM_TxP_Data,
+
+        //------------------------------------------------------
+        //-- CAM / Session Lookup & Update Interfaces
+        //------------------------------------------------------
+        stream<CamSessionLookupRequest>         &soCAM_SssLkpReq,
+        stream<CamSessionLookupReply>           &siCAM_SssLkpRep,
+        stream<CamSessionUpdateRequest>         &soCAM_SssUpdReq,
+        stream<CamSessionUpdateReply>           &siCAM_SssUpdRep,
+
+        //------------------------------------------------------
+        //-- DEBUG / Interfaces
+        //------------------------------------------------------
+        //-- DEBUG / Session Statistics Interfaces
+        ap_uint<16>                             &poDBG_SssRelCnt,
+        ap_uint<16>                             &poDBG_SssRegCnt
+        #if TOE_FEATURE_USED_FOR_DEBUGGING
+        //-- DEBUG / SimCycCounter
+        ap_uint<32>                        &poSimCycCount
+        #endif
+    );
+
+#endif  // HLS_VERSION
 
 #endif
 

@@ -154,7 +154,7 @@ void pTbSimCount(
 
 
 /*******************************************************************************
- * @brief   Main process of the TCP Offload Engine.
+ * @brief   Main process of the TCP Offload Engine (TOE0.
  *
  * -- MMIO Interfaces
  * @param[in]  piMMIO_IpAddr    IP4 Address from [MMIO].
@@ -298,148 +298,10 @@ void toe(
         #endif
         )
 {
-
-    //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
-    #pragma HLS INTERFACE ap_ctrl_none port=return
-
-#if defined(USE_DEPRECATED_DIRECTIVES)
-
-    //-- MMIO Interfaces
-    #pragma HLS INTERFACE ap_stable          port=piMMIO_IpAddr
-    //-- NTS Interfaces
-    #pragma HLS INTERFACE ap_none register   port=poNTS_Ready
-    //-- IPRX / IP Rx Data Interface ------------------------------------------
-    #pragma HLS resource core=AXI4Stream variable=siIPRX_Data     metadata="-bus_bundle siIPRX_Data"
-    //-- IPTX / IP Tx Data Interface -----------------------------------------
-    #pragma HLS resource core=AXI4Stream variable=soIPTX_Data     metadata="-bus_bundle soIPTX_Data"
-    //-- TAIF / ROLE Rx Data Interfaces ---------------------------------------
-    #pragma HLS resource core=AXI4Stream variable=siTAIF_DReq     metadata="-bus_bundle siTAIF_DReq"
-    #pragma HLS DATA_PACK                variable=siTAIF_DReq
-    #pragma HLS resource core=AXI4Stream variable=soTAIF_Notif    metadata="-bus_bundle soTAIF_Notif"
-    #pragma HLS DATA_PACK                variable=soTAIF_Notif
-    #pragma HLS resource core=AXI4Stream variable=soTAIF_Data     metadata="-bus_bundle soTAIF_Data"
-    #pragma HLS resource core=AXI4Stream variable=soTAIF_Meta     metadata="-bus_bundle soTAIF_Meta"
-     //-- TAIF / ROLE Rx Listen Interface -------------------------------------
-    #pragma HLS resource core=AXI4Stream variable=siTAIF_LsnReq   metadata="-bus_bundle siTAIF_LsnReq"
-    #pragma HLS resource core=AXI4Stream variable=soTAIF_LsnRep   metadata="-bus_bundle soTAIF_LsnRep"
-    //-- TAIF / ROLE Tx Data Interfaces ---------------------------------------
-    #pragma HLS resource core=AXI4Stream variable=siTAIF_Data     metadata="-bus_bundle siTAIF_Data"
-    #pragma HLS resource core=AXI4Stream variable=siTAIF_SndReq   metadata="-bus_bundle siTAIF_SndReq"
-    #pragma HLS DATA_PACK                variable=siTAIF_SndReq
-    #pragma HLS resource core=AXI4Stream variable=soTAIF_SndRep   metadata="-bus_bundle soTAIF_SndRep"
-    #pragma HLS DATA_PACK                variable=soTAIF_SndRep
-    //-- TAIF / ROLE Tx Ctrl Interfaces ---------------------------------------
-    #pragma HLS resource core=AXI4Stream variable=siTAIF_OpnReq   metadata="-bus_bundle siTAIF_OpnReq"
-    #pragma HLS DATA_PACK                variable=siTAIF_OpnReq
-    #pragma HLS resource core=AXI4Stream variable=soTAIF_OpnRep   metadata="-bus_bundle soTAIF_OpnRep"
-    #pragma HLS DATA_PACK                variable=soTAIF_OpnRep
-    #pragma HLS resource core=AXI4Stream variable=siTAIF_ClsReq   metadata="-bus_bundle siTAIF_ClsReq"
-    //-- MEM / Nts0 / RxP Interface -------------------------------------------
-    #pragma HLS resource core=AXI4Stream variable=soMEM_RxP_RdCmd metadata="-bus_bundle soMEM_RxP_RdCmd"
-    #pragma HLS DATA_PACK                variable=soMEM_RxP_RdCmd
-    #pragma HLS resource core=AXI4Stream variable=siMEM_RxP_Data  metadata="-bus_bundle siMEM_RxP_Data"
-    #pragma HLS resource core=AXI4Stream variable=siMEM_RxP_WrSts metadata="-bus_bundle siMEM_RxP_WrSts"
-    #pragma HLS DATA_PACK                variable=siMEM_RxP_WrSts
-    #pragma HLS resource core=AXI4Stream variable=soMEM_RxP_WrCmd metadata="-bus_bundle soMEM_RxP_WrCmd"
-    #pragma HLS DATA_PACK                variable=soMEM_RxP_WrCmd
-    #pragma HLS resource core=AXI4Stream variable=soMEM_RxP_Data  metadata="-bus_bundle soMEM_RxP_Data"
-    //-- MEM / Nts0 / TxP Interface -------------------------------------------
-    #pragma HLS resource core=AXI4Stream variable=soMEM_TxP_RdCmd metadata="-bus_bundle soMEM_TxP_RdCmd"
-    #pragma HLS DATA_PACK                variable=soMEM_TxP_RdCmd
-    #pragma HLS resource core=AXI4Stream variable=siMEM_TxP_Data  metadata="-bus_bundle siMEM_TxP_Data"
-    #pragma HLS resource core=AXI4Stream variable=siMEM_TxP_WrSts metadata="-bus_bundle siMEM_TxP_WrSts"
-    #pragma HLS DATA_PACK                variable=siMEM_TxP_WrSts
-    #pragma HLS resource core=AXI4Stream variable=soMEM_TxP_WrCmd metadata="-bus_bundle soMEM_TxP_WrCmd"
-    #pragma HLS DATA_PACK                variable=soMEM_TxP_WrCmd
-    #pragma HLS resource core=AXI4Stream variable=soMEM_TxP_Data  metadata="-bus_bundle soMEM_TxP_Data"
-    //-- CAM / Session Lookup & Update Interfaces -----------------------------
-    #pragma HLS resource core=AXI4Stream variable=siCAM_SssLkpRep metadata="-bus_bundle siCAM_SssLkpRep"
-    #pragma HLS DATA_PACK                variable=siCAM_SssLkpRep
-    #pragma HLS resource core=AXI4Stream variable=siCAM_SssUpdRep metadata="-bus_bundle siCAM_SssUpdRep"
-    #pragma HLS DATA_PACK                variable=siCAM_SssUpdRep
-    #pragma HLS resource core=AXI4Stream variable=soCAM_SssLkpReq metadata="-bus_bundle soCAM_SssLkpReq"
-    #pragma HLS DATA_PACK                variable=soCAM_SssLkpReq
-    #pragma HLS resource core=AXI4Stream variable=soCAM_SssUpdReq metadata="-bus_bundle soCAM_SssUpdReq"
-    #pragma HLS DATA_PACK                variable=soCAM_SssUpdReq
-    //-- DEBUG / Session Statistics Interfaces
-    #pragma HLS INTERFACE ap_none register port=poDBG_SssRelCnt
-    #pragma HLS INTERFACE ap_none register port=poDBG_SssRegCnt
-    //-- DEBUG / Simulation Counter Interfaces
-  #if TOE_FEATURE_USED_FOR_DEBUGGING
-    #pragma HLS INTERFACE ap_none register port=poSimCycCount
-  #endif
-
-#else
-
-    //-- MMIO Interfaces
-    #pragma HLS INTERFACE ap_vld  register   port=piMMIO_IpAddr   name=piMMIO_IpAddr
-    //-- NTS Interfaces
-    #pragma HLS INTERFACE ap_ovld register   port=poNTS_Ready     name=poNTS_Ready
-    //-- IPRX / IP Rx Data Interface ------------------------------------------
-    #pragma HLS INTERFACE axis off           port=siIPRX_Data name=siIPRX_Data
-    //-- IPTX / IP Tx Data Interface -----------------------------------------
-    #pragma HLS INTERFACE axis off           port=soIPTX_Data     name=soIPTX_Data
-    //-- TAIF / ROLE Rx Data Interfaces ---------------------------------------
-    #pragma HLS INTERFACE axis off           port=siTAIF_DReq     name=siTAIF_DReq
-    #pragma HLS DATA_PACK                variable=siTAIF_DReq
-    #pragma HLS INTERFACE axis off           port=soTAIF_Notif    name=soTAIF_Notif
-    #pragma HLS DATA_PACK                variable=soTAIF_Notif
-    #pragma HLS INTERFACE axis off           port=soTAIF_Data     name=soTAIF_Data
-    #pragma HLS INTERFACE axis off           port=soTAIF_Meta     name=soTAIF_Meta
-    //-- TAIF / ROLE Rx Listen Interface -------------------------------------
-    #pragma HLS INTERFACE axis off           port=siTAIF_LsnReq   name=siTAIF_LsnReq
-    #pragma HLS INTERFACE axis off           port=soTAIF_LsnRep   name=soTAIF_LsnRep
-    //-- TAIF / ROLE Tx Data Interfaces ---------------------------------------
-    #pragma HLS INTERFACE axis off           port=siTAIF_Data     name=siTAIF_Data
-    #pragma HLS INTERFACE axis off           port=siTAIF_SndReq   name=siTAIF_SndReq
-    #pragma HLS DATA_PACK                variable=siTAIF_SndReq
-    #pragma HLS INTERFACE axis off           port=soTAIF_SndRep   name=soTAIF_SndRep
-    #pragma HLS DATA_PACK                variable=soTAIF_SndRep
-    //-- TAIF / ROLE Tx Ctrl Interfaces ---------------------------------------
-    #pragma HLS INTERFACE axis off           port=siTAIF_OpnReq   name=siTAIF_OpnReq
-    #pragma HLS DATA_PACK                variable=siTAIF_OpnReq
-    #pragma HLS INTERFACE axis off           port=soTAIF_OpnRep   name=soTAIF_OpnRep
-    #pragma HLS DATA_PACK                variable=soTAIF_OpnRep
-    #pragma HLS INTERFACE axis off           port=siTAIF_ClsReq   name=siTAIF_ClsReq
-    //-- MEM / Nts0 / RxP Interface -------------------------------------------
-    #pragma HLS INTERFACE axis off           port=soMEM_RxP_RdCmd name=soMEM_RxP_RdCmd
-    #pragma HLS DATA_PACK                variable=soMEM_RxP_RdCmd
-    #pragma HLS INTERFACE axis off           port=siMEM_RxP_Data  name=siMEM_RxP_Data
-    #pragma HLS INTERFACE axis off           port=siMEM_RxP_WrSts name=siMEM_RxP_WrSts
-    #pragma HLS DATA_PACK                variable=siMEM_RxP_WrSts
-    #pragma HLS INTERFACE axis off           port=soMEM_RxP_WrCmd name=soMEM_RxP_WrCmd
-    #pragma HLS DATA_PACK                variable=soMEM_RxP_WrCmd
-    #pragma HLS INTERFACE axis off           port=soMEM_RxP_Data  name=soMEM_RxP_Data
-    //-- MEM / Nts0 / TxP Interface -------------------------------------------
-    #pragma HLS INTERFACE axis off           port=soMEM_TxP_RdCmd name=soMEM_TxP_RdCmd
-    #pragma HLS DATA_PACK                variable=soMEM_TxP_RdCmd
-    #pragma HLS INTERFACE axis off           port=siMEM_TxP_Data  name=siMEM_TxP_Data
-    #pragma HLS INTERFACE axis off           port=siMEM_TxP_WrSts name=siMEM_TxP_WrSts
-    #pragma HLS DATA_PACK                variable=siMEM_TxP_WrSts
-    #pragma HLS INTERFACE axis off           port=soMEM_TxP_WrCmd name=soMEM_TxP_WrCmd
-    #pragma HLS DATA_PACK                variable=soMEM_TxP_WrCmd
-    #pragma HLS INTERFACE axis off           port=soMEM_TxP_Data  name=soMEM_TxP_Data
-    //-- CAM / Session Lookup & Update Interfaces -----------------------------
-    #pragma HLS INTERFACE axis off           port=siCAM_SssLkpRep name=siCAM_SssLkpRep
-    #pragma HLS DATA_PACK                variable=siCAM_SssLkpRep
-    #pragma HLS INTERFACE axis off           port=siCAM_SssUpdRep name=siCAM_SssUpdRep
-    #pragma HLS DATA_PACK                variable=siCAM_SssUpdRep
-    #pragma HLS INTERFACE axis off           port=soCAM_SssLkpReq name=soCAM_SssLkpReq
-    #pragma HLS DATA_PACK                variable=soCAM_SssLkpReq
-    #pragma HLS INTERFACE axis off           port=soCAM_SssUpdReq name=soCAM_SssUpdReq
-    #pragma HLS DATA_PACK                variable=soCAM_SssUpdReq
-    //-- DEBUG / Session Statistics Interfaces
-    #pragma HLS INTERFACE ap_ovld register   port=poDBG_SssRelCnt name=poDBG_SssRelCnt
-    #pragma HLS INTERFACE ap_ovld register   port=poDBG_SssRegCnt name=poDBG_SssRegCnt
-    //-- DEBUG / Simulation Counter Interfaces
-  #if TOE_FEATURE_USED_FOR_DEBUGGING
-    #pragma HLS INTERFACE ap_ovld register   port=poSimCycCount   name=poSimCycCount
-  #endif
-
-#endif
-
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW
+    #pragma HLS INLINE
+    #pragma HLS INTERFACE ap_ctrl_none port=return
 
     //-------------------------------------------------------------------------
     //-- LOCAL STREAMS AND SIGNALS
@@ -660,7 +522,7 @@ void toe(
     #pragma HLS DATA_PACK    variable=ssTStToTAi_PushCmd
 
     /**********************************************************************
-     * PROCESSES: TCP STATE-KEEPING DATA STRUCTURES
+     * PROCESS FUNCTIONS: TCP STATE-KEEPING DATA STRUCTURES
      **********************************************************************/
 
     //-- Session Lookup Controller (SLc) -----------------------------------
@@ -751,7 +613,7 @@ void toe(
 
 
     /**********************************************************************
-     * PROCESSES: RX & TX ENGINES
+     * PROCESS FUNCTIONS: RX & TX ENGINES
      **********************************************************************/
 
     //-- RX Engine (RXe) --------------------------------------------------
@@ -795,7 +657,7 @@ void toe(
 
 
     /**********************************************************************
-     * PROCESSSES: APPLICATION INTERFACES
+     * PROCESSS FUNCTIONS: APPLICATION INTERFACES
      **********************************************************************/
 
     //-- Rx Application Interface (RAi) -----------------------------------
@@ -842,7 +704,7 @@ void toe(
             piMMIO_IpAddr);
 
     /**********************************************************************
-     * PROCESSES: CONTROL AND DEBUG INTERFACES
+     * PROCESS FUNCTIONS: CONTROL AND DEBUG INTERFACES
      **********************************************************************/
 
     //-- Ready signal generator -------------------------------------------
@@ -857,5 +719,477 @@ void toe(
     #endif
 
 }
+
+/*******************************************************************************
+ * @brief  Top of TCP Offload Engine (TOE0
+ *
+ * @param[in]  piMMIO_IpAddr    IP4 Address from [MMIO].
+ * @param[out] poNTS_Ready      Ready signal of TOE.
+ * @param[in]  siIPRX_Data      IP4 data stream from [IPRX].
+ * @param[out] soIPTX_Data      IP4 data stream to [IPTX].
+ * @param[out] soTAIF_Notif     APP data notification to [TAIF].
+ * @param[in]  siTAIF_DReq      APP data request from [TAIF].
+ * @param[out] soTAIF_Data      APP data stream to [TAIF].
+ * @param[out] soTAIF_Meta      APP metadata stream to [TAIF].
+ * @param[in]  siTAIF_LsnReq    APP listen port request from [TAIF].
+ * @param[out] soTAIF_LsnRep    APP listen port reply to [TAIF].
+ * @param[in]  siTAIF_Data      APP data stream from [TAIF].
+ * @param[in]  siTAIF_SndReq    APP request to send from [TAIF].
+ * @param[out] soTAIF_SndRep    APP send reply to [TAIF].
+ * @param[in]  siTAIF_OpnReq    APP open port request from [TAIF].
+ * @param[out] soTAIF_OpnRep    APP open port reply to [TAIF].
+ * @param[in]  siTAIF_ClsReq    APP close connection request from [TAIF].
+ * @warning:   Not-Used         APP close connection status to [TAIF].
+ * @warning:   Not-Used         Rx memory read status from [MEM].
+ * @param[out] soMEM_RxP_RdCmd  Rx memory read command to [MEM].
+ * @param[in]  siMEM_RxP_Data   Rx memory data from [MEM].
+ * @param[in]  siMEM_RxP_WrSts  Rx memory write status from [MEM].
+ * @param[out] soMEM_RxP_WrCmd  Rx memory write command to [MEM].
+ * @param[out] soMEM_RxP_Data   Rx memory data to [MEM].
+ * @warning:   Not-Used         Tx memory read status from [MEM].
+ * @param[out] soMEM_TxP_RdCmd  Tx memory read command to [MEM].
+ * @param[in]  siMEM_TxP_Data   Tx memory data from [MEM].
+ * @param[in]  siMEM_TxP_WrSts  Tx memory write status from [MEM].
+ * @param[out] soMEM_TxP_WrCmd  Tx memory write command to [MEM].
+ * @param[out] soMEM_TxP_Data   Tx memory data to [MEM].
+ * @param[out] soCAM_SssLkpReq  Session lookup request to [CAM].
+ * @param[in]  siCAM_SssLkpRep  Session lookup reply from [CAM].
+ * @param[out] soCAM_SssUpdReq  Session update request to [CAM].
+ * @param[in]  siCAM_SssUpdRep  Session update reply from [CAM].
+ * @param[out] poDBG_SssRelCnt  Session release count (for DEBUG).
+ * @param[out] poDBG_SssRegCnt  Session register count (foe DEBUG).
+ *******************************************************************************/
+#if HLS_VERSION == 2017
+    void toe_top(
+        //------------------------------------------------------
+        //-- MMIO Interfaces
+        //------------------------------------------------------
+        Ip4Addr                              piMMIO_IpAddr,
+        //------------------------------------------------------
+        //-- NTS Interfaces
+        //------------------------------------------------------
+        StsBit                              &poNTS_Ready,
+        //------------------------------------------------------
+        //-- IPRX / IP Rx / Data Interface
+        //------------------------------------------------------
+        stream<AxisIp4>                     &siIPRX_Data,
+        //------------------------------------------------------
+        //-- IPTX / IP Tx / Data Interface
+        //------------------------------------------------------
+        stream<AxisIp4>                     &soIPTX_Data,
+        //------------------------------------------------------
+        //-- TAIF / Rx Data Interfaces
+        //------------------------------------------------------
+        stream<TcpAppNotif>                 &soTAIF_Notif,
+        stream<TcpAppRdReq>                 &siTAIF_DReq,
+        stream<TcpAppData>                  &soTAIF_Data,
+        stream<TcpAppMeta>                  &soTAIF_Meta,
+        //------------------------------------------------------
+        //-- TAIF / Listen Port Interfaces
+        //------------------------------------------------------
+        stream<TcpAppLsnReq>                &siTAIF_LsnReq,
+        stream<TcpAppLsnRep>                &soTAIF_LsnRep,
+        //------------------------------------------------------
+        //-- TAIF / Tx Data Interfaces
+        //------------------------------------------------------
+        stream<TcpAppData>                  &siTAIF_Data,
+        stream<TcpAppSndReq>                &siTAIF_SndReq,
+        stream<TcpAppSndRep>                &soTAIF_SndRep,
+        //------------------------------------------------------
+        //-- TAIF / Open connection Interfaces
+        //------------------------------------------------------
+        stream<TcpAppOpnReq>                &siTAIF_OpnReq,
+        stream<TcpAppOpnRep>                &soTAIF_OpnRep,
+        //------------------------------------------------------
+        //-- TAIF / Close Interfaces
+        //------------------------------------------------------
+        stream<TcpAppClsReq>                &siTAIF_ClsReq,
+        //-- Not USed                       &soTAIF_ClsSts,
+        //------------------------------------------------------
+        //-- MEM / Rx PATH / S2MM Interface
+        //------------------------------------------------------
+        //-- Not Used                       &siMEM_RxP_RdSts,
+        stream<DmCmd>                       &soMEM_RxP_RdCmd,
+        stream<AxisApp>                     &siMEM_RxP_Data,
+        stream<DmSts>                       &siMEM_RxP_WrSts,
+        stream<DmCmd>                       &soMEM_RxP_WrCmd,
+        stream<AxisApp>                     &soMEM_RxP_Data,
+        //------------------------------------------------------
+        //-- MEM / Tx PATH / S2MM Interface
+        //------------------------------------------------------
+        //-- Not Used                       &siMEM_TxP_RdSts,
+        stream<DmCmd>                       &soMEM_TxP_RdCmd,
+        stream<AxisApp>                     &siMEM_TxP_Data,
+        stream<DmSts>                       &siMEM_TxP_WrSts,
+        stream<DmCmd>                       &soMEM_TxP_WrCmd,
+        stream<AxisApp>                     &soMEM_TxP_Data,
+        //------------------------------------------------------
+        //-- CAM / Session Lookup & Update Interfaces
+        //------------------------------------------------------
+        stream<CamSessionLookupRequest>     &soCAM_SssLkpReq,
+        stream<CamSessionLookupReply>       &siCAM_SssLkpRep,
+        stream<CamSessionUpdateRequest>     &soCAM_SssUpdReq,
+        stream<CamSessionUpdateReply>       &siCAM_SssUpdRep,
+        //------------------------------------------------------
+        //-- DEBUG Interfaces
+        //------------------------------------------------------
+        ap_uint<16>                         &poDBG_SssRelCnt,
+        ap_uint<16>                         &poDBG_SssRegCnt
+        #if TOE_FEATURE_USED_FOR_DEBUGGING
+        ap_uint<32>                         &poSimCycCount
+        #endif
+    )
+{
+    //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
+    #pragma HLS INTERFACE ap_ctrl_none port=return
+
+    /*********************************************************************/
+    /*** For the time being, we continue designing with the DEPRECATED ***/
+    /*** directives because the new PRAGMAs do not work for us.        ***/
+    /*********************************************************************/
+    //-- MMIO Interfaces
+    #pragma HLS INTERFACE ap_stable          port=piMMIO_IpAddr
+    //-- NTS Interfaces
+    #pragma HLS INTERFACE ap_none register   port=poNTS_Ready
+    //-- IPRX / IP Rx Data Interface ------------------------------------------
+    #pragma HLS resource core=AXI4Stream variable=siIPRX_Data     metadata="-bus_bundle siIPRX_Data"
+    //-- IPTX / IP Tx Data Interface -----------------------------------------
+    #pragma HLS resource core=AXI4Stream variable=soIPTX_Data     metadata="-bus_bundle soIPTX_Data"
+    //-- TAIF / ROLE Rx Data Interfaces ---------------------------------------
+    #pragma HLS resource core=AXI4Stream variable=siTAIF_DReq     metadata="-bus_bundle siTAIF_DReq"
+    #pragma HLS DATA_PACK                variable=siTAIF_DReq
+    #pragma HLS resource core=AXI4Stream variable=soTAIF_Notif    metadata="-bus_bundle soTAIF_Notif"
+    #pragma HLS DATA_PACK                variable=soTAIF_Notif
+    #pragma HLS resource core=AXI4Stream variable=soTAIF_Data     metadata="-bus_bundle soTAIF_Data"
+    #pragma HLS resource core=AXI4Stream variable=soTAIF_Meta     metadata="-bus_bundle soTAIF_Meta"
+     //-- TAIF / ROLE Rx Listen Interface -------------------------------------
+    #pragma HLS resource core=AXI4Stream variable=siTAIF_LsnReq   metadata="-bus_bundle siTAIF_LsnReq"
+    #pragma HLS resource core=AXI4Stream variable=soTAIF_LsnRep   metadata="-bus_bundle soTAIF_LsnRep"
+    //-- TAIF / ROLE Tx Data Interfaces ---------------------------------------
+    #pragma HLS resource core=AXI4Stream variable=siTAIF_Data     metadata="-bus_bundle siTAIF_Data"
+    #pragma HLS resource core=AXI4Stream variable=siTAIF_SndReq   metadata="-bus_bundle siTAIF_SndReq"
+    #pragma HLS DATA_PACK                variable=siTAIF_SndReq
+    #pragma HLS resource core=AXI4Stream variable=soTAIF_SndRep   metadata="-bus_bundle soTAIF_SndRep"
+    #pragma HLS DATA_PACK                variable=soTAIF_SndRep
+    //-- TAIF / ROLE Tx Ctrl Interfaces ---------------------------------------
+    #pragma HLS resource core=AXI4Stream variable=siTAIF_OpnReq   metadata="-bus_bundle siTAIF_OpnReq"
+    #pragma HLS DATA_PACK                variable=siTAIF_OpnReq
+    #pragma HLS resource core=AXI4Stream variable=soTAIF_OpnRep   metadata="-bus_bundle soTAIF_OpnRep"
+    #pragma HLS DATA_PACK                variable=soTAIF_OpnRep
+    #pragma HLS resource core=AXI4Stream variable=siTAIF_ClsReq   metadata="-bus_bundle siTAIF_ClsReq"
+    //-- MEM / Nts0 / RxP Interface -------------------------------------------
+    #pragma HLS resource core=AXI4Stream variable=soMEM_RxP_RdCmd metadata="-bus_bundle soMEM_RxP_RdCmd"
+    #pragma HLS DATA_PACK                variable=soMEM_RxP_RdCmd
+    #pragma HLS resource core=AXI4Stream variable=siMEM_RxP_Data  metadata="-bus_bundle siMEM_RxP_Data"
+    #pragma HLS resource core=AXI4Stream variable=siMEM_RxP_WrSts metadata="-bus_bundle siMEM_RxP_WrSts"
+    #pragma HLS DATA_PACK                variable=siMEM_RxP_WrSts
+    #pragma HLS resource core=AXI4Stream variable=soMEM_RxP_WrCmd metadata="-bus_bundle soMEM_RxP_WrCmd"
+    #pragma HLS DATA_PACK                variable=soMEM_RxP_WrCmd
+    #pragma HLS resource core=AXI4Stream variable=soMEM_RxP_Data  metadata="-bus_bundle soMEM_RxP_Data"
+    //-- MEM / Nts0 / TxP Interface -------------------------------------------
+    #pragma HLS resource core=AXI4Stream variable=soMEM_TxP_RdCmd metadata="-bus_bundle soMEM_TxP_RdCmd"
+    #pragma HLS DATA_PACK                variable=soMEM_TxP_RdCmd
+    #pragma HLS resource core=AXI4Stream variable=siMEM_TxP_Data  metadata="-bus_bundle siMEM_TxP_Data"
+    #pragma HLS resource core=AXI4Stream variable=siMEM_TxP_WrSts metadata="-bus_bundle siMEM_TxP_WrSts"
+    #pragma HLS DATA_PACK                variable=siMEM_TxP_WrSts
+    #pragma HLS resource core=AXI4Stream variable=soMEM_TxP_WrCmd metadata="-bus_bundle soMEM_TxP_WrCmd"
+    #pragma HLS DATA_PACK                variable=soMEM_TxP_WrCmd
+    #pragma HLS resource core=AXI4Stream variable=soMEM_TxP_Data  metadata="-bus_bundle soMEM_TxP_Data"
+    //-- CAM / Session Lookup & Update Interfaces -----------------------------
+    #pragma HLS resource core=AXI4Stream variable=siCAM_SssLkpRep metadata="-bus_bundle siCAM_SssLkpRep"
+    #pragma HLS DATA_PACK                variable=siCAM_SssLkpRep
+    #pragma HLS resource core=AXI4Stream variable=siCAM_SssUpdRep metadata="-bus_bundle siCAM_SssUpdRep"
+    #pragma HLS DATA_PACK                variable=siCAM_SssUpdRep
+    #pragma HLS resource core=AXI4Stream variable=soCAM_SssLkpReq metadata="-bus_bundle soCAM_SssLkpReq"
+    #pragma HLS DATA_PACK                variable=soCAM_SssLkpReq
+    #pragma HLS resource core=AXI4Stream variable=soCAM_SssUpdReq metadata="-bus_bundle soCAM_SssUpdReq"
+    #pragma HLS DATA_PACK                variable=soCAM_SssUpdReq
+    //-- DEBUG / Session Statistics Interfaces
+    #pragma HLS INTERFACE ap_none register port=poDBG_SssRelCnt
+    #pragma HLS INTERFACE ap_none register port=poDBG_SssRegCnt
+    //-- DEBUG / Simulation Counter Interfaces
+   #if TOE_FEATURE_USED_FOR_DEBUGGING
+    #pragma HLS INTERFACE ap_none register port=poSimCycCount
+   #endif
+
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS DATAFLOW
+
+    //-- MAIN TOE PROCESS ------------------------------------------------------
+        toe_top(
+            //-- MMIO Interfaces
+            piMMIO_IpAddr,
+            //-- NTS Interfaces
+            poNTS_Ready,
+            //-- IPRX / IP Rx / Data Interface
+            siIPRX_Data,
+            //-- IPTX / IP Tx / Data Interface
+            soIPTX_Data,
+            //-- TAIF / Rx Data Interfaces
+            soTAIF_Notif,
+            siTAIF_DReq,
+            soTAIF_Data,
+            soTAIF_Meta,
+            //-- TAIF / Listen Port Interfaces
+            siTAIF_LsnReq,
+            soTAIF_LsnRep,
+            //-- TAIF / Tx Data Interfaces
+            siTAIF_Data,
+            siTAIF_SndReq,
+            soTAIF_SndRep,
+            //-- TAIF / Open connection Interfaces
+            siTAIF_OpnReq,
+            soTAIF_OpnRep,
+            //-- TAIF / Close Interfaces
+            siTAIF_ClsReq,
+            //-- Not Used soTAIF_ClsSts,
+            //-- MEM / Rx PATH / S2MM Interface
+            //-- Not Used siMEM_RxP_RdSts,
+            soMEM_RxP_RdCmd,
+            siMEM_RxP_Data,
+            siMEM_RxP_WrSts,
+            soMEM_RxP_WrCmd,
+            soMEM_RxP_Data,
+            //-- MEM / Tx PATH / S2MM Interface
+            //-- Not Used siMEM_TxP_RdSts,
+            soMEM_TxP_RdCmd,
+            siMEM_TxP_Data,
+            siMEM_TxP_WrSts,
+            soMEM_TxP_WrCmd,
+            soMEM_TxP_Data,
+            //-- CAM / Session Lookup & Update Interfaces
+            soCAM_SssLkpReq,
+            siCAM_SssLkpRep,
+            soCAM_SssUpdReq,
+            siCAM_SssUpdRep,
+            //-- DEBUG Interfaces
+            poDBG_SssRelCnt,
+            poDBG_SssRegCnt
+            #if TOE_FEATURE_USED_FOR_DEBUGGING
+            poSimCycCount
+            #endif
+        );
+
+}
+#else
+    void toe_top(
+        //------------------------------------------------------
+        //-- MMIO Interfaces
+        //------------------------------------------------------
+        Ip4Addr                              piMMIO_IpAddr,
+        //------------------------------------------------------
+        //-- NTS Interfaces
+        //------------------------------------------------------
+        StsBit                              &poNTS_Ready,
+        //------------------------------------------------------
+        //-- IPRX / IP Rx / Data Interface
+        //------------------------------------------------------
+        stream<AxisRaw>                     &siIPRX_Data,
+        //------------------------------------------------------
+        //-- IPTX / IP Tx / Data Interface
+        //------------------------------------------------------
+        stream<AxisRaw>                     &soIPTX_Data,
+        //------------------------------------------------------
+        //-- TAIF / Rx Data Interfaces
+        //------------------------------------------------------
+        stream<TcpAppNotif>                 &soTAIF_Notif,
+        stream<TcpAppRdReq>                 &siTAIF_DReq,
+        stream<TcpAppData>                  &soTAIF_Data,
+        stream<TcpAppMeta>                  &soTAIF_Meta,
+        //------------------------------------------------------
+        //-- TAIF / Listen Port Interfaces
+        //------------------------------------------------------
+        stream<TcpAppLsnReq>                &siTAIF_LsnReq,
+        stream<TcpAppLsnRep>                &soTAIF_LsnRep,
+        //------------------------------------------------------
+        //-- TAIF / Tx Data Interfaces
+        //------------------------------------------------------
+        stream<TcpAppData>                  &siTAIF_Data,
+        stream<TcpAppSndReq>                &siTAIF_SndReq,
+        stream<TcpAppSndRep>                &soTAIF_SndRep,
+        //------------------------------------------------------
+        //-- TAIF / Open connection Interfaces
+        //------------------------------------------------------
+        stream<TcpAppOpnReq>                &siTAIF_OpnReq,
+        stream<TcpAppOpnRep>                &soTAIF_OpnRep,
+        //------------------------------------------------------
+        //-- TAIF / Close Interfaces
+        //------------------------------------------------------
+        stream<TcpAppClsReq>                &siTAIF_ClsReq,
+        //-- Not USed                       &soTAIF_ClsSts,
+        //------------------------------------------------------
+        //-- MEM / Rx PATH / S2MM Interface
+        //------------------------------------------------------
+        //-- Not Used                       &siMEM_RxP_RdSts,
+        stream<DmCmd>                       &soMEM_RxP_RdCmd,
+        stream<AxisApp>                     &siMEM_RxP_Data,
+        stream<DmSts>                       &siMEM_RxP_WrSts,
+        stream<DmCmd>                       &soMEM_RxP_WrCmd,
+        stream<AxisApp>                     &soMEM_RxP_Data,
+        //------------------------------------------------------
+        //-- MEM / Tx PATH / S2MM Interface
+        //------------------------------------------------------
+        //-- Not Used                       &siMEM_TxP_RdSts,
+        stream<DmCmd>                       &soMEM_TxP_RdCmd,
+        stream<AxisApp>                     &siMEM_TxP_Data,
+        stream<DmSts>                       &siMEM_TxP_WrSts,
+        stream<DmCmd>                       &soMEM_TxP_WrCmd,
+        stream<AxisApp>                     &soMEM_TxP_Data,
+        //------------------------------------------------------
+        //-- CAM / Session Lookup & Update Interfaces
+        //------------------------------------------------------
+        stream<CamSessionLookupRequest>     &soCAM_SssLkpReq,
+        stream<CamSessionLookupReply>       &siCAM_SssLkpRep,
+        stream<CamSessionUpdateRequest>     &soCAM_SssUpdReq,
+        stream<CamSessionUpdateReply>       &siCAM_SssUpdRep,
+        //------------------------------------------------------
+        //-- DEBUG Interfaces
+        //------------------------------------------------------
+        ap_uint<16>                         &poDBG_SssRelCnt,
+        ap_uint<16>                         &poDBG_SssRegCnt
+        #if TOE_FEATURE_USED_FOR_DEBUGGING
+        ap_uint<32>                         &poSimCycCount
+        #endif
+    )
+{
+
+    //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
+    #pragma HLS INTERFACE ap_ctrl_none port=return
+
+    //-- MMIO Interfaces
+    #pragma HLS INTERFACE ap_vld  register   port=piMMIO_IpAddr   name=piMMIO_IpAddr
+    //-- NTS Interfaces
+    #pragma HLS INTERFACE ap_ovld register   port=poNTS_Ready     name=poNTS_Ready
+    //-- IPRX / IP Rx Data Interface ------------------------------------------
+    #pragma HLS INTERFACE axis off           port=siIPRX_Data name=siIPRX_Data
+    //-- IPTX / IP Tx Data Interface -----------------------------------------
+    #pragma HLS INTERFACE axis off           port=soIPTX_Data     name=soIPTX_Data
+    //-- TAIF / ROLE Rx Data Interfaces ---------------------------------------
+    #pragma HLS INTERFACE axis off           port=siTAIF_DReq     name=siTAIF_DReq
+    #pragma HLS DATA_PACK                variable=siTAIF_DReq
+    #pragma HLS INTERFACE axis off           port=soTAIF_Notif    name=soTAIF_Notif
+    #pragma HLS DATA_PACK                variable=soTAIF_Notif
+    #pragma HLS INTERFACE axis off           port=soTAIF_Data     name=soTAIF_Data
+    #pragma HLS INTERFACE axis off           port=soTAIF_Meta     name=soTAIF_Meta
+    //-- TAIF / ROLE Rx Listen Interface -------------------------------------
+    #pragma HLS INTERFACE axis off           port=siTAIF_LsnReq   name=siTAIF_LsnReq
+    #pragma HLS INTERFACE axis off           port=soTAIF_LsnRep   name=soTAIF_LsnRep
+    //-- TAIF / ROLE Tx Data Interfaces ---------------------------------------
+    #pragma HLS INTERFACE axis off           port=siTAIF_Data     name=siTAIF_Data
+    #pragma HLS INTERFACE axis off           port=siTAIF_SndReq   name=siTAIF_SndReq
+    #pragma HLS DATA_PACK                variable=siTAIF_SndReq
+    #pragma HLS INTERFACE axis off           port=soTAIF_SndRep   name=soTAIF_SndRep
+    #pragma HLS DATA_PACK                variable=soTAIF_SndRep
+    //-- TAIF / ROLE Tx Ctrl Interfaces ---------------------------------------
+    #pragma HLS INTERFACE axis off           port=siTAIF_OpnReq   name=siTAIF_OpnReq
+    #pragma HLS DATA_PACK                variable=siTAIF_OpnReq
+    #pragma HLS INTERFACE axis off           port=soTAIF_OpnRep   name=soTAIF_OpnRep
+    #pragma HLS DATA_PACK                variable=soTAIF_OpnRep
+    #pragma HLS INTERFACE axis off           port=siTAIF_ClsReq   name=siTAIF_ClsReq
+    //-- MEM / Nts0 / RxP Interface -------------------------------------------
+    #pragma HLS INTERFACE axis off           port=soMEM_RxP_RdCmd name=soMEM_RxP_RdCmd
+    #pragma HLS DATA_PACK                variable=soMEM_RxP_RdCmd
+    #pragma HLS INTERFACE axis off           port=siMEM_RxP_Data  name=siMEM_RxP_Data
+    #pragma HLS INTERFACE axis off           port=siMEM_RxP_WrSts name=siMEM_RxP_WrSts
+    #pragma HLS DATA_PACK                variable=siMEM_RxP_WrSts
+    #pragma HLS INTERFACE axis off           port=soMEM_RxP_WrCmd name=soMEM_RxP_WrCmd
+    #pragma HLS DATA_PACK                variable=soMEM_RxP_WrCmd
+    #pragma HLS INTERFACE axis off           port=soMEM_RxP_Data  name=soMEM_RxP_Data
+    //-- MEM / Nts0 / TxP Interface -------------------------------------------
+    #pragma HLS INTERFACE axis off           port=soMEM_TxP_RdCmd name=soMEM_TxP_RdCmd
+    #pragma HLS DATA_PACK                variable=soMEM_TxP_RdCmd
+    #pragma HLS INTERFACE axis off           port=siMEM_TxP_Data  name=siMEM_TxP_Data
+    #pragma HLS INTERFACE axis off           port=siMEM_TxP_WrSts name=siMEM_TxP_WrSts
+    #pragma HLS DATA_PACK                variable=siMEM_TxP_WrSts
+    #pragma HLS INTERFACE axis off           port=soMEM_TxP_WrCmd name=soMEM_TxP_WrCmd
+    #pragma HLS DATA_PACK                variable=soMEM_TxP_WrCmd
+    #pragma HLS INTERFACE axis off           port=soMEM_TxP_Data  name=soMEM_TxP_Data
+    //-- CAM / Session Lookup & Update Interfaces -----------------------------
+    #pragma HLS INTERFACE axis off           port=siCAM_SssLkpRep name=siCAM_SssLkpRep
+    #pragma HLS DATA_PACK                variable=siCAM_SssLkpRep
+    #pragma HLS INTERFACE axis off           port=siCAM_SssUpdRep name=siCAM_SssUpdRep
+    #pragma HLS DATA_PACK                variable=siCAM_SssUpdRep
+    #pragma HLS INTERFACE axis off           port=soCAM_SssLkpReq name=soCAM_SssLkpReq
+    #pragma HLS DATA_PACK                variable=soCAM_SssLkpReq
+    #pragma HLS INTERFACE axis off           port=soCAM_SssUpdReq name=soCAM_SssUpdReq
+    #pragma HLS DATA_PACK                variable=soCAM_SssUpdReq
+    //-- DEBUG / Session Statistics Interfaces
+    #pragma HLS INTERFACE ap_ovld register   port=poDBG_SssRelCnt name=poDBG_SssRelCnt
+    #pragma HLS INTERFACE ap_ovld register   port=poDBG_SssRegCnt name=poDBG_SssRegCnt
+    //-- DEBUG / Simulation Counter Interfaces
+  #if TOE_FEATURE_USED_FOR_DEBUGGING
+    #pragma HLS INTERFACE ap_ovld register   port=poSimCycCount   name=poSimCycCount
+  #endif
+
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS DATAFLOW disable_start_propagation
+
+    //-- LOCAL INPUT and OUTPUT STREAMS ----------------------------------------
+    static stream<AxisIp4>      ssiIPRX_Data ("ssiIPRX_Data");
+    static stream<AxisIp4>      ssoIPTX_Data ("ssoIPTX_Data");
+
+    //-- INPUT STREAM CASTING --------------------------------------------------
+    pAxisRawCast(siIPRX_Data, ssiIPRX_Data);
+
+    //-- MAIN TOE PROCESS ------------------------------------------------------
+    toe(
+        //-- MMIO Interfaces
+        piMMIO_IpAddr,
+        //-- NTS Interfaces
+        poNTS_Ready,
+        //-- IPRX / IP Rx / Data Interface
+        ssiIPRX_Data,
+        //-- IPTX / IP Tx / Data Interface
+        ssoIPTX_Data,
+        //-- TAIF / Rx Data Interfaces
+        soTAIF_Notif,
+        siTAIF_DReq,
+        soTAIF_Data,
+        soTAIF_Meta,
+        //-- TAIF / Listen Port Interfaces
+        siTAIF_LsnReq,
+        soTAIF_LsnRep,
+        //-- TAIF / Tx Data Interfaces
+        siTAIF_Data,
+        siTAIF_SndReq,
+        soTAIF_SndRep,
+        //-- TAIF / Open connection Interfaces
+        siTAIF_OpnReq,
+        soTAIF_OpnRep,
+        //-- TAIF / Close Interfaces
+        siTAIF_ClsReq,
+        //-- Not Used soTAIF_ClsSts,
+        //-- MEM / Rx PATH / S2MM Interface
+        //-- Not Used siMEM_RxP_RdSts,
+        soMEM_RxP_RdCmd,
+        siMEM_RxP_Data,
+        siMEM_RxP_WrSts,
+        soMEM_RxP_WrCmd,
+        soMEM_RxP_Data,
+        //-- MEM / Tx PATH / S2MM Interface
+        //-- Not Used siMEM_TxP_RdSts,
+        soMEM_TxP_RdCmd,
+        siMEM_TxP_Data,
+        siMEM_TxP_WrSts,
+        soMEM_TxP_WrCmd,
+        soMEM_TxP_Data,
+        //-- CAM / Session Lookup & Update Interfaces
+        soCAM_SssLkpReq,
+        siCAM_SssLkpRep,
+        soCAM_SssUpdReq,
+        siCAM_SssUpdRep,
+        //-- DEBUG Interfaces
+        poDBG_SssRelCnt,
+        poDBG_SssRegCnt
+        #if TOE_FEATURE_USED_FOR_DEBUGGING
+        poSimCycCount
+        #endif
+    );
+
+    //-- OUTPUT STREAM CASTING -------------------------------------------------
+    pAxisRawCast(ssoIPTX_Data,  soIPTX_Data);
+
+}
+#endif  //  HLS_VERSION
 
 /*! \} */

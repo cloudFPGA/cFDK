@@ -75,7 +75,7 @@ void pSessionIdManager(
         stream<RtlSessId>    &soLrh_FreeList)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     const char *myName  = concat3(THIS_NAME, "/", "Sim");
@@ -134,7 +134,7 @@ void pLookupReplyHandler(
         stream<SLcReverseLkp>               &soRlt_ReverseLkpRsp)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     const char *myName  = concat3(THIS_NAME, "/", "Lrh");
@@ -243,7 +243,7 @@ void pUpdateRequestSender(
         ap_uint<16>                         &poSssRegCnt)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     const char *myName  = concat3(THIS_NAME, "/", "Urs");
@@ -282,7 +282,7 @@ void pUpdateReplyHandler(
         stream<CamSessionUpdateReply>   &soLrh_SessUpdateRsp)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     const char *myName  = concat3(THIS_NAME, "/", "Urh");
@@ -320,7 +320,7 @@ void pReverseLookupTable(
         stream<CamSessionUpdateRequest> &soUrs_SessDeleteReq)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     const char *myName  = concat3(THIS_NAME, "/", "Rlt");

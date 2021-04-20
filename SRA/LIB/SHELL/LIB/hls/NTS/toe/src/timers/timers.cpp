@@ -117,7 +117,7 @@ void pRetransmitTimer(
         stream<TcpAppNotif>              &soRAi_Notif)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     const char *myName = concat3(THIS_NAME, "/", "Rtt");
@@ -290,7 +290,7 @@ void pProbeTimer(
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE off
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "Pbt");
 
@@ -378,7 +378,7 @@ void pCloseTimer(
         stream<SessionId>    &soSmx_SessCloseCmd)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     //-- STATIC ARRAYS ---------------------------------------------------------

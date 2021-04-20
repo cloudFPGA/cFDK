@@ -95,7 +95,7 @@ void rx_sar_table(
         stream<RxSarReply>         &soTxe_RxSarRep)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     const char *myName = THIS_NAME;

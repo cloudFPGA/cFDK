@@ -130,7 +130,7 @@ void pListeningPortTable(
         stream<RspBit>       &soOrm_GetPortStateRsp)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     const char *myName = concat3(THIS_NAME, "/", "Lpt");
@@ -223,7 +223,7 @@ void pFreePortTable(
 
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     const char *myName = concat3(THIS_NAME, "/", "Fpt");
@@ -331,7 +331,7 @@ void pInputRequestRouter(
         stream<PortRange>         &soOrm_QueryRange)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     const char *myName = concat3(THIS_NAME, "/", "Irr");
@@ -375,7 +375,7 @@ void pOutputReplyMultiplexer(
         stream<RspBit>    &soRXe_GetPortStateRsp)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------

@@ -149,7 +149,7 @@ void pRxAppStream(
     stream<DmCmd>               &soMrd_MemRdCmd)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     const char *myName = concat3(THIS_NAME, "/", "Ras");
@@ -571,7 +571,7 @@ void pLsnAppInterface(
         //stream<TcpPort>       &soPRt_CloseReq,)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     const char *myName = concat3(THIS_NAME, "/", "Lai");

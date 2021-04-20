@@ -92,7 +92,7 @@ void state_table(
         stream<SessionId>          &soSLc_SessReleaseCmd)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     //-- STATIC ARRAYS ---------------------------------------------------------

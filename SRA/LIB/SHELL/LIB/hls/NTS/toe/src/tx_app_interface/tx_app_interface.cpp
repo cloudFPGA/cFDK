@@ -362,7 +362,7 @@ void pTxAppTable(
         stream<TxAppTableReply>   &siTas_AccessRep)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     const char *myName  = concat3(THIS_NAME, "/", "Tat");
