@@ -246,8 +246,7 @@ void pStatusMemory(
       old_status[i] = 0x0;
     }
     tables_initialized = true;
-  //} else if(*layer_7_enabled == 0 || *role_decoupled == 1 )
-  } else if(*layer_7_enabled == 0 || *role_decoupled == 1
+  } else if( *layer_7_enabled == 0 || *role_decoupled == 1
       && (packet_count_TX > 0 || packet_count_RX > 0 )
       )
   {
@@ -258,7 +257,6 @@ void pStatusMemory(
     last_rx_node_id = 0x0;
     last_tx_port = 0x0;
     last_tx_node_id = 0x0;
-    //return;
   } else if(!sConfigUpdate.empty())
   {
     NalConfigUpdate ca = sConfigUpdate.read();
@@ -270,6 +268,13 @@ void pStatusMemory(
   } else if(!mrt_version_update.empty())
   {
     status[NAL_STATUS_MRT_VERSION] = mrt_version_update.read();
+    ////reset counters in addition
+    //packet_count_TX = 0x0;
+    //packet_count_RX = 0x0;
+    //last_rx_port = 0x0;
+    //last_rx_node_id = 0x0;
+    //last_tx_port = 0x0;
+    //last_tx_node_id = 0x0;
   }
   else if(!sNalPortUpdate.empty())
   {
