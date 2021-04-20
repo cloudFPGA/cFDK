@@ -76,33 +76,33 @@ void rlb(
         //------------------------------------------------------
         stream<StsBool>                 &siTOE_Ready)
 {
-
+  #if HLS_VERSION == 2017
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
-
-#if defined(USE_DEPRECATED_DIRECTIVES)
 
     /*********************************************************************/
     /*** For the time being, we continue designing with the DEPRECATED ***/
     /*** directives because the new PRAGMAs do not work for us.        ***/
     /*********************************************************************/
-
     #pragma HLS INTERFACE ap_none register   port=poMMIO_Ready   name=poMMIO_Ready
-
     #pragma HLS RESOURCE core=AXI4Stream variable=siUOE_Ready    metadata="-bus_bundle siUOE_Ready"
-
     #pragma HLS RESOURCE core=AXI4Stream variable=siTOE_Ready    metadata="-bus_bundle siTOE_Ready"
 
-#else
-    #pragma HLS INTERFACE ap_none register   port=poMMIO_Ready   name=poMMIO_Ready
-
-    #pragma HLS INTERFACE axis register both port=siUOE_Ready    name=siUOE_Ready
-    #pragma HLS INTERFACE axis register both port=siTOE_Ready    name=siTOE_Ready
-
-#endif
-
-    //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    //OBSOLETE_20210420 #pragma HLS DATAFLOW
     #pragma HLS pipeline II=1
+#else
+    //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
+    #pragma HLS INTERFACE ap_ctrl_none port=return
+
+    #pragma HLS INTERFACE ap_none register      port=poMMIO_Ready   name=poMMIO_Ready
+    #pragma HLS INTERFACE axis    register both port=siUOE_Ready    name=siUOE_Ready
+    #pragma HLS INTERFACE axis    register both port=siTOE_Ready    name=siTOE_Ready
+
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    //OBSOLETE_20210420 #pragma HLS DATAFLOW disable_start_propagation
+    #pragma HLS PIPELINE II=1 enable_flush
+#endif
 
     const char *myName  = concat2(THIS_NAME, "RLB");
 
@@ -113,7 +113,6 @@ void rlb(
     #pragma HSL RESET                variable=rlb_uoeReady
     static StsBool                            rlb_toeReady;
     #pragma HSL RESET                variable=rlb_toeReady
-
 
     switch(rlb_fsmState) {
     case BARRIER:

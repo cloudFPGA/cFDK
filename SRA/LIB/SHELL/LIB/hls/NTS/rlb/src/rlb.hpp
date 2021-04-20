@@ -34,8 +34,6 @@
 #include "../../../NTS/nts_utils.hpp"
 #include "../../../NTS/SimNtsUtils.hpp"
 
-using namespace hls;
-
 
 /*******************************************************************************
  *
