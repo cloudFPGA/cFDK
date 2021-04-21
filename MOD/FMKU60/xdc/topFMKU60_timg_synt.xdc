@@ -22,7 +22,7 @@
 # *
 # * Title   : Default timing constraints for the module FMKU60.
 # *
-# * File    : topFMKU60_timg.xdc
+# * File    : topFMKU60_timg_synt.xdc
 # *
 # * Tools   : Vivado v2016.4, v2017.4 v2019.2 (64-bit)
 # *
