@@ -264,7 +264,8 @@ int my_strcmp(char *tmp1, volatile uint8_t tmp2[IN_BUFFER_SIZE], int max_length)
         return 1;
       }
     }
-    if (cnt == max_length -1 )
+    //if (cnt == max_length -1 )
+    if (cnt == max_length ) //\0 is at the end
     {
       return 0;  //equal until max_length
     }
@@ -274,11 +275,11 @@ int my_strcmp(char *tmp1, volatile uint8_t tmp2[IN_BUFFER_SIZE], int max_length)
 
 
 
-static char *statusPath = "GET /status";
-static char *configurePath = "POST /configure";
-static char *putRank = "PUT /rank/";
-static char *putSize = "PUT /size/";
-static char *postRouting = "POST /routing";
+static char *statusPath = "GET /status "; //the last space is important!
+static char *configurePath = "POST /configure ";
+static char *putRank = "PUT /rank/"; //NO space here, since it is the request contains a parameter
+static char *putSize = "PUT /size/"; //NO space here, since it is the request contains a parameter
+static char *postRouting = "POST /routing ";
 
 RequestType reqType = REQ_INVALID;
 
@@ -350,12 +351,13 @@ int8_t extract_path(bool rx_done)
 
  if (my_strcmp(statusPath, bufferIn, my_strlen(statusPath)) == 0 )
   {
-    reqType = GET_STATUS; 
+    //printf("strlen status: %d\n", my_strlen(statusPath));
+    reqType = GET_STATUS;
     return 1;
   } else if (my_strcmp(configurePath, bufferIn, my_strlen(configurePath)) == 0 )
-  { 
+  {
     bufferInPtrNextRead = requestLen + 4;
-    reqType = POST_CONFIG; 
+    reqType = POST_CONFIG;
     return 2;
   } else if(my_strcmp(putRank, bufferIn, my_strlen(putRank)) == 0 )
   {
@@ -378,7 +380,7 @@ int8_t extract_path(bool rx_done)
 
     ap_uint<32> newSize = (unsigned int) my_atoi(intStart, intLen);
     if(newSize >= MAX_CLUSTER_SIZE)
-    {//invalid 
+    {//invalid
       return -2;
     }
     setSize(newSize);
@@ -388,7 +390,6 @@ int8_t extract_path(bool rx_done)
     reqType = POST_ROUTING;
     bufferInPtrNextRead = requestLen + 4;
 
-    //TODO 
     return 5;
   } else {
     //Invalid / Not Found
@@ -409,13 +410,13 @@ void parseHttpInput(bool transferErr, ap_uint<1> wasAbort, bool invalidPayload, 
         case -3: //404
           httpState = HTTP_INVALID_REQUEST;
           bufferOutContentLength = writeHttpStatus(404,0);
-          break; 
-        case -2: //invalid content 
+          break;
+        case -2: //invalid content
           httpState = HTTP_INVALID_REQUEST;
           bufferOutContentLength = writeHttpStatus(400,0);
-          break; 
-        case -1: //not yet complete 
-          httpState = HTTP_PARSE_HEADER; 
+          break;
+        case -1: //not yet complete
+          httpState = HTTP_PARSE_HEADER;
           break;
         case 0: //not vaild until now
           break;

@@ -807,7 +807,7 @@ void fmc(
     switch(currentGlobalOperation)
     {
       default: //no break, just for default
-      case GLOBAL_IDLE: 
+      case GLOBAL_IDLE:
         //general stuff before a new global operation
         globalOperationDone_persistent = false;
         transferError_persistent = false;
@@ -2754,9 +2754,21 @@ void fmc(
           printf("started HWICAP FIFO FSM");
         } else if(fsmHwicap == ICAP_FSM_DONE)
         {
-          lastReturnValue = OPRV_DONE;
-          fifo_operation_in_progress = false;
-          fsmHwicap = ICAP_FSM_IDLE;
+          //now, wait for HWICAP
+          CR = HWICAP[CR_OFFSET];
+          CR_value = CR & 0x1F;
+          CR_isWriting = CR_value & CR_WRITE;
+          WFV = HWICAP[WFV_OFFSET];
+          WFV_value = WFV & 0x7FF;
+          if(WFV_value < 0x3FF && CR_isWriting != 1 && flag_enable_fake_hwicap == 0)
+          {
+            lastReturnValue = OPRV_NOT_COMPLETE;
+            HWICAP[CR_OFFSET] = CR_WRITE;
+          } else {
+            lastReturnValue = OPRV_DONE;
+            fifo_operation_in_progress = false;
+            fsmHwicap = ICAP_FSM_IDLE;
+          }
         } else if(fsmHwicap == ICAP_FSM_ERROR || fsmHwicap == ICAP_FSM_DRAIN)
         {
           lastReturnValue = OPRV_FAIL;

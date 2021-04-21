@@ -1,4 +1,3 @@
-
 # ******************************************************************************
 # * Copyright 2016 -- 2020 IBM Corporation
 # *
@@ -23,7 +22,7 @@
 # *
 # * Title   : Default timing constraints for the module FMKU60.
 # *
-# * File    : topFMKU60_timg.xdc
+# * File    : topFMKU60_timg_impl.xdc
 # *
 # * Tools   : Vivado v2016.4, v2017.4 v2019.2 (64-bit)
 # *
@@ -127,23 +126,23 @@ create_clock -period 166.667 -name piPSOC_Emif_Clk -waveform {0.000 83.333} [get
 #   In particular, an auto-derived clock cannot be renamed at the output of a
 #   BUFG even though it propagates through it.
 #     E.g., create_generated_clock -name DRP_CLK 
-#              [get_pins SHELL/SuperCfg.ETH0/ETH/ALCG/MMCME3_BASE_inst/CLKOUT0]
+#              [get_pins SHELL/SuperCfg.ETH0/ETH/ALCG/MMCME3_BASE_U0/CLKOUT0]
 # 
 # [OPTION-2] Use a TCL variable 
 #   Another alternative is not to rename the clock, but to just use a variable
 #   instead and refer to it whenever you need that clock.
 #     E.g., set myDRP_CLK [get_clocks -of_objects 
-#              [get_pins SHELL/SuperCfg.ETH0/ETH/ALCG/MMCME3_BASE_inst/CLKOUT0]
+#              [get_pins SHELL/SuperCfg.ETH0/ETH/ALCG/MMCME3_BASE_U0/CLKOUT0]
 #
 #===============================================================================
-create_generated_clock -name SHELL_CLK   [get_pins SHELL/SuperCfg.ETH0/ETH/CORE/IP/inst/xpcs/inst/ten_gig_eth_pcs_pma_shared_clock_reset_block/txusrclk2_bufg_gt_i/O]
-create_generated_clock -name ETH_RXCLK   [get_pins SHELL/SuperCfg.ETH0/ETH/CORE/IP/inst/xpcs/inst/ten_gig_eth_pcs_pma_block_i/bd_b7e6_xpcs_0_local_clock_reset_block/rxusrclk2_bufg_gt_i/O]
+create_generated_clock -name SHELL_CLK   [get_pins SHELL/SuperCfg.ETH0/ETH/CORE/IP/U0/xpcs/U0/ten_gig_eth_pcs_pma_shared_clock_reset_block/txusrclk2_bufg_gt_i/O]
+create_generated_clock -name ETH_RXCLK   [get_pins SHELL/SuperCfg.ETH0/ETH/CORE/IP/U0/xpcs/U0/ten_gig_eth_pcs_pma_block_i/bd_b7e6_xpcs_0_local_clock_reset_block/rxusrclk2_bufg_gt_i/O]
 
-create_generated_clock -name MC0_CLKOUT0 [get_pins SHELL/MEM/MC0/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT0]
-create_generated_clock -name MC1_CLKOUT0 [get_pins SHELL/MEM/MC1/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT0]
+create_generated_clock -name MC0_CLKOUT0 [get_pins SHELL/MEM/MC0/MCC/U0/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_U0/CLKOUT0]
+create_generated_clock -name MC1_CLKOUT0 [get_pins SHELL/MEM/MC1/MCC/U0/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_U0/CLKOUT0]
 
-create_generated_clock -name MC0_CLKOUT6 [get_pins SHELL/MEM/MC0/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT6]
-create_generated_clock -name MC1_CLKOUT6 [get_pins SHELL/MEM/MC1/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT6]
+create_generated_clock -name MC0_CLKOUT6 [get_pins SHELL/MEM/MC0/MCC/U0/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_U0/CLKOUT6]
+create_generated_clock -name MC1_CLKOUT6 [get_pins SHELL/MEM/MC1/MCC/U0/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_U0/CLKOUT6]
 
 #===============================================================================
 # Create the Group Constraints among Clocks
@@ -184,13 +183,13 @@ set_max_delay -datapath_only -from SHELL_CLK -to piPSOC_Emif_Clk 20.0
 # Constraints related to the Synchronous Dynamic RAM (DDR4)
 #   DDR4 / Memory Channel #0 / Reset
 #=====================================================================
-set_max_delay -from [get_pins {SHELL/MEM/MC0/MCC/inst/u_ddr4_mem_intfc/u_ddr_cal_top/cal_RESET_n_reg[0]/C}] -to [get_ports poDDR4_Mem_Mc0_Reset_n] 10.000
+set_max_delay -from [get_pins {SHELL/MEM/MC0/MCC/U0/u_ddr4_mem_intfc/u_ddr_cal_top/cal_RESET_n_reg[0]/C}] -to [get_ports poDDR4_Mem_Mc0_Reset_n] 10.000
 
 #=====================================================================
 # Constraints related to the Synchronous Dynamic RAM (DDR4)
 #   DDR4 / Memory Channel #1 / Reset
 #=====================================================================
-set_max_delay -from [get_pins {SHELL/MEM/MC1/MCC/inst/u_ddr4_mem_intfc/u_ddr_cal_top/cal_RESET_n_reg[0]/C}] -to [get_ports poDDR4_Mem_Mc1_Reset_n] 10.000
+set_max_delay -from [get_pins {SHELL/MEM/MC1/MCC/U0/u_ddr4_mem_intfc/u_ddr_cal_top/cal_RESET_n_reg[0]/C}] -to [get_ports poDDR4_Mem_Mc1_Reset_n] 10.000
 
 #=====================================================================
 # PSOC / External Memory Interface (see PSoC Creator Component v1.30)
@@ -254,17 +253,21 @@ set_false_path -from [get_ports piPSOC_Emif_Clk] -to [get_pins SHELL/MMIO/EMIF/s
 #=====================================================================
 # Timing Exceptions related to the Heart Beat LED
 #=====================================================================
-set_false_path -from [get_pins SHELL/MEM/MC0/MCC/inst/u_ddr4_mem_intfc/u_ddr_cal_top/calDone_gated_reg/C] -to [get_pins {SHELL/MMIO/EMIF/sFab_Data_reg[*]/D}]
-set_false_path -from [get_pins SHELL/MEM/MC1/MCC/inst/u_ddr4_mem_intfc/u_ddr_cal_top/calDone_gated_reg/C] -to [get_pins {SHELL/MMIO/EMIF/sFab_Data_reg[*]/D}]
+set_false_path -from [get_pins SHELL/MEM/MC0/MCC/U0/u_ddr4_mem_intfc/u_ddr_cal_top/calDone_gated_reg/C] -to [get_pins {SHELL/MMIO/EMIF/sFab_Data_reg[*]/D}]
+set_false_path -from [get_pins SHELL/MEM/MC1/MCC/U0/u_ddr4_mem_intfc/u_ddr_cal_top/calDone_gated_reg/C] -to [get_pins {SHELL/MMIO/EMIF/sFab_Data_reg[*]/D}]
 
-set_false_path -from [get_pins SHELL/MEM/MC0/MCC/inst/u_ddr4_mem_intfc/u_ddr_cal_top/calDone_gated_reg/C] -to [get_pins SHELL/sLed_HeartBeat_reg/D]
-set_false_path -from [get_pins SHELL/MEM/MC1/MCC/inst/u_ddr4_mem_intfc/u_ddr_cal_top/calDone_gated_reg/C] -to [get_pins SHELL/sLed_HeartBeat_reg/D]
+set_false_path -from [get_pins SHELL/MEM/MC0/MCC/U0/u_ddr4_mem_intfc/u_ddr_cal_top/calDone_gated_reg/C] -to [get_pins SHELL/sLed_HeartBeat_reg/D]
+set_false_path -from [get_pins SHELL/MEM/MC1/MCC/U0/u_ddr4_mem_intfc/u_ddr_cal_top/calDone_gated_reg/C] -to [get_pins SHELL/sLed_HeartBeat_reg/D]
 
 set_max_delay -from [get_pins SHELL/sLed_HeartBeat_reg/C] -to [get_ports poLED_HeartBeat_n] 10.0
 
 #=====================================================================
 # Here are the Constraints added by the Timing Constraint Wizard
 #=====================================================================
+
+
+
+
 
 
 
