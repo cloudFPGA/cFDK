@@ -916,59 +916,59 @@ void toe(
     #pragma HLS DATAFLOW
 
     //-- MAIN TOE PROCESS ------------------------------------------------------
-        toe_top(
-            //-- MMIO Interfaces
-            piMMIO_IpAddr,
-            //-- NTS Interfaces
-            poNTS_Ready,
-            //-- IPRX / IP Rx / Data Interface
-            siIPRX_Data,
-            //-- IPTX / IP Tx / Data Interface
-            soIPTX_Data,
-            //-- TAIF / Rx Data Interfaces
-            soTAIF_Notif,
-            siTAIF_DReq,
-            soTAIF_Data,
-            soTAIF_Meta,
-            //-- TAIF / Listen Port Interfaces
-            siTAIF_LsnReq,
-            soTAIF_LsnRep,
-            //-- TAIF / Tx Data Interfaces
-            siTAIF_Data,
-            siTAIF_SndReq,
-            soTAIF_SndRep,
-            //-- TAIF / Open connection Interfaces
-            siTAIF_OpnReq,
-            soTAIF_OpnRep,
-            //-- TAIF / Close Interfaces
-            siTAIF_ClsReq,
-            //-- Not Used soTAIF_ClsSts,
-            //-- MEM / Rx PATH / S2MM Interface
-            //-- Not Used siMEM_RxP_RdSts,
-            soMEM_RxP_RdCmd,
-            siMEM_RxP_Data,
-            siMEM_RxP_WrSts,
-            soMEM_RxP_WrCmd,
-            soMEM_RxP_Data,
-            //-- MEM / Tx PATH / S2MM Interface
-            //-- Not Used siMEM_TxP_RdSts,
-            soMEM_TxP_RdCmd,
-            siMEM_TxP_Data,
-            siMEM_TxP_WrSts,
-            soMEM_TxP_WrCmd,
-            soMEM_TxP_Data,
-            //-- CAM / Session Lookup & Update Interfaces
-            soCAM_SssLkpReq,
-            siCAM_SssLkpRep,
-            soCAM_SssUpdReq,
-            siCAM_SssUpdRep,
-            //-- DEBUG Interfaces
-            poDBG_SssRelCnt,
-            poDBG_SssRegCnt
-            #if TOE_FEATURE_USED_FOR_DEBUGGING
-            poSimCycCount
-            #endif
-        );
+    toe(
+        //-- MMIO Interfaces
+        piMMIO_IpAddr,
+        //-- NTS Interfaces
+        poNTS_Ready,
+        //-- IPRX / IP Rx / Data Interface
+        siIPRX_Data,
+        //-- IPTX / IP Tx / Data Interface
+        soIPTX_Data,
+        //-- TAIF / Rx Data Interfaces
+        soTAIF_Notif,
+        siTAIF_DReq,
+        soTAIF_Data,
+        soTAIF_Meta,
+        //-- TAIF / Listen Port Interfaces
+        siTAIF_LsnReq,
+        soTAIF_LsnRep,
+        //-- TAIF / Tx Data Interfaces
+        siTAIF_Data,
+        siTAIF_SndReq,
+        soTAIF_SndRep,
+        //-- TAIF / Open connection Interfaces
+        siTAIF_OpnReq,
+        soTAIF_OpnRep,
+        //-- TAIF / Close Interfaces
+        siTAIF_ClsReq,
+        //-- Not Used soTAIF_ClsSts,
+        //-- MEM / Rx PATH / S2MM Interface
+        //-- Not Used siMEM_RxP_RdSts,
+        soMEM_RxP_RdCmd,
+        siMEM_RxP_Data,
+        siMEM_RxP_WrSts,
+        soMEM_RxP_WrCmd,
+        soMEM_RxP_Data,
+        //-- MEM / Tx PATH / S2MM Interface
+        //-- Not Used siMEM_TxP_RdSts,
+        soMEM_TxP_RdCmd,
+        siMEM_TxP_Data,
+        siMEM_TxP_WrSts,
+        soMEM_TxP_WrCmd,
+        soMEM_TxP_Data,
+        //-- CAM / Session Lookup & Update Interfaces
+        soCAM_SssLkpReq,
+        siCAM_SssLkpRep,
+        soCAM_SssUpdReq,
+        siCAM_SssUpdRep,
+        //-- DEBUG Interfaces
+        poDBG_SssRelCnt,
+        poDBG_SssRegCnt
+        #if TOE_FEATURE_USED_FOR_DEBUGGING
+        poSimCycCount
+        #endif
+    );
 
 }
 #else
