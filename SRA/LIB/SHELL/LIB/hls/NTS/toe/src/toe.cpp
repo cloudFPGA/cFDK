@@ -1057,9 +1057,9 @@ void toe(
     #pragma HLS INTERFACE ap_ctrl_none port=return
 
     //-- MMIO Interfaces
-    #pragma HLS INTERFACE ap_vld  register   port=piMMIO_IpAddr   name=piMMIO_IpAddr
+    #pragma HLS INTERFACE ap_stable          port=piMMIO_IpAddr   name=piMMIO_IpAddr
     //-- NTS Interfaces
-    #pragma HLS INTERFACE ap_ovld register   port=poNTS_Ready     name=poNTS_Ready
+    #pragma HLS INTERFACE ap_none register   port=poNTS_Ready     name=poNTS_Ready
     //-- IPRX / IP Rx Data Interface ------------------------------------------
     #pragma HLS INTERFACE axis off           port=siIPRX_Data name=siIPRX_Data
     //-- IPTX / IP Tx Data Interface -----------------------------------------
@@ -1114,8 +1114,8 @@ void toe(
     #pragma HLS INTERFACE axis off           port=soCAM_SssUpdReq name=soCAM_SssUpdReq
     #pragma HLS DATA_PACK                variable=soCAM_SssUpdReq
     //-- DEBUG / Session Statistics Interfaces
-    #pragma HLS INTERFACE ap_ovld register   port=poDBG_SssRelCnt name=poDBG_SssRelCnt
-    #pragma HLS INTERFACE ap_ovld register   port=poDBG_SssRegCnt name=poDBG_SssRegCnt
+    #pragma HLS INTERFACE ap_none register   port=poDBG_SssRelCnt name=poDBG_SssRelCnt
+    #pragma HLS INTERFACE ap_none register   port=poDBG_SssRegCnt name=poDBG_SssRegCnt
     //-- DEBUG / Simulation Counter Interfaces
   #if TOE_FEATURE_USED_FOR_DEBUGGING
     #pragma HLS INTERFACE ap_ovld register   port=poSimCycCount   name=poSimCycCount
