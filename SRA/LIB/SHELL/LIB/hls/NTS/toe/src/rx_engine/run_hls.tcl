@@ -1,9 +1,20 @@
-# *****************************************************************************
-# *                            cloudFPGA
-# *            All rights reserved -- Property of IBM
-# *----------------------------------------------------------------------------
-# * Created : Dec 2017
-# * Authors : Francois Abel, Burkhard Ringlein
+# *
+# * Copyright 2016 -- 2020 IBM Corporation
+# *
+# * Licensed under the Apache License, Version 2.0 (the "License");
+# * you may not use this file except in compliance with the License.
+# * You may obtain a copy of the License at
+# *
+# *     http://www.apache.org/licenses/LICENSE-2.0
+# *
+# * Unless required by applicable law or agreed to in writing, software
+# * distributed under the License is distributed on an "AS IS" BASIS,
+# * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# * See the License for the specific language governing permissions and
+# * limitations under the License.
+# *
+
+# ******************************************************************************
 # * 
 # * Description : A Tcl script for the HLS batch compilation, simulation,
 # *   synthesis of the Rx Engine of the TCP offload engine used by the shell
@@ -23,18 +34,18 @@ set solutionName   "solution1"
 set xilPartName    "xcku060-ffva1156-2-i"
 
 set ipName         ${projectName}
-set ipDisplayName  "Rx Engine of TOE"
+set ipDisplayName  "Rx Engine of TOE (RXe)"
 set ipDescription  "WARNING: This project is *ONLY* used for simulation and bring-up"
 set ipVendor       "IBM"
 set ipLibrary      "hls"
 set ipVersion      "1.0"
 set ipPkgFormat    "ip_catalog"
+set ipRtl          "vhdl"
 
-# Set Project Environment Variables  
+# Retreive the Vivado version 
 #-------------------------------------------------
-set currDir      [pwd]
-set srcDir       ${currDir}/src
-set testDir      ${currDir}/test
+set VIVADO_VERSION [file tail $::env(XILINX_VIVADO)]
+set HLS_VERSION    [expr entier(${VIVADO_VERSION})]
 
 # Retrieve the HLS target goals from ENV
 #-------------------------------------------------
@@ -43,21 +54,27 @@ set hlsCSynth    $::env(hlsCSynth)
 set hlsCoSim     $::env(hlsCoSim)
 set hlsRtl       $::env(hlsRtl)
 
+# Set Project Environment Variables  
+#-------------------------------------------------
+set currDir      [pwd]
+set srcDir       ${currDir}/src
+set testDir      ${currDir}/test
+set implDir      ${currDir}/${projectName}_prj/${solutionName}/impl/ip 
+set repoDir      ${currDir}/../../ip
+
 # Open and Setup Project
 #-------------------------------------------------
 open_project  ${projectName}_prj
-set_top       ${projectName}
 
 # Add source files
 #-------------------------------------------------
 add_files     ${currDir}/src/${projectName}.cpp
-
 add_files     ${currDir}/../../../../NTS/nts_utils.cpp
 add_files     ${currDir}/../../../../NTS/SimNtsUtils.cpp
 
 # Add test bench files
 #-------------------------------------------------
-add_files -tb ${currDir}/../../../toe/src/toe.cpp
+add_files -tb ${currDir}/../../../toe/src/toe.cpp -cflags "-DHLS_VERSION=${HLS_VERSION} -fstack-check"
 add_files -tb ${currDir}/../../../toe/src/toe_utils.cpp
 add_files -tb ${currDir}/../../../toe/src/ack_delay/ack_delay.cpp
 add_files -tb ${currDir}/../../../toe/src/event_engine/event_engine.cpp
@@ -71,13 +88,16 @@ add_files -tb ${currDir}/../../../toe/src/tx_app_interface/tx_app_interface.cpp
 add_files -tb ${currDir}/../../../toe/src/tx_engine/src/tx_engine.cpp
 add_files -tb ${currDir}/../../../toe/src/tx_sar_table/tx_sar_table.cpp
 
-add_files -tb ${currDir}/test/test_${projectName}.cpp -cflags "-fstack-check"
+add_files -tb ${currDir}/test/test_${projectName}.cpp -cflags "-DHLS_VERSION=${HLS_VERSION} -fstack-check"
 add_files -tb ${currDir}/../../../toe/test/dummy_memory/dummy_memory.cpp
+
+# Set toplevel
+#-------------------------------------------------
+set_top       ${projectName}
 
 # Create a solution
 #-------------------------------------------------
 open_solution ${solutionName}
-
 set_part      ${xilPartName}
 create_clock -period 6.4 -name default
 
@@ -106,8 +126,21 @@ config_rtl -reset control
 #               PIPOs), these start FIFOs can be removed, at user's risk, locally for a given 
 #               dataflow region.
 #------------------------------------------------------------------------------------------------
-# [TODO - Check vivado_hls version and only enable this command if >= 2018]
-# config_rtl -disable_start_propagation
+if { [format "%.1f" ${VIVADO_VERSION}] > 2017.4 } { 
+	config_rtl -disable_start_propagation
+}
+
+#---------------------------------------------------------------
+# Configuring the behavior of the dataflow checking (see UG902)
+#---------------------------------------------------------------
+# -strict_mode: Vivado HLS has a dataflow checker which, when enabled, checks the code to see if it
+#               is in the recommended canonical form. Otherwise it will emit an error/warning
+#               message to the user. By default this checker is set to 'warning'. It can be set to
+#               'error' or can be disabled by selecting the 'off' mode.
+#-------------------------------------------------------------------------------------------------
+if { [format "%.1f" ${VIVADO_VERSION}] > 2018.1 } { 
+	config_dataflow -strict_mode  error
+}
 
 #----------------------------------------------------
 # Configuring the behavior of the front-end compiler
@@ -119,21 +152,16 @@ config_rtl -reset control
 #------------------------------------------------------------------------------------------------
 config_compile -name_max_length 256 -pipeline_loops 0
 
-#------------------------------------------
-# Set Dataflow Checking Level (see UG9020)
-#------------------------------------------
-# - error  : Vivado HLS has a dataflow checker which, when enabled, checks the code to see if it
-#            is in the recommended canonical form.
-# - warning: By default this checker is set to warning.
-# -off     : To disable the checker.
-#------------------------------------------------------------------------------------------------
-# config_dataflow -strict_mode error
-
-#------------------------------------------------
+#-------------------------------------------------
 # Run C Simulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCSim} {
     csim_design -setup -clean -compiler gcc
+    puts "#############################################################"
+    puts "####                                                     ####"
+    puts "####          SUCCESSFUL END OF COMPILATION              ####"
+    puts "####                                                     ####"
+    puts "#############################################################"
     csim_design -argv "0 ../../../../../../test/testVectors/siIPRX_OneSynPkt.dat"
     csim_design -argv "0 ../../../../../../test/testVectors/siIPRX_OneSynMssPkt.dat"
     csim_design -argv "0 ../../../../../../test/testVectors/siIPRX_OnePkt.dat"
@@ -154,6 +182,9 @@ if { $hlsCSim} {
     csim_design -argv "0 ../../../../../../test/testVectors/siIPRX_TwentyPkt.dat"
     csim_design -argv "0 ../../../../../../test/testVectors/siIPRX_ThousandPkt.dat"
     csim_design -argv "0 ../../../../../../test/testVectors/siIPRX_SynAckPkt.dat"
+    csim_design -argv "0 ../../../../../../test/testVectors/siIPRX_TcpDuplicate.dat"
+    csim_design -argv "0 ../../../../../../test/testVectors/siIPRX_TcpOutOfOrder1.dat"
+    csim_design -argv "0 ../../../../../../test/testVectors/siIPRX_TcpOutOfOrder2.dat"
 
     csim_design -argv "3 ../../../../../../test/testVectors/siIPRX_OneSynPkt.dat"
     csim_design -argv "3 ../../../../../../test/testVectors/siIPRX_OneSynMssPkt.dat"
@@ -169,9 +200,10 @@ if { $hlsCSim} {
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF C SIMULATION             ####"
     puts "####                                                     ####"
-    puts "#############################################################"
+    puts "#############################################################"    
 }
 
+#-------------------------------------------------
 # Run C Synthesis (refer to UG902)
 #-------------------------------------------------
 if { $hlsCSynth} {
@@ -186,6 +218,7 @@ if { $hlsCSynth} {
     puts "#############################################################"
 }
 
+#-------------------------------------------------
 # Run C/RTL CoSimulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCoSim } {
@@ -242,13 +275,13 @@ if { $hlsCoSim } {
 if { $hlsRtl } {
     switch $hlsRtl {
         1 {
-            export_design -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+            export_design                          -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
         }
         2 {
-            export_design -flow syn -rtl verilog -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+            export_design -flow syn  -rtl ${ipRtl} -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
         }
         3 {
-            export_design -flow impl -rtl verilog -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
+            export_design -flow impl -rtl ${ipRtl} -format ${ipPkgFormat} -library ${ipLibrary} -display_name ${ipDisplayName} -description ${ipDescription} -vendor ${ipVendor} -version ${ipVersion}
         }
         default { 
             puts "####  INVALID VALUE ($hlsRtl) ####"
@@ -263,7 +296,10 @@ if { $hlsRtl } {
 
 }
 
+#--------------------------------------------------
 # Exit Vivado HLS
 #--------------------------------------------------
 exit
+
+
 
