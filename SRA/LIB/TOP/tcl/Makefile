@@ -169,6 +169,10 @@ $(cFpDcpDir)/0_$(TOP_NAME)_static_without_role.dcp: $(MOD_DIR)/xdc ../hdl $(cFpI
 	@/bin/echo "-synth \\" >> .vivado_basecmd.sh
 	rm -f $@
 
+$(cFpDcpDir)/1_$(TOP_NAME)_linked_pr.dcp: $(cFpDcpDir)/0_$(TOP_NAME)_static_without_role.dcp $(ROLE_DIR_1)/*.dcp
+	@/bin/echo "-link  -pr \\" >> .vivado_basecmd.sh
+	rm -f $@
+
 $(cFpDcpDir)/2_$(TOP_NAME)_impl_$(roleName1)_complete_pr.dcp: $(cFpDcpDir)/1_$(TOP_NAME)_linked_pr.dcp $(ROLE_DIR_1)/*.dcp $(cFpDcpDir)/0_$(TOP_NAME)_static_without_role.dcp
 	@/bin/echo "-impl  -pr \\" >> .vivado_basecmd.sh
 	rm -f $@

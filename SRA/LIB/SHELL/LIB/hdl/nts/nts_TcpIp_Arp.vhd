@@ -1,20 +1,26 @@
+/*
+ * Copyright 2016 -- 2020 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 -- ******************************************************************************
--- *
--- *                        Zurich cloudFPGA
--- *            All rights reserved -- Property of IBM
--- *
--- *-----------------------------------------------------------------------------
 -- *
 -- * Title   : Address resolution process.
 -- *
 -- * File    : nts_TcpIp_Arp.vhd
 -- * 
--- * Created : Sep. 2017
--- * Authors : Francois Abel <fab@zurich.ibm.com>
--- *
--- * Devices : xcku060-ffva1156-2-i
--- * Tools   : Vivado v2016.4 (64-bit)
--- * Depends : None 
+-- * Tools   : Vivado v2016.4, v2017.4 (64-bit) 
 -- *
 -- * Description : Structural implementation of the process that performs address 
 -- *    resolution via the Address Resolution Protocol (ARP). This is essentially
@@ -26,6 +32,7 @@
 -- *    [ 32 (Default) ]
 -- *  gValueLength : Sets the length of the CAM value.
 -- *    [ 48 (Default) ]
+-- *  gDeprecated: Instanciates an ARS using depracted directives.
 -- *
 -- ******************************************************************************
 
@@ -40,8 +47,9 @@ use     WORK.ArpCam_pkg.all;
 --************************************************************************* 
 entity AddressResolutionProcess is
   generic (
-    gKeyLength    : integer       := 32;  -- [TODO: namining conv]
-    gValueLength  : integer       := 48   -- [TODO: namining conv]
+    gKeyLength    : integer       := 32;
+    gValueLength  : integer       := 48;
+    gDeprecated   : integer       :=  0
   );
   port (
     --------------------------------------------------------
@@ -92,7 +100,7 @@ architecture Structural of AddressResolutionProcess is
   -----------------------------------------------------------------
   -- COMPONENT DECLARATIONS
   -----------------------------------------------------------------
-  component AddressResolutionServer
+  component AddressResolutionServer_Deprecated
     port (
       aclk                    : in  std_logic;
       aresetn                 : in  std_logic;
@@ -136,7 +144,53 @@ architecture Structural of AddressResolutionProcess is
       siCAM_MacLkpRep_TVALID  : in  std_logic;
       siCAM_MacLkpRep_TREADY  : out std_logic
     );
-  end component;
+  end component AddressResolutionServer_Deprecated;
+
+  component AddressResolutionServer
+    port (
+      ap_clk                  : in  std_logic;
+      ap_Rst_n                : in  std_logic;
+      -- MMIO Interfaces
+      piMMIO_MacAddress_V     : in  std_logic_vector(47 downto 0);
+      piMMIO_Ip4Address_V     : in  std_logic_vector(31 downto 0);
+      -- IPRX Interface
+      siIPRX_Data_TDATA       : in  std_logic_vector(63 downto 0);
+      siIPRX_Data_TKEEP       : in  std_logic_vector( 7 downto 0);
+      siIPRX_Data_TLAST       : in  std_logic;
+      siIPRX_Data_TVALID      : in  std_logic;
+      siIPRX_Data_TREADY      : out std_logic;
+      -- ETH Interface
+      soETH_Data_TDATA        : out std_logic_vector(63 downto 0);
+      soETH_Data_TKEEP        : out std_logic_vector( 7 downto 0);
+      soETH_Data_TLAST        : out std_logic;
+      soETH_Data_TVALID       : out std_logic;
+      soETH_Data_TREADY       : in  std_logic;
+      -- IPTX Interfaces
+      siIPTX_MacLkpReq_V_V_TDATA  : in  std_logic_vector(gKeyLength-1 downto 0); -- (32)-1=31={IpKey}
+      siIPTX_MacLkpReq_V_V_TVALID : in  std_logic;
+      siIPTX_MacLkpReq_V_V_TREADY : out std_logic;
+      --   
+      soIPTX_MacLkpRep_V_TDATA  : out std_logic_vector(55 downto 0); -- (8+48)-1=55={Hit+MacValue}
+      soIPTX_MacLkpRep_V_TVALID : out std_logic;
+      soIPTX_MacLkpRep_V_TREADY : in  std_logic;
+      -- CAM Interfaces
+      soCAM_MacUpdReq_V_TDATA   : out std_logic_vector(87 downto 0); -- (8+32+48)={Op+IpKey+MacValue}
+      soCAM_MacUpdReq_V_TVALID  : out std_logic;
+      soCAM_MacUpdReq_V_TREADY  : in  std_logic;
+      --
+      siCAM_MacUpdRep_V_TDATA   : in  std_logic_vector(55 downto 0); -- (8+48)-1=55={Op+MacValue}
+      siCAM_MacUpdRep_V_TVALID  : in  std_logic;
+      siCAM_MacUpdRep_V_TREADY  : out std_logic;
+      --
+      soCAM_MacLkpReq_V_key_V_TDATA   : out std_logic_vector(31 downto 0); -- (32)={IpKey}
+      soCAM_MacLkpReq_V_key_V_TVALID  : out std_logic;
+      soCAM_MacLkpReq_V_key_V_TREADY  : in  std_logic;
+      --
+      siCAM_MacLkpRep_V_TDATA   : in  std_logic_vector(55 downto 0); -- (8+48)-1=55{Hit+MacValue}
+      siCAM_MacLkpRep_V_TVALID  : in  std_logic;
+      siCAM_MacLkpRep_V_TREADY  : out std_logic
+    );
+  end component AddressResolutionServer;
 
   -----------------------------------------------------------------
   -- SIGNAL DECLARATIONS
@@ -146,46 +200,38 @@ architecture Structural of AddressResolutionProcess is
   signal  ssARS_CAM_MacLkpReq_TDATA   :   std_logic_vector(31 downto 0); -- (32)={IpKey}
   signal  ssARS_CAM_MacLkpReq_TVALID  :   std_logic;
   signal  ssARS_CAM_MacLkpReq_TREADY  :   std_logic;
-  --OBSOLETE-20200302 signal  lup_req_TDATA_im:   std_logic_vector(gKeyLength downto 0);
   signal  sHlsToRtl_MacLkpReq_TDATA   :   t_RtlLkpReq;
   
   signal  ssCAM_ARS_MacLkpRep_TDATA   :   std_logic_vector(55 downto 0); -- (8+48)-1=55{Hit+MacValue}
   signal  ssCAM_ARS_MacLkpRep_TVALID  :   std_logic;
   signal  ssCAM_ARS_MacLkpRep_TREADY  :   std_logic;
-  --OBSOLETE-20200302 signal  lup_rsp_TDATA_im:   std_logic_vector(gValueLength downto 0);
   signal  sRtlToHls_MacLkpRep_TDATA   :   t_RtlLkpRep;  
   
   signal  ssARS_CAM_MacUpdReq_TDATA   :   std_logic_vector(87 downto 0); -- (8+32+48) = {Op+IpKey+MacValue}
   signal  ssARS_CAM_MacUpdReq_TVALID  :   std_logic;
   signal  ssARS_CAM_MacUpdReq_TREADY  :   std_logic;
-  --OBSOLETE-20200302 signal  upd_req_TDATA_im            :   std_logic_vector((gKeyLength + gValueLength) + 1 downto 0); -- (32+48+1+1)
   signal  sHlsToRtl_MacUpdReq_TDATA   :   t_RtlUpdReq;   
     
   signal  ssCAM_ARS_MacUpdRep_TDATA   :   std_logic_vector(55 downto 0); -- (8+48)-1=55={Op+MacValue}
   signal  ssCAM_ARS_MacUpdRep_TVALID  :   std_logic;
   signal  ssCAM_ARS_MacUpdRep_TREADY  :   std_logic;
-  --OBSOLETE-20200302 signal  upd_rsp_TDATA_im:   std_logic_vector(gValueLength + 1 downto 0);
   signal  sRtlToHls_MacUpdRep_TDATA   :   t_RtlUpdRep;
 
 begin
 
-  --OBSOLETE-20200302 lup_req_TDATA_im <= ssARS_CAM_MacLkpReq_TDATA(32 downto 0);
   sHlsToRtl_MacLkpReq_TDATA.srcBit        <= '0'; -- NotUsed: Always '0'
   sHlsToRtl_MacLkpReq_TDATA.ipKey         <= ssARS_CAM_MacLkpReq_TDATA(31 downto 0);
   
-  --OBSOLETE-20200302 ssCAM_ARS_MacLkpRep_TDATA <= "0000000" & lup_rsp_TDATA_im;
   ssCAM_ARS_MacLkpRep_TDATA(47 downto  0) <= sRtlToHls_MacLkpRep_TDATA.macVal;
   ssCAM_ARS_MacLkpRep_TDATA(48)           <= sRtlToHls_MacLkpRep_TDATA.hitBit;
   ssCAM_ARS_MacLkpRep_TDATA(49)           <= sRtlToHls_MacLkpRep_TDATA.srcBit;
   ssCAM_ARS_MacLkpRep_TDATA(55 downto 50) <= "000000";
  
-  --OBSOLETE-20200302 upd_req_TDATA_im  <= '0' & ssARS_CAM_MacUpdReq_TDATA((gKeyLength + gValueLength) downto 0);
   sHlsToRtl_MacUpdReq_TDATA.srcBit        <= '0'; -- NotUsed: Always '0'
   sHlsToRtl_MacUpdReq_TDATA.opCode        <= ssARS_CAM_MacUpdReq_TDATA(80);
   sHlsToRtl_MacUpdReq_TDATA.macVal        <= ssARS_CAM_MacUpdReq_TDATA(47 downto  0);
   sHlsToRtl_MacUpdReq_TDATA.ipKey         <= ssARS_CAM_MacUpdReq_TDATA(79 downto 48);
 
-  --OBSOLETE-20200302 ssCAM_ARS_MacUpdRep_TDATA <= "000000" & upd_rsp_TDATA_im;
   ssCAM_ARS_MacUpdRep_TDATA(47 downto  0) <= sRtlToHls_MacUpdRep_TDATA.macVal;
   ssCAM_ARS_MacUpdRep_TDATA(48)           <= sRtlToHls_MacUpdRep_TDATA.opCode; 
   ssCAM_ARS_MacUpdRep_TDATA(55 downto 49) <= "0000000"; 
@@ -201,22 +247,18 @@ begin
       piRst            =>  piMMIO_Rst,
       poCamReady       =>  open,
       --
-      --OBSOLETE-202020302 lup_req_din      =>  lup_req_TDATA_im,
       piLkpReq_Data    =>  sHlsToRtl_MacLkpReq_TDATA,
       piLkpReq_Valid   =>  ssARS_CAM_MacLkpReq_TVALID,
       poLkpReq_Ready   =>  ssARS_CAM_MacLkpReq_TREADY,
       --
-      --OBSOLETE-202020302 lup_rsp_dout     =>  lup_rsp_TDATA_im,
       poLkpRep_Data    =>  sRtlToHls_MacLkpRep_TDATA,
       poLkpRep_Valid   =>  ssCAM_ARS_MacLkpRep_TVALID,
       piLkpRep_Ready   =>  ssCAM_ARS_MacLkpRep_TREADY,
       --
-      --OBSOLETE-202020302 upd_req_din      =>  upd_req_TDATA_im,
       piUpdReq_Data    =>  sHlsToRtl_MacUpdReq_TDATA,
       piUpdReq_Valid   =>  ssARS_CAM_MacUpdReq_TVALID,
       poUpdReq_Ready   =>  ssARS_CAM_MacUpdReq_TREADY,
       --
-      --OBSOLETE-202020302 upd_rsp_dout     =>  upd_rsp_TDATA_im,
       poUpdRep_Data    =>  sRtlToHls_MacUpdRep_TDATA,
       poUpdRep_Valid   =>  ssCAM_ARS_MacUpdRep_TVALID,
       piUpdRep_Ready   =>  ssCAM_ARS_MacUpdRep_TREADY,
@@ -227,49 +269,96 @@ begin
   -----------------------------------------------------------------
   -- INST: ADDRESS RESOLUTION SERVER
   -----------------------------------------------------------------
-  ARS: AddressResolutionServer
-    port map (
-      aclk                       =>  piShlClk,   
-      aresetn                    =>  sReset_n,
-      -- MMIO Interfaces
-      piMMIO_MacAddress_V        =>  piMMIO_MacAddress,
-      piMMIO_Ip4Address_V        =>  piMMIO_Ip4Address,
-      -- IPRX Interface                  
-      siIPRX_Data_TDATA          =>  siIPRX_Data_tdata,     
-      siIPRX_Data_TKEEP          =>  siIPRX_Data_tkeep,
-      siIPRX_Data_TLAST          =>  siIPRX_Data_tlast,
-      siIPRX_Data_TVALID         =>  siIPRX_Data_tvalid,
-      siIPRX_Data_TREADY         =>  siIPRX_Data_tready,
-      -- ETH Interface
-      soETH_Data_TDATA           =>  soETH_Data_tdata,
-      soETH_Data_TKEEP           =>  soETH_Data_tkeep,
-      soETH_Data_TLAST           =>  soETH_Data_tlast,
-      soETH_Data_TVALID          =>  soETH_Data_tvalid,
-      soETH_Data_TREADY          =>  soETH_Data_tready,
-      -- IPTX Interfaces
-      siIPTX_MacLkpReq_TDATA     =>  siIPTX_MacLkpReq_TDATA,
-      siIPTX_MacLkpReq_TVALID    =>  siIPTX_MacLkpReq_TVALID,
-      siIPTX_MacLkpReq_TREADY    =>  siIPTX_MacLkpReq_TREADY,
-      --
-      soIPTX_MacLkpRep_TDATA     =>  soIPTX_MacLkpRep_TDATA,
-      soIPTX_MacLkpRep_TVALID    =>  soIPTX_MacLkpRep_TVALID,
-      soIPTX_MacLkpRep_TREADY    =>  soIPTX_MacLkpRep_TREADY,
-      -- CAM Interfaces
-      soCAM_MacLkpReq_TDATA      =>  ssARS_CAM_MacLkpReq_TDATA,
-      soCAM_MacLkpReq_TVALID     =>  ssARS_CAM_MacLkpReq_TVALID,
-      soCAM_MacLkpReq_TREADY     =>  ssARS_CAM_MacLkpReq_TREADY,
-      --
-      siCAM_MacLkpRep_TDATA      =>  ssCAM_ARS_MacLkpRep_TDATA,
-      siCAM_MacLkpRep_TVALID     =>  ssCAM_ARS_MacLkpRep_TVALID,
-      siCAM_MacLkpRep_TREADY     =>  ssCAM_ARS_MacLkpRep_TREADY,
-      --
-      soCAM_MacUpdReq_TDATA      =>  ssARS_CAM_MacUpdReq_TDATA,
-      soCAM_MacUpdReq_TVALID     =>  ssARS_CAM_MacUpdReq_TVALID,
-      soCAM_MacUpdReq_TREADY     =>  ssARS_CAM_MacUpdReq_TREADY,
-      --
-      siCAM_MacUpdRep_TDATA      =>  ssCAM_ARS_MacUpdRep_TDATA,
-      siCAM_MacUpdRep_TVALID     =>  ssCAM_ARS_MacUpdRep_TVALID,
-      siCAM_MacUpdRep_TREADY     =>  ssCAM_ARS_MacUpdRep_TREADY
-    );
+  gArpServer : if  gDeprecated = 1 generate
+    ARS: AddressResolutionServer_Deprecated
+      port map (
+        aclk                       =>  piShlClk,   
+        aresetn                    =>  sReset_n,
+        -- MMIO Interfaces
+        piMMIO_MacAddress_V        =>  piMMIO_MacAddress,
+        piMMIO_Ip4Address_V        =>  piMMIO_Ip4Address,
+        -- IPRX Interface                  
+        siIPRX_Data_TDATA          =>  siIPRX_Data_tdata,     
+        siIPRX_Data_TKEEP          =>  siIPRX_Data_tkeep,
+        siIPRX_Data_TLAST          =>  siIPRX_Data_tlast,
+        siIPRX_Data_TVALID         =>  siIPRX_Data_tvalid,
+        siIPRX_Data_TREADY         =>  siIPRX_Data_tready,
+        -- ETH Interface
+        soETH_Data_TDATA           =>  soETH_Data_tdata,
+        soETH_Data_TKEEP           =>  soETH_Data_tkeep,
+        soETH_Data_TLAST           =>  soETH_Data_tlast,
+        soETH_Data_TVALID          =>  soETH_Data_tvalid,
+        soETH_Data_TREADY          =>  soETH_Data_tready,
+        -- IPTX Interfaces
+        siIPTX_MacLkpReq_TDATA     =>  siIPTX_MacLkpReq_TDATA,
+        siIPTX_MacLkpReq_TVALID    =>  siIPTX_MacLkpReq_TVALID,
+        siIPTX_MacLkpReq_TREADY    =>  siIPTX_MacLkpReq_TREADY,
+        --
+        soIPTX_MacLkpRep_TDATA     =>  soIPTX_MacLkpRep_TDATA,
+        soIPTX_MacLkpRep_TVALID    =>  soIPTX_MacLkpRep_TVALID,
+        soIPTX_MacLkpRep_TREADY    =>  soIPTX_MacLkpRep_TREADY,
+        -- CAM Interfaces
+        soCAM_MacLkpReq_TDATA      =>  ssARS_CAM_MacLkpReq_TDATA,
+        soCAM_MacLkpReq_TVALID     =>  ssARS_CAM_MacLkpReq_TVALID,
+        soCAM_MacLkpReq_TREADY     =>  ssARS_CAM_MacLkpReq_TREADY,
+        --
+        siCAM_MacLkpRep_TDATA      =>  ssCAM_ARS_MacLkpRep_TDATA,
+        siCAM_MacLkpRep_TVALID     =>  ssCAM_ARS_MacLkpRep_TVALID,
+        siCAM_MacLkpRep_TREADY     =>  ssCAM_ARS_MacLkpRep_TREADY,
+        --
+        soCAM_MacUpdReq_TDATA      =>  ssARS_CAM_MacUpdReq_TDATA,
+        soCAM_MacUpdReq_TVALID     =>  ssARS_CAM_MacUpdReq_TVALID,
+        soCAM_MacUpdReq_TREADY     =>  ssARS_CAM_MacUpdReq_TREADY,
+        --
+        siCAM_MacUpdRep_TDATA      =>  ssCAM_ARS_MacUpdRep_TDATA,
+        siCAM_MacUpdRep_TVALID     =>  ssCAM_ARS_MacUpdRep_TVALID,
+        siCAM_MacUpdRep_TREADY     =>  ssCAM_ARS_MacUpdRep_TREADY
+      );
+  else generate
+    ARS: AddressResolutionServer
+      port map (
+        ap_clk                     =>  piShlClk,   
+        ap_rst_n                   =>  sReset_n,
+        -- MMIO Interfaces
+        piMMIO_MacAddress_V        =>  piMMIO_MacAddress,
+        piMMIO_Ip4Address_V        =>  piMMIO_Ip4Address,
+        -- IPRX Interface                  
+        siIPRX_Data_TDATA          =>  siIPRX_Data_tdata,     
+        siIPRX_Data_TKEEP          =>  siIPRX_Data_tkeep,
+        siIPRX_Data_TLAST          =>  siIPRX_Data_tlast,
+        siIPRX_Data_TVALID         =>  siIPRX_Data_tvalid,
+        siIPRX_Data_TREADY         =>  siIPRX_Data_tready,
+        -- ETH Interface
+        soETH_Data_TDATA           =>  soETH_Data_tdata,
+        soETH_Data_TKEEP           =>  soETH_Data_tkeep,
+        soETH_Data_TLAST           =>  soETH_Data_tlast,
+        soETH_Data_TVALID          =>  soETH_Data_tvalid,
+        soETH_Data_TREADY          =>  soETH_Data_tready,
+        -- IPTX Interfaces
+        siIPTX_MacLkpReq_V_V_TDATA  =>  siIPTX_MacLkpReq_TDATA,
+        siIPTX_MacLkpReq_V_V_TVALID =>  siIPTX_MacLkpReq_TVALID,
+        siIPTX_MacLkpReq_V_V_TREADY =>  siIPTX_MacLkpReq_TREADY,
+        --
+        soIPTX_MacLkpRep_V_TDATA    =>  soIPTX_MacLkpRep_TDATA,
+        soIPTX_MacLkpRep_V_TVALID   =>  soIPTX_MacLkpRep_TVALID,
+        soIPTX_MacLkpRep_V_TREADY   =>  soIPTX_MacLkpRep_TREADY,
+        -- CAM Interfaces
+        soCAM_MacLkpReq_V_key_V_TDATA  =>  ssARS_CAM_MacLkpReq_TDATA,
+        soCAM_MacLkpReq_V_key_V_TVALID =>  ssARS_CAM_MacLkpReq_TVALID,
+        soCAM_MacLkpReq_V_key_V_TREADY =>  ssARS_CAM_MacLkpReq_TREADY,
+        --
+        siCAM_MacLkpRep_V_TDATA    =>  ssCAM_ARS_MacLkpRep_TDATA,
+        siCAM_MacLkpRep_V_TVALID   =>  ssCAM_ARS_MacLkpRep_TVALID,
+        siCAM_MacLkpRep_V_TREADY   =>  ssCAM_ARS_MacLkpRep_TREADY,
+        --
+        soCAM_MacUpdReq_V_TDATA    =>  ssARS_CAM_MacUpdReq_TDATA,
+        soCAM_MacUpdReq_V_TVALID   =>  ssARS_CAM_MacUpdReq_TVALID,
+        soCAM_MacUpdReq_V_TREADY   =>  ssARS_CAM_MacUpdReq_TREADY,
+        --
+        siCAM_MacUpdRep_V_TDATA    =>  ssCAM_ARS_MacUpdRep_TDATA,
+        siCAM_MacUpdRep_V_TVALID   =>  ssCAM_ARS_MacUpdRep_TVALID,
+        siCAM_MacUpdRep_V_TREADY   =>  ssCAM_ARS_MacUpdRep_TREADY
+      );
+  end generate;
 
 end Structural;

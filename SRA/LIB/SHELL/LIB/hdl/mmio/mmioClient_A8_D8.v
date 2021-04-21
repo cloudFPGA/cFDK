@@ -150,9 +150,7 @@ module MmioClient_A8_D8 #(
   input           piXXX_XMem_Wren,
   input  [31:0]   piXXX_XMem_WrData,
   output [31:0]   poXXX_XMem_RData,
-  input  [ 8:0]   piXXX_XMemAddr,
-  
-  output          poVoid
+  input  [ 8:0]   piXXX_XMemAddr
 
 );  // End of PortList
 
