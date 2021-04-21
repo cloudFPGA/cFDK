@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
-/*******************************************************************************
- * @file     : test_tx_engine.hpp
- * @brief    : Testbench for TX Engine (TXe) of the TCP Offload Engine (TOE).
+/*****************************************************************************
+ * @file     : test_rx_engine.hpp
+ * @brief    : Testbench for RX Engine (RXe) of the TCP Offload Engine (TOE).
  *
  * System:   : cloudFPGA
  * Component : NTS, TCP Offload Engine (TOE)
  * Language  : Vivado HLS
  *
- * \ingroup NTS
- * \addtogroup NTS_TOE
+ * \ingroup NTS_TOE
+ * \addtogroup NTS_TOE_TEST
  * \{
- *******************************************************************************/
+ *****************************************************************************/
 
 #ifndef _TEST_TX_ENGINE_H_
 #define _TEST_TX_ENGINE_H_

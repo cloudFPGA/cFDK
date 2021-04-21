@@ -17,8 +17,8 @@
 # ******************************************************************************
 # * 
 # * Description : A Tcl script for the HLS batch compilation, simulation,
-# *   synthesis of the Rx Engine of the TCP offload engine used by the shell
-# *   of the cloudFPGA module.
+# *   synthesis of the Rx Engine (RXe) of the TCP offload engine used by the
+# *   shell of the cloudFPGA module.
 # * 
 # * Synopsis : vivado_hls -f <this_file>
 # *
@@ -200,16 +200,13 @@ if { $hlsCSim} {
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF C SIMULATION             ####"
     puts "####                                                     ####"
-    puts "#############################################################"    
+    puts "#############################################################"
 }
 
 #-------------------------------------------------
 # Run C Synthesis (refer to UG902)
 #-------------------------------------------------
 if { $hlsCSynth} {
-
-    # If required, you may set the DATAFLOW directive here instead of placing a pragma in the source file
-    # set_directive_dataflow rx_engine 
     csynth_design
     puts "#############################################################"
     puts "####                                                     ####"

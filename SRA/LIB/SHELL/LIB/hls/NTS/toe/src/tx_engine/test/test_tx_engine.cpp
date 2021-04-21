@@ -22,8 +22,8 @@
  * Component : NTS, TCP Offload Engine (TOE)
  * Language  : Vivado HLS
  *
- * \ingroup NTS
- * \addtogroup NTS_TOE
+ * \ingroup NTS_TOE
+ * \addtogroup NTS_TOE_TEST
  * \{
  *******************************************************************************/
 
@@ -2344,6 +2344,172 @@ void pTAIF(
 
 } // End of: pTAIF
 
+#if HLS_VERSION != 2017
+/*******************************************************************************
+ * @brief A wrapper for the Toplevel of the TCP Offload Engine (TOE).
+ *
+ * @param[in]  piMMIO_IpAddr    IP4 Address from [MMIO].
+ * @param[out] poNTS_Ready      Ready signal of TOE.
+ * @param[in]  siIPRX_Data      IP4 data stream from [IPRX].
+ * @param[out] soIPTX_Data      IP4 data stream to [IPTX].
+ * @param[out] soTAIF_Notif     APP data notification to [TAIF].
+ * @param[in]  siTAIF_DReq      APP data request from [TAIF].
+ * @param[out] soTAIF_Data      APP data stream to [TAIF].
+ * @param[out] soTAIF_Meta      APP metadata stream to [TAIF].
+ * @param[in]  siTAIF_LsnReq    APP listen port request from [TAIF].
+ * @param[out] soTAIF_LsnRep    APP listen port reply to [TAIF].
+ * @param[in]  siTAIF_Data      APP data stream from [TAIF].
+ * @param[in]  siTAIF_SndReq    APP request to send from [TAIF].
+ * @param[out] soTAIF_SndRep    APP send reply to [TAIF].
+ * @param[in]  siTAIF_OpnReq    APP open port request from [TAIF].
+ * @param[out] soTAIF_OpnRep    APP open port reply to [TAIF].
+ * @param[in]  siTAIF_ClsReq    APP close connection request from [TAIF].
+ * @warning:   Not-Used         APP close connection status to [TAIF].
+ * @warning:   Not-Used         Rx memory read status from [MEM].
+ * @param[out] soMEM_RxP_RdCmd  Rx memory read command to [MEM].
+ * @param[in]  siMEM_RxP_Data   Rx memory data from [MEM].
+ * @param[in]  siMEM_RxP_WrSts  Rx memory write status from [MEM].
+ * @param[out] soMEM_RxP_WrCmd  Rx memory write command to [MEM].
+ * @param[out] soMEM_RxP_Data   Rx memory data to [MEM].
+ * @warning:   Not-Used         Tx memory read status from [MEM].
+ * @param[out] soMEM_TxP_RdCmd  Tx memory read command to [MEM].
+ * @param[in]  siMEM_TxP_Data   Tx memory data from [MEM].
+ * @param[in]  siMEM_TxP_WrSts  Tx memory write status from [MEM].
+ * @param[out] soMEM_TxP_WrCmd  Tx memory write command to [MEM].
+ * @param[out] soMEM_TxP_Data   Tx memory data to [MEM].
+ * @param[out] soCAM_SssLkpReq  Session lookup request to [CAM].
+ * @param[in]  siCAM_SssLkpRep  Session lookup reply from [CAM].
+ * @param[out] soCAM_SssUpdReq  Session update request to [CAM].
+ * @param[in]  siCAM_SssUpdRep  Session update reply from [CAM].
+ * @param[out] poDBG_SssRelCnt  Session release count (for DEBUG).
+ * @param[out] poDBG_SssRegCnt  Session register count (foe DEBUG).
+ *
+ * @details
+ *  This process is a wrapper for the 'toe_top' entity. It instantiates such an
+ *   entity and further connects it with base 'AxisRaw' streams as expected by
+ *   the 'toe_top'.
+ *******************************************************************************/
+  void toe_top_wrap(
+        //-- MMIO Interfaces
+        Ip4Addr                                  piMMIO_IpAddr,
+        //-- NTS Interfaces
+        StsBit                                  &poNTS_Ready,
+        //-- IPRX / IP Rx / Data Interface
+        stream<AxisIp4>                         &siIPRX_Data,
+        //-- IPTX / IP Tx / Data Interface
+        stream<AxisIp4>                         &soIPTX_Data,
+        //-- TAIF / Receive Data Interfaces
+        stream<TcpAppNotif>                     &soTAIF_Notif,
+        stream<TcpAppRdReq>                     &siTAIF_DReq,
+        stream<TcpAppData>                      &soTAIF_Data,
+        stream<TcpAppMeta>                      &soTAIF_Meta,
+        //-- TAIF / Listen Interfaces
+        stream<TcpAppLsnReq>                    &siTAIF_LsnReq,
+        stream<TcpAppLsnRep>                    &soTAIF_LsnRep,
+        //-- TAIF / Send Data Interfaces
+        stream<TcpAppData>                      &siTAIF_Data,
+        stream<TcpAppSndReq>                    &siTAIF_SndReq,
+        stream<TcpAppSndRep>                    &soTAIF_SndRep,
+        //-- TAIF / Open Connection Interfaces
+        stream<TcpAppOpnReq>                    &siTAIF_OpnReq,
+        stream<TcpAppOpnRep>                    &soTAIF_OpnRep,
+        //-- TAIF / Close Interfaces
+        stream<TcpAppClsReq>                    &siTAIF_ClsReq,
+        //-- Not Used                           &soTAIF_ClsSts,
+        //-- MEM / Rx PATH / S2MM Interface
+        //-- Not Used                           &siMEM_RxP_RdSts,
+        stream<DmCmd>                           &soMEM_RxP_RdCmd,
+        stream<AxisApp>                         &siMEM_RxP_Data,
+        stream<DmSts>                           &siMEM_RxP_WrSts,
+        stream<DmCmd>                           &soMEM_RxP_WrCmd,
+        stream<AxisApp>                         &soMEM_RxP_Data,
+        //-- MEM / Tx PATH / S2MM Interface
+        //-- Not Used                           &siMEM_TxP_RdSts,
+        stream<DmCmd>                           &soMEM_TxP_RdCmd,
+        stream<AxisApp>                         &siMEM_TxP_Data,
+        stream<DmSts>                           &siMEM_TxP_WrSts,
+        stream<DmCmd>                           &soMEM_TxP_WrCmd,
+        stream<AxisApp>                         &soMEM_TxP_Data,
+        //-- CAM / Session Lookup & Update Interfaces
+        stream<CamSessionLookupRequest>         &soCAM_SssLkpReq,
+        stream<CamSessionLookupReply>           &siCAM_SssLkpRep,
+        stream<CamSessionUpdateRequest>         &soCAM_SssUpdReq,
+        stream<CamSessionUpdateReply>           &siCAM_SssUpdRep,
+        //-- DEBUG / Interfaces
+        //-- DEBUG / Session Statistics Interfaces
+        ap_uint<16>                             &poDBG_SssRelCnt,
+        ap_uint<16>                             &poDBG_SssRegCnt
+        #if TOE_FEATURE_USED_FOR_DEBUGGING
+        //-- DEBUG / SimCycCounter
+        ap_uint<32>                        &poSimCycCount
+        #endif
+  )
+{
+    //-- LOCAL INPUT and OUTPUT STREAMS ----------------------------------------
+    static stream<AxisRaw>      ssiIPRX_Data ("ssiIPRX_Data");
+    static stream<AxisRaw>      ssoIPTX_Data ("ssoIPTX_Data");
+
+    //-- INPUT STREAM CASTING -----------------------------
+    pAxisRawCast(siIPRX_Data, ssiIPRX_Data);
+
+    //-- MAIN TOE_TOP PROCESS -----------------------------
+    toe_top(
+      //-- MMIO Interfaces
+      piMMIO_IpAddr,
+      //-- NTS Interfaces
+      poNTS_Ready,
+      //-- IPv4 / Rx & Tx Data Interfaces
+      ssiIPRX_Data,
+      ssoIPTX_Data,
+      //-- TAIF / Rx Data Interfaces
+      soTAIF_Notif,
+      siTAIF_DReq,
+      soTAIF_Data,
+      soTAIF_Meta,
+      //-- TAIF / Listen Port Interfaces
+      siTAIF_LsnReq,
+      soTAIF_LsnRep,
+      //-- TAIF / Tx Data Interfaces
+      siTAIF_Data,
+      siTAIF_SndReq,
+      soTAIF_SndRep,
+      //-- TAIF / Open Connection Interfaces
+      siTAIF_OpnReq,
+      soTAIF_OpnRep,
+      //-- TAIF / Close Interfaces
+      siTAIF_ClsReq,
+      //-- [TODO] &soTAIF_ClsSts,
+      //-- MEM / Rx PATH / S2MM Interface
+      soMEM_RxP_RdCmd,
+      siMEM_RxP_Data,
+      siMEM_RxP_WrSts,
+      soMEM_RxP_WrCmd,
+      soMEM_RxP_Data,
+      //-- MEM / Tx PATH / S2MM Interface
+      soMEM_TxP_RdCmd,
+      siMEM_TxP_Data,
+      siMEM_TxP_WrSts,
+      soMEM_TxP_WrCmd,
+      soMEM_TxP_Data,
+      //-- CAM / Session Lookup & Update Interfaces
+      soCAM_SssLkpReq,
+      siCAM_SssLkpRep,
+      soCAM_SssUpdReq,
+      siCAM_SssUpdRep,
+      //-- DEBUG / Session Statistics Interfaces
+      poDBG_SssRelCnt,
+      poDBG_SssRegCnt
+      #if TOE_FEATURE_USED_FOR_DEBUGGING
+      ,
+      sTOE_TB_SimCycCnt
+      #endif
+    );
+
+    //-- OUTPUT STREAM CASTING ----------------------------
+    pAxisRawCast(ssoIPTX_Data,  soIPTX_Data);
+}
+#endif
+
 /*****************************************************************************
  * @brief Main function.
  *
@@ -2613,7 +2779,11 @@ int main(int argc, char *argv[]) {
         //-------------------------------------------------
         //-- STEP-2 : RUN DUT
         //-------------------------------------------------
-        toe(
+        #if HLS_VERSION == 2017
+          toe_top(
+        #else
+          toe_top_wrap(
+        #endif
             //-- MMIO Interfaces
             gFpgaIp4Addr,
             //-- NTS Interfaces
@@ -2663,7 +2833,7 @@ int main(int argc, char *argv[]) {
             ,
             sTOE_TB_SimCycCnt
             #endif
-        );
+          );
 
         //-------------------------------------------------
         //-- STEP-3 : Emulate DRAM & CAM Interfaces
