@@ -44,8 +44,6 @@
 #include "nts_types.hpp"
 #include "nts_config.hpp"
 
-//OBSOLETE_20210226 using namespace hls;
-
 /*******************************************************************************
  * INTERFACE - GENERIC TCP & UDP APPLICATION INTERFACE (APP)
  *******************************************************************************/
@@ -67,7 +65,6 @@ typedef AxisRaw     AxisApp;
 //-- TCP APP - DATA
 //--  The data section of a TCP segment over an AXI4S I/F.
 //---------------------------------------------------------
-//OBSOLETE_20210215 typedef AxisApp     TcpAppData;
 typedef AxisApp     TcpAppData;
 #endif
 

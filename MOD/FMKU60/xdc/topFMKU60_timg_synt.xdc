@@ -1,3 +1,4 @@
+
 # ******************************************************************************
 # * Copyright 2016 -- 2020 IBM Corporation
 # *
@@ -264,10 +265,6 @@ set_max_delay -from [get_pins SHELL/sLed_HeartBeat_reg/C] -to [get_ports poLED_H
 #=====================================================================
 # Here are the Constraints added by the Timing Constraint Wizard
 #=====================================================================
-
-
-
-
 
 
 

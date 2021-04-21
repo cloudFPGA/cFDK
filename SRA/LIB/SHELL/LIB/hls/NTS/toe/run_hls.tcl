@@ -23,7 +23,7 @@ set solutionName   "solution1"
 set xilPartName    "xcku060-ffva1156-2-i"
 
 set ipName         ${projectName}
-set ipDisplayName  "TCP Offload Engine for cloudFPGA"
+set ipDisplayName  "TCP Offload Engine for cloudFPGA (TOE)"
 set ipDescription  "Handles TCP packets."
 set ipVendor       "IBM"
 set ipLibrary      "hls"
