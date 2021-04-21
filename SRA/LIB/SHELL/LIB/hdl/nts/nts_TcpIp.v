@@ -342,7 +342,7 @@ module NetworkTransportStack_TcpIp (
   wire  [ 7:0]  ssARS3_UOE_Data_tkeep;
   wire          ssARS3_UOE_Data_tlast;
   wire          ssARS3_UOE_Data_tvalid;
-  wire          ssARS3_UOE_Data_tready; 
+  wire          ssARS3_UOE_Data_tready;
 
   //------------------------------------------------------------------
   //-- UOE = UDP-OFFLOAD-ENGINE
@@ -522,7 +522,7 @@ module NetworkTransportStack_TcpIp (
     //------------------------------------------------------
     //-- To UOE / Data -----------------
     .soUOE_Data_TDATA         (ssIPRX_ARS3_Data_tdata),
-    .soUOE_Data_TKEEP         (ssIPRX_ARS3_UOE_Data_tkeep),
+    .soUOE_Data_TKEEP         (ssIPRX_ARS3_Data_tkeep),
     .soUOE_Data_TLAST         (ssIPRX_ARS3_Data_tlast),
     .soUOE_Data_TVALID        (ssIPRX_ARS3_Data_tvalid),
     .soUOE_Data_TREADY        (ssIPRX_ARS3_Data_tready),
@@ -806,16 +806,19 @@ module NetworkTransportStack_TcpIp (
     // .poSimCycCount_V        ()
   );  // End of TOE
   `else
-    TcpOffloadEngine TOE (  
+    TcpOffloadEngine TOE (
     .ap_clk                    (piShlClk),
     .ap_rst_n                  (~piMMIO_Layer4Rst),
     //------------------------------------------------------
     //-- MMIO Interfaces
     //------------------------------------------------------    
     .piMMIO_IpAddr_V           (piMMIO_Ip4Address),
+    //------------------------------------------------------
+    //-- Ready Logic Interface
+    //------------------------------------------------------    
     .poNTS_Ready_V             (),     // [FIXME-ssTOE_RML_Ready_tdata]
     //------------------------------------------------------
-    //-- IPRX / IP Rx Data Interface
+    //-- IPRX / IP Rx Data Interface (via ARS2)
     //------------------------------------------------------
     .siIPRX_Data_TDATA         (ssARS2_TOE_Data_tdata),
     .siIPRX_Data_TKEEP         (ssARS2_TOE_Data_tkeep),
@@ -983,9 +986,9 @@ module NetworkTransportStack_TcpIp (
     //------------------------------------------------------
     .poDBG_SssRelCnt_V         (),
     .poDBG_SssRegCnt_V         ()
-    // .poSimCycCount_V        ()
+    // NOT-USED .poSimCycCount_V ()
   );  // End of TOE 
-  `endif  // HLS_VERSION
+  `endif  // End of HLS_VERSION
   
   //============================================================================
   //  INST: CONTENT-ADDRESSABLE-MEMORY
@@ -993,7 +996,6 @@ module NetworkTransportStack_TcpIp (
 `define USE_FAKE_CAM
 
 `ifndef USE_FAKE_CAM
- 
   ToeCam RTLCAM (
    .piClk                        (piShlClk),
    .piRst_n                      (~piMMIO_Layer4Rst),
@@ -1025,9 +1027,7 @@ module NetworkTransportStack_TcpIp (
    .poLed1                       (),
    .poDebug                      ()
   );
-  
 `else
- 
   `ifdef USE_DEPRECATED_DIRECTIVES
   ContentAddressableMemory HLSCAM (
     .aclk                         (piShlClk),
@@ -1081,7 +1081,6 @@ module NetworkTransportStack_TcpIp (
     .soTOE_SssUpdRep_V_TREADY     (ssCAM_TOE_UpdRpl_tready)
   );       
   `endif  // USE_DEPRECATED_DIRECTIVES
-
 `endif  // USE_FAKE_CAM
   
   //============================================================================
@@ -1140,13 +1139,13 @@ module NetworkTransportStack_TcpIp (
     .soMMIO_Ready_TVALID        (ssUOE_RML_Ready_tvalid),
     .soMMIO_Ready_TREADY        (ssUOE_RML_Ready_tready),
     //------------------------------------------------------
-    //-- IPRX Data Interface
+    //-- IPRX Data Interface (via ARS3)
     //------------------------------------------------------
-    .siIPRX_Data_TDATA          (ssIPRX_ARS3_Data_tdata),
-    .siIPRX_Data_TKEEP          (ssIPRX_ARS3_Data_tkeep),
-    .siIPRX_Data_TLAST          (ssIPRX_ARS3_Data_tlast),
-    .siIPRX_Data_TVALID         (ssIPRX_ARS3_Data_tvalid),
-    .siIPRX_Data_TREADY         (ssIPRX_ARS3_Data_tready),
+    .siIPRX_Data_TDATA          (ssARS3_UOE_Data_tdata),
+    .siIPRX_Data_TKEEP          (ssARS3_UOE_Data_tkeep),
+    .siIPRX_Data_TLAST          (ssARS3_UOE_Data_tlast),
+    .siIPRX_Data_TVALID         (ssARS3_UOE_Data_tvalid),
+    .siIPRX_Data_TREADY         (ssARS3_UOE_Data_tready),
     //------------------------------------------------------
     //-- IPTX Data Interface (via L3MUX)
     //------------------------------------------------------
@@ -1226,13 +1225,13 @@ module NetworkTransportStack_TcpIp (
     .soMMIO_Ready_V_TVALID      (ssUOE_RML_Ready_tvalid),
     .soMMIO_Ready_V_TREADY      (ssUOE_RML_Ready_tready),
     //------------------------------------------------------
-    //-- IPRX Data Interface
+    //-- IPRX Data Interface (via ARS3)
     //------------------------------------------------------
-    .siIPRX_Data_TDATA          (ssIPRX_ARS3_Data_tdata),
-    .siIPRX_Data_TKEEP          (ssIPRX_ARS3_Data_tkeep),
-    .siIPRX_Data_TLAST          (ssIPRX_ARS3_Data_tlast),
-    .siIPRX_Data_TVALID         (ssIPRX_ARS3_Data_tvalid),
-    .siIPRX_Data_TREADY         (ssIPRX_ARS3_Data_tready),
+    .siIPRX_Data_TDATA          (ssARS3_UOE_Data_tdata),
+    .siIPRX_Data_TKEEP          (ssARS3_UOE_Data_tkeep),
+    .siIPRX_Data_TLAST          (ssARS3_UOE_Data_tlast),
+    .siIPRX_Data_TVALID         (ssARS3_UOE_Data_tvalid),
+    .siIPRX_Data_TREADY         (ssARS3_UOE_Data_tready),
     //------------------------------------------------------
     //-- IPTX Data Interface (via L3MUX)
     //------------------------------------------------------
