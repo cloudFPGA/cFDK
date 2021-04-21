@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-/*******************************************************************************
+/*****************************************************************************
  * @file     : test_rx_engine.hpp
  * @brief    : Testbench for RX Engine (RXe) of the TCP Offload Engine (TOE).
  *
@@ -22,10 +22,10 @@
  * Component : NTS, TCP Offload Engine (TOE)
  * Language  : Vivado HLS
  *
- * \ingroup NTS
- * \addtogroup NTS_TOE
+ * \ingroup NTS_TOE
+ * \addtogroup NTS_TOE_TEST
  * \{
- *******************************************************************************/
+ *****************************************************************************/
 
 #ifndef _TEST_RX_ENGINE_H_
 #define _TEST_RX_ENGINE_H_
