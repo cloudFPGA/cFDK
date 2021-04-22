@@ -1,5 +1,5 @@
 # /*******************************************************************************
-#  * Copyright 2016 -- 2020 IBM Corporation
+#  * Copyright 2016 -- 2021 IBM Corporation
 #  *
 #  * Licensed under the Apache License, Version 2.0 (the "License");
 #  * you may not use this file except in compliance with the License.
@@ -14,15 +14,13 @@
 #  * limitations under the License.
 # *******************************************************************************/
 
-#  *
-#  *                       cloudFPGA
-#  *    =============================================
-#  *     Created: Feb 2018
-#  *     Authors: FAB, WEI, NGL
-#  *
-#  *     Description:
-#  *        Create TCL script for the SHELL LIB
-#  *
+# ******************************************************************************
+# * 
+# * Description : A Tcl script to create the IP cores of the current SHELL.
+# * 
+# * Synopsis : vivado -mode batch -source <this_file> -notrace -log <filename.log> 
+# *
+# ******************************************************************************
 
 package require cmdline
 
@@ -32,7 +30,6 @@ package require cmdline
 #    # Expect to be in the TCL directory and source the TCL settings file 
 #    source xpr_settings.tcl
 #}
-
 set ipXprDir     ${ipDir}/managed_ip_project
 set ipXprName    "managed_ip_project"
 set ipXprFile    [file join ${ipXprDir} ${ipXprName}.xpr ]
@@ -45,7 +42,6 @@ set nrErrors         0
 set dbgLvl_1         1
 set dbgLvl_2         2
 set dbgLvl_3         3
-
 
 #-------------------------------------------------------------------------------
 # my_clean_ip_dir ${ipModName}
@@ -72,7 +68,7 @@ proc my_clean_ip_dir { ipModName } {
     }
 
     ## STEP-3: Check for possible dangling files (may happen after IP flow got broken)
-    set files [get_files]
+    set files [ get_files ]
     foreach file $files {
         if [ string match "${::ipDir}/${ipModName}/${ipModName}.xci" ${file} ] {
             my_dbg_trace "A dangling IP file \'${ipModName}\' already exists and will be removed from the project \'${::ipXprName} !" ${::dbgLvl_1}
@@ -169,7 +165,7 @@ proc my_customize_ip {ipModName ipDir ipVendor ipLibrary ipName ipVersion ipCfgL
         [ get_files ${ipDir}/${ipModName}/${ipModName}.xci ]
     my_dbg_trace "Done with \'generate_target\'." ${::dbgLvl_1}
 
-    update_compile_order -fileset sources_1
+    # update_compile_order -fileset sources_1
 
     generate_target all [ get_files ${ipDir}/${ipModName}/${ipModName}.xci ]
     my_dbg_trace "Done with \'generate_target all\'." ${::dbgLvl_1}
@@ -279,9 +275,11 @@ if { [ file exists ${ipDir} ] != 1 } {
     my_puts "The managed IP directory already exists. "
     if { ${gTargetIpCore} eq "all" } { 
         if { [ file exists ${ipDir}/ip_user_files ] } {
+            my_dbg_trace "Removing directory: \'${ipDir}/ip_user_files\' " ${dbgLvl_1}
             file delete -force ${ipDir}/ip_user_files
-            #TODO:
-            file delete -force ${ipXprDir}/${ipXprName}.xpr
+            my_dbg_trace "Removing directory: \'${ipXprDir}\' " ${dbgLvl_1}            
+            #OBSOLETE_20210422 file delete -force ${ipXprDir}/${ipXprName}.xpr
+            file delete -force ${ipXprDir}
             file mkdir ${ipDir}/ip_user_files 
             my_dbg_trace "Done with the cleaning of: \'${ipDir}/ip_user_files\' " ${dbgLvl_1}
         }   
@@ -291,6 +289,7 @@ if { [ file exists ${ipDir} ] != 1 } {
         }
     }
 }
+
 if { [ file exists ${ipXprDir} ] != 1 } {
     my_puts "Creating the managed IP project directory: \'${ipXprDir}\' "
     file mkdir ${ipXprDir}
@@ -360,7 +359,6 @@ set ipCfgList  [ list CONFIG.TDATA_NUM_BYTES {1} \
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
 
 #------------------------------------------------------------------------------  
 # VIVADO-IP : AXI Register Slice [16]
@@ -1104,6 +1102,21 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 
 #------------------------------------------------------------------------------  
+# IBM-HSL-IP : UDP Offload Engine
+#------------------------------------------------------------------------------
+set ipModName "UdpOffloadEngine"
+set ipName    "uoe_top"
+set ipVendor  "IBM"
+set ipLibrary "hls"
+set ipVersion "1.0"
+set ipCfgList  [ list ]
+
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
+
+#------------------------------------------------------------------------------  
 # IBM-HSL-IP : TCP Offload Engine
 #------------------------------------------------------------------------------
 set ipModName "TcpOffloadEngine"
@@ -1118,18 +1131,5 @@ set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 
-#------------------------------------------------------------------------------  
-# IBM-HSL-IP : UDP Offload Engine
-#------------------------------------------------------------------------------
-set ipModName "UdpOffloadEngine"
-set ipName    "uoe_top"
-set ipVendor  "IBM"
-set ipLibrary "hls"
-set ipVersion "1.0"
-set ipCfgList  [ list ]
-
-set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
-if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 

@@ -20,7 +20,7 @@
 # *
 # *-----------------------------------------------------------------------------
 # *
-# * Title   : Physical pin constraints file for the module FMKU60 
+# * Title   : Physical pin constraints file for the module FMKU60
 # *            (i.e. FMKU2595 equipped with a XCKU060).
 # *
 # * File    : topFMKU60_Flash_pins.xdc
@@ -161,25 +161,25 @@ set_property PACKAGE_PIN AE33 [get_ports {pioPSOC_Emif_Data[7]}]
 #   DDR4 / Memory Channel #0
 #---------------------------------------------------------------------
 
-set_property IOSTANDARD POD12_DCI        [get_ports {pioDDR4_Mem_Mc0_DmDbi_n[*]}]
+set_property IOSTANDARD POD12_DCI [get_ports {pioDDR4_Mem_Mc0_DmDbi_n[*]}]
 set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports {pioDDR4_Mem_Mc0_DmDbi_n[*]}]
 
-set_property IOSTANDARD POD12_DCI        [get_ports {pioDDR4_Mem_Mc0_Dq[*]}]
+set_property IOSTANDARD POD12_DCI [get_ports {pioDDR4_Mem_Mc0_Dq[*]}]
 set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports {pioDDR4_Mem_Mc0_Dq[*]}]
 
-set_property IOSTANDARD DIFF_POD12_DCI   [get_ports {pioDDR4_Mem_Mc0_Dqs_n[*]}]
-set_property IOSTANDARD DIFF_POD12_DCI   [get_ports {pioDDR4_Mem_Mc0_Dqs_p[*]}]
+set_property IOSTANDARD DIFF_POD12_DCI [get_ports {pioDDR4_Mem_Mc0_Dqs_n[*]}]
+set_property IOSTANDARD DIFF_POD12_DCI [get_ports {pioDDR4_Mem_Mc0_Dqs_p[*]}]
 set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports {pioDDR4_Mem_Mc0_Dqs_n[*]}]
 set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports {pioDDR4_Mem_Mc0_Dqs_p[*]}]
 
 
-set_property IOSTANDARD SSTL12_DCI       [get_ports {poDDR4_Mem_Mc0_Adr[*]}]
+set_property IOSTANDARD SSTL12_DCI [get_ports {poDDR4_Mem_Mc0_Adr[*]}]
 set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports {poDDR4_Mem_Mc0_Adr[*]}]
 
-set_property IOSTANDARD SSTL12_DCI       [get_ports {poDDR4_Mem_Mc0_Ba[*]}]
+set_property IOSTANDARD SSTL12_DCI [get_ports {poDDR4_Mem_Mc0_Ba[*]}]
 set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports {poDDR4_Mem_Mc0_Ba[*]}]
 
-set_property IOSTANDARD SSTL12_DCI       [get_ports {poDDR4_Mem_Mc0_Bg[*]}]
+set_property IOSTANDARD SSTL12_DCI [get_ports {poDDR4_Mem_Mc0_Bg[*]}]
 set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports {poDDR4_Mem_Mc0_Bg[*]}]
 
 # [IS-NOT-USED] set_property PACKAGE_PIN      AG25        [get_ports {poDDR4_Mem_Mc0_Cke[1]}]
@@ -194,25 +194,25 @@ set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports {poDDR4_Mem_Mc0_Bg[*]}]
 #   DDR4 / Memory Channel #1
 #---------------------------------------------------------------------
 
-set_property IOSTANDARD POD12_DCI        [get_ports {pioDDR4_Mem_Mc1_DmDbi_n[*]}]
+set_property IOSTANDARD POD12_DCI [get_ports {pioDDR4_Mem_Mc1_DmDbi_n[*]}]
 set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports {pioDDR4_Mem_Mc1_DmDbi_n[*]}]
 
-set_property IOSTANDARD POD12_DCI        [get_ports {pioDDR4_Mem_Mc1_Dq[*]}]
+set_property IOSTANDARD POD12_DCI [get_ports {pioDDR4_Mem_Mc1_Dq[*]}]
 set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports {pioDDR4_Mem_Mc1_Dq[*]}]
 
-set_property IOSTANDARD DIFF_POD12_DCI   [get_ports {pioDDR4_Mem_Mc1_Dqs_n[*]}]
-set_property IOSTANDARD DIFF_POD12_DCI   [get_ports {pioDDR4_Mem_Mc1_Dqs_p[*]}]
+set_property IOSTANDARD DIFF_POD12_DCI [get_ports {pioDDR4_Mem_Mc1_Dqs_n[*]}]
+set_property IOSTANDARD DIFF_POD12_DCI [get_ports {pioDDR4_Mem_Mc1_Dqs_p[*]}]
 set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports {pioDDR4_Mem_Mc1_Dqs_n[*]}]
 set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports {pioDDR4_Mem_Mc1_Dqs_p[*]}]
 
 
-set_property IOSTANDARD SSTL12_DCI       [get_ports {poDDR4_Mem_Mc1_Adr[*]}]
+set_property IOSTANDARD SSTL12_DCI [get_ports {poDDR4_Mem_Mc1_Adr[*]}]
 set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports {poDDR4_Mem_Mc1_Adr[*]}]
 
-set_property IOSTANDARD SSTL12_DCI       [get_ports {poDDR4_Mem_Mc1_Ba[*]}]
+set_property IOSTANDARD SSTL12_DCI [get_ports {poDDR4_Mem_Mc1_Ba[*]}]
 set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports {poDDR4_Mem_Mc1_Ba[*]}]
 
-set_property IOSTANDARD SSTL12_DCI       [get_ports {poDDR4_Mem_Mc1_Bg[*]}]
+set_property IOSTANDARD SSTL12_DCI [get_ports {poDDR4_Mem_Mc1_Bg[*]}]
 set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports {poDDR4_Mem_Mc1_Bg[*]}]
 
 # [IS-NOT-USED] set_property PACKAGE_PIN C14 [get_ports {poDDR4_Mem_Mc1_Cke[1]}]
@@ -224,8 +224,8 @@ set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports {poDDR4_Mem_Mc1_Bg[*]}]
 set_property PACKAGE_PIN E16 [get_ports piCLKT_Mem1Clk_p]
 set_property PACKAGE_PIN D16 [get_ports piCLKT_Mem1Clk_n]
 set_property PACKAGE_PIN H18 [get_ports poDDR4_Mem_Mc1_Reset_n]
-set_property PACKAGE_PIN F8  [get_ports {pioDDR4_Mem_Mc1_DmDbi_n[0]}]
-set_property PACKAGE_PIN L8  [get_ports {pioDDR4_Mem_Mc1_DmDbi_n[1]}]
+set_property PACKAGE_PIN F8 [get_ports {pioDDR4_Mem_Mc1_DmDbi_n[0]}]
+set_property PACKAGE_PIN L8 [get_ports {pioDDR4_Mem_Mc1_DmDbi_n[1]}]
 set_property PACKAGE_PIN H11 [get_ports {pioDDR4_Mem_Mc1_DmDbi_n[2]}]
 set_property PACKAGE_PIN E11 [get_ports {pioDDR4_Mem_Mc1_DmDbi_n[3]}]
 set_property PACKAGE_PIN F27 [get_ports {pioDDR4_Mem_Mc1_DmDbi_n[4]}]
@@ -233,21 +233,21 @@ set_property PACKAGE_PIN E26 [get_ports {pioDDR4_Mem_Mc1_DmDbi_n[5]}]
 set_property PACKAGE_PIN D23 [get_ports {pioDDR4_Mem_Mc1_DmDbi_n[6]}]
 set_property PACKAGE_PIN G24 [get_ports {pioDDR4_Mem_Mc1_DmDbi_n[7]}]
 set_property PACKAGE_PIN B14 [get_ports {pioDDR4_Mem_Mc1_DmDbi_n[8]}]
-set_property PACKAGE_PIN C8  [get_ports {pioDDR4_Mem_Mc1_Dq[0]}]
+set_property PACKAGE_PIN C8 [get_ports {pioDDR4_Mem_Mc1_Dq[0]}]
 set_property PACKAGE_PIN E10 [get_ports {pioDDR4_Mem_Mc1_Dq[1]}]
-set_property PACKAGE_PIN C9  [get_ports {pioDDR4_Mem_Mc1_Dq[2]}]
+set_property PACKAGE_PIN C9 [get_ports {pioDDR4_Mem_Mc1_Dq[2]}]
 set_property PACKAGE_PIN D10 [get_ports {pioDDR4_Mem_Mc1_Dq[3]}]
-set_property PACKAGE_PIN D9  [get_ports {pioDDR4_Mem_Mc1_Dq[4]}]
-set_property PACKAGE_PIN A9  [get_ports {pioDDR4_Mem_Mc1_Dq[5]}]
-set_property PACKAGE_PIN D8  [get_ports {pioDDR4_Mem_Mc1_Dq[6]}]
-set_property PACKAGE_PIN B9  [get_ports {pioDDR4_Mem_Mc1_Dq[7]}]
+set_property PACKAGE_PIN D9 [get_ports {pioDDR4_Mem_Mc1_Dq[4]}]
+set_property PACKAGE_PIN A9 [get_ports {pioDDR4_Mem_Mc1_Dq[5]}]
+set_property PACKAGE_PIN D8 [get_ports {pioDDR4_Mem_Mc1_Dq[6]}]
+set_property PACKAGE_PIN B9 [get_ports {pioDDR4_Mem_Mc1_Dq[7]}]
 set_property PACKAGE_PIN G10 [get_ports {pioDDR4_Mem_Mc1_Dq[8]}]
-set_property PACKAGE_PIN J8  [get_ports {pioDDR4_Mem_Mc1_Dq[9]}]
-set_property PACKAGE_PIN G9  [get_ports {pioDDR4_Mem_Mc1_Dq[10]}]
-set_property PACKAGE_PIN F9  [get_ports {pioDDR4_Mem_Mc1_Dq[11]}]
-set_property PACKAGE_PIN H9  [get_ports {pioDDR4_Mem_Mc1_Dq[12]}]
-set_property PACKAGE_PIN H8  [get_ports {pioDDR4_Mem_Mc1_Dq[13]}]
-set_property PACKAGE_PIN J9  [get_ports {pioDDR4_Mem_Mc1_Dq[14]}]
+set_property PACKAGE_PIN J8 [get_ports {pioDDR4_Mem_Mc1_Dq[9]}]
+set_property PACKAGE_PIN G9 [get_ports {pioDDR4_Mem_Mc1_Dq[10]}]
+set_property PACKAGE_PIN F9 [get_ports {pioDDR4_Mem_Mc1_Dq[11]}]
+set_property PACKAGE_PIN H9 [get_ports {pioDDR4_Mem_Mc1_Dq[12]}]
+set_property PACKAGE_PIN H8 [get_ports {pioDDR4_Mem_Mc1_Dq[13]}]
+set_property PACKAGE_PIN J9 [get_ports {pioDDR4_Mem_Mc1_Dq[14]}]
 set_property PACKAGE_PIN F10 [get_ports {pioDDR4_Mem_Mc1_Dq[15]}]
 set_property PACKAGE_PIN J13 [get_ports {pioDDR4_Mem_Mc1_Dq[16]}]
 set_property PACKAGE_PIN K11 [get_ports {pioDDR4_Mem_Mc1_Dq[17]}]
@@ -482,10 +482,10 @@ set_property PACKAGE_PIN AL25 [get_ports poDDR4_Mem_Mc0_Cs_n]
 set_property PACKAGE_PIN AF25 [get_ports poDDR4_Mem_Mc0_Odt]
 
 set_property IOSTANDARD LVCMOS18 [get_ports poLED_HeartBeat_n]
-set_property IOSTANDARD LVDS     [get_ports piCLKT_Usr0Clk_n]
-set_property IOSTANDARD LVDS     [get_ports piCLKT_Usr0Clk_p]
-set_property IOSTANDARD LVDS     [get_ports piCLKT_Usr1Clk_n]
-set_property IOSTANDARD LVDS     [get_ports piCLKT_Usr1Clk_p]
+set_property IOSTANDARD LVDS [get_ports piCLKT_Usr0Clk_n]
+set_property IOSTANDARD LVDS [get_ports piCLKT_Usr0Clk_p]
+set_property IOSTANDARD LVDS [get_ports piCLKT_Usr1Clk_n]
+set_property IOSTANDARD LVDS [get_ports piCLKT_Usr1Clk_p]
 set_property IOSTANDARD LVCMOS18 [get_ports piPSOC_Fcfg_Rst_n]
 set_property IOSTANDARD LVCMOS18 [get_ports piPSOC_Emif_Clk]
 set_property IOSTANDARD LVCMOS18 [get_ports piPSOC_Emif_Cs_n]
@@ -510,45 +510,46 @@ set_property IOSTANDARD LVCMOS18 [get_ports {pioPSOC_Emif_Data[6]}]
 set_property IOSTANDARD LVCMOS18 [get_ports {pioPSOC_Emif_Data[7]}]
 set_property IOSTANDARD LVCMOS12 [get_ports poDDR4_Mem_Mc0_Reset_n]
 
-set_property DRIVE 8                     [get_ports poDDR4_Mem_Mc0_Reset_n]
+set_property DRIVE 8 [get_ports poDDR4_Mem_Mc0_Reset_n]
 
-set_property IOSTANDARD SSTL12_DCI       [get_ports poDDR4_Mem_Mc0_Act_n]
+set_property IOSTANDARD SSTL12_DCI [get_ports poDDR4_Mem_Mc0_Act_n]
 set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports poDDR4_Mem_Mc0_Act_n]
 
-set_property IOSTANDARD DIFF_SSTL12_DCI  [get_ports poDDR4_Mem_Mc0_Ck_n]
-set_property IOSTANDARD DIFF_SSTL12_DCI  [get_ports poDDR4_Mem_Mc0_Ck_p]
+set_property IOSTANDARD DIFF_SSTL12_DCI [get_ports poDDR4_Mem_Mc0_Ck_n]
+set_property IOSTANDARD DIFF_SSTL12_DCI [get_ports poDDR4_Mem_Mc0_Ck_p]
 set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports poDDR4_Mem_Mc0_Ck_n]
 set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports poDDR4_Mem_Mc0_Ck_p]
 
-set_property IOSTANDARD SSTL12_DCI       [get_ports poDDR4_Mem_Mc0_Cke]
+set_property IOSTANDARD SSTL12_DCI [get_ports poDDR4_Mem_Mc0_Cke]
 set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports poDDR4_Mem_Mc0_Cke]
 
-set_property IOSTANDARD SSTL12_DCI       [get_ports poDDR4_Mem_Mc0_Cs_n]
+set_property IOSTANDARD SSTL12_DCI [get_ports poDDR4_Mem_Mc0_Cs_n]
 set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports poDDR4_Mem_Mc0_Cs_n]
-set_property SLEW FAST                   [get_ports poDDR4_Mem_Mc0_Cs_n]
-set_property DATA_RATE SDR               [get_ports poDDR4_Mem_Mc0_Cs_n]
+set_property SLEW FAST [get_ports poDDR4_Mem_Mc0_Cs_n]
+set_property DATA_RATE SDR [get_ports poDDR4_Mem_Mc0_Cs_n]
 
-set_property IOSTANDARD SSTL12_DCI       [get_ports poDDR4_Mem_Mc0_Odt]
+set_property IOSTANDARD SSTL12_DCI [get_ports poDDR4_Mem_Mc0_Odt]
 set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports poDDR4_Mem_Mc0_Odt]
 
-set_property IOSTANDARD LVCMOS12         [get_ports poDDR4_Mem_Mc1_Reset_n]
-set_property DRIVE 8                     [get_ports poDDR4_Mem_Mc1_Reset_n]
+set_property IOSTANDARD LVCMOS12 [get_ports poDDR4_Mem_Mc1_Reset_n]
+set_property DRIVE 8 [get_ports poDDR4_Mem_Mc1_Reset_n]
 
-set_property IOSTANDARD SSTL12_DCI       [get_ports poDDR4_Mem_Mc1_Act_n]
+set_property IOSTANDARD SSTL12_DCI [get_ports poDDR4_Mem_Mc1_Act_n]
 set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports poDDR4_Mem_Mc1_Act_n]
 
-set_property IOSTANDARD DIFF_SSTL12_DCI  [get_ports poDDR4_Mem_Mc1_Ck_n]
-set_property IOSTANDARD DIFF_SSTL12_DCI  [get_ports poDDR4_Mem_Mc1_Ck_p]
+set_property IOSTANDARD DIFF_SSTL12_DCI [get_ports poDDR4_Mem_Mc1_Ck_n]
+set_property IOSTANDARD DIFF_SSTL12_DCI [get_ports poDDR4_Mem_Mc1_Ck_p]
 set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports poDDR4_Mem_Mc1_Ck_n]
 set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports poDDR4_Mem_Mc1_Ck_p]
 
-set_property IOSTANDARD SSTL12_DCI       [get_ports poDDR4_Mem_Mc1_Cke]
+set_property IOSTANDARD SSTL12_DCI [get_ports poDDR4_Mem_Mc1_Cke]
 set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports poDDR4_Mem_Mc1_Cke]
 
-set_property IOSTANDARD SSTL12_DCI       [get_ports poDDR4_Mem_Mc1_Cs_n]
+set_property IOSTANDARD SSTL12_DCI [get_ports poDDR4_Mem_Mc1_Cs_n]
 set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports poDDR4_Mem_Mc1_Cs_n]
-set_property SLEW FAST                   [get_ports poDDR4_Mem_Mc1_Cs_n]
-set_property DATA_RATE SDR               [get_ports poDDR4_Mem_Mc1_Cs_n]
+set_property SLEW FAST [get_ports poDDR4_Mem_Mc1_Cs_n]
+set_property DATA_RATE SDR [get_ports poDDR4_Mem_Mc1_Cs_n]
 
-set_property IOSTANDARD SSTL12_DCI       [get_ports poDDR4_Mem_Mc1_Odt]
+set_property IOSTANDARD SSTL12_DCI [get_ports poDDR4_Mem_Mc1_Odt]
 set_property OUTPUT_IMPEDANCE RDRV_40_40 [get_ports poDDR4_Mem_Mc1_Odt]
+

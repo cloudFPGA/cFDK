@@ -859,7 +859,7 @@ template<typename T> void pStreamMux(
         ap_uint<16>                             &poDBG_SssRegCnt
         #if TOE_FEATURE_USED_FOR_DEBUGGING
         //-- DEBUG / SimCycCounter
-        ap_uint<32>                        &poSimCycCount
+        ap_uint<32>                             &poSimCycCount
         #endif
     );
 

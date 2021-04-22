@@ -20,7 +20,7 @@
 # *
 # *-----------------------------------------------------------------------------
 # *
-# * Title   : Default physical constraint file for the  the module FMKU60 
+# * Title   : Default physical constraint file for the  the module FMKU60
 # *            (i.e. FMKU2595 equipped with a XCKU060).
 # *
 # * File    : top_FMKU60_Flash.xdc
@@ -62,7 +62,7 @@
 #   To avoid some of the DRC warnings during Bitstream generation
 #---------------------------------------------------------------------
 set_property CONFIG_VOLTAGE 1.8 [current_design]
-set_property CFGBVS GND         [current_design]
+set_property CFGBVS GND [current_design]
 
 #---------------------------------------------------------------------
 # Enable bitstream compression
@@ -79,5 +79,6 @@ set_property BITSTREAM.GENERAL.COMPRESS TRUE [current_design]
 #                        -file ${xprName}.mcs
 #---------------------------------------------------------------------
 set_property BITSTREAM.CONFIG.EXTMASTERCCLK_EN DIV-1 [current_design]
-set_property BITSTREAM.CONFIG.BPI_SYNC_MODE TYPE1    [current_design]
-set_property CONFIG_MODE BPI16                       [current_design]
+set_property BITSTREAM.CONFIG.BPI_SYNC_MODE TYPE1 [current_design]
+set_property CONFIG_MODE BPI16 [current_design]
+
