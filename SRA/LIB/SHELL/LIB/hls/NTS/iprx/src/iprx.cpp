@@ -1045,18 +1045,18 @@ void iprx(
     //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
 
-    #pragma HLS INTERFACE ap_stable          port=piMMIO_MacAddress name=piMMIO_MacAddress
-    #pragma HLS INTERFACE ap_stable          port=piMMIO_Ip4Address name=piMMIO_Ip4Address
+    #pragma HLS INTERFACE ap_stable             port=piMMIO_MacAddress name=piMMIO_MacAddress
+    #pragma HLS INTERFACE ap_stable             port=piMMIO_Ip4Address name=piMMIO_Ip4Address
 
-    #pragma HLS INTERFACE axis off           port=siETH_Data        name=siETH_Data
+    #pragma HLS INTERFACE axis off              port=siETH_Data        name=siETH_Data
 
-    #pragma HLS INTERFACE axis off           port=soARP_Data        name=soARP_Data
+    #pragma HLS INTERFACE axis off              port=soARP_Data        name=soARP_Data
 
-    #pragma HLS INTERFACE axis off           port=soICMP_Data       name=soICMP_Data
-    #pragma HLS INTERFACE axis off           port=soICMP_Derr       name=soICMP_Derr
+    #pragma HLS INTERFACE axis off              port=soICMP_Data       name=soICMP_Data
+    #pragma HLS INTERFACE axis register forward port=soICMP_Derr       name=soICMP_Derr
 
-    #pragma HLS INTERFACE axis off           port=soUOE_Data        name=soUOE_Data
-    #pragma HLS INTERFACE axis off           port=soTOE_Data        name=soTOE_Data
+    #pragma HLS INTERFACE axis off              port=soUOE_Data        name=soUOE_Data
+    #pragma HLS INTERFACE axis off              port=soTOE_Data        name=soTOE_Data
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW disable_start_propagation
