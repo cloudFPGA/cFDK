@@ -678,16 +678,16 @@ void iptx(
     //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
 
-    #pragma HLS INTERFACE   ap_stable        port=piMMIO_MacAddress
-    #pragma HLS INTERFACE   ap_stable        port=piMMIO_SubNetMask
-    #pragma HLS INTERFACE   ap_stable        port=piMMIO_GatewayAddr
+    #pragma HLS INTERFACE ap_stable        port=piMMIO_MacAddress
+    #pragma HLS INTERFACE ap_stable        port=piMMIO_SubNetMask
+    #pragma HLS INTERFACE ap_stable        port=piMMIO_GatewayAddr
 
-    #pragma HLS INTERFACE   axis off         port=siL3MUX_Data
-    #pragma HLS INTERFACE   axis off         port=soL2MUX_Data
+    #pragma HLS INTERFACE axis register both port=siL3MUX_Data
+    #pragma HLS INTERFACE axis register both port=soL2MUX_Data
 
-    #pragma HLS INTERFACE   axis off         port=soARP_LookupReq
-    #pragma HLS INTERFACE   axis off         port=siARP_LookupRep
-    #pragma HLS DATA_PACK                variable=siARP_LookupRep
+    #pragma HLS INTERFACE axis register both port=soARP_LookupReq
+    #pragma HLS INTERFACE axis register both port=siARP_LookupRep
+    #pragma HLS DATA_PACK              variable=siARP_LookupRep
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW disable_start_propagation
