@@ -1105,13 +1105,13 @@ void toe(
     #pragma HLS DATA_PACK                variable=soMEM_TxP_WrCmd
     #pragma HLS INTERFACE axis off           port=soMEM_TxP_Data  name=soMEM_TxP_Data
     //-- CAM / Session Lookup & Update Interfaces -----------------------------
-    #pragma HLS INTERFACE axis off           port=siCAM_SssLkpRep name=siCAM_SssLkpRep
+    #pragma HLS INTERFACE axis register both port=siCAM_SssLkpRep name=siCAM_SssLkpRep
     #pragma HLS DATA_PACK                variable=siCAM_SssLkpRep
-    #pragma HLS INTERFACE axis off           port=siCAM_SssUpdRep name=siCAM_SssUpdRep
+    #pragma HLS INTERFACE axis register both port=siCAM_SssUpdRep name=siCAM_SssUpdRep
     #pragma HLS DATA_PACK                variable=siCAM_SssUpdRep
-    #pragma HLS INTERFACE axis off           port=soCAM_SssLkpReq name=soCAM_SssLkpReq
+    #pragma HLS INTERFACE axis register both port=soCAM_SssLkpReq name=soCAM_SssLkpReq
     #pragma HLS DATA_PACK                variable=soCAM_SssLkpReq
-    #pragma HLS INTERFACE axis off           port=soCAM_SssUpdReq name=soCAM_SssUpdReq
+    #pragma HLS INTERFACE axis register both port=soCAM_SssUpdReq name=soCAM_SssUpdReq
     #pragma HLS DATA_PACK                variable=soCAM_SssUpdReq
     //-- DEBUG / Session Statistics Interfaces
     #pragma HLS INTERFACE ap_none register   port=poDBG_SssRelCnt name=poDBG_SssRelCnt
