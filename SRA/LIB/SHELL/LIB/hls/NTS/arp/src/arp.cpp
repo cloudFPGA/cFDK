@@ -675,8 +675,8 @@ void arp(
     #pragma HLS INTERFACE ap_stable          port=piMMIO_MacAddress
     #pragma HLS INTERFACE ap_stable          port=piMMIO_Ip4Address
 
-    #pragma HLS INTERFACE axis off           port=siIPRX_Data
-    #pragma HLS INTERFACE axis off           port=soETH_Data
+    #pragma HLS INTERFACE axis register both port=siIPRX_Data
+    #pragma HLS INTERFACE axis register both port=soETH_Data
 
     #pragma HLS INTERFACE axis register both port=siIPTX_MacLkpReq
     #pragma HLS INTERFACE axis register both port=soIPTX_MacLkpRep
