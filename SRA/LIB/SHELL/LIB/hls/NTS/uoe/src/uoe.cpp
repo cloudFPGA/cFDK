@@ -1920,28 +1920,28 @@ void uoe(
     //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
 
-    #pragma HLS INTERFACE ap_stable          port=piMMIO_En         name=piMMIO_En
+    #pragma HLS INTERFACE ap_stable             port=piMMIO_En         name=piMMIO_En
 
-    #pragma HLS INTERFACE axis register both port=soMMIO_Ready      name=soMMIO_Ready
+    #pragma HLS INTERFACE axis register both    port=soMMIO_Ready      name=soMMIO_Ready
 
-    #pragma HLS INTERFACE axis off           port=siIPRX_Data       name=siIPRX_Data
-    #pragma HLS INTERFACE axis off           port=soIPTX_Data       name=soIPTX_Data
+    #pragma HLS INTERFACE axis off              port=siIPRX_Data       name=siIPRX_Data
+    #pragma HLS INTERFACE axis register forward port=soIPTX_Data       name=soIPTX_Data
 
-    #pragma HLS INTERFACE axis off           port=siUAIF_LsnReq     name=siUAIF_LsnReq
-    #pragma HLS INTERFACE axis off           port=soUAIF_LsnRep     name=soUAIF_LsnRep
-    #pragma HLS INTERFACE axis off           port=siUAIF_ClsReq     name=siUAIF_ClsReq
-    #pragma HLS INTERFACE axis off           port=soUAIF_ClsRep     name=soUAIF_ClsRep
+    #pragma HLS INTERFACE axis off              port=siUAIF_LsnReq     name=siUAIF_LsnReq
+    #pragma HLS INTERFACE axis off              port=soUAIF_LsnRep     name=soUAIF_LsnRep
+    #pragma HLS INTERFACE axis off              port=siUAIF_ClsReq     name=siUAIF_ClsReq
+    #pragma HLS INTERFACE axis off              port=soUAIF_ClsRep     name=soUAIF_ClsRep
 
-    #pragma HLS INTERFACE axis off           port=soUAIF_Data       name=soUAIF_Data
-    #pragma HLS INTERFACE axis off           port=soUAIF_Meta       name=soUAIF_Meta
-    #pragma HLS DATA_PACK                variable=soUAIF_Meta   instance=soUAIF_Meta
+    #pragma HLS INTERFACE axis off              port=soUAIF_Data       name=soUAIF_Data
+    #pragma HLS INTERFACE axis off              port=soUAIF_Meta       name=soUAIF_Meta
+    #pragma HLS DATA_PACK                   variable=soUAIF_Meta   instance=soUAIF_Meta
 
-    #pragma HLS INTERFACE axis off           port=siUAIF_Data       name=siUAIF_Data
-    #pragma HLS INTERFACE axis off           port=siUAIF_Meta       name=siUAIF_Meta
-    #pragma HLS DATA_PACK                variable=siUAIF_Meta   instance=siUAIF_Meta
-    #pragma HLS INTERFACE axis off           port=siUAIF_DLen       name=siUAIF_DLen
+    #pragma HLS INTERFACE axis off              port=siUAIF_Data       name=siUAIF_Data
+    #pragma HLS INTERFACE axis off              port=siUAIF_Meta       name=siUAIF_Meta
+    #pragma HLS DATA_PACK                   variable=siUAIF_Meta   instance=siUAIF_Meta
+    #pragma HLS INTERFACE axis off              port=siUAIF_DLen       name=siUAIF_DLen
 
-    #pragma HLS INTERFACE axis off           port=soICMP_Data       name=soICMP_Data
+    #pragma HLS INTERFACE axis register forward port=soICMP_Data       name=soICMP_Data
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW disable_start_propagation
