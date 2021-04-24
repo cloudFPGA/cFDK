@@ -838,9 +838,9 @@ void icmp(
     #pragma HLS INTERFACE ap_stable             port=piMMIO_Ip4Address
 
     #pragma HLS INTERFACE axis off              port=siIPRX_Data
-    #pragma HLS INTERFACE axis register forward port=siIPRX_Derr
+    #pragma HLS INTERFACE axis register both    port=siIPRX_Derr
     #pragma HLS INTERFACE axis off              port=siUOE_Data
-    #pragma HLS INTERFACE axis register forward port=soIPTX_Data
+    #pragma HLS INTERFACE axis register both    port=soIPTX_Data
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW disable_start_propagation
