@@ -61,7 +61,7 @@ proc my_clean_ip_dir { ipModName } {
     set filesets [ get_filesets ]
     foreach fileset $filesets {
         if [ string match "${::ipDir}/${ipModName}/${ipModName}.xci" ${fileset} ] {
-            my_dbg_trace "An IP with name \'${ipModName}\' already exists and will be removed from the project \'${::ipXprName} !" ${::dbgLvl_1}
+            my_dbg_trace "An IP with name \'${ipModName}\' already exists and will be removed from the project \'${::ipXprName} !" ${::dbgLvl_2}
             remove_files -fileset ${ipModName} ${fileset}
             break
         }        
@@ -71,7 +71,7 @@ proc my_clean_ip_dir { ipModName } {
     set files [ get_files ]
     foreach file $files {
         if [ string match "${::ipDir}/${ipModName}/${ipModName}.xci" ${file} ] {
-            my_dbg_trace "A dangling IP file \'${ipModName}\' already exists and will be removed from the project \'${::ipXprName} !" ${::dbgLvl_1}
+            my_dbg_trace "A dangling IP file \'${ipModName}\' already exists and will be removed from the project \'${::ipXprName} !" ${::dbgLvl_2}
             remove_files ${ipModName} ${file}
             break
         }        
@@ -104,7 +104,7 @@ proc my_customize_ip {ipModName ipDir ipVendor ipLibrary ipName ipVersion ipCfgL
 
     if { ${::gTargetIpCore} ne ${ipModName} && ${::gTargetIpCore} ne "all" } {
         # Skip the creation and customization this IP module
-        my_dbg_trace "Skipping Module ${ipModName}" ${::dbgLvl_1}
+        my_dbg_trace "Skipping Module ${ipModName}" ${::dbgLvl_2}
         return ${::OK} 
     } else {
         set ::nrGenIPs [ expr { ${::nrGenIPs} + 1 } ]
@@ -124,7 +124,7 @@ proc my_customize_ip {ipModName ipDir ipVendor ipLibrary ipName ipVersion ipCfgL
 
     set rc [ my_clean_ip_dir "${ipModName}" ]
 
-    my_dbg_trace "Done with \'my_clean_ip\' (RC=${rc})." ${::dbgLvl_1}
+    my_dbg_trace "Done with \'my_clean_ip\' (RC=${rc})." ${::dbgLvl_2}
 
     # Note-1: A typical 'create_ip" command looks like the following:
     #   "create_ip -name axis_register_slice -vendor xilinx.com -library ip \
@@ -135,13 +135,13 @@ proc my_customize_ip {ipModName ipDir ipVendor ipLibrary ipName ipVersion ipCfgL
     #   returning no messages from the command and always returning 'TCL_OK' regardless of
     #   any errors encountered during execution.
     if { [ catch { create_ip -name ${ipName} -vendor ${ipVendor} -library ${ipLibrary} \
-                       -version ${ipVersion} -module_name ${ipModName} -dir ${ipDir} -quiet } errMsg ] } {
+                       -version ${ipVersion} -module_name ${ipModName} -dir ${ipDir} } errMsg ] } {
         puts "ERROR_MSG = " ${errMsg}
         my_err_puts "## The TCL command \'create_ip\' failed (Error message = ${errMsg}"
         return  ${::KO}
     }
 
-    my_dbg_trace "Done with \'create_ip\' (errMsg=${errMsg})." ${::dbgLvl_1}
+    my_dbg_trace "Done with \'create_ip\' (errMsg=${errMsg})." ${::dbgLvl_2}
 
     if { ! [ string match ${ipModName}  [ get_ips ${ipModName} ] ] } {
         # The returned list does not match expected value. IP was not created.
@@ -156,29 +156,31 @@ proc my_customize_ip {ipModName ipDir ipVendor ipLibrary ipName ipVersion ipCfgL
     #                              CONFIG.HAS_TLAST {1} ] [ get_ips ${ipModName} ] 
     if { [llength ${ipCfgList} ] != 0 } {
         set_property -dict ${ipCfgList} [ get_ips ${ipModName} ]
-        my_dbg_trace "Done with \'set_property\'." ${::dbgLvl_1}
+        my_dbg_trace "Done with \'set_property\'." ${::dbgLvl_2}
     } else {
         my_dbg_trace "There is no \'set_property\' to be done." ${::dbgLvl_2}
     }
 
     generate_target {instantiation_template} \
-        [ get_files ${ipDir}/${ipModName}/${ipModName}.xci ]
-    my_dbg_trace "Done with \'generate_target\'." ${::dbgLvl_1}
+        [ get_files ${ipDir}/${ipModName}/${ipModName}.xci ] -force
+    my_dbg_trace "Done with \'generate_target\'." ${::dbgLvl_2}
 
-    # update_compile_order -fileset sources_1
+# TOTO upgrade_ip -srcset ContentAddressableMemory -vlnv IBM:hls:toecam_top:1.0 [get_ips  ContentAddressableMemory] -log ip_upgrade.lo
+
+    update_compile_order -fileset sources_1
 
     generate_target all [ get_files ${ipDir}/${ipModName}/${ipModName}.xci ]
-    my_dbg_trace "Done with \'generate_target all\'." ${::dbgLvl_1}
+    my_dbg_trace "Done with \'generate_target all\'." ${::dbgLvl_2}
 
     catch { config_ip_cache -export [ get_ips -all ${ipModName} ] }
 
     export_ip_user_files -of_objects \
         [ get_files ${ipDir}/${ipModName}/${ipModName}.xci ] -no_script -sync -force -quiet
-    my_dbg_trace "Done with \'export_ip_user_files\'." ${::dbgLvl_1}
+    my_dbg_trace "Done with \'export_ip_user_files\'." ${::dbgLvl_2}
 
     create_ip_run [ get_files -of_objects \
                         [ get_fileset sources_1 ] ${ipDir}/${ipModName}/${ipModName}.xci ]
-    my_dbg_trace "Done with \'create_ip_run\'." ${::dbgLvl_1}
+    my_dbg_trace "Done with \'create_ip_run\'." ${::dbgLvl_2}
 
     puts "## Done with IP \'${ipModName}\' creation and customization. \n"
     return ${::OK}
@@ -326,9 +328,120 @@ set_property target_simulator XSim [current_project]
 set_property target_language Verilog [current_project]
 
 
+################################################################################
+##
+##  PHASE-1: Creating HLS-based cores
+##
+################################################################################
+
+# Specify the IP Repository Path to add the HLS-based IP implementation paths.
+#   (Must do this because IPs are stored outside of the current project) 
+#-------------------------------------------------------------------------------
+#set_property      ip_repo_paths ${hlsDir} [ current_fileset ]
+#set_property      ip_repo_paths [list ${ip_repo_paths} ${cFpRootDir}/cFDK/SRA/LIB/SHELL/LIB/hls ] [ current_fileset ]
+# --> only HLS cores in SHELL/LIB; should be an absolut path
+set_property      ip_repo_paths ${cFpRootDir}/cFDK/SRA/LIB/SHELL/LIB/hls [ current_fileset ]
+update_ip_catalog
+
+#------------------------------------------------------------------------------  
+# IBM-HSL-IP : Address Resolution Server 
+#------------------------------------------------------------------------------
+set ipModName "AddressResolutionServer"
+set ipName    "arp_top"
+set ipVendor  "IBM"
+set ipLibrary "hls"
+set ipVersion "1.0"
+set ipCfgList  [ list ]
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
+#------------------------------------------------------------------------------  
+# IBM-HSL-IP : Content-Addressable Memory 
+#------------------------------------------------------------------------------
+set ipModName "ContentAddressableMemory"
+set ipName    "toecam_top"
+set ipVendor  "IBM"
+set ipLibrary "hls"
+set ipVersion "1.0"
+set ipCfgList  [ list ]
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
+#------------------------------------------------------------------------------  
+# IBM-HSL-IP : Internet Control Message Process 
+#------------------------------------------------------------------------------
+set ipModName "InternetControlMessageProcess"
+set ipName    "icmp_top"
+set ipVendor  "IBM"
+set ipLibrary "hls"
+set ipVersion "1.0"
+set ipCfgList  [ list ]
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
+#------------------------------------------------------------------------------  
+# IBM-HSL-IP : IP RX Handler 
+#------------------------------------------------------------------------------
+set ipModName "IpRxHandler"
+set ipName    "iprx_top"
+set ipVendor  "IBM"
+set ipLibrary "hls"
+set ipVersion "1.0"
+set ipCfgList  [ list ]
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
+#------------------------------------------------------------------------------  
+# IBM-HSL-IP : IP TX Handler 
+#------------------------------------------------------------------------------
+set ipModName "IpTxHandler"
+set ipName    "iptx_top"
+set ipVendor  "IBM"
+set ipLibrary "hls"
+set ipVersion "1.0"
+set ipCfgList  [ list ]
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
+#------------------------------------------------------------------------------  
+# IBM-HSL-IP : Ready Logic Barrier
+#------------------------------------------------------------------------------
+set ipModName "ReadyLogicBarrier"
+set ipName    "rlb"
+set ipVendor  "IBM"
+set ipLibrary "hls"
+set ipVersion "1.0"
+set ipCfgList  [ list ]
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
+#------------------------------------------------------------------------------  
+# IBM-HSL-IP : UDP Offload Engine
+#------------------------------------------------------------------------------
+set ipModName "UdpOffloadEngine"
+set ipName    "uoe_top"
+set ipVendor  "IBM"
+set ipLibrary "hls"
+set ipVersion "1.0"
+set ipCfgList  [ list ]
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
+#------------------------------------------------------------------------------  
+# IBM-HSL-IP : TCP Offload Engine
+#------------------------------------------------------------------------------
+set ipModName "TcpOffloadEngine"
+set ipName    "toe_top"
+set ipVendor  "IBM"
+set ipLibrary "hls"
+set ipVersion "1.0"
+set ipCfgList  [ list ]
+set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
+if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
+
 ###############################################################################
 ##                                   
-##  PHASE-1: Creating Vivado-based IPs
+##  PHASE-2: Creating Vivado-based IPs
 ##
 ###############################################################################
 my_puts ""
@@ -355,9 +468,7 @@ set ipVersion "1.1"
 set ipCfgList  [ list CONFIG.TDATA_NUM_BYTES {1} \
                       CONFIG.HAS_TKEEP {0} \
                       CONFIG.HAS_TLAST {0} ]
-
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 #------------------------------------------------------------------------------  
@@ -382,11 +493,8 @@ set ipVersion "1.1"
 set ipCfgList  [ list CONFIG.TDATA_NUM_BYTES {2} \
                       CONFIG.HAS_TKEEP {0} \
                       CONFIG.HAS_TLAST {0} ]
-
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
 
 #------------------------------------------------------------------------------  
 # VIVADO-IP : AXI Register Slice [24]
@@ -410,11 +518,8 @@ set ipVersion "1.1"
 set ipCfgList  [ list CONFIG.TDATA_NUM_BYTES {3} \
                       CONFIG.HAS_TKEEP {0} \
                       CONFIG.HAS_TLAST {0} ]
-
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
 
 #------------------------------------------------------------------------------  
 # VIVADO-IP : AXI Register Slice [32]
@@ -438,11 +543,8 @@ set ipVersion "1.1"
 set ipCfgList  [ list CONFIG.TDATA_NUM_BYTES {4} \
                       CONFIG.HAS_TKEEP {0} \
                       CONFIG.HAS_TLAST {0} ]
-
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
 
 #------------------------------------------------------------------------------  
 # VIVADO-IP : AXI Register Slice [48]
@@ -466,9 +568,7 @@ set ipVersion "1.1"
 set ipCfgList  [ list CONFIG.TDATA_NUM_BYTES {6} \
                       CONFIG.HAS_TKEEP {0} \
                       CONFIG.HAS_TLAST {0} ]
-
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
 #------------------------------------------------------------------------------  
@@ -493,9 +593,7 @@ set ipVersion "1.1"
 set ipCfgList  [ list CONFIG.TDATA_NUM_BYTES {7} \
                       CONFIG.HAS_TKEEP {0} \
                       CONFIG.HAS_TLAST {0} ]
-
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
  
 #------------------------------------------------------------------------------  
@@ -520,11 +618,8 @@ set ipVersion "1.1"
 set ipCfgList  [ list CONFIG.TDATA_NUM_BYTES {8} \
                       CONFIG.HAS_TKEEP {1} \
                       CONFIG.HAS_TLAST {1} ]
-
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
 
 #------------------------------------------------------------------------------  
 # VIVADO-IP : AXI Register Slice [96]
@@ -548,11 +643,8 @@ set ipVersion "1.1"
 set ipCfgList  [ list CONFIG.TDATA_NUM_BYTES {12} \
                       CONFIG.HAS_TKEEP {0} \
                       CONFIG.HAS_TLAST {0} ]
-
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
 
 #------------------------------------------------------------------------------  
 # VIVADO-IP : AXI Register Slice [104]
@@ -576,11 +668,8 @@ set ipVersion "1.1"
 set ipCfgList  [ list CONFIG.TDATA_NUM_BYTES {13} \
                       CONFIG.HAS_TKEEP {0} \
                       CONFIG.HAS_TLAST {0} ]
-
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
 
 #------------------------------------------------------------------------------  
 # VIVADO-IP : 10G Ethernet Subsystem [ETH0, 10GBASE-R] 
@@ -628,12 +717,9 @@ set ipCfgList  [ list CONFIG.Management_Interface {false} \
                       CONFIG.TransceiverControl {true} \
                       CONFIG.fec {0} \
                       CONFIG.Statistics_Gathering {0} ]
-
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
- 
 #------------------------------------------------------------------------------  
 # VIVADO-IP : AXI DataMover [M512, S64, B16] 
 #------------------------------------------------------------------------------
@@ -692,11 +778,8 @@ set ipCfgList  [ list CONFIG.c_m_axi_mm2s_data_width {512} \
                       CONFIG.c_include_s2mm_dre {true} \
                       CONFIG.c_mm2s_include_sf {false} \
                       CONFIG.c_s2mm_include_sf {false} ]
-
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
 
 #------------------------------------------------------------------------------  
 # VIVADO-IP : AXI DataMover [M512, S512, B64]
@@ -754,11 +837,8 @@ set ipCfgList  [ list CONFIG.c_m_axi_mm2s_data_width {512} \
                       CONFIG.c_addr_width {33} \
                       CONFIG.c_mm2s_include_sf {false} \
                       CONFIG.c_s2mm_include_sf {false} ]
-
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
 
 #------------------------------------------------------------------------------  
 # VIVADO-IP : AXI Interconnect [1M, 2S, A33, D512] 
@@ -808,12 +888,8 @@ set ipCfgList  [ list CONFIG.INTERCONNECT_DATA_WIDTH {512} \
                       CONFIG.S01_AXI_REGISTER {1} \
                       CONFIG.M00_AXI_REGISTER {1} \
                       CONFIG.THREAD_ID_WIDTH {4}  ]
-
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
-
 
 #------------------------------------------------------------------------------  
 # VIVADO-IP : DDR4 Memory Channel Controller
@@ -858,12 +934,8 @@ set ipCfgList  [ list CONFIG.C0.DDR4_MemoryPart {MT40A1G8WE-075E} \
                       CONFIG.C0.DDR4_Specify_MandD {true} \
                       CONFIG.C0.DDR4_AxiNarrowBurst {true} \
                       CONFIG.C0.DDR4_AxiIDWidth {8} ]
-
-
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
 
 #------------------------------------------------------------------------------  
 # VIVADO-IP : AXI4-Stream Interconnect RTL [3S1M, D8] 
@@ -916,11 +988,8 @@ set ipCfgList  [ list CONFIG.C_NUM_SI_SLOTS {3} \
                       CONFIG.S02_AXIS_TDATA_NUM_BYTES {8} \
                       CONFIG.M00_S01_CONNECTIVITY {true} \
                       CONFIG.M00_S02_CONNECTIVITY {true} ]
-
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
 
 #------------------------------------------------------------------------------  
 # VIVADO-IP : AXI4-Stream Interconnect RTL [2S1M, D8] 
@@ -971,16 +1040,12 @@ set ipCfgList [list CONFIG.C_NUM_SI_SLOTS {2} \
                     CONFIG.S00_AXIS_TDATA_NUM_BYTES {8} \
                     CONFIG.S01_AXIS_TDATA_NUM_BYTES {8} \
                     CONFIG.M00_S01_CONNECTIVITY {true} ]
-
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
 
 #------------------------------------------------------------------------------  
 # VIVADO-IP : AXI HWICAP IP
 #------------------------------------------------------------------------------ 
-
 set ipModName "HWICAPC"
 set ipName    "axi_hwicap"
 set ipVendor  "xilinx.com"
@@ -989,147 +1054,5 @@ set ipVersion "3.0"
 set ipCfgList [list CONFIG.C_WRITE_FIFO_DEPTH {1024} \
                     CONFIG.Component_Name {HWICAP} \
                     CONFIG.C_ICAP_EXTERNAL {0} ] 
-
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
-
-
-################################################################################
-##
-##  PHASE-2: Creating HLS-based cores
-##
-################################################################################
-my_puts ""
-
-# Specify the IP Repository Path to add the HLS-based IP implementation paths.
-#   (Must do this because IPs are stored outside of the current project) 
-#-------------------------------------------------------------------------------
-#set_property      ip_repo_paths ${hlsDir} [ current_fileset ]
-#set_property      ip_repo_paths [list ${ip_repo_paths} ${cFpRootDir}/cFDK/SRA/LIB/SHELL/LIB/hls ] [ current_fileset ]
-# --> only HLS cores in SHELL/LIB; should be an absolut path
-set_property      ip_repo_paths ${cFpRootDir}/cFDK/SRA/LIB/SHELL/LIB/hls [ current_fileset ]
-update_ip_catalog
-
-#------------------------------------------------------------------------------  
-# IBM-HSL-IP : Address Resolution Server 
-#------------------------------------------------------------------------------
-set ipModName "AddressResolutionServer"
-set ipName    "arp_top"
-set ipVendor  "IBM"
-set ipLibrary "hls"
-set ipVersion "1.0"
-set ipCfgList  [ list ]
-
-set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
-if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
-#------------------------------------------------------------------------------  
-# IBM-HSL-IP : Content-Addressable Memory 
-#------------------------------------------------------------------------------
-set ipModName "ContentAddressableMemory"
-set ipName    "toecam_top"
-set ipVendor  "IBM"
-set ipLibrary "hls"
-set ipVersion "1.0"
-set ipCfgList  [ list ]
-
-set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
-if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
-
-#------------------------------------------------------------------------------  
-# IBM-HSL-IP : Internet Control Message Process 
-#------------------------------------------------------------------------------
-set ipModName "InternetControlMessageProcess"
-set ipName    "icmp_top"
-set ipVendor  "IBM"
-set ipLibrary "hls"
-set ipVersion "1.0"
-set ipCfgList  [ list ]
-
-set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
-if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
-
-#------------------------------------------------------------------------------  
-# IBM-HSL-IP : IP RX Handler 
-#------------------------------------------------------------------------------
-set ipModName "IpRxHandler"
-set ipName    "iprx_top"
-set ipVendor  "IBM"
-set ipLibrary "hls"
-set ipVersion "1.0"
-set ipCfgList  [ list ]
-
-set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
-if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
-
-#------------------------------------------------------------------------------  
-# IBM-HSL-IP : IP TX Handler 
-#------------------------------------------------------------------------------
-set ipModName "IpTxHandler"
-set ipName    "iptx_top"
-set ipVendor  "IBM"
-set ipLibrary "hls"
-set ipVersion "1.0"
-set ipCfgList  [ list ]
-
-set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
-if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
-
-#------------------------------------------------------------------------------  
-# IBM-HSL-IP : Ready Logic Barrier
-#------------------------------------------------------------------------------
-set ipModName "ReadyLogicBarrier"
-set ipName    "rlb"
-set ipVendor  "IBM"
-set ipLibrary "hls"
-set ipVersion "1.0"
-set ipCfgList  [ list ]
-
-set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
-if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
-
-#------------------------------------------------------------------------------  
-# IBM-HSL-IP : UDP Offload Engine
-#------------------------------------------------------------------------------
-set ipModName "UdpOffloadEngine"
-set ipName    "uoe_top"
-set ipVendor  "IBM"
-set ipLibrary "hls"
-set ipVersion "1.0"
-set ipCfgList  [ list ]
-
-set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
-if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
-
-#------------------------------------------------------------------------------  
-# IBM-HSL-IP : TCP Offload Engine
-#------------------------------------------------------------------------------
-set ipModName "TcpOffloadEngine"
-set ipName    "toe_top"
-set ipVendor  "IBM"
-set ipLibrary "hls"
-set ipVersion "1.0"
-set ipCfgList  [ list ]
-
-set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
-
-if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
-
-
-
-
