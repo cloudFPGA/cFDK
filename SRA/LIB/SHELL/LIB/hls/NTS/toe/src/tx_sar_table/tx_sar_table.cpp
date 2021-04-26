@@ -90,8 +90,8 @@ void tx_sar_table(
     //-- STATIC ARRAYS ---------------------------------------------------------
     static TxSarEntry               TX_SAR_TABLE[TOE_MAX_SESSIONS];
     #pragma HLS DEPENDENCE variable=TX_SAR_TABLE inter false
-    #pragma HLS RESOURCE   variable=TX_SAR_TABLE core=RAM_T2P_BRAM
-    #pragma HLS RESET      variable=TX_SAR_TABLE
+    //OBSOLETE_20210424 #pragma HLS RESOURCE   variable=TX_SAR_TABLE core=RAM_T2P_BRAM
+    //OBSOLETE_20210423 #pragma HLS RESET      variable=TX_SAR_TABLE
 
     if (!siTXe_TxSarQry.empty()) {
         TXeTxSarQuery sTXeQry;
@@ -134,9 +134,11 @@ void tx_sar_table(
         }
         else {
             //-- Read Query
+            TxSarEntry txSarEntry = TX_SAR_TABLE[sTXeQry.sessionID];
+
             TcpWindow   minWindow;
-            if (TX_SAR_TABLE[sTXeQry.sessionID].cong_window < TX_SAR_TABLE[sTXeQry.sessionID].recv_window) {
-                minWindow = TX_SAR_TABLE[sTXeQry.sessionID].cong_window;
+            if (txSarEntry.cong_window < txSarEntry.recv_window) {
+                minWindow = txSarEntry.cong_window;
             }
             else {
                 minWindow = TX_SAR_TABLE[sTXeQry.sessionID].recv_window;
@@ -149,7 +151,6 @@ void tx_sar_table(
                                                TX_SAR_TABLE[sTXeQry.sessionID].finSent));
         }
     }
-
     else if (!siTAi_PushCmd.empty()) {
         TAiTxSarPush sTAiCmd;
         //---------------------------------------
@@ -158,7 +159,6 @@ void tx_sar_table(
         siTAi_PushCmd.read(sTAiCmd);
         TX_SAR_TABLE[sTAiCmd.sessionID].appw = sTAiCmd.app;
     }
-
     else if (!siRXe_TxSarQry.empty()) {
         RXeTxSarQuery sRXeQry;
         //---------------------------------------

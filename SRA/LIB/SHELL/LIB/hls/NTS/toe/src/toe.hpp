@@ -465,8 +465,8 @@ class TXeTxSarRtQuery : public TXeTxSarQuery
         TXeTxSarQuery(q.sessionID, q.not_ackd, q.write, q.init, q.finReady, q.finSent, q.isRtQuery) {}
     TXeTxSarRtQuery(SessionId id, ap_uint<16> ssthresh) :
         TXeTxSarQuery(id, ssthresh, 1, 0, false, false, true) {}
-    ap_uint<16> getThreshold() {
-        return not_ackd(15, 0);
+    ap_uint<TOE_WINDOW_BITS> getThreshold() {
+        return not_ackd(TOE_WINDOW_BITS-1, 0);
     }
 };
 
