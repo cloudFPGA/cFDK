@@ -99,6 +99,7 @@
 
 #include <cassert>
 #include <iostream>
+#include <hls_stream.h>
 
 #include "ap_int.h"
 
@@ -149,6 +150,8 @@ void pAxisRawCast(
         hls::stream<TypeOut>& so)
 {
     #pragma HLS PIPELINE II=1 enable_flush
+    #pragma HLS INLINE off
+
     if (!si.empty()) {
         so.write(si.read());
     }
