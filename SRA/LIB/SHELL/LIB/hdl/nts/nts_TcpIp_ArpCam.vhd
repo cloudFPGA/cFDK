@@ -209,8 +209,7 @@ begin
 			poUpdReq_Ready <= '0';
 			poLkpRep_Valid <= '0';
 			poUpdRep_Valid <= '0';
-			--OBSOLETE_20210416 sInitEnb        <= not sCAM_InitDone;
-			sInitEnb       <= '1';
+			sInitEnb        <= not sCAM_InitDone;
 		elsif (piClk'event and piClk='1') then 	
       sInitEnb       <= not sCAM_InitDone;
 			poLkpReq_Ready <= '0';
