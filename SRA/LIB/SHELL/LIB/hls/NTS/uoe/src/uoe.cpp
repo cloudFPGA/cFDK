@@ -382,28 +382,28 @@ void pUdpChecksumChecker(
             // Always forward datagram to [Rph]
             soRph_UdpDgrm.write(currChunk);
             if (currChunk.getUdpCsum() == 0x0000) {
-            // An all zero transmitted checksum  value means that the
-            // transmitter generated no checksum.
-            soRph_CsumVal.write(true);
-            ucc_fsmState = FSM_UCC_STREAM;
-        }
-        else {
-            // Accumulate e the UDP header
-            ucc_csum0  = 0x00000 | currChunk.getUdpSrcPort();
-            ucc_csum0 += ucc_psdHdrCsum;
-            ucc_csum0  = (ucc_csum0 & 0xFFFF) + (ucc_csum0 >> 16);
-            ucc_csum1 = 0x00000 | currChunk.getUdpDstPort();
-            ucc_csum2 = 0x00000 | currChunk.getUdpLen();
-            ucc_csum3 = 0x00000 | currChunk.getUdpCsum();
-            if (currChunk.getUdpLen() == 8) {
-                // Payload is empty
-                ucc_fsmState = FSM_UCC_CHK0;
+                // An all zero transmitted checksum  value means that the
+                // transmitter generated no checksum.
+                soRph_CsumVal.write(true);
+                ucc_fsmState = FSM_UCC_STREAM;
             }
             else {
-                ucc_fsmState = FSM_UCC_ACCUMULATE;
-            }
-        }
-        if (DEBUG_LEVEL & TRACE_UCC) { printAxisRaw(myName,"FSM_UCC_IDLE       - ", currChunk); }
+				// Accumulate the UDP header
+				ucc_csum0  = 0x00000 | currChunk.getUdpSrcPort();
+				ucc_csum0 += ucc_psdHdrCsum;
+				ucc_csum0  = (ucc_csum0 & 0xFFFF) + (ucc_csum0 >> 16);
+				ucc_csum1 = 0x00000 | currChunk.getUdpDstPort();
+				ucc_csum2 = 0x00000 | currChunk.getUdpLen();
+				ucc_csum3 = 0x00000 | currChunk.getUdpCsum();
+				if (currChunk.getUdpLen() == 8) {
+					// Payload is empty
+					ucc_fsmState = FSM_UCC_CHK0;
+				}
+				else {
+					ucc_fsmState = FSM_UCC_ACCUMULATE;
+				}
+	        }
+        	if (DEBUG_LEVEL & TRACE_UCC) { printAxisRaw(myName,"FSM_UCC_IDLE       - ", currChunk); }
         }
         break;
     case FSM_UCC_STREAM:
@@ -1297,6 +1297,7 @@ void pTxDatagramHandler(
  *  the [Uha] when 'TLAST' is reached.
  *
  *******************************************************************************/
+/*** OBSOLETE_20210426 ******
 void pUdpChecksumAccumulator(
         stream<AxisPsd4>    &siTdh_Data,
         stream<UdpCsum>     &soUha_Csum)
@@ -1319,7 +1320,7 @@ void pUdpChecksumAccumulator(
 
     if (!siTdh_Data.empty() and !soUha_Csum.full()) {
         AxisPsd4 currChunk = siTdh_Data.read();
-         currChunk.clearUnusedBytes();
+        currChunk.clearUnusedBytes();
         if (DEBUG_LEVEL & TRACE_UCA) {
             printAxisRaw(myName, "Received a new pseudo-header chunk: ", currChunk);
         }
@@ -1350,6 +1351,91 @@ void pUdpChecksumAccumulator(
                 printInfo(myName, "End of pseudo-header packet.\n");
             }
         }
+    }
+}
+*****************************/
+void pUdpChecksumAccumulator(
+        stream<AxisPsd4>    &siTdh_Data,
+        stream<UdpCsum>     &soUha_Csum)
+{
+    //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS INLINE off
+    #pragma HLS PIPELINE II=1 enable_flush
+
+    const char *myName  = concat3(THIS_NAME, "/TXe/", "Uca");
+
+    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
+    static enum FsmStates { FSM_UCA_ACCUMULATE=0, FSM_UCA_LAST, FSM_UCA_DONE } \
+                    uca_fsmState=FSM_UCA_ACCUMULATE;
+    #pragma HLS RESET   variable=uca_fsmState
+    static ap_uint<17>           uca_csum0;
+    #pragma HLS RESET   variable=uca_csum0
+    static ap_uint<17>           uca_csum1;
+    #pragma HLS RESET   variable=uca_csum1
+    static ap_uint<17>           uca_csum2;
+    #pragma HLS RESET   variable=uca_csum2
+    static ap_uint<17>           uca_csum3;
+    #pragma HLS RESET   variable=uca_csum3
+    static AxisPsd4              uca_lastChunk;
+    #pragma HLS RESET   variable=uca_lastChunk
+
+    switch (uca_fsmState) {
+    case FSM_UCA_ACCUMULATE:
+		if (!siTdh_Data.empty()) {
+			AxisPsd4 currChunk = siTdh_Data.read();
+			if (currChunk.getTLast()) {
+				uca_lastChunk = currChunk;
+				uca_lastChunk.clearUnusedBytes();
+				uca_fsmState = FSM_UCA_LAST;
+			}
+			else {
+				uca_csum0 += byteSwap16(currChunk.getLE_TData().range(63, 48));
+				uca_csum0  = (uca_csum0 & 0xFFFF) + (uca_csum0 >> 16);
+				uca_csum1 += byteSwap16(currChunk.getLE_TData().range(47, 32));
+				uca_csum1  = (uca_csum1 & 0xFFFF) + (uca_csum1 >> 16);
+				uca_csum2 += byteSwap16(currChunk.getLE_TData().range(31, 16));
+				uca_csum2  = (uca_csum2 & 0xFFFF) + (uca_csum2 >> 16);
+				uca_csum3 += byteSwap16(currChunk.getLE_TData().range(15,  0));
+				uca_csum3  = (uca_csum3 & 0xFFFF) + (uca_csum3 >> 16);
+			}
+			if (DEBUG_LEVEL & TRACE_UCA) {
+				printAxisRaw(myName, "Received a new pseudo-header chunk: ", currChunk);
+			}
+		}
+		break;
+    case FSM_UCA_LAST:
+		uca_csum0 += byteSwap16(uca_lastChunk.getLE_TData().range(63, 48));
+		uca_csum0  = (uca_csum0 & 0xFFFF) + (uca_csum0 >> 16);
+		uca_csum1 += byteSwap16(uca_lastChunk.getLE_TData().range(47, 32));
+		uca_csum1  = (uca_csum1 & 0xFFFF) + (uca_csum1 >> 16);
+		uca_csum2 += byteSwap16(uca_lastChunk.getLE_TData().range(31, 16));
+		uca_csum2  = (uca_csum2 & 0xFFFF) + (uca_csum2 >> 16);
+		uca_csum3 += byteSwap16(uca_lastChunk.getLE_TData().range(15,  0));
+		uca_csum3  = (uca_csum3 & 0xFFFF) + (uca_csum3 >> 16);
+		uca_fsmState = FSM_UCA_DONE;
+        break;
+    case FSM_UCA_DONE:
+		if (!soUha_Csum.full()) {
+			ap_uint<17> csum01, csum23, csum0123;
+			csum01 = uca_csum0 + uca_csum1;
+			csum01 = (csum01 & 0xFFFF) + (csum01 >> 16);
+			csum23 = uca_csum2 + uca_csum3;
+			csum23 = (csum23 & 0xFFFF) + (csum23 >> 16);
+			csum0123 = csum01 + csum23;
+			csum0123 = (csum0123 & 0xFFFF) + (csum0123 >> 16);
+			csum0123 = ~csum0123;
+			soUha_Csum.write(csum0123.range(15, 0));
+			//-- Clear the csum accumulators
+			uca_csum0 = 0;
+			uca_csum1 = 0;
+			uca_csum2 = 0;
+			uca_csum3 = 0;
+			if (DEBUG_LEVEL & TRACE_UCA) {
+				printInfo(myName, "End of pseudo-header packet.\n");
+			}
+			uca_fsmState = FSM_UCA_ACCUMULATE;
+			break;
+		}
     }
 }
 
@@ -1729,7 +1815,7 @@ void uoe(
         stream<AxisIcmp>                &soICMP_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS DATAFLOW
+    #pragma HLS DATAFLOW disable_start_propagation
     #pragma HLS INLINE
     #pragma HLS INTERFACE ap_ctrl_none port=return
 
