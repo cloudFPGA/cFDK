@@ -102,6 +102,7 @@ void rlb(
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     //OBSOLETE_20210420 #pragma HLS DATAFLOW disable_start_propagation
     #pragma HLS PIPELINE II=1 enable_flush
+    #pragma HLS INLINE off
 #endif
 
     const char *myName  = concat2(THIS_NAME, "RLB");
