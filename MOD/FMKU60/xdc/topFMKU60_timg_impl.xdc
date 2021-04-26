@@ -26,11 +26,11 @@
 # *
 # * Tools   : Vivado v2016.4, v2017.4 v2019.2 (64-bit)
 # *
-# * Description : This file contains the timing constraints related to the 
-# *     operation of the FMKU60 module. Refer to 'topFMKU60_pins.xdc' and 
+# * Description : This file contains the timing constraints related to the
+# *     operation of the FMKU60 module. Refer to 'topFMKU60_pins.xdc' and
 # *     'topFMKU60.xdc' files for more specific physical constraints such
 # *     as pin locations and voltage levels.
-# * 
+# *
 # *     The constraints are grouped by board device and connector names:
 # *       - the synchronous dynamic random access memory (SDRM or DDR4)
 # *       - the programmable system on chip controller (PSOC)
@@ -122,42 +122,46 @@ create_clock -period 166.667 -name piPSOC_Emif_Clk -waveform {0.000 83.333} [get
 #     create_generated_clock -name new_name source_object
 #   The "source object" should be the same object that is used as the source of
 #   the auto-derived clock. This can only be the pin wherethe clock originates,
-#   such as at the output of a clock modifying blockm (PLL, MMCM, . . .). 
+#   such as at the output of a clock modifying blockm (PLL, MMCM, . . .).
 #   In particular, an auto-derived clock cannot be renamed at the output of a
 #   BUFG even though it propagates through it.
-#     E.g., create_generated_clock -name DRP_CLK 
+#     E.g., create_generated_clock -name DRP_CLK
 #              [get_pins SHELL/SuperCfg.ETH0/ETH/ALCG/MMCME3_BASE_U0/CLKOUT0]
-# 
-# [OPTION-2] Use a TCL variable 
+#
+# [OPTION-2] Use a TCL variable
 #   Another alternative is not to rename the clock, but to just use a variable
 #   instead and refer to it whenever you need that clock.
-#     E.g., set myDRP_CLK [get_clocks -of_objects 
+#     E.g., set myDRP_CLK [get_clocks -of_objects
 #              [get_pins SHELL/SuperCfg.ETH0/ETH/ALCG/MMCME3_BASE_U0/CLKOUT0]
 #
 #===============================================================================
-create_generated_clock -name SHELL_CLK   [get_pins SHELL/SuperCfg.ETH0/ETH/CORE/IP/U0/xpcs/U0/ten_gig_eth_pcs_pma_shared_clock_reset_block/txusrclk2_bufg_gt_i/O]
-create_generated_clock -name ETH_RXCLK   [get_pins SHELL/SuperCfg.ETH0/ETH/CORE/IP/U0/xpcs/U0/ten_gig_eth_pcs_pma_block_i/bd_b7e6_xpcs_0_local_clock_reset_block/rxusrclk2_bufg_gt_i/O]
+create_generated_clock -name SHELL_CLK [get_pins SHELL/SuperCfg.ETH0/ETH/CORE/IP/U0/xpcs/U0/ten_gig_eth_pcs_pma_shared_clock_reset_block/txusrclk2_bufg_gt_i/O]
+create_generated_clock -name ETH_RXCLK [get_pins SHELL/SuperCfg.ETH0/ETH/CORE/IP/U0/xpcs/U0/ten_gig_eth_pcs_pma_block_i/bd_b7e6_xpcs_0_local_clock_reset_block/rxusrclk2_bufg_gt_i/O]
 
-create_generated_clock -name MC0_CLKOUT0 [get_pins SHELL/MEM/MC0/MCC/U0/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_U0/CLKOUT0]
-create_generated_clock -name MC1_CLKOUT0 [get_pins SHELL/MEM/MC1/MCC/U0/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_U0/CLKOUT0]
+create_generated_clock -name MC0_CLKOUT0 [get_pins SHELL/MEM/MC0/MCC/*/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT0]
+create_generated_clock -name MC1_CLKOUT0 [get_pins SHELL/MEM/MC1/MCC/*/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT0]
 
-create_generated_clock -name MC0_CLKOUT6 [get_pins SHELL/MEM/MC0/MCC/U0/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_U0/CLKOUT6]
-create_generated_clock -name MC1_CLKOUT6 [get_pins SHELL/MEM/MC1/MCC/U0/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_U0/CLKOUT6]
+create_generated_clock -name MC0_CLKOUT6 [ get_pins SHELL/MEM/MC0/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT6 ]
+create_generated_clock -name MC1_CLKOUT6 [ get_pins SHELL/MEM/MC1/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT6 ]
+
+create_generated_clock -name {SHELL/sEmifReg_reg[195]_bufg_place} -source [get_pins {SHELL/SuperCfg.ETH0/ETH/CORE/IP/U0/xpcs/U0/ten_gig_eth_pcs_pma_shared_clock_reset_block/txusrclk2_bufg_gt_i/O}] -divide_by 2 [get_pins {SHELL/SW_RESET_LY3/DOUT}]
 
 #===============================================================================
 # Create the Group Constraints among Clocks
 #===============================================================================
 
 #-- [MC0_CLKOUT0] -------------------------------
+set_clock_groups -asynchronous -group MC0_CLKOUT0 -group SHELL_CLK
 
-#-- [MC1_CLKOUT0] ------------------------------- 
+#-- [MC1_CLKOUT0] -------------------------------
+set_clock_groups -asynchronous -group MC1_CLKOUT0 -group SHELL_CLK
 
-#-- [MC0_CLKOUT6] ------------------------------- 
+#-- [MC0_CLKOUT6] -------------------------------
 
-#-- [MC1_CLKOUT6] ------------------------------- 
+#-- [MC1_CLKOUT6] -------------------------------
 
 #-- [piCLKT_10GeClk_p] --------------------------
-set_max_delay -datapath_only -from piCLKT_10GeClk_p -to SHELL_CLK 6.4
+set_max_delay -datapath_only -from piCLKT_10GeClk_p -to SHELL_CLK 6.400
 
 #-- [piCLKT_Mem0Clk_p] --------------------------
 
@@ -170,26 +174,26 @@ set_clock_groups -asynchronous -group piCLKT_Usr0Clk_p -group SHELL_CLK
 #   [This clock is not used by this design]
 
 #-- [piPSOC_Emif_Clk] ---------------------------
-set_max_delay -datapath_only -from piPSOC_Emif_Clk -to SHELL_CLK 20.0
+set_max_delay -datapath_only -from piPSOC_Emif_Clk -to SHELL_CLK 20.000
 
 #-- [sEthAxiLiteClk] ----------------------------
 
 #-- [ETH_RXCLK] ---------------------------------
 
 #-- [SHELL_CLK] ---------------------------------
-set_max_delay -datapath_only -from SHELL_CLK -to piPSOC_Emif_Clk 20.0
+set_max_delay -datapath_only -from SHELL_CLK -to piPSOC_Emif_Clk 20.000
 
 #=====================================================================
 # Constraints related to the Synchronous Dynamic RAM (DDR4)
 #   DDR4 / Memory Channel #0 / Reset
 #=====================================================================
-set_max_delay -from [get_pins {SHELL/MEM/MC0/MCC/U0/u_ddr4_mem_intfc/u_ddr_cal_top/cal_RESET_n_reg[0]/C}] -to [get_ports poDDR4_Mem_Mc0_Reset_n] 10.000
+set_max_delay -from [get_pins {SHELL/MEM/MC0/MCC/inst/u_ddr4_mem_intfc/u_ddr_cal_top/cal_RESET_n_reg[0]/C}] -to [get_ports poDDR4_Mem_Mc0_Reset_n] 10.000
 
 #=====================================================================
 # Constraints related to the Synchronous Dynamic RAM (DDR4)
 #   DDR4 / Memory Channel #1 / Reset
 #=====================================================================
-set_max_delay -from [get_pins {SHELL/MEM/MC1/MCC/U0/u_ddr4_mem_intfc/u_ddr_cal_top/cal_RESET_n_reg[0]/C}] -to [get_ports poDDR4_Mem_Mc1_Reset_n] 10.000
+set_max_delay -from [get_pins {SHELL/MEM/MC1/MCC/inst/u_ddr4_mem_intfc/u_ddr_cal_top/cal_RESET_n_reg[0]/C}] -to [get_ports poDDR4_Mem_Mc1_Reset_n] 10.000
 
 #=====================================================================
 # PSOC / External Memory Interface (see PSoC Creator Component v1.30)
@@ -234,16 +238,16 @@ set_input_delay -clock [get_clocks piPSOC_Emif_Clk] -min -add_delay 140.000 [get
 set_input_delay -clock [get_clocks piPSOC_Emif_Clk] -max -add_delay 146.667 [get_ports piPSOC_Emif_We_n]
 
 # PSoC / Emif - Output enable - Read setup and hold times
-set_input_delay  -clock [get_clocks piPSOC_Emif_Clk] -min -add_delay 140.000 [get_ports piPSOC_Emif_Oe_n]
-set_input_delay  -clock [get_clocks piPSOC_Emif_Clk] -max -add_delay 146.667 [get_ports piPSOC_Emif_Oe_n]
+set_input_delay -clock [get_clocks piPSOC_Emif_Clk] -min -add_delay 140.000 [get_ports piPSOC_Emif_Oe_n]
+set_input_delay -clock [get_clocks piPSOC_Emif_Clk] -max -add_delay 146.667 [get_ports piPSOC_Emif_Oe_n]
 
 # PSoC / Emif - Data[7:0] - Write setup and hold times
 set_input_delay -clock [get_clocks piPSOC_Emif_Clk] -min -add_delay 140.000 [get_ports {pioPSOC_Emif_Data[*]}]
 set_input_delay -clock [get_clocks piPSOC_Emif_Clk] -max -add_delay 146.667 [get_ports {pioPSOC_Emif_Data[*]}]
 
 # PSOC / Fcfg - Asynchronous Reset Input
-set_input_delay -clock [get_clocks piCLKT_Usr0Clk_p] -min -add_delay 0.4 [get_ports piPSOC_Fcfg_Rst_n]
-set_input_delay -clock [get_clocks piCLKT_Usr0Clk_p] -max -add_delay 0.4 [get_ports piPSOC_Fcfg_Rst_n]
+set_input_delay -clock [get_clocks piCLKT_Usr0Clk_p] -min -add_delay 0.400 [get_ports piPSOC_Fcfg_Rst_n]
+set_input_delay -clock [get_clocks piCLKT_Usr0Clk_p] -max -add_delay 0.400 [get_ports piPSOC_Fcfg_Rst_n]
 
 #=====================================================================
 # Timing Exception for the SHELL Clock to Sample the PSOC Clock
@@ -253,17 +257,23 @@ set_false_path -from [get_ports piPSOC_Emif_Clk] -to [get_pins SHELL/MMIO/EMIF/s
 #=====================================================================
 # Timing Exceptions related to the Heart Beat LED
 #=====================================================================
-set_false_path -from [get_pins SHELL/MEM/MC0/MCC/U0/u_ddr4_mem_intfc/u_ddr_cal_top/calDone_gated_reg/C] -to [get_pins {SHELL/MMIO/EMIF/sFab_Data_reg[*]/D}]
-set_false_path -from [get_pins SHELL/MEM/MC1/MCC/U0/u_ddr4_mem_intfc/u_ddr_cal_top/calDone_gated_reg/C] -to [get_pins {SHELL/MMIO/EMIF/sFab_Data_reg[*]/D}]
+set_false_path -from [get_pins SHELL/MEM/MC0/MCC/inst/u_ddr4_mem_intfc/u_ddr_cal_top/calDone_gated_reg/C] -to [get_pins {SHELL/MMIO/EMIF/sFab_Data_reg[*]/D}]
+set_false_path -from [get_pins SHELL/MEM/MC1/MCC/inst/u_ddr4_mem_intfc/u_ddr_cal_top/calDone_gated_reg/C] -to [get_pins {SHELL/MMIO/EMIF/sFab_Data_reg[*]/D}]
 
-set_false_path -from [get_pins SHELL/MEM/MC0/MCC/U0/u_ddr4_mem_intfc/u_ddr_cal_top/calDone_gated_reg/C] -to [get_pins SHELL/sLed_HeartBeat_reg/D]
-set_false_path -from [get_pins SHELL/MEM/MC1/MCC/U0/u_ddr4_mem_intfc/u_ddr_cal_top/calDone_gated_reg/C] -to [get_pins SHELL/sLed_HeartBeat_reg/D]
+set_false_path -from [get_pins SHELL/MEM/MC0/MCC/inst/u_ddr4_mem_intfc/u_ddr_cal_top/calDone_gated_reg/C] -to [get_pins SHELL/sLed_HeartBeat_reg*/D]
+set_false_path -from [get_pins SHELL/MEM/MC1/MCC/inst/u_ddr4_mem_intfc/u_ddr_cal_top/calDone_gated_reg/C] -to [get_pins SHELL/sLed_HeartBeat_reg*/D]
 
-set_max_delay -from [get_pins SHELL/sLed_HeartBeat_reg/C] -to [get_ports poLED_HeartBeat_n] 10.0
+set_max_delay -from [get_pins SHELL/sLed_HeartBeat_reg*/C] -to [get_ports poLED_HeartBeat_n] 10.0
+
+#=====================================================================
+# Other Timing Exceptions
+#=====================================================================
+set_false_path -from [get_pins SHELL/SW_RESET_LY3/DOUT] -to [get_pins SHELL/NTS0/ARP/CAM/sUpdateStatic_reg/D]
 
 #=====================================================================
 # Here are the Constraints added by the Timing Constraint Wizard
 #=====================================================================
+
 
 
 

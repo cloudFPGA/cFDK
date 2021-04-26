@@ -136,8 +136,8 @@ create_clock -period 166.667 -name piPSOC_Emif_Clk -waveform {0.000 83.333} [get
 #              [get_pins SHELL/SuperCfg.ETH0/ETH/ALCG/MMCME3_BASE_inst/CLKOUT0]
 #
 #===============================================================================
-create_generated_clock -name SHELL_CLK   [get_pins SHELL/SuperCfg.ETH0/ETH/CORE/IP/inst/xpcs/inst/ten_gig_eth_pcs_pma_shared_clock_reset_block/txusrclk2_bufg_gt_i/O]
-create_generated_clock -name ETH_RXCLK   [get_pins SHELL/SuperCfg.ETH0/ETH/CORE/IP/inst/xpcs/inst/ten_gig_eth_pcs_pma_block_i/bd_b7e6_xpcs_0_local_clock_reset_block/rxusrclk2_bufg_gt_i/O]
+create_generated_clock -name SHELL_CLK   [get_pins SHELL/SuperCfg.ETH0/ETH/CORE/IP/U0/xpcs/U0/ten_gig_eth_pcs_pma_shared_clock_reset_block/txusrclk2_bufg_gt_i/O]
+create_generated_clock -name ETH_RXCLK   [get_pins SHELL/SuperCfg.ETH0/ETH/CORE/IP/U0/xpcs/U0/ten_gig_eth_pcs_pma_block_i/bd_b7e6_xpcs_0_local_clock_reset_block/rxusrclk2_bufg_gt_i/O]
 
 create_generated_clock -name MC0_CLKOUT0 [get_pins SHELL/MEM/MC0/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT0]
 create_generated_clock -name MC1_CLKOUT0 [get_pins SHELL/MEM/MC1/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT0]
@@ -150,8 +150,10 @@ create_generated_clock -name MC1_CLKOUT6 [get_pins SHELL/MEM/MC1/MCC/inst/u_ddr4
 #===============================================================================
 
 #-- [MC0_CLKOUT0] -------------------------------
+set_clock_groups -asynchronous -group [get_pins SHELL/MEM/MC0/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT0] -group {SHELL_CLK}
 
 #-- [MC1_CLKOUT0] ------------------------------- 
+set_clock_groups -asynchronous -group [get_pins SHELL/MEM/MC1/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT0] -group {SHELL_CLK}
 
 #-- [MC0_CLKOUT6] ------------------------------- 
 
