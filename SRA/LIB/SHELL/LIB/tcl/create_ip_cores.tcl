@@ -202,7 +202,12 @@ proc my_customize_ip {ipModName ipDir ipVendor ipLibrary ipName ipVersion ipCfgL
 ################################################################################
 
 # By default, create all the IP cores 
-set gTargetIpCore "all"   
+set gTargetIpCore "all"
+
+# Retreive the Vivado version 
+#-------------------------------------------------------------------------------
+set VIVADO_VERSION [file tail $::env(XILINX_VIVADO)]
+set HLS_VERSION    [expr entier(${VIVADO_VERSION})]
 
 #-------------------------------------------------------------------------------
 # Parsing of the Command Line
@@ -346,7 +351,11 @@ update_ip_catalog
 #------------------------------------------------------------------------------  
 # IBM-HSL-IP : Address Resolution Server 
 #------------------------------------------------------------------------------
-set ipModName "AddressResolutionServer"
+if { [format "%.1f" ${VIVADO_VERSION}] == 2017.4 } {
+    set ipModName "AddressResolutionServer_Deprecated"
+} else {
+    set ipModName "AddressResolutionServer"
+}
 set ipName    "arp_top"
 set ipVendor  "IBM"
 set ipLibrary "hls"
