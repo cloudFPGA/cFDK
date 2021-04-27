@@ -1111,7 +1111,7 @@ module NetworkTransportStack_TcpIp (
     .aclk                         (piShlClk),
     .aresetn                      (~piMMIO_Layer4Rst),
     //-- 
-    .poMMIO_CamReady              (poMMIO_CamReady),
+    .poMMIO_CamReady_V            (poMMIO_CamReady),
     //------------------------------------------------------
     //-- TOE Interfaces                                        
     //------------------------------------------------------
@@ -1613,7 +1613,29 @@ module NetworkTransportStack_TcpIp (
   //============================================================================
   //  INST: READY-LOGIC-BARRIER
   //============================================================================
-  ReadyLogicBarrier RLB (
+  `ifdef USE_DEPRECATED_DIRECTIVES
+   ReadyLogicBarrier RLB (
+     .aclk                    (piShlClk),
+     .aresetn                 (~piMMIO_Layer4Rst),
+     //------------------------------------------------------
+     //-- MMIO Interface
+     //------------------------------------------------------
+     .poMMIO_Ready_V          (poMMIO_NtsReady),
+      //------------------------------------------------------
+      //-- UOE / Data Stream Interface
+      //------------------------------------------------------
+      .siUOE_Ready_TDATA      (ssARS6_RLB_Ready_tdata),
+      .siUOE_Ready_TVALID     (ssARS6_RLB_Ready_tvalid),
+      .siUOE_Ready_TREADY     (ssARS6_RLB_Ready_tready),
+      //------------------------------------------------------
+      //-- TOE / Data Stream Interface
+      //------------------------------------------------------
+      .siTOE_Ready_TDATA      (sHIGH_8b1),  // [FIXME] (ssTOE_RML_Ready_tdata),
+      .siTOE_Ready_TVALID     (sHIGH_1b1),  // [FIXME] (ssTOE_RML_Ready_tvalid),
+      .siTOE_Ready_TREADY     ()            // [FIXME] (ssTOE_RML_Ready_tready)
+   ); // End of RLB    
+  `else
+   ReadyLogicBarrier RLB (
     .ap_clk                   (piShlClk),
     .ap_rst_n                 (~piMMIO_Layer4Rst),
     //------------------------------------------------------
@@ -1633,5 +1655,6 @@ module NetworkTransportStack_TcpIp (
      .siTOE_Ready_V_TVALID    (sHIGH_1b1),  // [FIXME] (ssTOE_RML_Ready_tvalid),
      .siTOE_Ready_V_TREADY    ()            // [FIXME] (ssTOE_RML_Ready_tready)
   ); // End of RLB
+ `endif  // End of USE_DEPRECATED_DIRECTIVES
 
 endmodule
