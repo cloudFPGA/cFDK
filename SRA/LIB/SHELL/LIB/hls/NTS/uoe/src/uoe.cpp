@@ -1815,9 +1815,13 @@ void uoe(
         stream<AxisIcmp>                &soICMP_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS DATAFLOW disable_start_propagation
     #pragma HLS INLINE
     #pragma HLS INTERFACE ap_ctrl_none port=return
+  #if HLS_VERSION == 2017
+    #pragma HLS DATAFLOW
+  #else
+    #pragma HLS DATAFLOW disable_start_propagation
+  #endif
 
     //-- PROCESS FUNCTIONS -----------------------------------------------------
 
