@@ -39,7 +39,7 @@ set ipVendor       "IBM"
 set ipLibrary      "hls"
 set ipVersion      "1.0"
 set ipPkgFormat    "ip_catalog"
-set ipRtl          "vhdl"
+set ipRtl          "verilog"
 
 # Retreive the Vivado version 
 #-------------------------------------------------
