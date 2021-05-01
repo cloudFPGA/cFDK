@@ -61,6 +61,17 @@ set testDir      ${currDir}/test
 set implDir      ${currDir}/${projectName}_prj/${solutionName}/impl/ip 
 set repoDir      ${currDir}/../../ip
 
+
+puts "#############################################################"
+puts "####                                                     ####"
+puts "####               START OF HLS PROCESSING               ####"
+puts "####                                                     ####"
+set line "####  IP Name = ${ipDisplayName} "; while { [ string length $line ] <= 55 } { append line " " }; puts "${line} ####"
+set line "####  IP Vers = ${ipVersion}     "; while { [ string length $line ] <= 55 } { append line " " }; puts "${line} ####"
+puts "####                                                     ####"
+puts "#############################################################"
+
+
 # Open and Setup Project
 #-------------------------------------------------
 open_project  ${projectName}_prj
@@ -168,12 +179,20 @@ if { $hlsCSynth} {
 # Run C/RTL CoSimulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCoSim } {
-    cosim_design -tool xsim -rtl verilog -trace_level all
-    puts "#############################################################"
-    puts "####                                                     ####"
-    puts "####          SUCCESSFUL END OF CO-SIMULATION            ####"
-    puts "####                                                     ####"
-    puts "#############################################################"
+    if { [format "%.1f" ${VIVADO_VERSION}] <= 2017.4 } { 
+        cosim_design -tool xsim -rtl verilog -trace_level all
+        puts "#############################################################"
+        puts "####                                                     ####"
+        puts "####          SUCCESSFUL END OF CO-SIMULATION            ####"
+        puts "####                                                     ####"
+        puts "#############################################################"
+    } else { 
+        puts "#############################################################"
+        puts "####                                                     ####"
+        puts "####          SUCCESSFUL END OF CO-SIMULATION            ####"
+        puts "####                                                     ####"
+        puts "#############################################################"
+    }
 }
 
 #-----------------------------

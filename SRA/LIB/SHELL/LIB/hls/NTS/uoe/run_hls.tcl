@@ -61,6 +61,17 @@ set testDir      ${currDir}/test
 set implDir      ${currDir}/${projectName}_prj/${solutionName}/impl/ip 
 set repoDir      ${currDir}/../../ip
 
+
+puts "#############################################################"
+puts "####                                                     ####"
+puts "####               START OF HLS PROCESSING               ####"
+puts "####                                                     ####"
+set line "####  IP Name = ${ipDisplayName} "; while { [ string length $line ] <= 55 } { append line " " }; puts "${line} ####"
+set line "####  IP Vers = ${ipVersion}     "; while { [ string length $line ] <= 55 } { append line " " }; puts "${line} ####"
+puts "####                                                     ####"
+puts "#############################################################"
+
+
 # Open and Setup Project
 #-------------------------------------------------
 open_project  ${projectName}_prj
