@@ -675,7 +675,8 @@ void arp(
     #pragma HLS INTERFACE ap_stable          port=piMMIO_MacAddress
     #pragma HLS INTERFACE ap_stable          port=piMMIO_Ip4Address
 
-    #pragma HLS INTERFACE axis register both port=siIPRX_Data
+    //OBSOLETE_20210501 #pragma HLS INTERFACE axis register both port=siIPRX_Data
+    #pragma HLS INTERFACE axis off           port=siIPRX_Data
     #pragma HLS INTERFACE axis register both port=soETH_Data
 
     #pragma HLS INTERFACE axis register both port=siIPTX_MacLkpReq
@@ -699,7 +700,9 @@ void arp(
     static stream<AxisEth>  ssoETH_Data;
 
     //-- INPUT STREAM CASTING --------------------------------------------------
-    pAxisRawCast(siIPRX_Data, ssiIPRX_Data);
+    pAxisRawCast(
+        siIPRX_Data,
+        ssiIPRX_Data);
 
     //-- MAIN ARP PROCESS ------------------------------------------------------
     arp(
@@ -720,7 +723,9 @@ void arp(
         siCAM_MacUpdRep);
 
     //-- OUTPUT STREAM CASTING -------------------------------------------------
-    pAxisRawCast(ssoETH_Data,  soETH_Data);
+    pAxisRawCast(
+        ssoETH_Data,
+        soETH_Data);
 }
 
 #endif
