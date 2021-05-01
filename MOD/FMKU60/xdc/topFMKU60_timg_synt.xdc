@@ -151,16 +151,18 @@ create_generated_clock -name MC1_CLKOUT6 [get_pins SHELL/MEM/MC1/MCC/inst/u_ddr4
 
 #-- [MC0_CLKOUT0] -------------------------------
 set_clock_groups -asynchronous -group [get_pins SHELL/MEM/MC0/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT0] -group {SHELL_CLK}
+set_clock_groups -asynchronous -group {MC0_CLKOUT0} -group {SHELL_CLK}
 
 #-- [MC1_CLKOUT0] ------------------------------- 
 set_clock_groups -asynchronous -group [get_pins SHELL/MEM/MC1/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT0] -group {SHELL_CLK}
+set_clock_groups -asynchronous -group {MC1_CLKOUT0} -group {SHELL_CLK}
 
 #-- [MC0_CLKOUT6] ------------------------------- 
 
 #-- [MC1_CLKOUT6] ------------------------------- 
 
 #-- [piCLKT_10GeClk_p] --------------------------
-set_max_delay -datapath_only -from piCLKT_10GeClk_p -to SHELL_CLK 6.4
+set_max_delay -datapath_only -from piCLKT_10GeClk_p -to {SHELL_CLK} 6.4
 
 #-- [piCLKT_Mem0Clk_p] --------------------------
 
