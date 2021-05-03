@@ -1053,7 +1053,7 @@ void iprx(
     #pragma HLS INTERFACE axis off              port=soARP_Data        name=soARP_Data
 
     #pragma HLS INTERFACE axis off              port=soICMP_Data       name=soICMP_Data
-    #pragma HLS INTERFACE axis register both    port=soICMP_Derr       name=soICMP_Derr
+    #pragma HLS INTERFACE axis off              port=soICMP_Derr       name=soICMP_Derr
 
     #pragma HLS INTERFACE axis off              port=soUOE_Data        name=soUOE_Data
     #pragma HLS INTERFACE axis off              port=soTOE_Data        name=soTOE_Data
