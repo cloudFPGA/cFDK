@@ -1053,40 +1053,40 @@ void toe(
     )
 {
 
-    //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
+    //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
 
     //-- MMIO Interfaces
     #pragma HLS INTERFACE ap_stable          port=piMMIO_IpAddr   name=piMMIO_IpAddr
     //-- NTS Interfaces
     #pragma HLS INTERFACE ap_none register   port=poNTS_Ready     name=poNTS_Ready
-    //-- IPRX / IP Rx Data Interface ------------------------------------------
+    //-- IPRX / IP Rx Data Interface -------------------------------------------
     #pragma HLS INTERFACE axis off           port=siIPRX_Data name=siIPRX_Data
-    //-- IPTX / IP Tx Data Interface -----------------------------------------
+    //-- IPTX / IP Tx Data Interface -------------------------------------------
     #pragma HLS INTERFACE axis off           port=soIPTX_Data     name=soIPTX_Data
-    //-- TAIF / ROLE Rx Data Interfaces ---------------------------------------
+    //-- TAIF / ROLE Rx Data Interfaces ----------------------------------------
     #pragma HLS INTERFACE axis off           port=siTAIF_DReq     name=siTAIF_DReq
     #pragma HLS DATA_PACK                variable=siTAIF_DReq
     #pragma HLS INTERFACE axis off           port=soTAIF_Notif    name=soTAIF_Notif
     #pragma HLS DATA_PACK                variable=soTAIF_Notif
     #pragma HLS INTERFACE axis off           port=soTAIF_Data     name=soTAIF_Data
     #pragma HLS INTERFACE axis off           port=soTAIF_Meta     name=soTAIF_Meta
-    //-- TAIF / ROLE Rx Listen Interface -------------------------------------
+    //-- TAIF / ROLE Rx Listen Interface ---------------------------------------
     #pragma HLS INTERFACE axis off           port=siTAIF_LsnReq   name=siTAIF_LsnReq
     #pragma HLS INTERFACE axis off           port=soTAIF_LsnRep   name=soTAIF_LsnRep
-    //-- TAIF / ROLE Tx Data Interfaces ---------------------------------------
+    //-- TAIF / ROLE Tx Data Interfaces ----------------------------------------
     #pragma HLS INTERFACE axis off           port=siTAIF_Data     name=siTAIF_Data
     #pragma HLS INTERFACE axis off           port=siTAIF_SndReq   name=siTAIF_SndReq
     #pragma HLS DATA_PACK                variable=siTAIF_SndReq
     #pragma HLS INTERFACE axis off           port=soTAIF_SndRep   name=soTAIF_SndRep
     #pragma HLS DATA_PACK                variable=soTAIF_SndRep
-    //-- TAIF / ROLE Tx Ctrl Interfaces ---------------------------------------
+    //-- TAIF / ROLE Tx Ctrl Interfaces ----------------------------------------
     #pragma HLS INTERFACE axis off           port=siTAIF_OpnReq   name=siTAIF_OpnReq
     #pragma HLS DATA_PACK                variable=siTAIF_OpnReq
     #pragma HLS INTERFACE axis off           port=soTAIF_OpnRep   name=soTAIF_OpnRep
     #pragma HLS DATA_PACK                variable=soTAIF_OpnRep
     #pragma HLS INTERFACE axis off           port=siTAIF_ClsReq   name=siTAIF_ClsReq
-    //-- MEM / Nts0 / RxP Interface -------------------------------------------
+    //-- MEM / Nts0 / RxP Interface --------------------------------------------
     #pragma HLS INTERFACE axis off           port=soMEM_RxP_RdCmd name=soMEM_RxP_RdCmd
     #pragma HLS DATA_PACK                variable=soMEM_RxP_RdCmd
     #pragma HLS INTERFACE axis off           port=siMEM_RxP_Data  name=siMEM_RxP_Data
@@ -1095,7 +1095,7 @@ void toe(
     #pragma HLS INTERFACE axis off           port=soMEM_RxP_WrCmd name=soMEM_RxP_WrCmd
     #pragma HLS DATA_PACK                variable=soMEM_RxP_WrCmd
     #pragma HLS INTERFACE axis off           port=soMEM_RxP_Data  name=soMEM_RxP_Data
-    //-- MEM / Nts0 / TxP Interface -------------------------------------------
+    //-- MEM / Nts0 / TxP Interface --------------------------------------------
     #pragma HLS INTERFACE axis off           port=soMEM_TxP_RdCmd name=soMEM_TxP_RdCmd
     #pragma HLS DATA_PACK                variable=soMEM_TxP_RdCmd
     #pragma HLS INTERFACE axis off           port=siMEM_TxP_Data  name=siMEM_TxP_Data
@@ -1104,15 +1104,17 @@ void toe(
     #pragma HLS INTERFACE axis off           port=soMEM_TxP_WrCmd name=soMEM_TxP_WrCmd
     #pragma HLS DATA_PACK                variable=soMEM_TxP_WrCmd
     #pragma HLS INTERFACE axis off           port=soMEM_TxP_Data  name=soMEM_TxP_Data
-    //-- CAM / Session Lookup & Update Interfaces -----------------------------
-    #pragma HLS INTERFACE axis off          port=siCAM_SssLkpRep name=siCAM_SssLkpRep
-    #pragma HLS DATA_PACK                   variable=siCAM_SssLkpRep
-    #pragma HLS INTERFACE axis register forward port=siCAM_SssUpdRep name=siCAM_SssUpdRep
-    #pragma HLS DATA_PACK                   variable=siCAM_SssUpdRep
-    #pragma HLS INTERFACE axis off              port=soCAM_SssLkpReq name=soCAM_SssLkpReq
+    //-- CAM / Session Lookup & Update Interfaces ------------------------------
+    #pragma HLS INTERFACE axis register forward port=soCAM_SssLkpReq name=soCAM_SssLkpReq
     #pragma HLS DATA_PACK                   variable=soCAM_SssLkpReq
+    #pragma HLS INTERFACE axis off              port=siCAM_SssLkpRep name=siCAM_SssLkpRep
+    #pragma HLS DATA_PACK                   variable=siCAM_SssLkpRep
     #pragma HLS INTERFACE axis register forward port=soCAM_SssUpdReq name=soCAM_SssUpdReq
     #pragma HLS DATA_PACK                   variable=soCAM_SssUpdReq
+    #pragma HLS INTERFACE axis off              port=siCAM_SssUpdRep name=siCAM_SssUpdRep
+    #pragma HLS DATA_PACK                   variable=siCAM_SssUpdRep
+
+
     //-- DEBUG / Session Statistics Interfaces
     #pragma HLS INTERFACE ap_none register   port=poDBG_SssRelCnt name=poDBG_SssRelCnt
     #pragma HLS INTERFACE ap_none register   port=poDBG_SssRegCnt name=poDBG_SssRegCnt
