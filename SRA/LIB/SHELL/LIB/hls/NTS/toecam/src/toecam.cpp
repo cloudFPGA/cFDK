@@ -429,11 +429,11 @@ void toecam(
 
     #pragma HLS INTERFACE ap_none register port=poMMIO_CamReady name=poMMIO_CamReady
 
-    #pragma HLS INTERFACE axis register off     port=siTOE_SssLkpReq
+    #pragma HLS INTERFACE axis off              port=siTOE_SssLkpReq
     #pragma HLS DATA_PACK                   variable=siTOE_SssLkpReq
     #pragma HLS INTERFACE axis register forward port=soTOE_SssLkpRep
     #pragma HLS DATA_PACK                   variable=soTOE_SssLkpRep
-    #pragma HLS INTERFACE axis register off     port=siTOE_SssUpdReq
+    #pragma HLS INTERFACE axis off              port=siTOE_SssUpdReq
     #pragma HLS DATA_PACK                   variable=siTOE_SssUpdReq
     #pragma HLS INTERFACE axis register forward port=soTOE_SssUpdRep
     #pragma HLS DATA_PACK                   variable=soTOE_SssUpdRep

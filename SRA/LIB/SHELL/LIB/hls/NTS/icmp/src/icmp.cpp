@@ -835,12 +835,12 @@ void icmp(
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
     #pragma HLS INTERFACE ap_ctrl_none port=return
 
-    #pragma HLS INTERFACE ap_stable             port=piMMIO_Ip4Address
+    #pragma HLS INTERFACE ap_stable    port=piMMIO_Ip4Address
 
-    #pragma HLS INTERFACE axis register off     port=siIPRX_Data
-    #pragma HLS INTERFACE axis register off     port=siIPRX_Derr
-    #pragma HLS INTERFACE axis register off     port=siUOE_Data
-    #pragma HLS INTERFACE axis register off     port=soIPTX_Data
+    #pragma HLS INTERFACE axis off     port=siIPRX_Data
+    #pragma HLS INTERFACE axis off     port=siIPRX_Derr
+    #pragma HLS INTERFACE axis off     port=siUOE_Data
+    #pragma HLS INTERFACE axis off     port=soIPTX_Data
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW disable_start_propagation
