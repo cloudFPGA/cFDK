@@ -189,7 +189,7 @@ if { $hlsCoSim } {
     } else { 
         puts "#############################################################"
         puts "####                                                     ####"
-        puts "####          SUCCESSFUL END OF CO-SIMULATION            ####"
+        puts "####          CO-SIMULATION IS NOT SUPPORTED             ####"
         puts "####                                                     ####"
         puts "#############################################################"
     }
