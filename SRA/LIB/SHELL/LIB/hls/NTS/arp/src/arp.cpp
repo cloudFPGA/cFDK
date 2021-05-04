@@ -104,6 +104,7 @@ void pArpPacketReceiver(
         stream<ArpBindPair>     &soACc_UpdateReq)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    // [FIXME] #pragma HLS INLINE off
     #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "APr");
@@ -234,6 +235,7 @@ void pArpPacketSender(
         stream<AxisEth>     &soETH_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    // [FIXME] #pragma HLS INLINE off
     #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "APr");
@@ -367,6 +369,7 @@ void pArpCamController(
     stream<RtlMacUpdateReply>   &siCAM_MacUpdRep)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    // [FIXME] #pragma HLS INLINE off
     #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "ACc");
@@ -678,7 +681,7 @@ void arp(
     #pragma HLS INTERFACE axis off           port=siIPRX_Data
     #pragma HLS INTERFACE axis register both port=soETH_Data
 
-    #pragma HLS INTERFACE axis register both port=siIPTX_MacLkpReq
+    #pragma HLS INTERFACE axis register both port=siIPTX_MacLkpReq // [FIXME-Should be off]
     #pragma HLS INTERFACE axis register both port=soIPTX_MacLkpRep
     #pragma HLS DATA_PACK                variable=soIPTX_MacLkpRep
 
