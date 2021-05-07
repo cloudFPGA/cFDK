@@ -2015,7 +2015,7 @@ void uoe(
     #pragma HLS INTERFACE axis register both    port=soMMIO_Ready      name=soMMIO_Ready
 
     #pragma HLS INTERFACE axis off              port=siIPRX_Data       name=siIPRX_Data
-    #pragma HLS INTERFACE axis register forward port=soIPTX_Data       name=soIPTX_Data
+    #pragma HLS INTERFACE axis register both    port=soIPTX_Data       name=soIPTX_Data
 
     #pragma HLS INTERFACE axis off              port=siUAIF_LsnReq     name=siUAIF_LsnReq
     #pragma HLS INTERFACE axis off              port=soUAIF_LsnRep     name=soUAIF_LsnRep
@@ -2031,7 +2031,7 @@ void uoe(
     #pragma HLS DATA_PACK                   variable=siUAIF_Meta   instance=siUAIF_Meta
     #pragma HLS INTERFACE axis off              port=siUAIF_DLen       name=siUAIF_DLen
 
-    #pragma HLS INTERFACE axis register forward port=soICMP_Data       name=soICMP_Data
+    #pragma HLS INTERFACE axis register both    port=soICMP_Data       name=soICMP_Data
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW disable_start_propagation
