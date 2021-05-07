@@ -687,7 +687,7 @@ void iptx(
 
     #pragma HLS INTERFACE axis register both port=soARP_LookupReq
     #pragma HLS INTERFACE axis off           port=siARP_LookupRep
-    #pragma HLS DATA_PACK              variable=siARP_LookupRep
+    #pragma HLS DATA_PACK                variable=siARP_LookupRep
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS DATAFLOW disable_start_propagation
