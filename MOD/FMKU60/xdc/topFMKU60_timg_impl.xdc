@@ -141,8 +141,8 @@ create_generated_clock -name ETH_RXCLK [get_pins SHELL/SuperCfg.ETH0/ETH/CORE/IP
 create_generated_clock -name MC0_CLKOUT0 [get_pins SHELL/MEM/MC0/MCC/*/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT0]
 create_generated_clock -name MC1_CLKOUT0 [get_pins SHELL/MEM/MC1/MCC/*/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT0]
 
-create_generated_clock -name MC0_CLKOUT6 [ get_pins SHELL/MEM/MC0/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT6 ]
-create_generated_clock -name MC1_CLKOUT6 [ get_pins SHELL/MEM/MC1/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT6 ]
+create_generated_clock -name MC0_CLKOUT6 [get_pins SHELL/MEM/MC0/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT6]
+create_generated_clock -name MC1_CLKOUT6 [get_pins SHELL/MEM/MC1/MCC/inst/u_ddr4_infrastructure/gen_mmcme3.u_mmcme_adv_inst/CLKOUT6]
 
 create_generated_clock -name {SHELL/sEmifReg_reg[195]_bufg_place} -source [get_pins {SHELL/SuperCfg.ETH0/ETH/CORE/IP/U0/xpcs/U0/ten_gig_eth_pcs_pma_shared_clock_reset_block/txusrclk2_bufg_gt_i/O}] -divide_by 2 [get_pins {SHELL/SW_RESET_LY3/DOUT}]
 
@@ -273,6 +273,8 @@ set_false_path -from [get_pins SHELL/SW_RESET_LY3/DOUT] -to [get_pins SHELL/NTS0
 #=====================================================================
 # Here are the Constraints added by the Timing Constraint Wizard
 #=====================================================================
+
+
 
 
 
