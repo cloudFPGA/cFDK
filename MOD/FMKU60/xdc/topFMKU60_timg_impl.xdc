@@ -263,7 +263,7 @@ set_false_path -from [get_pins SHELL/MEM/MC1/MCC/inst/u_ddr4_mem_intfc/u_ddr_cal
 set_false_path -from [get_pins SHELL/MEM/MC0/MCC/inst/u_ddr4_mem_intfc/u_ddr_cal_top/calDone_gated_reg/C] -to [get_pins SHELL/sLed_HeartBeat_reg*/D]
 set_false_path -from [get_pins SHELL/MEM/MC1/MCC/inst/u_ddr4_mem_intfc/u_ddr_cal_top/calDone_gated_reg/C] -to [get_pins SHELL/sLed_HeartBeat_reg*/D]
 
-set_max_delay -from [get_pins SHELL/sLed_HeartBeat_reg*/C] -to [get_ports poLED_HeartBeat_n] 10.0
+set_max_delay -from [get_pins SHELL/sLed_HeartBeat_reg*/C] -to [get_ports poLED_HeartBeat_n] 10.000
 
 #=====================================================================
 # Other Timing Exceptions
