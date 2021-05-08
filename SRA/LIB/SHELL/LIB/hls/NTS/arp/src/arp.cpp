@@ -104,7 +104,7 @@ void pArpPacketReceiver(
         stream<ArpBindPair>     &soACc_UpdateReq)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    // [FIXME] #pragma HLS INLINE off
+    #pragma HLS INLINE off
     #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "APr");
@@ -235,7 +235,7 @@ void pArpPacketSender(
         stream<AxisEth>     &soETH_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    // [FIXME] #pragma HLS INLINE off
+    #pragma HLS INLINE off
     #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "APr");
@@ -369,7 +369,7 @@ void pArpCamController(
     stream<RtlMacUpdateReply>   &siCAM_MacUpdRep)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    // [FIXME] #pragma HLS INLINE off
+    #pragma HLS INLINE off
     #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "ACc");
