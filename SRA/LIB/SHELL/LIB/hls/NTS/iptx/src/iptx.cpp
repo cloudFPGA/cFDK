@@ -242,6 +242,7 @@ void pIpChecksumInsert(
         stream<AxisIp4>     &soIAe_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS INLINE off
     #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "ICi");
@@ -308,6 +309,7 @@ void pIp4AddressExtractor(
         stream<Ip4Addr>     &soARP_LookupReq)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS INLINE off
     #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "IAe");
@@ -365,6 +367,7 @@ void pMacAddressInserter(
         stream<AxisEth>         &soL2MUX_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
+    #pragma HLS INLINE off
     #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "MAi");
