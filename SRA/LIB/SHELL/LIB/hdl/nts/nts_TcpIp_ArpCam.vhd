@@ -72,7 +72,7 @@ entity ArpCam is
     poUpdRep_Valid  : out std_logic;	
     piUpdRep_Ready  : in  std_logic;
    
-    debug         : out std_logic_vector(255 downto 0)		
+    poDebug         : out std_logic_vector(151 downto 0)		
   );
 end ArpCam;
 
@@ -389,22 +389,22 @@ begin
   pDebug: process (piClk)
   begin
     if (piClk'event and piClk='1') then
-		  debug(0)               <= sInitEnb;
-		  debug(1)               <= sCAM_InitDone;  
-		  debug(2)               <= sLkpReqValid; 
-		  debug(34 downto 3)     <= sLkpReqKey; 	
-		  debug(35)              <= sCAM_LkpRepValid; 	
-		  debug(36)              <= sCAM_LkpRepHit;
-		  debug(68 downto 37)    <= sCAM_LkpRepKey;
-      debug(116 downto  69)  <= sCAM_LkpRepValue;
-      debug(117)             <= sCAM_UpdRepReady;
-      debug(118)             <= sHelpUpdVal;
-      debug(119)             <= sUpdateOp;
-      debug(127 downto 120)  <= sUpdateKey(7 downto 0);
-      debug(128)             <= sUpdateStatic;
-      debug(142 downto 129)  <= sUpdateValue(13 downto 0);		
-		  debug(150 downto 143)  <= sCamCtrl_FSM;
-		  debug(151)             <= piRst;
+		  poDebug(0)               <= sInitEnb;
+		  poDebug(1)               <= sCAM_InitDone;  
+		  poDebug(2)               <= sLkpReqValid; 
+		  poDebug(34 downto 3)     <= sLkpReqKey; 	
+		  poDebug(35)              <= sCAM_LkpRepValid; 	
+		  poDebug(36)              <= sCAM_LkpRepHit;
+		  poDebug(68 downto 37)    <= sCAM_LkpRepKey;
+      poDebug(116 downto  69)  <= sCAM_LkpRepValue;
+      poDebug(117)             <= sCAM_UpdRepReady;
+      poDebug(118)             <= sHelpUpdVal;
+      poDebug(119)             <= sUpdateOp;
+      poDebug(127 downto 120)  <= sUpdateKey(7 downto 0);
+      poDebug(128)             <= sUpdateStatic;
+      poDebug(142 downto 129)  <= sUpdateValue(13 downto 0);		
+		  poDebug(150 downto 143)  <= sCamCtrl_FSM;
+		  poDebug(151)             <= piRst;
     end if;   
   end process;  -- pDebug
 

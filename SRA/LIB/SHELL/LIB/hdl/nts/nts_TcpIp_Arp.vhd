@@ -216,6 +216,11 @@ architecture Structural of AddressResolutionProcess is
   signal  ssCAM_ARS_MacUpdRep_TVALID  :   std_logic;
   signal  ssCAM_ARS_MacUpdRep_TREADY  :   std_logic;
   signal  sRtlToHls_MacUpdRep_TDATA   :   t_RtlUpdRep;
+  
+  signal  sCamDebug                   :   std_logic_vector(151 downto 0 );
+  
+  attribute mark_debug : string;
+  attribute mark_debug of sCamDebug   : signal is "true";
 
 begin
 
@@ -263,7 +268,7 @@ begin
       poUpdRep_Valid   =>  ssCAM_ARS_MacUpdRep_TVALID,
       piUpdRep_Ready   =>  ssCAM_ARS_MacUpdRep_TREADY,
       --
-      debug            =>  open
+      poDebug          =>  sCamDebug
     );
   
   -----------------------------------------------------------------
