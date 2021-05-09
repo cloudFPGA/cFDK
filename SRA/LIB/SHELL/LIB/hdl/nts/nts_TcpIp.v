@@ -720,7 +720,7 @@ module NetworkTransportStack_TcpIp (
     .s_axis_tdata   (ssARP_ARS7_MacLkpRep_tdata),
     .s_axis_tvalid  (ssARP_ARS7_MacLkpRep_tvalid),
     .s_axis_tready  (ssARP_ARS7_MacLkpRep_tready),
-    //-- To   ARP / MacLkpReq ----------
+    //-- To   ARP / MacLkpRep ----------
     .m_axis_tdata   (ssARS7_IPTX_MacLkpRep_tdata),
     .m_axis_tvalid  (ssARS7_IPTX_MacLkpRep_tvalid),
     .m_axis_tready  (ssARS7_IPTX_MacLkpRep_tready)
