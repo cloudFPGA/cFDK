@@ -442,18 +442,28 @@ module NetworkTransportStack_TcpIp (
   wire          ssARP_L2MUX_Data_tlast;
   wire          ssARP_L2MUX_Data_tvalid;
   wire          ssARP_L2MUX_Data_tready;
-  //-- ARP ==> IPTX / LkpRpl
-  wire [55:0]   ssARP_IPTX_MacLkpRep_tdata;
-  wire          ssARP_IPTX_MacLkpRep_tvalid;
-  wire          ssARP_IPTX_MacLkpRep_tready;
+  //-- ARP ==>[ARS7]==> ARP/MacLookupReply
+  //---- ARP ==>[ARS7]
+  wire  [55:0]  ssARP_ARS7_MacLkpRep_tdata;
+  wire          ssARP_ARS7_MacLkpRep_tvalid;
+  wire          ssARP_ARS7_MacLkpRep_tready;
+  //            [ARS7]==> IPTX/MacLookupReply
+  wire  [55:0]  ssARS7_IPTX_MacLkpRep_tdata;
+  wire          ssARS7_IPTX_MacLkpRep_tvalid;
+  wire          ssARS7_IPTX_MacLkpRep_tready;
   
   //------------------------------------------------------------------
   //-- IPTX = IP-TX-HANDLER
-  //------------------------------------------------------------------ 
-  //-- IPTX ==> ARP / LookupRequest
-  wire  [31:0]  ssIPTX_ARP_MacLkpReq_tdata;
-  wire          ssIPTX_ARP_MacLkpReq_tvalid;
-  wire          ssIPTX_ARP_MacLkpReq_tready;
+  //------------------------------------------------------------------
+  //-- IPTX ==>[ARS8]==> ARP/MacLookupRequest
+  //---- IPTX ==>[ARS8]
+  wire  [31:0]  ssIPTX_ARS8_MacLkpReq_tdata;
+  wire          ssIPTX_ARS8_MacLkpReq_tvalid;
+  wire          ssIPTX_ARS8_MacLkpReq_tready;
+  //             [ARS8]==> ARP/MacLookupRequest  
+  wire  [31:0]  ssARS8_ARP_MacLkpReq_tdata;
+  wire          ssARS8_ARP_MacLkpReq_tvalid;
+  wire          ssARS8_ARP_MacLkpReq_tready;
   //-- IPTX ==> L2MUX / Data
   wire  [63:0]  ssIPTX_L2MUX_Data_tdata;
   wire  [ 7:0]  ssIPTX_L2MUX_Data_tkeep;
@@ -691,14 +701,30 @@ module NetworkTransportStack_TcpIp (
     //------------------------------------------------------
     //-- IPTX Interfaces
     //------------------------------------------------------
-    .siIPTX_MacLkpReq_TDATA         (ssIPTX_ARP_MacLkpReq_tdata),
-    .siIPTX_MacLkpReq_TVALID        (ssIPTX_ARP_MacLkpReq_tvalid),
-    .siIPTX_MacLkpReq_TREADY        (ssIPTX_ARP_MacLkpReq_tready),
+    .siIPTX_MacLkpReq_TDATA         (ssARS8_ARP_MacLkpReq_tdata),
+    .siIPTX_MacLkpReq_TVALID        (ssARS8_ARP_MacLkpReq_tvalid),
+    .siIPTX_MacLkpReq_TREADY        (ssARS8_ARP_MacLkpReq_tready),
     //--
-    .soIPTX_MacLkpRep_TDATA         (ssARP_IPTX_MacLkpRep_tdata),
-    .soIPTX_MacLkpRep_TVALID        (ssARP_IPTX_MacLkpRep_tvalid),
-    .soIPTX_MacLkpRep_TREADY        (ssARP_IPTX_MacLkpRep_tready)
+    .soIPTX_MacLkpRep_TDATA         (ssARP_ARS7_MacLkpRep_tdata),
+    .soIPTX_MacLkpRep_TVALID        (ssARP_ARS7_MacLkpRep_tvalid),
+    .soIPTX_MacLkpRep_TREADY        (ssARP_ARS7_MacLkpRep_tready)
   ); // End of ARP
+  
+  //============================================================================
+  //  INST: AXI4-STREAM-REGISTER-SLICE (ARP ==>[ARS7]==> IPTX)
+  //============================================================================
+  AxisRegisterSlice_56 ARS7 (
+    .aclk           (piShlClk),
+    .aresetn        (~piMMIO_Layer3Rst),
+    //-- From ARP / MacLkpRep ----------
+    .s_axis_tdata   (ssARP_ARS7_MacLkpRep_tdata),
+    .s_axis_tvalid  (ssARP_ARS7_MacLkpRep_tvalid),
+    .s_axis_tready  (ssARP_ARS7_MacLkpRep_tready),
+    //-- To   ARP / MacLkpReq ----------
+    .m_axis_tdata   (ssARS7_IPTX_MacLkpRep_tdata),
+    .m_axis_tvalid  (ssARS7_IPTX_MacLkpRep_tvalid),
+    .m_axis_tready  (ssARS7_IPTX_MacLkpRep_tready)
+  );
   
   //============================================================================
   //  INST: TCP-OFFLOAD-ENGINE
@@ -1503,13 +1529,13 @@ module NetworkTransportStack_TcpIp (
     //-- ARP Interfaces
     //------------------------------------------------------
     //-- To   ARP / LookupRequest ------                 
-   .soARP_LookupReq_TDATA     (ssIPTX_ARP_MacLkpReq_tdata),
-   .soARP_LookupReq_TVALID    (ssIPTX_ARP_MacLkpReq_tvalid),
-   .soARP_LookupReq_TREADY    (ssIPTX_ARP_MacLkpReq_tready),
+    .soARP_LookupReq_TDATA     (ssIPTX_ARS8_MacLkpReq_tdata),
+    .soARP_LookupReq_TVALID    (ssIPTX_ARS8_MacLkpReq_tvalid),
+    .soARP_LookupReq_TREADY    (ssIPTX_ARS8_MacLkpReq_tready),
     //-- From ARP / LookupReply --------
-    .siARP_LookupRep_TDATA    (ssARP_IPTX_MacLkpRep_tdata),
-    .siARP_LookupRep_TVALID   (ssARP_IPTX_MacLkpRep_tvalid),
-    .siARP_LookupRep_TREADY   (ssARP_IPTX_MacLkpRep_tready),
+    .siARP_LookupRep_TDATA    (ssARS7_IPTX_MacLkpRep_tdata),
+    .siARP_LookupRep_TVALID   (ssARS7_IPTX_MacLkpRep_tvalid),
+    .siARP_LookupRep_TREADY   (ssARS7_IPTX_MacLkpRep_tready),
     //------------------------------------------------------
     //-- L2MUX Interfaces
     //------------------------------------------------------
@@ -1541,9 +1567,9 @@ module NetworkTransportStack_TcpIp (
     //-- ARP Interfaces
     //------------------------------------------------------
     //-- To   ARP / LookupRequest ------                 
-    .soARP_LookupReq_V_V_TDATA  (ssIPTX_ARP_MacLkpReq_tdata),
-    .soARP_LookupReq_V_V_TVALID (ssIPTX_ARP_MacLkpReq_tvalid),
-    .soARP_LookupReq_V_V_TREADY (ssIPTX_ARP_MacLkpReq_tready),
+    .soARP_LookupReq_V_V_TDATA  (ssIPTX_ARS8_MacLkpReq_tdata),
+    .soARP_LookupReq_V_V_TVALID (ssIPTX_ARS8_MacLkpReq_tvalid),
+    .soARP_LookupReq_V_V_TREADY (ssIPTX_ARS8_MacLkpReq_tready),
     //-- From ARP / LookupReply --------
     .siARP_LookupRep_V_TDATA  (ssARP_IPTX_MacLkpRep_tdata),
     .siARP_LookupRep_V_TVALID (ssARP_IPTX_MacLkpRep_tvalid),
@@ -1563,6 +1589,22 @@ module NetworkTransportStack_TcpIp (
     .piMMIO_MacAddress_V      (piMMIO_MacAddress)
   );  // End of IPTX
   `endif  // End of USE_DEPRECATED_DIRECTIVES
+
+  //============================================================================
+  //  INST: AXI4-STREAM-REGISTER-SLICE (IPTX ==>[ARS8]==> ARP)
+  //============================================================================
+  AxisRegisterSlice_32 ARS8 (
+    .aclk           (piShlClk),
+    .aresetn        (~piMMIO_Layer3Rst),
+    //-- From IPTX / MacLkpReq ---------
+    .s_axis_tdata   (ssIPTX_ARS8_MacLkpReq_tdata),
+    .s_axis_tvalid  (ssIPTX_ARS8_MacLkpReq_tvalid),
+    .s_axis_tready  (ssIPTX_ARS8_MacLkpReq_tready),
+    //-- To   ARP / MacLkpReq ----------
+    .m_axis_tdata   (ssARS8_ARP_MacLkpReq_tdata),
+    .m_axis_tvalid  (ssARS8_ARP_MacLkpReq_tvalid),
+    .m_axis_tready  (ssARS8_ARP_MacLkpReq_tready)
+  ); 
 
   //============================================================================
   //  INST: L2MUX-AXI4-STREAM-INTERCONNECT-RTL (Muxes IP and ARP)
