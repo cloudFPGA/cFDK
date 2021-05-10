@@ -1,20 +1,36 @@
--- ******************************************************************************
+/************************************************
+Copyright (c) 2016-2020, IBM Research.
+Copyright (c) 2015, Xilinx, Inc.
+
+All rights reserved.
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its contributors
+may be used to endorse or promote products derived from this software
+without specific prior written permission.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+************************************************/
+
+-- ****************************************************************************
+-- * @file       : nts_TcpIp_ArpCam.vhd
+-- * @brief      : Content Addressable Memory for the address resolution server.
 -- *
--- *                        Zurich cloudFPGA
--- *            All rights reserved -- Property of IBM
--- *
--- *-----------------------------------------------------------------------------
--- *
--- * Title   : Content Addressable Memory for the address resolution server.
--- *
--- * File    : nts_TcpIp_ArpCam.vhd
--- * 
--- * Created : Jan. 2018
--- * Authors : Francois Abel
--- *
--- * Devices : xcku060-ffva1156-2-i
--- * Tools   : Vivado v2016.4 (64-bit)
--- * Depends : None 
+-- * System:     : cloudFPGA
+-- * Component   : Shell, Network Transport Stack (NTS)
+-- * Language    : VHDL
 -- *
 -- * Description : Behavioral implementation of a CAM for the ARP server.
 -- *
@@ -24,7 +40,10 @@
 -- *  gValLen : Sets the length of the CAM value.
 -- *     [ 48 : Default for the MAC address ]
 -- *
--- ******************************************************************************
+-- * \ingroup NTS
+-- * \addtogroup NTS_ARP
+-- * \{
+-- ****************************************************************************
 
 LIBRARY ieee;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -52,27 +71,23 @@ entity ArpCam is
     piRst           : in  std_logic;
     poCamReady      : out std_logic;
     --
-    --OBSOLETE-20200302  lup_req_din   : in  std_logic_vector(gKeyLength downto 0);
-    piLkpReq_Data   : in t_RtlLkpReq;    
-    piLkpReq_Valid  : in  std_logic;
-    poLkpReq_Ready  : out std_logic;
+    siLkpReq_Data   : in t_RtlLkpReq;    
+    siLkpReq_Valid  : in  std_logic;
+    siLkpReq_Ready  : out std_logic;
     --
-    --OBSOLETE-202020302 lup_rsp_dout  : out std_logic_vector(gValueLength downto 0);
-    poLkpRep_Data   : out t_RtlLkpRep;
-    poLkpRep_Valid  : out std_logic;
-    piLkpRep_Ready  : in  std_logic;
+    soLkpRep_Data   : out t_RtlLkpRep;
+    soLkpRep_Valid  : out std_logic;
+    soLkpRep_Ready  : in  std_logic;
     --
-    --OBSOLETE-20200302  upd_req_din   : in  std_logic_vector((gKeyLength + gValueLength) + 1 downto 0); -- This will include the key, the value to be updated and one bit to indicate whether this is a delete op
-    piUpdReq_Data   : in  t_RtlUpdReq;
-    piUpdReq_Valid  : in  std_logic;	
-    poUpdReq_Ready  : out std_logic;	
+    siUpdReq_Data   : in  t_RtlUpdReq;
+    siUpdReq_Valid  : in  std_logic;	
+    siUpdReq_Ready  : out std_logic;	
     --
-     --OBSOLETE-20200302 upd_rsp_dout  : out std_logic_vector(gValueLength + 1 downto 0);
-    poUpdRep_Data   : out t_RtlUpdRep;
-    poUpdRep_Valid  : out std_logic;	
-    piUpdRep_Ready  : in  std_logic;
+    soUpdRep_Data   : out t_RtlUpdRep;
+    soUpdRep_Valid  : out std_logic;	
+    soUpdRep_Ready  : in  std_logic;
    
-    poDebug         : out std_logic_vector(151 downto 0)		
+    poDebug         : out std_logic_vector(179 downto 0)		
   );
 end ArpCam;
 
@@ -128,35 +143,35 @@ architecture Behavioral of ArpCam is
   -----------------------------------------------------------------
   -- SIGNAL DECLARATIONS
   -----------------------------------------------------------------
-  signal sInitEnb          : std_logic := '0';
+  -- FSM Outputs
+  signal sFSM_InitEnb      : std_logic := '0';
   signal sAgingTime        : std_logic_vector(31 downto 0) := (others => '1');
-  signal sLkpReqValid      : std_logic := '0';
-  signal sLkpReqKey        : std_logic_vector(gKeyLength - 1 downto 0) := (others => '0');
-  signal sUpdateValid      : std_logic := '0';
-  signal sUpdateOp         : std_logic := '0';
-  signal sUpdateKey        : std_logic_vector(gKeyLength - 1 downto 0) := (others => '0');
-  signal sUpdateStatic     : std_logic := '0';
-  signal sUpdateValue      : std_logic_vector(gValueLength - 1 downto 0) := (others => '0');
+  
+  signal sFSM_LkpReqValid  : std_logic := '0';
+  signal sFSM_LkpReqKey    : std_logic_vector(gKeyLength - 1 downto 0) := (others => '0');
+  
+  signal sFSM_UpdReqValid  : std_logic := '0';
+  signal sFSM_UpdCodReq    : std_logic := '0';
+  signal sFSM_UpdKeyReq    : std_logic_vector(gKeyLength - 1 downto 0) := (others => '0');
+  signal sFSM_UpdValReq    : std_logic_vector(gValueLength - 1 downto 0) := (others => '0');
 
-  --Outputs
+  -- CAM Outputs
   signal sCAM_InitDone     : std_logic;
-  -- OBSOLETE-20200302 signal Size              : std_logic_vector(14 downto 0); --  // # BRAM address bits
-  -- OBSOLETE-20200302 signal CamSize           : std_logic_vector(3 downto 0);
+  
   signal sCAM_LkpRepValid  : std_logic;
   signal sCAM_LkpRepHit    : std_logic;
   signal sCAM_LkpRepKey    : std_logic_vector(gKeyLength - 1 downto 0);
   signal sCAM_LkpRepValue  : std_logic_vector(gValueLength - 1 downto 0);
   signal sCAM_UpdRepReady  : std_logic;
 
-  signal sCamCtrl_FSM      : std_logic_vector(7 downto 0);
+  signal sFSM_State        : std_logic_vector(7 downto 0);
   signal sValidHappened    : std_logic;
+  signal sUpdReqValid      : std_logic;
 
-  -- OBSOLETE-20200302 signal cnt1s             : std_logic_vector(27 downto 0);
-  -- OBSOLETE-20200302 signal count             : std_logic := '0';
-
-  -- OBSOLETE-20200302 signal locked            : std_logic;
-  signal sHelpUpdVal       : std_logic;
-
+  signal  sDebug           : std_logic_vector(179 downto 0 );  
+  attribute mark_debug     : string;
+  attribute mark_debug of sDebug : signal is "true";
+  
 begin
  
   poCamReady <= sCAM_InitDone;
@@ -167,31 +182,29 @@ begin
   CAM: ARP_IPv4_MAC_CAM port map (
     Clk             => piClk,
     Rst             => piRst,
-    InitEnb         => sInitEnb,
+    InitEnb         => sFSM_InitEnb,
     InitDone        => sCAM_InitDone,
     AgingTime       => sAgingTime,
-    Size            => open,   -- OBSOLETE-20200302 Size,
-    CamSize         => open,   -- OBSOLETE-20200302 CamSize,
+    Size            => open,
+    CamSize         => open,
     -- Lookup I/F
-    LookupReqValid  => sLkpReqValid,
-    LookupReqKey    => sLkpReqKey,
+    LookupReqValid  => sFSM_LkpReqValid,
+    LookupReqKey    => sFSM_LkpReqKey,
     LookupRespValid => sCAM_LkpRepValid,
     LookupRespHit   => sCAM_LkpRepHit,
     LookupRespKey   => sCAM_LkpRepKey,
     LookupRespValue => sCAM_LkpRepValue,
     -- Update I/F
     UpdateAck       => sCAM_UpdRepReady,
-    UpdateValid     => sHelpUpdVal, --sUpdateValid,
-    UpdateOp        => sUpdateOp,
-    UpdateKey       => sUpdateKey,
-    UpdateStatic    => sUpdateStatic,
-    UpdateValue     => sUpdateValue
+    UpdateValid     => sUpdReqValid, --was sFSM_UpdReqValid,
+    UpdateOp        => sFSM_UpdCodReq,
+    UpdateKey       => sFSM_UpdKeyReq,
+    UpdateStatic    => '1',
+    UpdateValue     => sFSM_UpdValReq
   );
 	
-  --	sInitEnb <= not InitDone;
-	
   sAgingTime  <= (others => '1');		
-  sHelpUpdVal <= sUpdateValid or (sCamCtrl_FSM(6) and not sCAM_UpdRepReady);
+  sUpdReqValid <= sFSM_UpdReqValid or (sFSM_State(6) and not sCAM_UpdRepReady);
 	
   -----------------------------------------------------------------
   -- PROC: Cam Control
@@ -199,187 +212,169 @@ begin
   pCamCtl : process (piClk, piRst,sCAM_InitDone)
   begin
     if (piRst = '1') then
-      sLkpReqValid   <= '0';
-      sLkpReqKey     <= (others => '0');
-      sUpdateValid   <= '0';
-      sUpdateOp      <= '0';
-      sUpdateKey     <= (others => '0');
-      sUpdateStatic  <= '1';
-      sUpdateValue   <= (others => '0');
-      sCamCtrl_FSM   <= x"00";
-      poLkpReq_Ready <= '0';
-      poUpdReq_Ready <= '0';
-      poLkpRep_Valid <= '0';
-      poUpdRep_Valid <= '0';
-      --OBSOLETE_20210416 sInitEnb        <= not sCAM_InitDone;
-      sInitEnb       <= '1';
+      sFSM_LkpReqValid <= '0';
+      sFSM_LkpReqKey   <= (others => '0');
+      sFSM_UpdReqValid <= '0';
+      sFSM_UpdCodReq   <= '0';
+      sFSM_UpdKeyReq   <= (others => '0');
+      --OBSOLETE_20210510 sUpdateStatic    <= '1';
+      sFSM_UpdValReq   <= (others => '0');
+      sFSM_State       <= x"00";
+      siLkpReq_Ready   <= '0';
+      siUpdReq_Ready   <= '0';
+      soLkpRep_Valid   <= '0';
+      soUpdRep_Valid   <= '0';
+      --OBSOLETE_20210416 sFSM_InitEnb        <= not sCAM_InitDone;
+      sFSM_InitEnb     <= '1';
     elsif (piClk'event and piClk='1') then
-      sInitEnb       <= not sCAM_InitDone;
-      poLkpReq_Ready <= '0';
-      poUpdReq_Ready <= '0';
-      poLkpRep_Valid <= '0';
-      poUpdRep_Valid <= '0';				
-      sLkpReqValid   <= '0';
-      sUpdateValid   <= '0';
-      if (sCAM_InitDone = '1' or sCamCtrl_FSM > x"00") then
-        case sCamCtrl_FSM is
+      sFSM_InitEnb     <= not sCAM_InitDone;
+      siLkpReq_Ready   <= '0';
+      siUpdReq_Ready   <= '0';
+      soLkpRep_Valid   <= '0';
+      soUpdRep_Valid   <= '0';				
+      sFSM_LkpReqValid <= '0';
+      sFSM_UpdReqValid <= '0';
+      if (sCAM_InitDone = '1' or sFSM_State > x"00") then  -- [FIXME: State test can be removed]
+        case sFSM_State is
           when x"00" => 
             --------------------------------
             -- IDLE-STATE                 --
             --------------------------------
-            if (piLkpReq_Valid = '1') then
-              -- IDLE --> LOOKUP -------------------
-              poLkpReq_Ready     <= '1';
-              sLkpReqValid       <= '1';
-              --OBSOLETE-20200302 LookupReqKey      <= lup_req_din(gKeyLength downto 1);	
-              --OBSOLETE-20200302 lup_rsp_dout(0)   <= lup_req_din(0); --rx bit
-              sLkpReqKey           <= piLkpReq_Data.ipKey;	
-              poLkpRep_Data.srcBit <= piLkpReq_Data.srcBit;
-              sCamCtrl_FSM <= x"10";
-              --OBSOLETE_20200302 elsif (upd_req_valid='1' and upd_req_din(1)='0') then
-            elsif (piUpdReq_Valid='1' and piUpdReq_Data.opCode=cOPCODE_INSERT) then
-              -- IDLE --> INSERT -------------------
-              poUpdReq_Ready       <= '1';
-              sUpdateValid         <= '1';
-              --OBSOLETE-20200302 UpdateOp          <= upd_req_din(1);
-              --OBSOLETE-20200302 UpdateKey         <= upd_req_din((gValueLength + gKeyLength + 1) downto (gValueLength + 2));
-              --OBSOLETE-20200302 UpdateValue       <= upd_req_din(gValueLength + 1 downto 2);	
-              --OBSOLETE-20200302 upd_rsp_dout(0)   <= upd_req_din(0); -- rx bit;
-              sUpdateOp            <= piUpdReq_Data.opCode;
-              sUpdateKey           <= piUpdReq_Data.ipKey;
-              sUpdateValue         <= piUpdReq_Data.macVal;
-              poUpdRep_Data.srcBit <= piUpdReq_Data.srcBit;
-              sCamCtrl_FSM <= x"50";
-              --OBSOLETE_20200302 elsif (upd_req_valid='1' and upd_req_din(1)='1') then
-            elsif (piUpdReq_Valid='1' and piUpdReq_Data.opCode=cOPCODE_DELETE) then
-              -- IDLE --> DELETE -------------------
-              poUpdReq_Ready       <= '1';
-              sUpdateValid         <= '1';
-              --OBSOLETE-20200302 UpdateOp          <= upd_req_din(1);
-              --OBSOLETE-20200302 UpdateKey         <= upd_req_din((gValueLength + gKeyLength + 1) downto (gValueLength + 2));
-              --OBSOLETE-20200302 UpdateValue       <= upd_req_din(gValueLength + 1 downto 2);	
-              --OBSOLETE-20200302 upd_rsp_dout(0)   <= upd_req_din(0); -- rx bit;
-              sUpdateOp            <= piUpdReq_Data.opCode;
-              sUpdateKey           <= piUpdReq_Data.ipKey;
-              sUpdateValue         <= piUpdReq_Data.macval;  
-              poUpdRep_Data.srcBit <= piUpdReq_Data.srcBit;              
-              sCamCtrl_FSM <= x"40";
+            if (siLkpReq_Valid = '1') then
+              -- IDLE --> LOOKUP REQUEST -------------
+              siLkpReq_Ready       <= '1';
+              sFSM_LkpReqValid     <= '1';
+              sFSM_LkpReqKey       <= siLkpReq_Data.ipKey;	
+              soLkpRep_Data.srcBit <= siLkpReq_Data.srcBit;
+              sFSM_State           <= x"10";
+            elsif (siUpdReq_Valid='1' and siUpdReq_Data.opCode=cOPCODE_INSERT) then
+              -- IDLE --> UPDATE REQUEST (INSERT) ----
+              siUpdReq_Ready       <= '1';
+              sFSM_UpdReqValid     <= '1';
+              sFSM_UpdCodReq       <= siUpdReq_Data.opCode;
+              sFSM_UpdKeyReq       <= siUpdReq_Data.ipKey;
+              sFSM_UpdValReq       <= siUpdReq_Data.macVal;
+              soUpdRep_Data.srcBit <= siUpdReq_Data.srcBit;
+              sFSM_State           <= x"50";
+            elsif (siUpdReq_Valid='1' and siUpdReq_Data.opCode=cOPCODE_DELETE) then
+              -- IDLE --> UPDATE REQUEST (DELETE) ----
+              siUpdReq_Ready       <= '1';
+              sFSM_UpdReqValid     <= '1';
+              sFSM_UpdCodReq       <= siUpdReq_Data.opCode;
+              sFSM_UpdKeyReq       <= siUpdReq_Data.ipKey;
+              sFSM_UpdValReq       <= siUpdReq_Data.macval;  
+              soUpdRep_Data.srcBit <= siUpdReq_Data.srcBit;              
+              sFSM_State           <= x"40";
             else
               -- IDLE --> IDLE ---------------------
-              sCamCtrl_FSM <= x"00";
+              sFSM_State <= x"00";
             end if;
 						
           when x"10" =>
             --------------------------------
             -- CLEAR-LOOKUP-REQUEST       --
             --------------------------------
-            sLkpReqValid   <= '0';
-            sValidHappened <= '0';
-            sCamCtrl_FSM <= x"11";
+            sFSM_LkpReqValid <= '0';
+            sValidHappened   <= '0';
+            sFSM_State       <= x"11";
 					
           when x"11" =>
             --------------------------------
             -- HANDLE-CAM-LKP-REPLY       --
             --------------------------------
             if (sCAM_LkpRepValid = '1') then
-              --OBSOLETE-20200302 lup_rsp_dout(0)      				<= LookupRespHit;
-              --OBSOLETE-20200302 lup_rsp_dout(gValueLength downto 1) 	<= LookupRespValue;
-              poLkpRep_Data.hitBit <= sCAM_LkpRepHit;
-              poLkpRep_Data.macVal <= sCAM_LkpRepValue;
+              soLkpRep_Data.hitBit <= sCAM_LkpRepHit;
+              soLkpRep_Data.macVal <= sCAM_LkpRepValue;
             end if;
-            if (piLkpRep_Ready = '0') then
+            if (soLkpRep_Ready = '0') then
               if (sCAM_LkpRepValid = '1') then
                 sValidHappened <= '1';
               end if;	
-              sCamCtrl_FSM <= sCamCtrl_FSM;
+              sFSM_State <= sFSM_State;
             else
               if (sCAM_LkpRepValid = '1' or sValidHappened = '1') then
-                poLkpRep_Valid  <= '1';
-                sCamCtrl_FSM <= x"00";
+                soLkpRep_Valid  <= '1';
+                sFSM_State      <= x"00";
               end if;
             end if;
 				
           when x"50" =>
             --------------------------------
-            -- UPDATE-INSERT-REQUEST     --
+            -- UPDATE-REQUEST-INSERT      --
             --------------------------------
-            sUpdateValid <= '1';				
-            sCamCtrl_FSM <= x"51";
+            sFSM_UpdReqValid <= '1';				
+            sFSM_State     <= x"51";
 					
           when x"51" =>
             --------------------------------
             -- HANDLE-CAM-UPD-REPLY       --
             --------------------------------
             if (sCAM_UpdRepReady = '1') then
-              sUpdateValid         <= '0';
-              sUpdateOp            <= '0';
-              --OBSOLETE-20200302 upd_rep_dout(gValueLength + 1 downto 2)    <= UpdateValue;
-              --OBSOLETE-20200302 upd_rep_dout(1)                           <= UpdateOp; -- ops
-              poUpdRep_Data.macVal <= sUpdateValue;
-              poUpdRep_Data.opCode <= sUpdateOp; -- ops
-              sUpdateKey           <= (others => '0');
-              sUpdateValue         <= (others => '0');									
-              sCamCtrl_FSM <= x"52";
+              sFSM_UpdReqValid     <= '0';
+              sFSM_UpdCodReq       <= '0';
+              soUpdRep_Data.macVal <= sFSM_UpdValReq;
+              soUpdRep_Data.opCode <= sFSM_UpdCodReq; -- ops
+              sFSM_UpdKeyReq       <= (others => '0');
+              sFSM_UpdValReq       <= (others => '0');									
+              sFSM_State           <= x"52";
             else -- hold everything
-              sUpdateValid <= '0';
-              sCamCtrl_FSM <= x"51";							
+              sFSM_UpdReqValid <= '0';
+              sFSM_State       <= x"51";							
             end if;
 							
           when x"52" =>
             --------------------------------
-            -- SEND-INSERT-REPLY          --
+            -- UPDATE-REPLY-INSERT        --
             --------------------------------
-            if (piUpdRep_Ready = '0') then
-              sCamCtrl_FSM <= sCamCtrl_FSM;
+            if (soUpdRep_Ready = '0') then
+              sFSM_State <= sFSM_State;
             else
-              poUpdRep_Valid <= '1';
-              sCamCtrl_FSM <= x"00";
+              soUpdRep_Valid <= '1';
+              sFSM_State     <= x"00";
             end if;
 
 				
           when x"40" =>
             --------------------------------
-            -- UPDATE-DELETE-REQUEST      --
+            -- UPDATE-REQUEST-DELETE      --
             --------------------------------
-            sUpdateValid    <= '1';
-            sCamCtrl_FSM <= x"41";
+            sFSM_UpdReqValid <= '1';
+            sFSM_State       <= x"41";
 
           when x"41" =>
             --------------------------------
             -- HANDLE-CAM-UPD-REPLY       --
             --------------------------------
-            --OBSOLETE-20200302 upd_rep_dout(gValueLength + 1 downto 2)  <= UpdateValue;
-            --OBSOLETE-20200302 upd_rep_dout(1)            <= UpdateOp; -- ops
-            poUpdRep_Data.macVal <= sUpdateValue;
-            poUpdRep_Data.opCode <= sUpdateOp; -- ops          
+            soUpdRep_Data.macVal <= sFSM_UpdValReq;
+            soUpdRep_Data.opCode <= sFSM_UpdCodReq; -- ops          
             if (sCAM_UpdRepReady = '1') then
               -- Reset
-              sUpdateValid   <= '0';
-              sUpdateOp      <= '0';
-              sUpdateKey     <= (others => '0');
-              sUpdateValue   <= (others => '0');									
-              sCamCtrl_FSM   <= x"42";
+              sFSM_UpdReqValid <= '0';
+              sFSM_UpdCodReq   <= '0';
+              sFSM_UpdKeyReq   <= (others => '0');
+              sFSM_UpdValReq   <= (others => '0');									
+              sFSM_State       <= x"42";
             else -- hold everything
-              sUpdateValid   <= '0';	
-              sCamCtrl_FSM   <= x"41";							
+              sFSM_UpdReqValid <= '0';	
+              sFSM_State       <= x"41";							
             end if;
 							
           when x"42" =>
             --------------------------------
-            -- SEND-DELETE-REPLY          --
+            -- UPDATE-REPLY-DELETE        --
             --------------------------------
-            if (piUpdRep_Ready = '1') then
-              poUpdRep_Valid <= '1';
-              sCamCtrl_FSM <= x"00";
+            if (soUpdRep_Ready = '1') then
+              soUpdRep_Valid <= '1';
+              sFSM_State     <= x"00";
             else
-              sCamCtrl_FSM <= sCamCtrl_FSM;
+              sFSM_State     <= sFSM_State;
             end if;
             
           when others =>
             --------------------------------
             -- DEFAULT-STATE              --
             --------------------------------
-            sCamCtrl_FSM <= sCamCtrl_FSM + 1;
+            sFSM_State <= sFSM_State + 1;
         end case;
       end if;
     end if;
@@ -390,23 +385,29 @@ begin
   -----------------------------------------------------------------
   pDebug: process (piClk)
   begin
+    -- Control signals & Single bits (7..0)
+    sDebug(  0)             <= piRst;   
+    sDebug(  1)             <= sFSM_InitEnb;
+    sDebug(  2)             <= sCAM_InitDone;
+    sDebug(  3)             <= sFSM_LkpReqValid;
+    sDebug(  4)             <= sCAM_LkpRepValid;
+    sDebug(  5)             <= sCAM_LkpRepHit;
+    sDebug(  6)             <= '0';
+    sDebug(  7)             <= '0';
+    -- FSM States
+    sDebug( 15 downto   8)  <= sFSM_State;
+    -- Lookup Request I/F (47..16)
+    sDebug( 47 downto  16)  <= sFSM_LkpReqKey; 
+    -- Lookup Reply I/F (95..48)
+    sDebug( 95 downto  48)  <= sCAM_LkpRepValue;
+    -- Update Request I/F (127..96)
+    sDebug(127 downto  96)  <= sFSM_UpdKeyReq;
+    sDebug(175 downto 128)  <= sFSM_UpdValReq;
+    sDebug(176)             <= sFSM_UpdCodReq;
+    sDebug(177)             <= sUpdReqValid;
+    sDebug(178)             <= sCAM_UpdRepReady;      
     if (piClk'event and piClk='1') then
-      poDebug(  0)              <= sInitEnb;
-      poDebug(  1)              <= sCAM_InitDone;  
-      poDebug(  2)              <= sLkpReqValid; 
-      poDebug( 34 downto   3)  <= sLkpReqKey; 	
-      poDebug( 35)             <= sCAM_LkpRepValid; 	
-      poDebug( 36)             <= sCAM_LkpRepHit;
-      poDebug( 68 downto  37)  <= sCAM_LkpRepKey;
-      poDebug(116 downto  69)  <= sCAM_LkpRepValue;
-      poDebug(117)             <= sCAM_UpdRepReady;
-      poDebug(118)             <= sHelpUpdVal;
-      poDebug(119)             <= sUpdateOp;
-      poDebug(127 downto 120)  <= sUpdateKey(7 downto 0);
-      poDebug(128)             <= sUpdateStatic;
-      poDebug(142 downto 129)  <= sUpdateValue(13 downto 0);		
-      poDebug(150 downto 143)  <= sCamCtrl_FSM;
-      poDebug(151)             <= piRst;
+      poDebug <= sDebug;
     end if;   
   end process;  -- pDebug
 

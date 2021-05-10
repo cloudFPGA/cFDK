@@ -217,11 +217,6 @@ architecture Structural of AddressResolutionProcess is
   signal  ssCAM_ARS_MacUpdRep_TREADY  :   std_logic;
   signal  sRtlToHls_MacUpdRep_TDATA   :   t_RtlUpdRep;
   
-  signal  sCamDebug                   :   std_logic_vector(151 downto 0 );
-  
-  attribute mark_debug : string;
-  attribute mark_debug of sCamDebug   : signal is "true";
-
 begin
 
   sHlsToRtl_MacLkpReq_TDATA.srcBit        <= '0'; -- NotUsed: Always '0'
@@ -252,23 +247,23 @@ begin
       piRst            =>  piMMIO_Rst,
       poCamReady       =>  open,
       --
-      piLkpReq_Data    =>  sHlsToRtl_MacLkpReq_TDATA,
-      piLkpReq_Valid   =>  ssARS_CAM_MacLkpReq_TVALID,
-      poLkpReq_Ready   =>  ssARS_CAM_MacLkpReq_TREADY,
+      siLkpReq_Data    =>  sHlsToRtl_MacLkpReq_TDATA,
+      siLkpReq_Valid   =>  ssARS_CAM_MacLkpReq_TVALID,
+      siLkpReq_Ready   =>  ssARS_CAM_MacLkpReq_TREADY,
       --
-      poLkpRep_Data    =>  sRtlToHls_MacLkpRep_TDATA,
-      poLkpRep_Valid   =>  ssCAM_ARS_MacLkpRep_TVALID,
-      piLkpRep_Ready   =>  ssCAM_ARS_MacLkpRep_TREADY,
+      soLkpRep_Data    =>  sRtlToHls_MacLkpRep_TDATA,
+      soLkpRep_Valid   =>  ssCAM_ARS_MacLkpRep_TVALID,
+      soLkpRep_Ready   =>  ssCAM_ARS_MacLkpRep_TREADY,
       --
-      piUpdReq_Data    =>  sHlsToRtl_MacUpdReq_TDATA,
-      piUpdReq_Valid   =>  ssARS_CAM_MacUpdReq_TVALID,
-      poUpdReq_Ready   =>  ssARS_CAM_MacUpdReq_TREADY,
+      siUpdReq_Data    =>  sHlsToRtl_MacUpdReq_TDATA,
+      siUpdReq_Valid   =>  ssARS_CAM_MacUpdReq_TVALID,
+      siUpdReq_Ready   =>  ssARS_CAM_MacUpdReq_TREADY,
       --
-      poUpdRep_Data    =>  sRtlToHls_MacUpdRep_TDATA,
-      poUpdRep_Valid   =>  ssCAM_ARS_MacUpdRep_TVALID,
-      piUpdRep_Ready   =>  ssCAM_ARS_MacUpdRep_TREADY,
+      soUpdRep_Data    =>  sRtlToHls_MacUpdRep_TDATA,
+      soUpdRep_Valid   =>  ssCAM_ARS_MacUpdRep_TVALID,
+      soUpdRep_Ready   =>  ssCAM_ARS_MacUpdRep_TREADY,
       --
-      poDebug          =>  sCamDebug
+      poDebug          =>  open
     );
   
   -----------------------------------------------------------------
