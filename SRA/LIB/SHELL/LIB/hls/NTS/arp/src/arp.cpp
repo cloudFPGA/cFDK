@@ -687,11 +687,13 @@ void arp(
 
     #pragma HLS INTERFACE axis register both port=soCAM_MacLkpReq
     #pragma HLS DATA_PACK                variable=soCAM_MacLkpReq
-    #pragma HLS INTERFACE axis register both port=siCAM_MacLkpRep
+    //OBSOLETE_20210510 #pragma HLS INTERFACE axis register both port=siCAM_MacLkpRep
+    #pragma HLS INTERFACE axis off           port=siCAM_MacLkpRep
     #pragma HLS DATA_PACK                variable=siCAM_MacLkpRep
     #pragma HLS INTERFACE axis register both port=soCAM_MacUpdReq
     #pragma HLS DATA_PACK                variable=soCAM_MacUpdReq
-    #pragma HLS INTERFACE axis register both port=siCAM_MacUpdRep
+    //OBSOLETE_20210510 #pragma HLS INTERFACE axis register both port=siCAM_MacUpdRep
+    #pragma HLS INTERFACE axis off           port=siCAM_MacUpdRep
     #pragma HLS DATA_PACK                variable=siCAM_MacUpdRep
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
