@@ -1571,9 +1571,9 @@ module NetworkTransportStack_TcpIp (
     .soARP_LookupReq_V_V_TVALID (ssIPTX_ARS8_MacLkpReq_tvalid),
     .soARP_LookupReq_V_V_TREADY (ssIPTX_ARS8_MacLkpReq_tready),
     //-- From ARP / LookupReply --------
-    .siARP_LookupRep_V_TDATA  (ssARP_IPTX_MacLkpRep_tdata),
-    .siARP_LookupRep_V_TVALID (ssARP_IPTX_MacLkpRep_tvalid),
-    .siARP_LookupRep_V_TREADY (ssARP_IPTX_MacLkpRep_tready),
+    .siARP_LookupRep_V_TDATA  (ssARS7_IPTX_MacLkpRep_tdata),
+    .siARP_LookupRep_V_TVALID (ssARS7_IPTX_MacLkpRep_tvalid),
+    .siARP_LookupRep_V_TREADY (ssARS7_IPTX_MacLkpRep_tready),
     //------------------------------------------------------
     //-- L2MUX Interfaces
     //------------------------------------------------------
