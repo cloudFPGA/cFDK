@@ -172,12 +172,14 @@ begin
     AgingTime       => sAgingTime,
     Size            => open,   -- OBSOLETE-20200302 Size,
     CamSize         => open,   -- OBSOLETE-20200302 CamSize,
+    -- Lookup I/F
     LookupReqValid  => sLkpReqValid,
     LookupReqKey    => sLkpReqKey,
     LookupRespValid => sCAM_LkpRepValid,
     LookupRespHit   => sCAM_LkpRepHit,
     LookupRespKey   => sCAM_LkpRepKey,
     LookupRespValue => sCAM_LkpRepValue,
+    -- Update I/F
     UpdateAck       => sCAM_UpdRepReady,
     UpdateValid     => sHelpUpdVal, --sUpdateValid,
     UpdateOp        => sUpdateOp,
@@ -197,14 +199,14 @@ begin
   pCamCtl : process (piClk, piRst,sCAM_InitDone)
   begin
     if (piRst = '1') then
-      sLkpReqValid <= '0';
-      sLkpReqKey   <= (others => '0');
-      sUpdateValid <= '0';
-      sUpdateOp    <= '0';
-      sUpdateKey   <= (others => '0');
-      sUpdateStatic<= '1';
-      sUpdateValue <= (others => '0');
-      sCamCtrl_FSM <= x"00";
+      sLkpReqValid   <= '0';
+      sLkpReqKey     <= (others => '0');
+      sUpdateValid   <= '0';
+      sUpdateOp      <= '0';
+      sUpdateKey     <= (others => '0');
+      sUpdateStatic  <= '1';
+      sUpdateValue   <= (others => '0');
+      sCamCtrl_FSM   <= x"00";
       poLkpReq_Ready <= '0';
       poUpdReq_Ready <= '0';
       poLkpRep_Valid <= '0';
@@ -389,13 +391,13 @@ begin
   pDebug: process (piClk)
   begin
     if (piClk'event and piClk='1') then
-      poDebug(0)               <= sInitEnb;
-      poDebug(1)               <= sCAM_InitDone;  
-      poDebug(2)               <= sLkpReqValid; 
-      poDebug(34 downto 3)     <= sLkpReqKey; 	
-      poDebug(35)              <= sCAM_LkpRepValid; 	
-      poDebug(36)              <= sCAM_LkpRepHit;
-      poDebug(68 downto 37)    <= sCAM_LkpRepKey;
+      poDebug(  0)              <= sInitEnb;
+      poDebug(  1)              <= sCAM_InitDone;  
+      poDebug(  2)              <= sLkpReqValid; 
+      poDebug( 34 downto   3)  <= sLkpReqKey; 	
+      poDebug( 35)             <= sCAM_LkpRepValid; 	
+      poDebug( 36)             <= sCAM_LkpRepHit;
+      poDebug( 68 downto  37)  <= sCAM_LkpRepKey;
       poDebug(116 downto  69)  <= sCAM_LkpRepValue;
       poDebug(117)             <= sCAM_UpdRepReady;
       poDebug(118)             <= sHelpUpdVal;
