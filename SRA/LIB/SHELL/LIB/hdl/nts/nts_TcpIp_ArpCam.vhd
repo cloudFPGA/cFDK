@@ -282,28 +282,34 @@ begin
             --------------------------------
             -- HANDLE-CAM-LKP-REPLY       --
             --------------------------------
+            --OBSOLETE_20210511 if (sCAM_LkpRepValid = '1') then
+            --OBSOLETE_20210511   soLkpRep_Data.hitBit <= sCAM_LkpRepHit;
+            --OBSOLETE_20210511   soLkpRep_Data.macVal <= sCAM_LkpRepValue;
+            --OBSOLETE_20210511 end if;
+            --OBSOLETE_20210511 if (soLkpRep_Ready = '0') then
+            --OBSOLETE_20210511   if (sCAM_LkpRepValid = '1') then
+            --OBSOLETE_20210511     sValidHappened <= '1';
+            --OBSOLETE_20210511   end if;	
+            --OBSOLETE_20210511   sFSM_State <= sFSM_State;
+            --OBSOLETE_20210511 else
+            --OBSOLETE_20210511   if (sCAM_LkpRepValid = '1' or sValidHappened = '1') then
+            --OBSOLETE_20210511     soLkpRep_Valid  <= '1';
+            --OBSOLETE_20210511     sFSM_State      <= x"00";
+            --OBSOLETE_20210511   end if;
+            --OBSOLETE_20210511 end if;
             if (sCAM_LkpRepValid = '1') then
               soLkpRep_Data.hitBit <= sCAM_LkpRepHit;
               soLkpRep_Data.macVal <= sCAM_LkpRepValue;
+              soLkpRep_Valid       <= '1';
+              sFSM_State           <= x"00";
             end if;
-            if (soLkpRep_Ready = '0') then
-              if (sCAM_LkpRepValid = '1') then
-                sValidHappened <= '1';
-              end if;	
-              sFSM_State <= sFSM_State;
-            else
-              if (sCAM_LkpRepValid = '1' or sValidHappened = '1') then
-                soLkpRep_Valid  <= '1';
-                sFSM_State      <= x"00";
-              end if;
-            end if;
-				
+
           when x"50" =>
             --------------------------------
             -- UPDATE-REQUEST-INSERT      --
             --------------------------------
-            sFSM_UpdReqValid <= '1';				
-            sFSM_State     <= x"51";
+            sFSM_UpdReqValid       <= '1';				
+            sFSM_State             <= x"51";
 					
           when x"51" =>
             --------------------------------
@@ -318,22 +324,21 @@ begin
               sFSM_UpdValReq       <= (others => '0');									
               sFSM_State           <= x"52";
             else -- hold everything
-              sFSM_UpdReqValid <= '0';
-              sFSM_State       <= x"51";							
+              sFSM_UpdReqValid     <= '0';
+              sFSM_State           <= x"51";							
             end if;
 							
           when x"52" =>
             --------------------------------
             -- UPDATE-REPLY-INSERT        --
             --------------------------------
-            if (soUpdRep_Ready = '0') then
-              sFSM_State <= sFSM_State;
-            else
+            --OBSOLETE_20210511 if (soUpdRep_Ready = '0') then
+            --OBSOLETE_20210511   sFSM_State <= sFSM_State;
+            --OBSOLETE_20210511 else
               soUpdRep_Valid <= '1';
               sFSM_State     <= x"00";
-            end if;
+            --OBSOLETE_20210511 end if;
 
-				
           when x"40" =>
             --------------------------------
             -- UPDATE-REQUEST-DELETE      --
@@ -392,7 +397,7 @@ begin
     sDebug(  3)             <= sFSM_LkpReqValid;
     sDebug(  4)             <= sCAM_LkpRepValid;
     sDebug(  5)             <= sCAM_LkpRepHit;
-    sDebug(  6)             <= '0';
+    sDebug(  6)             <= sFSM_UpdReqValid;
     sDebug(  7)             <= '0';
     -- FSM States
     sDebug( 15 downto   8)  <= sFSM_State;
@@ -405,7 +410,7 @@ begin
     sDebug(175 downto 128)  <= sFSM_UpdValReq;
     sDebug(176)             <= sFSM_UpdCodReq;
     sDebug(177)             <= sUpdReqValid;
-    sDebug(178)             <= sCAM_UpdRepReady;      
+    sDebug(178)             <= sCAM_UpdRepReady;
     if (piClk'event and piClk='1') then
       poDebug <= sDebug;
     end if;   
