@@ -973,9 +973,7 @@ module Shell_Themisto # (
     .piXXX_XMem_Wren               (sbFMC_MMIO_Xmem_wren),
     .piXXX_XMem_WrData             (sbFMC_MMIO_Xmem_WData),
     .poXXX_XMem_RData              (sbFMC_MMIO_Xmem_RData),
-    .piXXX_XMemAddr                (sbFMC_MMIO_Xmem_Addr),
-    
-    .poVoid                         ()
+    .piXXX_XMemAddr                (sbFMC_MMIO_Xmem_Addr)
 
   );  // End of MMIO
 
@@ -1336,9 +1334,7 @@ module Shell_Themisto # (
     .piMMIO_SubNetMask                (sMMIO_NTS0_SubNetMask),
     .piMMIO_GatewayAddr               (sMMIO_NTS0_GatewayAddr),
     .poMMIO_CamReady                  (sNTS0_MMIO_CamReady),      // [TODO-Merge this signal with NtsReady]
-    .poMMIO_NtsReady                  (sNTS0_MMIO_NtsReady),
-
-    .poVoid                           ()
+    .poMMIO_NtsReady                  (sNTS0_MMIO_NtsReady)
 
   );  // End of NTS0
 
