@@ -243,6 +243,8 @@ if { ${create} } {
     my_puts "##"
     my_puts "##  CREATING PROJECT: ${xprName}  "
     my_puts "##"
+    my_puts "##    Vivado Version is ${VIVADO_VERSION}  "
+    my_puts "##"
     my_puts "################################################################################"
     my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
@@ -308,6 +310,12 @@ if { ${create} } {
 
     set_property "ip_output_repo" "${xprDir}/${xprName}/${xprName}.cache/ip" ${xprObj}
 
+    if { [format "%.1f" ${VIVADO_VERSION}] == 2017.4 } {
+        my_dbg_trace "Enabling the use of deprecated PRAGMAs." ${dbgLvl_2};
+        set_property verilog_define {USE_DEPRECATED_DIRECTIVES=true} [ current_fileset ]
+        set_property generic        {gVivadoVersion=2017}            [ current_fileset ]
+    }
+    
     my_dbg_trace "Done with set project properties." ${dbgLvl_1}
 
     #===============================================================================
@@ -334,13 +342,10 @@ if { ${create} } {
     update_ip_catalog -rebuild
 
     # Add *ALL* the HDL Source Files from the HLD Directory (Recursively) 
-    #-------------------------------------------------------------------------------
-    
-    #add_files -fileset ${srcObj} ../hdl/
+    #-------------------------------------------------------------------------------   
     add_files -fileset ${srcObj} ${rootDir}/TOP/hdl/
-    #add_files -fileset ${srcObj} ${hdlDir}/topFlash_pkg.vhdl
     
-    # add TOP library files
+    # Add TOP library files
     add_files -fileset ${srcObj} ${rootDir}/cFDK/SRA/LIB/TOP/hdl/
 
     # Turn the VHDL-2008 mode on 
@@ -358,16 +363,17 @@ if { ${create} } {
         add_files     ${rootDir}/cFDK/SRA/LIB/SHELL/${cFpSRAtype}/hdl/
         add_files     ${rootDir}/cFDK/SRA/LIB/SHELL/LIB/hdl/
 
+        set_property file_type {VHDL 2008} [ get_files [ glob -nocomplain ${rootDir}/cFDK/SRA/LIB/SHELL/LIB/hdl/*/*.vhd ] ]
+        set_property file_type {VHDL}      [ get_files [ glob -nocomplain ${rootDir}/cFDK/SRA/LIB/SHELL/LIB/hdl/mmio/dpAsymRam.vhd ] ]
+
         my_dbg_trace "Done with add_files (HDL) for the SHELL." ${dbgLvl_1}
 
         # IP Cores SHELL
         # Specify the IP Repository Path to make IPs available through the IP Catalog
         #  (Must do this because IPs are stored outside of the current project) 
         #---------------------------------------------------------------------------
-        #set ipDirShell  ${rootDir}/cFDK/SRA/LIB/SHELL/${usedShellType}/ip/
         set ipDirShell  ${ipDir}
         set hlsDirShell ${rootDir}/cFDK/SRA/LIB/SHELL/LIB/hls/
-        #OBSOLETE-20180917 set_property ip_repo_paths "${ipDirShell} ${rootDir}/../../SHELL/${usedShellType}/hls" [ current_project ]
         set_property ip_repo_paths [ concat [ get_property ip_repo_paths [current_project] ] \
                                           ${ipDirShell} ${hlsDirShell} ] [current_project]
         update_ip_catalog
@@ -411,7 +417,10 @@ if { ${create} } {
     # Add HDL Source Files for the ROLE and turn VHDL-2008 mode on
     #---------------------------------------------------------------------------
     add_files  ${usedRoleDir}/hdl/
-    set_property file_type {VHDL 2008} [ get_files [ file normalize ${usedRoleDir}/hdl/*.vhd* ] ]
+    set roleVhdlList [ glob -nocomplain ${usedRoleDir}/hdl/*.vhd* ]
+    if { $roleVhdlList ne "" } {
+      set_property file_type {VHDL 2008} [ get_files [ file normalize ${usedRoleDir}/hdl/*.vhd* ] ]
+    }
     update_compile_order -fileset sources_1
     my_dbg_trace "Finished adding the  HDL files of the ROLE." ${dbgLvl_1}
 
@@ -468,8 +477,7 @@ if { ${create} } {
     #         Timing Assertions -> Timing Exceptions -> Physical Constraints
     #-------------------------------------------------------------------------------
     set constrObj [ get_filesets constrs_1 ]
-    #set orderedList "xdc_settings.tcl topFMKU60_timg.xdc topFMKU60_pins.xdc  topFMKU60.xdc"
-    # import orderedList
+    # Import orderedList
     source ${xdcDir}/order.tcl 
     foreach file ${orderedList} {
         if { [ add_files -fileset ${constrObj} -norecurse ${xdcDir}/${file} ] eq "" } {
@@ -479,6 +487,9 @@ if { ${create} } {
             exit ${KO}
         }
     }
+
+    set_property used_in_implementation false [get_files topFMKU60_timg_synt.xdc]
+    set_property used_in_synthesis      false [get_files topFMKU60_timg_impl.xdc]
 
     my_dbg_trace "Done with adding XDC files." ${dbgLvl_1}
 
@@ -547,14 +558,11 @@ if { ${create} } {
     # TODO: add SIM 
     #if { [ string equal [ get_runs -quiet sim_1 ] ""] } {
     #    set_property SOURCE_SET sources_1 [ get_filesets sim_1 ]
-    #    #OBSOLETE-20180705 add_files -fileset sim_1 -norecurse  ${rootDir}/sim/tb_topFlash_Shell_Mmio.vhd
     #    add_files -fileset sim_1 -norecurse  ${rootDir}/sim
 
     #    # Turn the VHDL-2008 mode on 
     #    #---------------------------------------------------------------------------
     #    set_property file_type {VHDL 2008} [ get_files  ${rootDir}/sim/*.vhd* ]
-    #    #OBSOLETE-20180705 set_property file_type {VHDL 2008} [ get_files  ${hdlDir}/*.vhd* ]
-
     #    set_property source_mgmt_mode All [ current_project ]
     #    update_compile_order -fileset sim_1
     #}
