@@ -39,5 +39,7 @@
 [ -z "$roleName1" ] && echo "ERROR: roleName1 MUST BE DEFINED as environment variable!" && exit 1;
 [ -z "$roleName2" ] && echo "ERROR: roleName2 MUST BE DEFINED as environment variable!" && exit 1;
 
+[ -z "$XILINX_VIVADO" ] && echo "ERROR: XILINX_VIVADO MUST BE DEFINED as environment variable! (This is usually done by the xilinx settings scripts)." && exit 1;
+
 exit 0;
 
