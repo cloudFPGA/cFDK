@@ -217,11 +217,11 @@ typedef RepBool     TcpAppLsnRep;
 typedef AxisRaw     UdpAppData;
 #endif
 
-//---------------------------------------------------------
-//-- UDP APP - METADATA
-//--  The socket pair association of a connection.
-//---------------------------------------------------------
-typedef SocketPair  UdpAppMeta;
+//OBSOLETE_20210604 //---------------------------------------------------------
+//OBSOLETE_20210604 //-- UDP APP - METADATA
+//OBSOLETE_20210604 //--  The socket pair association of a connection.
+//OBSOLETE_20210604 //---------------------------------------------------------
+//OBSOLETE_20210604 typedef SocketPair  UdpAppMeta;
 
 //---------------------------------------------------------
 //-- UDP APP - DATA LENGTH
@@ -247,6 +247,10 @@ class UdpAppMetb {  // [FIXME-Rename class when done]
     UdpAppMetb() {}
     UdpAppMetb(Ip4Addr srcAddr, Ly4Port srcPort, Ip4Addr dstAddr, Ly4Port dstPort) :
         ip4SrcAddr(srcAddr), udpSrcPort(srcPort), ip4DstAddr(dstAddr), udpDstPort(dstPort) {}
+    UdpAppMetb(SockAddr srcSock, SockAddr dstSock) :
+        ip4SrcAddr(srcSock.addr), udpSrcPort(srcSock.port), ip4DstAddr(dstSock.addr), udpDstPort(dstSock.port) {}
+    UdpAppMetb(SocketPair sockPair) :
+            ip4SrcAddr(sockPair.src.addr), udpSrcPort(sockPair.src.port), ip4DstAddr(sockPair.dst.addr), udpDstPort(sockPair.dst.port) {}
 };
 
 //=========================================================
@@ -330,13 +334,15 @@ void nts(
         //-- UAIF / Received Datagram Interfaces
         //------------------------------------------------------
         stream<UdpAppData>      &soUAIF_Data,
-        stream<UdpAppMeta>      &soUAIF_Meta,
+        //OBSOLETE_20210604 stream<UdpAppMeta>      &soUAIF_Meta,
+        stream<UdpAppMetb>      &soUAIF_Meta,
 
         //------------------------------------------------------
         //-- UAIF / Transmit Datatagram Interfaces
         //------------------------------------------------------
         stream<UdpAppData>      &siUAIF_Data,
-        stream<UdpAppMeta>      &siUAIF_Meta,
+        //OBSOLETE_20210604 stream<UdpAppMeta>      &siUAIF_Meta,
+        stream<UdpAppMetb>      &siUAIF_Meta,
         stream<UdpAppDLen>      &siUAIF_DLen
 
 );

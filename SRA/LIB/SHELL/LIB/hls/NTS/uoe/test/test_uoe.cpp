@@ -71,11 +71,12 @@ void stepSim() {
   *
  * @return NTS_OK if successful,  otherwise NTS_KO.
  ******************************************************************************/
-bool drainUdpMetaStreamToFile(stream<SocketPair> &ss, string ssName,
+bool drainUdpMetaStreamToFile(stream<UdpAppMetb> &ss, string ssName,
         string datFile, int &nrChunks, int &nrFrames, int &nrBytes) {
     ofstream    outFileStream;
     char        currPath[FILENAME_MAX];
-    SocketPair  udpMeta;
+    //OBSOLETE_20210604 SocketPair  udpMeta;
+    UdpAppMetb  udpMeta;
 
     const char *myName  = concat3(THIS_NAME, "/", "DUMTF");
 
@@ -107,10 +108,10 @@ bool drainUdpMetaStreamToFile(stream<SocketPair> &ss, string ssName,
     outFileStream << std::uppercase;
     while (!(ss.empty())) {
         ss.read(udpMeta);
-        SocketPair socketPair(SockAddr(udpMeta.src.addr,
-                                       udpMeta.src.port),
-                              SockAddr(udpMeta.dst.addr,
-                                       udpMeta.dst.port));
+        SocketPair socketPair(SockAddr(udpMeta.ip4SrcAddr,
+                                       udpMeta.udpSrcPort),
+                              SockAddr(udpMeta.ip4DstAddr,
+                                       udpMeta.udpDstPort));
         writeSocketPairToFile(socketPair, outFileStream);
         nrChunks++;
         nrBytes += 12;
@@ -146,10 +147,10 @@ bool drainUdpMetaStreamToFile(stream<SocketPair> &ss, string ssName,
  ******************************************************************************/
 int createUdpTxTraffic(
         stream<AxisApp>    &ssData, const string      ssDataName,
-        stream<UdpAppMeta> &ssMeta, const string      ssMetaName,
+        stream<UdpAppMetb> &ssMeta, const string      ssMetaName,
         stream<UdpAppDLen> &ssDLen, const string      ssDLenName,
         string             datFile,
-        queue<UdpAppMeta>  &metaQueue,
+        queue<UdpAppMetb>  &metaQueue,
         queue<UdpAppDLen>  &dlenQueue,
         int                &nrFeededChunks)
 {
@@ -178,7 +179,7 @@ int createUdpTxTraffic(
         metaQueue.pop();
     }
     // Try appending a fake metadata to avoid problems at end of RTL/CoSim
-    ssMeta.write(UdpAppMeta(SockAddr(0,0), SockAddr(0,0)));
+    ssMeta.write(UdpAppMetb(SockAddr(0,0), SockAddr(0,0)));
 
     //-- STEP-3: FEED DATA-LENGTH STREAM FROM QUEUE ---------------------------
     while(!dlenQueue.empty()) {
@@ -207,8 +208,8 @@ int createUdpTxTraffic(
  * @return true if successful, otherwise false.
  ******************************************************************************/
 bool readDatagramFromFile(const char *myName,  SimUdpDatagram &appDatagram,
-                          ifstream   &ifsData, UdpAppMeta     &udpAppMeta,
-                          queue<UdpAppMeta> &udpMetaQueue, queue<UdpAppDLen> &updDLenQueue,
+                          ifstream   &ifsData, UdpAppMetb     &udpAppMeta,
+                          queue<UdpAppMetb> &udpMetaQueue, queue<UdpAppDLen> &updDLenQueue,
                           int &inpChunks, int &inpDgrms, int &inpBytes, char tbMode) {
 
     string          stringBuffer;
@@ -225,19 +226,25 @@ bool readDatagramFromFile(const char *myName,  SimUdpDatagram &appDatagram,
         getline(ifsData, stringBuffer);
         stringVector = myTokenizer(stringBuffer, ' ');
         //-- Read the Host Listen Socket Address from line (if present)
-        rc = readHostSocketFromLine(udpAppMeta.dst, stringBuffer);
+        SockAddr hostSockAddr;
+        //OBSOLETE_20210604 rc = readHostSocketFromLine(udpAppMeta.dst, stringBuffer);
+        rc = readHostSocketFromLine(hostSockAddr, stringBuffer);
         if (rc) {
+            udpAppMeta.ip4DstAddr = hostSockAddr.addr;
+            udpAppMeta.udpDstPort = hostSockAddr.port;
             if (DEBUG_LEVEL & TRACE_CGTF) {
                 printInfo(myName, "Read a new HOST socket address from DAT file:\n");
-                printSockAddr(myName, udpAppMeta.dst);
+                printSockAddr(myName, hostSockAddr);
             }
         }
         //-- Read the Fpga Send Port from line (if present)
-        rc = readFpgaSndPortFromLine(udpAppMeta.src.port, stringBuffer);
+        //OBSOLETE_20210604 rc = readFpgaSndPortFromLine(udpAppMeta.src.port, stringBuffer);
+        rc = readFpgaSndPortFromLine(udpAppMeta.udpSrcPort, stringBuffer);
         if (rc) {
             if (DEBUG_LEVEL & TRACE_CGTF) {
                 printInfo(myName, "Read a new FPGA send port from DAT file:\n");
-                printSockAddr(myName, udpAppMeta.src);
+                //OBSOLETE_20210604 printSockAddr(myName, udpAppMeta.src);
+                printSockAddr(myName, SockAddr(udpAppMeta.ip4SrcAddr, udpAppMeta.udpSrcPort));
             }
         }
         //-- Read an AxisChunk from line
@@ -290,7 +297,7 @@ bool readDatagramFromFile(const char *myName,  SimUdpDatagram &appDatagram,
 int createGoldenTxFiles(
         string             inpData_FileName,
         string             outData_GoldName,
-        queue<UdpAppMeta> &udpMetaQueue,
+        queue<UdpAppMetb> &udpMetaQueue,
         queue<UdpAppDLen> &updDLenQueue,
         char               tbMode)
 {
@@ -342,15 +349,16 @@ int createGoldenTxFiles(
     SockAddr  fpgaSndSock = SockAddr(fpgaDefaultIp4Address, fpgaDefaultUdpSndPort);
     do {
         SimUdpDatagram appDatagram(8);
-        UdpAppMeta     udpAppMeta = SocketPair(fpgaSndSock, hostLsnSock);
+        //OBSOLETE_20210604 UdpAppMetb     udpAppMeta = SocketPair(fpgaSndSock, hostLsnSock);
+        UdpAppMetb     udpAppMeta(SocketPair(fpgaSndSock, hostLsnSock));
         bool           endOfDgm=false;
         //-- Retrieve one APP datagram from input DAT file (can be up to 2^16-1 bytes)
         endOfDgm = readDatagramFromFile(myName, appDatagram, ifsData, udpAppMeta,
                                         udpMetaQueue, updDLenQueue,
                                         inpChunks, inpDgrms, inpBytes, tbMode);
         //-- Set the header of the UDP datagram
-        appDatagram.setUdpSourcePort(udpAppMeta.src.port);
-        appDatagram.setUdpDestinationPort(udpAppMeta.dst.port);
+        appDatagram.setUdpSourcePort(udpAppMeta.udpSrcPort);
+        appDatagram.setUdpDestinationPort(udpAppMeta.udpDstPort);
         appDatagram.setUdpLength(appDatagram.length());
         appDatagram.setUdpChecksum(0);
         if (endOfDgm) {
@@ -378,8 +386,8 @@ int createGoldenTxFiles(
                 //-- Append the UDP data
                 ipPacket.addIpPayload(appDatagram, splitLen);
                 //-- Set the header of the IPv4 datagram
-                ipPacket.setIpSourceAddress(udpAppMeta.src.addr);
-                ipPacket.setIpDestinationAddress(udpAppMeta.dst.addr);
+                ipPacket.setIpSourceAddress(udpAppMeta.ip4SrcAddr);
+                ipPacket.setIpDestinationAddress(udpAppMeta.ip4DstAddr);
                 ipPacket.setIpTotalLength(ipPacket.length());
                 ipPacket.udpRecalculateChecksum();
                 // Write IPv4 packet to gold file
@@ -611,10 +619,10 @@ int createGoldenRxFiles(
         stream<UdpAppClsRep>            &soUAIF_ClsRep,
         //-- UAIF / Rx Data Interfaces
         stream<UdpAppData>              &soUAIF_Data,
-        stream<UdpAppMeta>              &soUAIF_Meta,
+        stream<UdpAppMetb>              &soUAIF_Meta,
         //-- UAIF / Tx Data Interfaces
         stream<UdpAppData>              &siUAIF_Data,
-        stream<UdpAppMeta>              &siUAIF_Meta,
+        stream<UdpAppMetb>              &siUAIF_Meta,
         stream<UdpAppDLen>              &siUAIF_DLen,
         //-- ICMP / Message Data Interface (Port Unreachable)
         stream<AxisIcmp>                &soICMP_Data)
@@ -707,10 +715,10 @@ int main(int argc, char *argv[]) {
     stream<StsBool>         ssUOE_UAIF_ClsRep  ("ssUOE_UAIF_ClsRep");
 
     stream<AxisApp>         ssUOE_UAIF_Data    ("ssUOE_UAIF_Data");
-    stream<UdpAppMeta>      ssUOE_UAIF_Meta    ("ssUOE_UAIF_Meta");
+    stream<UdpAppMetb>      ssUOE_UAIF_Meta    ("ssUOE_UAIF_Meta");
 
     stream<AxisApp>         ssUAIF_UOE_Data    ("ssUAIF_UOE_Data");
-    stream<UdpAppMeta>      ssUAIF_UOE_Meta    ("ssUAIF_UOE_Meta");
+    stream<UdpAppMetb>      ssUAIF_UOE_Meta    ("ssUAIF_UOE_Meta");
     stream<UdpAppDLen>      ssUAIF_UOE_DLen    ("ssUAIF-UOE_DLen");
 
     stream<AxisIcmp>        ssUOE_ICMP_Data    ("ssUOE_ICMP_Data");
@@ -1325,10 +1333,10 @@ int main(int argc, char *argv[]) {
         }
 
         //-- CREATE THE GOLDEN UOE->IPTX OUTPUT FILES -------------------------
-        queue<UdpAppMeta>   udpSocketPairs;
+        queue<UdpAppMetb>   udpAppMeta;
         queue<UdpAppDLen>   updDataLengths;
         if (not createGoldenTxFiles(string(argv[2]), ofsIPTX_Gold_FileName,
-                                    udpSocketPairs, updDataLengths, tbMode)) {
+                                    udpAppMeta, updDataLengths, tbMode)) {
             printFatal(THIS_NAME, "Failed to create golden UOE->IPTX file. \n");
         }
 
@@ -1338,7 +1346,7 @@ int main(int argc, char *argv[]) {
                                    ssUAIF_UOE_Meta, "ssUAIF_UOE_Meta",
                                    ssUAIF_UOE_DLen, "ssUAIF_UOE_DLen",
                                    string(argv[2]),
-                                   udpSocketPairs,
+                                   udpAppMeta,
                                    updDataLengths,
                                    nrUAIF_UOE_Chunks)) {
             printFatal(THIS_NAME, "Failed to create the UAIF->UOE traffic as streams.\n");
