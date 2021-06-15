@@ -168,9 +168,9 @@ architecture Behavioral of ArpCam is
   signal sValidHappened    : std_logic;
   signal sUpdReqValid      : std_logic;
 
-  signal  sDebug           : std_logic_vector(179 downto 0 );  
+  signal sDebug            : std_logic_vector(179 downto 0 );
   attribute mark_debug     : string;
-  attribute mark_debug of sDebug : signal is "true";
+  attribute mark_debug of sDebug : signal is "false"; -- Set to "true' if you need/want to trace these signals
   
 begin
  
