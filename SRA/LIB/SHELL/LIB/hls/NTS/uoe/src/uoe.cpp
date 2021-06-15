@@ -114,7 +114,7 @@ void pIpHeaderStripper(
 
       switch(ihs_fsmState) {
       case FSM_IHS_IPW0:
-          if (!siIPRX_Data.empty() && !soRph_Ip4Hdr.full()) {
+          if (!siIPRX_Data.empty() and !soRph_Ip4Hdr.full()) {
               //-- READ 1st AXI-CHUNK (Frag|Flags|Id|TotLen|ToS|Ver|IHL) ---------
               siIPRX_Data.read(currIp4Chunk);
               ihs_ip4HdrLen = currIp4Chunk.getIp4HdrLen();
@@ -134,7 +134,7 @@ void pIpHeaderStripper(
           }
           break;
       case FSM_IHS_IPW1:
-          if (!siIPRX_Data.empty() && !soRph_Ip4Hdr.full()) {
+          if (!siIPRX_Data.empty() and !soRph_Ip4Hdr.full()) {
               //-- READ 2nd AXI-CHUNK (SA|HdrCsum|Prot|TTL)
               siIPRX_Data.read(currIp4Chunk);
               soRph_Ip4Hdr.write(currIp4Chunk);
@@ -150,7 +150,7 @@ void pIpHeaderStripper(
           if (DEBUG_LEVEL & TRACE_IHS) { printInfo(myName, "FSM_IHS_IPW1 - \n"); }
           break;
       case FSM_IHS_IPW2:
-          if (!siIPRX_Data.empty() && !soRph_Ip4Hdr.full()) {
+          if (!siIPRX_Data.empty() and !soRph_Ip4Hdr.full()) {
               //-- READ 3rd AXI-CHUNK (DP|SP|DA) or (Opt|DA)
               siIPRX_Data.read(currIp4Chunk);
               //-- Csum accumulate (DA)
@@ -178,7 +178,7 @@ void pIpHeaderStripper(
           if (DEBUG_LEVEL & TRACE_IHS) { printInfo(myName, "FSM_IHS_IPW2 - \n"); }
           break;
       case FSM_IHS_OPT:
-          if (!siIPRX_Data.empty() && !soRph_Ip4Hdr.full()) {
+          if (!siIPRX_Data.empty() and !soRph_Ip4Hdr.full()) {
               printWarn(myName, "This IPv4 packet contains options! FYI, IPV4 options are not supported and will be dropped.\n");
               //-- READ more Options (OPT|Opt) and/or Data (Data|Opt)
               siIPRX_Data.read(currIp4Chunk);
@@ -202,7 +202,7 @@ void pIpHeaderStripper(
           if (DEBUG_LEVEL & TRACE_IHS) { printInfo(myName, "FSM_IHS_OPT - \n"); }
           break;
       case FSM_IHS_UDP_HEADER:
-          if (!siIPRX_Data.empty() && !soUcc_UdpDgrm.full()) {
+          if (!siIPRX_Data.empty() and !soUcc_UdpDgrm.full()) {
               //-- Read end of un-aligned UDP header (Data|Csum|Len) ----------
               siIPRX_Data.read(currIp4Chunk);
               //-- Csum accumulate (UdpLen)
@@ -234,7 +234,7 @@ void pIpHeaderStripper(
           if (DEBUG_LEVEL & TRACE_IHS) { printInfo(myName, "FSM_IHS_UDP_HEADER - \n"); }
           break;
       case FSM_IHS_UDP_HEADER_ALIGNED:
-          if (!siIPRX_Data.empty() && !soUcc_UdpDgrm.full()) {
+          if (!siIPRX_Data.empty() and !soUcc_UdpDgrm.full()) {
               //-- READ Aligned UDP header (Csum|Len|DP|SP) --------
               siIPRX_Data.read(currIp4Chunk);
               //-- Cast incoming chunk into an AxisUdp chunk
@@ -257,7 +257,7 @@ void pIpHeaderStripper(
           if (DEBUG_LEVEL & TRACE_IHS) { printInfo(myName, "FSM_IHS_UDP_HEADER_ALIGNED - \n"); }
           break;
       case FSM_IHS_FORWARD:
-          if (!siIPRX_Data.empty() && !soUcc_UdpDgrm.full()) {
+          if (!siIPRX_Data.empty() and !soUcc_UdpDgrm.full()) {
               //-- READ n-th AXI-CHUNK (Data) ----------------
               siIPRX_Data.read(currIp4Chunk);
               //-- Forward 1/2 of previous chunk and 1/2 of current chunk)
@@ -285,7 +285,7 @@ void pIpHeaderStripper(
           if (DEBUG_LEVEL & TRACE_IHS) { printInfo(myName, "FSM_IHS_FORWARD - \n"); }
           break;
       case FSM_IHS_FORWARD_ALIGNED:
-          if (!siIPRX_Data.empty() && !soUcc_UdpDgrm.full()) {
+          if (!siIPRX_Data.empty() and !soUcc_UdpDgrm.full()) {
               //-- READ UDP ALIGNED AXI-CHUNK --------------
               siIPRX_Data.read(currIp4Chunk);
               //-- Cast incoming chunk into an AxisUdp chunk
@@ -374,7 +374,7 @@ void pUdpChecksumChecker(
 
     switch (ucc_fsmState) {
     case FSM_UCC_IDLE:
-        if (!siIhs_UdpDgrm.empty() && !siIhs_PsdHdrSum.empty()) {
+        if (!siIhs_UdpDgrm.empty() and !siIhs_PsdHdrSum.empty()) {
             //-- READ 1st DTGM-CHUNK (CSUM|LEN|DP|SP)
             siIhs_UdpDgrm.read(currChunk);
             //-- READ the checksum of the pseudo header
@@ -388,22 +388,22 @@ void pUdpChecksumChecker(
                 ucc_fsmState = FSM_UCC_STREAM;
             }
             else {
-				// Accumulate the UDP header
-				ucc_csum0  = 0x00000 | currChunk.getUdpSrcPort();
-				ucc_csum0 += ucc_psdHdrCsum;
-				ucc_csum0  = (ucc_csum0 & 0xFFFF) + (ucc_csum0 >> 16);
-				ucc_csum1 = 0x00000 | currChunk.getUdpDstPort();
-				ucc_csum2 = 0x00000 | currChunk.getUdpLen();
-				ucc_csum3 = 0x00000 | currChunk.getUdpCsum();
-				if (currChunk.getUdpLen() == 8) {
-					// Payload is empty
-					ucc_fsmState = FSM_UCC_CHK0;
-				}
-				else {
-					ucc_fsmState = FSM_UCC_ACCUMULATE;
-				}
-	        }
-        	if (DEBUG_LEVEL & TRACE_UCC) { printAxisRaw(myName,"FSM_UCC_IDLE       - ", currChunk); }
+                // Accumulate the UDP header
+                ucc_csum0  = 0x00000 | currChunk.getUdpSrcPort();
+                ucc_csum0 += ucc_psdHdrCsum;
+                ucc_csum0  = (ucc_csum0 & 0xFFFF) + (ucc_csum0 >> 16);
+                ucc_csum1 = 0x00000 | currChunk.getUdpDstPort();
+                ucc_csum2 = 0x00000 | currChunk.getUdpLen();
+                ucc_csum3 = 0x00000 | currChunk.getUdpCsum();
+                if (currChunk.getUdpLen() == 8) {
+                    // Payload is empty
+                    ucc_fsmState = FSM_UCC_CHK0;
+                }
+                else {
+                    ucc_fsmState = FSM_UCC_ACCUMULATE;
+                }
+            }
+            if (DEBUG_LEVEL & TRACE_UCC) { printAxisRaw(myName,"FSM_UCC_IDLE       - ", currChunk); }
         }
         break;
     case FSM_UCC_STREAM:
@@ -512,7 +512,7 @@ void pRxPacketHandler(
         stream<UdpPort>     &soUpt_PortStateReq,
         stream<StsBool>     &siUpt_PortStateRep,
         stream<AxisApp>     &soUAIF_Data,
-        stream<SocketPair>  &soUAIF_Meta,
+        stream<UdpAppMetb>  &soUAIF_Meta,
         stream<AxisIcmp>    &soICMP_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -524,10 +524,10 @@ void pRxPacketHandler(
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
     static enum FsmStates { FSM_RPH_IDLE=0,               FSM_RPH_PORT_LOOKUP,
                             FSM_RPH_STREAM,               FSM_RPH_STREAM_FIRST,
-							FSM_RPH_DRAIN_DATAGRAM_STREAM,FSM_RPH_DRAIN_IP4HDR_STREAM,
-							FSM_RPH_PORT_UNREACHABLE_1ST, FSM_RPH_PORT_UNREACHABLE_2ND,
-							FSM_RPH_PORT_UNREACHABLE_STREAM,
-							FSM_RPH_PORT_UNREACHABLE_LAST } rph_fsmState=FSM_RPH_IDLE;
+                            FSM_RPH_DRAIN_DATAGRAM_STREAM,FSM_RPH_DRAIN_IP4HDR_STREAM,
+                            FSM_RPH_PORT_UNREACHABLE_1ST, FSM_RPH_PORT_UNREACHABLE_2ND,
+                            FSM_RPH_PORT_UNREACHABLE_STREAM,
+                            FSM_RPH_PORT_UNREACHABLE_LAST } rph_fsmState=FSM_RPH_IDLE;
     #pragma HLS RESET                              variable=rph_fsmState
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
@@ -541,7 +541,7 @@ void pRxPacketHandler(
 
     switch(rph_fsmState) {
     case FSM_RPH_IDLE:
-        if (!siUcc_UdpDgrm.empty() && !siIhs_Ip4Hdr.empty() &&
+        if (!siUcc_UdpDgrm.empty() and !siIhs_Ip4Hdr.empty() and
             !soUpt_PortStateReq.full()) {
             rph_doneWithIpHdrStream = false;
             // Read the 1st IPv4 header chunk retrieve the IHL
@@ -568,7 +568,7 @@ void pRxPacketHandler(
         }
         break;
     case FSM_RPH_PORT_LOOKUP:
-        if (!siUpt_PortStateRep.empty() && !siUcc_CsumVal.empty() && !siIhs_Ip4Hdr.empty()) {
+        if (!siUpt_PortStateRep.empty() and !siUcc_CsumVal.empty() and !siIhs_Ip4Hdr.empty()) {
             bool csumResult = siUcc_CsumVal.read();
             bool portLkpRes = siUpt_PortStateRep.read();
             // Read the 2nd IPv4 header chunk and update the metadata structure
@@ -578,7 +578,7 @@ void pRxPacketHandler(
                 printInfo(myName, "FSM_RPH_PORT_LOOKUP - CsumValid=%d and portLkpRes=%d.\n",
                           csumResult, portLkpRes);
             }
-            if(portLkpRes && csumResult) {
+            if(portLkpRes and csumResult) {
                 rph_fsmState = FSM_RPH_STREAM_FIRST;
             }
             else if (not csumResult) {
@@ -591,8 +591,8 @@ void pRxPacketHandler(
         break;
     case FSM_RPH_STREAM_FIRST:
         if (DEBUG_LEVEL & TRACE_RPH) { printInfo(myName, "FSM_RPH_STREAM_FIRST \n"); }
-        if (!siUcc_UdpDgrm.empty() && !siIhs_Ip4Hdr.empty() &&
-            !soUAIF_Data.full()    && !soUAIF_Meta.full()) {
+        if (!siUcc_UdpDgrm.empty() and !siIhs_Ip4Hdr.empty() and
+            !soUAIF_Data.full()    and !soUAIF_Meta.full()) {
             // Read the 3rd IPv4 header chunk, update and forward the metadata
             AxisIp4 thirdIp4HdrChunk;
             siIhs_Ip4Hdr.read(thirdIp4HdrChunk);
@@ -623,7 +623,7 @@ void pRxPacketHandler(
         }
         break;
     case FSM_RPH_STREAM:
-        if (!siUcc_UdpDgrm.empty() && !soUAIF_Data.full() && !soUAIF_Meta.full()) {
+        if (!siUcc_UdpDgrm.empty() and !soUAIF_Data.full() and !soUAIF_Meta.full()) {
             // Forward datagram chunk
             AxisUdp dgrmChunk;
             siUcc_UdpDgrm.read(dgrmChunk);
@@ -641,7 +641,7 @@ void pRxPacketHandler(
                     rph_fsmState = FSM_RPH_DRAIN_IP4HDR_STREAM;
                 }
             }
-            else if (!siIhs_Ip4Hdr.empty() && not rph_doneWithIpHdrStream) {
+            else if (!siIhs_Ip4Hdr.empty() and not rph_doneWithIpHdrStream) {
                 // Drain any pending IPv4 header chunk
                 AxisIp4 currIp4HdrChunk;
                 siIhs_Ip4Hdr.read(currIp4HdrChunk);
@@ -707,7 +707,7 @@ void pRxPacketHandler(
         }
         break;
     case FSM_RPH_PORT_UNREACHABLE_STREAM:
-        if (!siIhs_Ip4Hdr.empty() && !soICMP_Data.full()) {
+        if (!siIhs_Ip4Hdr.empty() and !soICMP_Data.full()) {
             // Forward remaining of the IPv4 header chunks
             AxisIp4 ip4Chunk;
             siIhs_Ip4Hdr.read(ip4Chunk);
@@ -871,7 +871,7 @@ void pRxEngine(
         stream<UdpPort>         &siUAIF_ClsReq,
         stream<StsBool>         &soUAIF_ClsRep,
         stream<AxisApp>         &soUAIF_Data,
-        stream<SocketPair>      &soUAIF_Meta,
+        stream<UdpAppMetb>      &soUAIF_Meta,
         stream<AxisIcmp>        &soICMP_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -975,10 +975,10 @@ void pRxEngine(
 void pTxApplicationInterface(
         CmdBit                   piMMIO_En,
         stream<AxisApp>         &siUAIF_Data,
-        stream<UdpAppMeta>      &siUAIF_Meta,
+        stream<UdpAppMetb>      &siUAIF_Meta,
         stream<UdpAppDLen>      &siUAIF_DLen,
         stream<AxisApp>         &soTdh_Data,
-        stream<UdpAppMeta>      &soTdh_Meta,
+        stream<UdpAppMetb>      &soTdh_Meta,
         stream<UdpAppDLen>      &soTdh_DLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -997,7 +997,7 @@ void pTxApplicationInterface(
     #pragma HLS RESET   variable=tai_streamMode
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static UdpAppMeta  tai_appMeta;  // The socket-pair information
+    static UdpAppMetb  tai_appMeta;  // The socket-pair information
     static UdpAppDLen  tai_appDLen;  // Application's datagram length (0 to 2^16)
     static UdpAppDLen  tai_splitCnt; // Split counter (from 0 to 1422-1)
 
@@ -1127,10 +1127,10 @@ void pTxApplicationInterface(
  *******************************************************************************/
 void pTxDatagramHandler(
         stream<AxisApp>         &siUAIF_Data,
-        stream<UdpAppMeta>      &siUAIF_Meta,
+        stream<UdpAppMetb>      &siUAIF_Meta,
         stream<UdpAppDLen>      &siUAIF_DLen,
         stream<AxisApp>         &soUha_Data,
-        stream<UdpAppMeta>      &soUha_Meta,
+        stream<UdpAppMetb>      &soUha_Meta,
         stream<UdpAppDLen>      &soUha_DLen,
         stream<AxisPsd4>        &soUca_Data)
 {
@@ -1148,7 +1148,7 @@ void pTxDatagramHandler(
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
     static AxisApp    tdh_currChunk;
-    static UdpAppMeta tdh_udpMeta;
+    static UdpAppMetb tdh_udpMeta;
     static UdpAppDLen tdh_appLen; // The length of the application data stream
     static UdpLen     tdh_udpLen; // the length of the UDP datagram stream
 
@@ -1159,15 +1159,16 @@ void pTxDatagramHandler(
                 siUAIF_Meta.read(tdh_udpMeta);
                 // Generate 1st pseudo-packet chunk [DA|SA]
                 AxisPsd4 firstPseudoPktChunk(0, 0xFF, 0);
-                firstPseudoPktChunk.setPsd4SrcAddr(tdh_udpMeta.src.addr);
-                firstPseudoPktChunk.setPsd4DstAddr(tdh_udpMeta.dst.addr);
+                firstPseudoPktChunk.setPsd4SrcAddr(tdh_udpMeta.ip4SrcAddr);
+                firstPseudoPktChunk.setPsd4DstAddr(tdh_udpMeta.ip4DstAddr);
                 // Forward & next
                 soUca_Data.write(firstPseudoPktChunk);
                 soUha_Meta.write(tdh_udpMeta);
                 tdh_fsmState = FSM_TDH_PSD_PKT2;
                 if (DEBUG_LEVEL & TRACE_TDH) {
                     printInfo(myName, "FSM_TDH_PSD_PKT1 - Receive new metadata information.\n");
-                    printSockPair(myName, tdh_udpMeta);
+                    SocketPair socketPair(SockAddr(tdh_udpMeta.ip4SrcAddr, tdh_udpMeta.udpSrcPort), SockAddr(tdh_udpMeta.ip4DstAddr, tdh_udpMeta.udpDstPort));
+                    printSockPair(myName, socketPair);
                 }
             }
         break;
@@ -1181,8 +1182,8 @@ void pTxDatagramHandler(
                 AxisPsd4 secondPseudoPktChunk(0, 0xFF, 0);
                 secondPseudoPktChunk.setPsd4Prot(IP4_PROT_UDP);
                 secondPseudoPktChunk.setPsd4Len(tdh_udpLen);
-                secondPseudoPktChunk.setUdpSrcPort(tdh_udpMeta.src.port);
-                secondPseudoPktChunk.setUdpDstPort(tdh_udpMeta.dst.port);
+                secondPseudoPktChunk.setUdpSrcPort(tdh_udpMeta.udpSrcPort);
+                secondPseudoPktChunk.setUdpDstPort(tdh_udpMeta.udpDstPort);
                 // Forward & next
                 soUha_DLen.write(tdh_appLen);
                 soUca_Data.write(secondPseudoPktChunk);
@@ -1236,7 +1237,7 @@ void pTxDatagramHandler(
             // This state streams both the pseudo-packet chunks into the checksum
             // calculation stage and the next stage
             if (!siUAIF_Data.empty() and
-                !soUha_Data.full() && !soUca_Data.full()) {
+                !soUha_Data.full() and !soUca_Data.full()) {
                 // Always forward the current AppData chunk to next-stage [Uha]
                 soUha_Data.write(tdh_currChunk);
                 // Save previous AppData and read a new one from [UAIF]
@@ -1270,7 +1271,7 @@ void pTxDatagramHandler(
             if (DEBUG_LEVEL & TRACE_TDH) { printInfo(myName, "FSM_TDH_LAST\n"); }
             break;
         case FSM_TDH_PSD_RESIDUE:
-            if (!soUha_Data.full() && !soUca_Data.full()) {
+            if (!soUha_Data.full() and !soUca_Data.full()) {
                 // Always forward the last AppData chunk
                 soUha_Data.write(tdh_currChunk);
                 // Generate the last pseudo-packet chunk and forward it to [Uca]
@@ -1381,61 +1382,61 @@ void pUdpChecksumAccumulator(
 
     switch (uca_fsmState) {
     case FSM_UCA_ACCUMULATE:
-		if (!siTdh_Data.empty()) {
-			AxisPsd4 currChunk = siTdh_Data.read();
-			if (currChunk.getTLast()) {
-				uca_lastChunk = currChunk;
-				uca_lastChunk.clearUnusedBytes();
-				uca_fsmState = FSM_UCA_LAST;
-			}
-			else {
-				uca_csum0 += byteSwap16(currChunk.getLE_TData().range(63, 48));
-				uca_csum0  = (uca_csum0 & 0xFFFF) + (uca_csum0 >> 16);
-				uca_csum1 += byteSwap16(currChunk.getLE_TData().range(47, 32));
-				uca_csum1  = (uca_csum1 & 0xFFFF) + (uca_csum1 >> 16);
-				uca_csum2 += byteSwap16(currChunk.getLE_TData().range(31, 16));
-				uca_csum2  = (uca_csum2 & 0xFFFF) + (uca_csum2 >> 16);
-				uca_csum3 += byteSwap16(currChunk.getLE_TData().range(15,  0));
-				uca_csum3  = (uca_csum3 & 0xFFFF) + (uca_csum3 >> 16);
-			}
-			if (DEBUG_LEVEL & TRACE_UCA) {
-				printAxisRaw(myName, "Received a new pseudo-header chunk: ", currChunk);
-			}
-		}
-		break;
+        if (!siTdh_Data.empty()) {
+            AxisPsd4 currChunk = siTdh_Data.read();
+            if (currChunk.getTLast()) {
+                uca_lastChunk = currChunk;
+                uca_lastChunk.clearUnusedBytes();
+                uca_fsmState = FSM_UCA_LAST;
+            }
+            else {
+                uca_csum0 += byteSwap16(currChunk.getLE_TData().range(63, 48));
+                uca_csum0  = (uca_csum0 & 0xFFFF) + (uca_csum0 >> 16);
+                uca_csum1 += byteSwap16(currChunk.getLE_TData().range(47, 32));
+                uca_csum1  = (uca_csum1 & 0xFFFF) + (uca_csum1 >> 16);
+                uca_csum2 += byteSwap16(currChunk.getLE_TData().range(31, 16));
+                uca_csum2  = (uca_csum2 & 0xFFFF) + (uca_csum2 >> 16);
+                uca_csum3 += byteSwap16(currChunk.getLE_TData().range(15,  0));
+                uca_csum3  = (uca_csum3 & 0xFFFF) + (uca_csum3 >> 16);
+            }
+            if (DEBUG_LEVEL & TRACE_UCA) {
+                printAxisRaw(myName, "Received a new pseudo-header chunk: ", currChunk);
+            }
+        }
+        break;
     case FSM_UCA_LAST:
-		uca_csum0 += byteSwap16(uca_lastChunk.getLE_TData().range(63, 48));
-		uca_csum0  = (uca_csum0 & 0xFFFF) + (uca_csum0 >> 16);
-		uca_csum1 += byteSwap16(uca_lastChunk.getLE_TData().range(47, 32));
-		uca_csum1  = (uca_csum1 & 0xFFFF) + (uca_csum1 >> 16);
-		uca_csum2 += byteSwap16(uca_lastChunk.getLE_TData().range(31, 16));
-		uca_csum2  = (uca_csum2 & 0xFFFF) + (uca_csum2 >> 16);
-		uca_csum3 += byteSwap16(uca_lastChunk.getLE_TData().range(15,  0));
-		uca_csum3  = (uca_csum3 & 0xFFFF) + (uca_csum3 >> 16);
-		uca_fsmState = FSM_UCA_DONE;
+        uca_csum0 += byteSwap16(uca_lastChunk.getLE_TData().range(63, 48));
+        uca_csum0  = (uca_csum0 & 0xFFFF) + (uca_csum0 >> 16);
+        uca_csum1 += byteSwap16(uca_lastChunk.getLE_TData().range(47, 32));
+        uca_csum1  = (uca_csum1 & 0xFFFF) + (uca_csum1 >> 16);
+        uca_csum2 += byteSwap16(uca_lastChunk.getLE_TData().range(31, 16));
+        uca_csum2  = (uca_csum2 & 0xFFFF) + (uca_csum2 >> 16);
+        uca_csum3 += byteSwap16(uca_lastChunk.getLE_TData().range(15,  0));
+        uca_csum3  = (uca_csum3 & 0xFFFF) + (uca_csum3 >> 16);
+        uca_fsmState = FSM_UCA_DONE;
         break;
     case FSM_UCA_DONE:
-		if (!soUha_Csum.full()) {
-			ap_uint<17> csum01, csum23, csum0123;
-			csum01 = uca_csum0 + uca_csum1;
-			csum01 = (csum01 & 0xFFFF) + (csum01 >> 16);
-			csum23 = uca_csum2 + uca_csum3;
-			csum23 = (csum23 & 0xFFFF) + (csum23 >> 16);
-			csum0123 = csum01 + csum23;
-			csum0123 = (csum0123 & 0xFFFF) + (csum0123 >> 16);
-			csum0123 = ~csum0123;
-			soUha_Csum.write(csum0123.range(15, 0));
-			//-- Clear the csum accumulators
-			uca_csum0 = 0;
-			uca_csum1 = 0;
-			uca_csum2 = 0;
-			uca_csum3 = 0;
-			if (DEBUG_LEVEL & TRACE_UCA) {
-				printInfo(myName, "End of pseudo-header packet.\n");
-			}
-			uca_fsmState = FSM_UCA_ACCUMULATE;
-			break;
-		}
+        if (!soUha_Csum.full()) {
+            ap_uint<17> csum01, csum23, csum0123;
+            csum01 = uca_csum0 + uca_csum1;
+            csum01 = (csum01 & 0xFFFF) + (csum01 >> 16);
+            csum23 = uca_csum2 + uca_csum3;
+            csum23 = (csum23 & 0xFFFF) + (csum23 >> 16);
+            csum0123 = csum01 + csum23;
+            csum0123 = (csum0123 & 0xFFFF) + (csum0123 >> 16);
+            csum0123 = ~csum0123;
+            soUha_Csum.write(csum0123.range(15, 0));
+            //-- Clear the csum accumulators
+            uca_csum0 = 0;
+            uca_csum1 = 0;
+            uca_csum2 = 0;
+            uca_csum3 = 0;
+            if (DEBUG_LEVEL & TRACE_UCA) {
+                printInfo(myName, "End of pseudo-header packet.\n");
+            }
+            uca_fsmState = FSM_UCA_ACCUMULATE;
+            break;
+        }
     }
 }
 
@@ -1458,7 +1459,7 @@ void pUdpChecksumAccumulator(
 void pUdpHeaderAdder(
         stream<AxisApp>     &siTdh_Data,
         stream<UdpAppDLen>  &siTdh_DLen,
-        stream<UdpAppMeta>  &siTdh_Meta,
+        stream<UdpAppMetb>  &siTdh_Meta,
         stream<UdpCsum>     &siUca_Csum,
         stream<AxisUdp>     &soIha_Data,
         stream<IpAddrPair>  &soIha_IpPair,
@@ -1486,14 +1487,14 @@ void pUdpHeaderAdder(
                 UdpLen  udpLen = uha_appDLen + UDP_HEADER_LEN;
                 soIha_UdpLen.write(udpLen);
                 // Read metadata and generate UDP header
-                UdpAppMeta udpAppMeta = siTdh_Meta.read();
+                UdpAppMetb udpAppMeta = siTdh_Meta.read();
                 AxisUdp udpHdrChunk = AxisUdp(0, 0xFF, 0);
-                udpHdrChunk.setUdpSrcPort(udpAppMeta.src.port);
-                udpHdrChunk.setUdpDstPort(udpAppMeta.dst.port);
+                udpHdrChunk.setUdpSrcPort(udpAppMeta.udpSrcPort);
+                udpHdrChunk.setUdpDstPort(udpAppMeta.udpDstPort);
                 udpHdrChunk.setUdpLen(udpLen);
                 udpHdrChunk.setUdpCsum(siUca_Csum.read());
                 soIha_Data.write(udpHdrChunk);
-                IpAddrPair ipAddrPair = IpAddrPair(udpAppMeta.src.addr, udpAppMeta.dst.addr);
+                IpAddrPair ipAddrPair = IpAddrPair(udpAppMeta.ip4SrcAddr, udpAppMeta.ip4DstAddr);
                 soIha_IpPair.write(ipAddrPair);
                 uha_fsmState = UHA_STREAM;
                 if (DEBUG_LEVEL & TRACE_UHA) { printInfo(myName, "UHA_IDLE\n"); }
@@ -1609,7 +1610,7 @@ void pIp4HeaderAdder(
         if (DEBUG_LEVEL & TRACE_IHA) { printInfo(myName, "IPH_IP3\n"); }
         break;
     case IPH_FORWARD:
-        if(!siUha_Data.empty() && !soIPTX_Data.full()) {
+        if(!siUha_Data.empty() and !soIPTX_Data.full()) {
             currUdpChunk = siUha_Data.read();
             AxisIp4 forwardIp4Chunk = AxisIp4(0x0, 0xFF, 0);
             forwardIp4Chunk.setTDataHi(iha_prevUdpChunk.getTDataLo());
@@ -1660,7 +1661,7 @@ void pIp4HeaderAdder(
 void pTxEngine(
         CmdBit                   piMMIO_En,
         stream<AxisApp>         &siUAIF_Data,
-        stream<UdpAppMeta>      &siUAIF_Meta,
+        stream<UdpAppMetb>      &siUAIF_Meta,
         stream<UdpAppDLen>      &siUAIF_DLen,
         stream<AxisIp4>         &soIPTX_Data)
 {
@@ -1676,7 +1677,7 @@ void pTxEngine(
     //-- Tx Application Interface (Tai)
     static stream<AxisApp>         ssTaiToTdh_Data    ("ssTaiToTdh_Data");
     #pragma HLS STREAM    variable=ssTaiToTdh_Data    depth=4096
-    static stream<UdpAppMeta>      ssTaiToTdh_Meta    ("ssTaiToTdh_Meta");
+    static stream<UdpAppMetb>      ssTaiToTdh_Meta    ("ssTaiToTdh_Meta");
     #pragma HLS STREAM    variable=ssTaiToTdh_Meta    depth=4
     #pragma HLS DATA_PACK variable=ssTaiToTdh_Meta
     static stream<UdpAppDLen>      ssTaiToTdh_DLen    ("ssTaiToTdh_DLen");
@@ -1685,7 +1686,7 @@ void pTxEngine(
     //-- Tx Datagram Handler (Tdh)
     static stream<AxisApp>         ssTdhToUha_Data    ("ssTdhToUha_Data");
     #pragma HLS STREAM    variable=ssTdhToUha_Data    depth=2048
-    static stream<UdpAppMeta>      ssTdhToUha_Meta    ("ssTdhToUha_Meta");
+    static stream<UdpAppMetb>      ssTdhToUha_Meta    ("ssTdhToUha_Meta");
     #pragma HLS STREAM    variable=ssTdhToUha_Meta    depth=4
     #pragma HLS DATA_PACK variable=ssTdhToUha_Meta
     static stream<UdpAppDLen>      ssTdhToUha_DLen    ("ssTdhToUha_DLen");
@@ -1802,12 +1803,12 @@ void uoe(
         //-- UAIF / Rx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>              &soUAIF_Data,
-        stream<UdpAppMeta>              &soUAIF_Meta,
+        stream<UdpAppMetb>              &soUAIF_Meta,
         //------------------------------------------------------
         //-- UAIF / Tx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>              &siUAIF_Data,
-        stream<UdpAppMeta>              &siUAIF_Meta,
+        stream<UdpAppMetb>              &siUAIF_Meta,
         stream<UdpAppDLen>              &siUAIF_DLen,
         //------------------------------------------------------
         //-- ICMP / Message Data Interface (Port Unreachable)
@@ -1994,12 +1995,12 @@ void uoe(
         //-- UAIF / Rx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>              &soUAIF_Data,
-        stream<UdpAppMeta>              &soUAIF_Meta,
+        stream<UdpAppMetb>              &soUAIF_Meta,
         //------------------------------------------------------
         //-- UAIF / Tx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>              &siUAIF_Data,
-        stream<UdpAppMeta>              &siUAIF_Meta,
+        stream<UdpAppMetb>              &siUAIF_Meta,
         stream<UdpAppDLen>              &siUAIF_DLen,
         //------------------------------------------------------
         //-- ICMP / Message Data Interface (Port Unreachable)

@@ -156,14 +156,12 @@ class IpAddrPair {
         //-- UAIF / Rx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>      &soUAIF_Data,
-        //OBSOLETE_20210604 stream<UdpAppMeta>      &soUAIF_Meta,
         stream<UdpAppMetb>      &soUAIF_Meta,
 
         //------------------------------------------------------
         //-- UAIF / Tx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>      &siUAIF_Data,
-		//OBSOLETE_20210604 stream<UdpAppMeta>      &siUAIF_Meta,
         stream<UdpAppMetb>      &siUAIF_Meta,
         stream<UdpAppDLen>      &siUAIF_DLen,
 
