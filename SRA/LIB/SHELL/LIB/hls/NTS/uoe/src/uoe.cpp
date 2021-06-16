@@ -512,7 +512,7 @@ void pRxPacketHandler(
         stream<UdpPort>     &soUpt_PortStateReq,
         stream<StsBool>     &siUpt_PortStateRep,
         stream<AxisApp>     &soUAIF_Data,
-        stream<UdpAppMetb>  &soUAIF_Meta,
+        stream<UdpAppMeta>  &soUAIF_Meta,
         stream<AxisIcmp>    &soICMP_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -763,7 +763,7 @@ void pUdpPortTable(
         stream<StsBool>     &soUAIF_ClsRep)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    //OBSOLETE_20200902 #pragma HLS pipeline II=2 enable_flush
+    // None
 
     const char *myName = concat3(THIS_NAME, "/RXe/", "Upt");
 
@@ -871,7 +871,7 @@ void pRxEngine(
         stream<UdpPort>         &siUAIF_ClsReq,
         stream<StsBool>         &soUAIF_ClsRep,
         stream<AxisApp>         &soUAIF_Data,
-        stream<UdpAppMetb>      &soUAIF_Meta,
+        stream<UdpAppMeta>      &soUAIF_Meta,
         stream<AxisIcmp>        &soICMP_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -975,10 +975,10 @@ void pRxEngine(
 void pTxApplicationInterface(
         CmdBit                   piMMIO_En,
         stream<AxisApp>         &siUAIF_Data,
-        stream<UdpAppMetb>      &siUAIF_Meta,
+        stream<UdpAppMeta>      &siUAIF_Meta,
         stream<UdpAppDLen>      &siUAIF_DLen,
         stream<AxisApp>         &soTdh_Data,
-        stream<UdpAppMetb>      &soTdh_Meta,
+        stream<UdpAppMeta>      &soTdh_Meta,
         stream<UdpAppDLen>      &soTdh_DLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -997,7 +997,7 @@ void pTxApplicationInterface(
     #pragma HLS RESET   variable=tai_streamMode
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-    static UdpAppMetb  tai_appMeta;  // The socket-pair information
+    static UdpAppMeta  tai_appMeta;  // The socket-pair information
     static UdpAppDLen  tai_appDLen;  // Application's datagram length (0 to 2^16)
     static UdpAppDLen  tai_splitCnt; // Split counter (from 0 to 1422-1)
 
@@ -1127,16 +1127,16 @@ void pTxApplicationInterface(
  *******************************************************************************/
 void pTxDatagramHandler(
         stream<AxisApp>         &siUAIF_Data,
-        stream<UdpAppMetb>      &siUAIF_Meta,
+        stream<UdpAppMeta>      &siUAIF_Meta,
         stream<UdpAppDLen>      &siUAIF_DLen,
         stream<AxisApp>         &soUha_Data,
-        stream<UdpAppMetb>      &soUha_Meta,
+        stream<UdpAppMeta>      &soUha_Meta,
         stream<UdpAppDLen>      &soUha_DLen,
         stream<AxisPsd4>        &soUca_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE off
-    //OBSOLETE_20200902 #pragma HLS pipeline II=1 enable_flush
+    #pragma HLS pipeline II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/TXe/", "Tdh");
 
@@ -1148,7 +1148,7 @@ void pTxDatagramHandler(
 
     //-- STATIC DATAFLOW VARIABLES --------------------------------------------
     static AxisApp    tdh_currChunk;
-    static UdpAppMetb tdh_udpMeta;
+    static UdpAppMeta tdh_udpMeta;
     static UdpAppDLen tdh_appLen; // The length of the application data stream
     static UdpLen     tdh_udpLen; // the length of the UDP datagram stream
 
@@ -1459,7 +1459,7 @@ void pUdpChecksumAccumulator(
 void pUdpHeaderAdder(
         stream<AxisApp>     &siTdh_Data,
         stream<UdpAppDLen>  &siTdh_DLen,
-        stream<UdpAppMetb>  &siTdh_Meta,
+        stream<UdpAppMeta>  &siTdh_Meta,
         stream<UdpCsum>     &siUca_Csum,
         stream<AxisUdp>     &soIha_Data,
         stream<IpAddrPair>  &soIha_IpPair,
@@ -1487,7 +1487,7 @@ void pUdpHeaderAdder(
                 UdpLen  udpLen = uha_appDLen + UDP_HEADER_LEN;
                 soIha_UdpLen.write(udpLen);
                 // Read metadata and generate UDP header
-                UdpAppMetb udpAppMeta = siTdh_Meta.read();
+                UdpAppMeta udpAppMeta = siTdh_Meta.read();
                 AxisUdp udpHdrChunk = AxisUdp(0, 0xFF, 0);
                 udpHdrChunk.setUdpSrcPort(udpAppMeta.udpSrcPort);
                 udpHdrChunk.setUdpDstPort(udpAppMeta.udpDstPort);
@@ -1547,7 +1547,7 @@ void pIp4HeaderAdder(
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE off
-    //OBSOLETE_20200902 #pragma HLS pipeline II=1 enable_flush
+    #pragma HLS pipeline II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/TXe/", "Iha");
 
@@ -1661,7 +1661,7 @@ void pIp4HeaderAdder(
 void pTxEngine(
         CmdBit                   piMMIO_En,
         stream<AxisApp>         &siUAIF_Data,
-        stream<UdpAppMetb>      &siUAIF_Meta,
+        stream<UdpAppMeta>      &siUAIF_Meta,
         stream<UdpAppDLen>      &siUAIF_DLen,
         stream<AxisIp4>         &soIPTX_Data)
 {
@@ -1677,7 +1677,7 @@ void pTxEngine(
     //-- Tx Application Interface (Tai)
     static stream<AxisApp>         ssTaiToTdh_Data    ("ssTaiToTdh_Data");
     #pragma HLS STREAM    variable=ssTaiToTdh_Data    depth=4096
-    static stream<UdpAppMetb>      ssTaiToTdh_Meta    ("ssTaiToTdh_Meta");
+    static stream<UdpAppMeta>      ssTaiToTdh_Meta    ("ssTaiToTdh_Meta");
     #pragma HLS STREAM    variable=ssTaiToTdh_Meta    depth=4
     #pragma HLS DATA_PACK variable=ssTaiToTdh_Meta
     static stream<UdpAppDLen>      ssTaiToTdh_DLen    ("ssTaiToTdh_DLen");
@@ -1686,7 +1686,7 @@ void pTxEngine(
     //-- Tx Datagram Handler (Tdh)
     static stream<AxisApp>         ssTdhToUha_Data    ("ssTdhToUha_Data");
     #pragma HLS STREAM    variable=ssTdhToUha_Data    depth=2048
-    static stream<UdpAppMetb>      ssTdhToUha_Meta    ("ssTdhToUha_Meta");
+    static stream<UdpAppMeta>      ssTdhToUha_Meta    ("ssTdhToUha_Meta");
     #pragma HLS STREAM    variable=ssTdhToUha_Meta    depth=4
     #pragma HLS DATA_PACK variable=ssTdhToUha_Meta
     static stream<UdpAppDLen>      ssTdhToUha_DLen    ("ssTdhToUha_DLen");
@@ -1803,12 +1803,12 @@ void uoe(
         //-- UAIF / Rx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>              &soUAIF_Data,
-        stream<UdpAppMetb>              &soUAIF_Meta,
+        stream<UdpAppMeta>              &soUAIF_Meta,
         //------------------------------------------------------
         //-- UAIF / Tx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>              &siUAIF_Data,
-        stream<UdpAppMetb>              &siUAIF_Meta,
+        stream<UdpAppMeta>              &siUAIF_Meta,
         stream<UdpAppDLen>              &siUAIF_DLen,
         //------------------------------------------------------
         //-- ICMP / Message Data Interface (Port Unreachable)
@@ -1995,12 +1995,12 @@ void uoe(
         //-- UAIF / Rx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>              &soUAIF_Data,
-        stream<UdpAppMetb>              &soUAIF_Meta,
+        stream<UdpAppMeta>              &soUAIF_Meta,
         //------------------------------------------------------
         //-- UAIF / Tx Data Interfaces
         //------------------------------------------------------
         stream<UdpAppData>              &siUAIF_Data,
-        stream<UdpAppMetb>              &siUAIF_Meta,
+        stream<UdpAppMeta>              &siUAIF_Meta,
         stream<UdpAppDLen>              &siUAIF_DLen,
         //------------------------------------------------------
         //-- ICMP / Message Data Interface (Port Unreachable)
