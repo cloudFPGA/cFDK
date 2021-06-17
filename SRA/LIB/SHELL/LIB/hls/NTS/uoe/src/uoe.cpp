@@ -374,7 +374,7 @@ void pUdpChecksumChecker(
 
     switch (ucc_fsmState) {
     case FSM_UCC_IDLE:
-        if (!siIhs_UdpDgrm.empty() and !siIhs_PsdHdrSum.empty()) {
+        if (!siIhs_UdpDgrm.empty() and !siIhs_PsdHdrSum.empty() and !soRph_UdpDgrm.full()) {
             //-- READ 1st DTGM-CHUNK (CSUM|LEN|DP|SP)
             siIhs_UdpDgrm.read(currChunk);
             //-- READ the checksum of the pseudo header
@@ -407,7 +407,7 @@ void pUdpChecksumChecker(
         }
         break;
     case FSM_UCC_STREAM:
-        if (!siIhs_UdpDgrm.empty()) {
+        if (!siIhs_UdpDgrm.empty() and !soRph_UdpDgrm.full()) {
             siIhs_UdpDgrm.read(currChunk);
             soRph_UdpDgrm.write(currChunk);
             if (currChunk.getTLast()) {
@@ -417,7 +417,7 @@ void pUdpChecksumChecker(
         }
         break;
     case FSM_UCC_ACCUMULATE:
-        if (!siIhs_UdpDgrm.empty()) {
+        if (!siIhs_UdpDgrm.empty() and !soRph_UdpDgrm.full()) {
             siIhs_UdpDgrm.read(currChunk);
             // Always set the disabled bytes to zero
             LE_tData cleanChunk = 0;
