@@ -208,26 +208,14 @@ typedef RepBool     TcpAppLsnRep;
 //== UAIF / RECEIVED & TRANSMITTED DATAGRAM INTERFACES
 //=========================================================
 
-#ifndef _AXIS_CLASS_DEFINED_
-#define _AXIS_CLASS_DEFINED_
+#ifndef _AXIS_CLASS_DEFINED_  // [FIXME - Consider removing]
+#define _AXIS_CLASS_DEFINED_  // [FIXME - Consider removing]
 //---------------------------------------------------------
 //-- UDP APP - DATA
 //--  The data section of an UDP datagram over an AXI4S I/F.
 //---------------------------------------------------------
 typedef AxisRaw     UdpAppData;
 #endif
-
-//OBSOLETE_20210604 //---------------------------------------------------------
-//OBSOLETE_20210604 //-- UDP APP - METADATA
-//OBSOLETE_20210604 //--  The socket pair association of a connection.
-//OBSOLETE_20210604 //---------------------------------------------------------
-//OBSOLETE_20210604 typedef SocketPair  UdpAppMeta;
-
-//---------------------------------------------------------
-//-- UDP APP - DATA LENGTH
-//--  The length of the datagram.
-//---------------------------------------------------------
-typedef UdpDatLen   UdpAppDLen;
 
 //---------------------------------------------------------
 //-- UDP APP - METADATA
@@ -251,6 +239,12 @@ class UdpAppMeta {
     UdpAppMeta(SocketPair sockPair) :
             ip4SrcAddr(sockPair.src.addr), udpSrcPort(sockPair.src.port), ip4DstAddr(sockPair.dst.addr), udpDstPort(sockPair.dst.port) {}
 };
+
+//---------------------------------------------------------
+//-- UDP APP - DATA LENGTH
+//--  The length of the datagram.
+//---------------------------------------------------------
+typedef UdpDatLen   UdpAppDLen;
 
 //=========================================================
 //== UAIF / OPEN & CLOSE PORT INTERFACES
