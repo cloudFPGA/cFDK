@@ -374,7 +374,8 @@ void pUdpChecksumChecker(
 
     switch (ucc_fsmState) {
     case FSM_UCC_IDLE:
-        if (!siIhs_UdpDgrm.empty() and !siIhs_PsdHdrSum.empty() and !soRph_UdpDgrm.full()) {
+        if (!siIhs_UdpDgrm.empty() and !siIhs_PsdHdrSum.empty() and
+            !soRph_UdpDgrm.full()  and !soRph_CsumVal.full()) {
             //-- READ 1st DTGM-CHUNK (CSUM|LEN|DP|SP)
             siIhs_UdpDgrm.read(currChunk);
             //-- READ the checksum of the pseudo header
@@ -463,22 +464,24 @@ void pUdpChecksumChecker(
         ucc_fsmState = FSM_UCC_CHK1;
         break;
     case FSM_UCC_CHK1:
-        if (DEBUG_LEVEL & TRACE_UCC) { printInfo(myName,"FSM_UCC_CHK1 - \n"); }
-        ucc_csum0 += ucc_csum1;
-        ucc_csum0  = (ucc_csum0 & 0xFFFF) + (ucc_csum0 >> 16);
-        UdpCsum csumChk = ~(ucc_csum0(15, 0));
-        if (csumChk == 0) {
-            // The checksum is correct. UDP datagram is valid.
-            soRph_CsumVal.write(true);
-        }
-        else {
-            soRph_CsumVal.write(false);
-            if (DEBUG_LEVEL & TRACE_UCC) {
-                printWarn(myName, "The current UDP datagram will be dropped because:\n");
-                printWarn(myName, "  csum = 0x%4.4X instead of 0x0000\n", csumChk.to_ushort());
+        if (!soRph_CsumVal.full()) {
+            if (DEBUG_LEVEL & TRACE_UCC) { printInfo(myName,"FSM_UCC_CHK1 - \n"); }
+            ucc_csum0 += ucc_csum1;
+            ucc_csum0  = (ucc_csum0 & 0xFFFF) + (ucc_csum0 >> 16);
+            UdpCsum csumChk = ~(ucc_csum0(15, 0));
+            if (csumChk == 0) {
+                // The checksum is correct. UDP datagram is valid.
+                soRph_CsumVal.write(true);
             }
+            else {
+                soRph_CsumVal.write(false);
+                if (DEBUG_LEVEL & TRACE_UCC) {
+                    printWarn(myName, "The current UDP datagram will be dropped because:\n");
+                    printWarn(myName, "  csum = 0x%4.4X instead of 0x0000\n", csumChk.to_ushort());
+                }
+            }
+            ucc_fsmState = FSM_UCC_IDLE;
         }
-        ucc_fsmState = FSM_UCC_IDLE;
         break;
     } // End-of: switch
 
