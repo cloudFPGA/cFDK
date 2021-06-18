@@ -92,6 +92,10 @@ module UdpApplicationRegisterSlice
   output  [95:0]  soAPP_Udp_Meta_tdata ,
   output          soAPP_Udp_Meta_tvalid,
   input           soAPP_Udp_Meta_tready,
+  //---- Axis4Stream UDP Data Length ---------
+  output  [15:0]  soAPP_Udp_DLen_tdata ,
+  output          soAPP_Udp_DLen_tvalid,
+  input           soAPP_Udp_DLen_tready,
   
   //------------------------------------------------------
   //-- APP / Udp / Rx Ctrl Interfaces (.i.e UARS<-->APP)
@@ -144,6 +148,10 @@ module UdpApplicationRegisterSlice
   input   [95:0]  siNTS_Udp_Meta_tdata ,
   input           siNTS_Udp_Meta_tvalid,
   output          siNTS_Udp_Meta_tready,
+    //---- Axis4-Stream UDP Data Length ------
+  input   [15:0]  siNTS_Udp_DLen_tdata ,
+  input           siNTS_Udp_DLen_tvalid,
+  output          siNTS_Udp_DLen_tready,
   
   //------------------------------------------------------
   //-- NTS / Udp / Rx Ctrl Interfaces (.i.e NTS<-->UARS)
@@ -249,6 +257,19 @@ module UdpApplicationRegisterSlice
     .m_axis_tdata  (soAPP_Udp_Meta_tdata) ,
     .m_axis_tvalid (soAPP_Udp_Meta_tvalid),
     .m_axis_tready (soAPP_Udp_Meta_tready)
+  );
+  
+  AxisRegisterSlice_16 NTS_APP_Udp_DLen (
+    .aclk           (piClk),
+    .aresetn        (~piRst),
+    //-- From NTS ----------------------
+    .s_axis_tdata  (siNTS_Udp_DLen_tdata) ,
+    .s_axis_tvalid (siNTS_Udp_DLen_tvalid),
+    .s_axis_tready (siNTS_Udp_DLen_tready),     
+    //-- To APP ------------------------
+    .m_axis_tdata  (soAPP_Udp_DLen_tdata) ,
+    .m_axis_tvalid (soAPP_Udp_DLen_tvalid),
+    .m_axis_tready (soAPP_Udp_DLen_tready)
   );
   
   //------------------------------------------------------
