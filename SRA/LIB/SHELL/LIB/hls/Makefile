@@ -14,25 +14,21 @@
 #  * limitations under the License.
 # *******************************************************************************/
 
-# *****************************************************************************
-# *                            cloudFPGA
-# *----------------------------------------------------------------------------
-# * Created : Feb 2018
-# * Authors : Francois Abel, Burkhard Ringlein
+# *******************************************************************************
 # *
-# * Description : A makefile that invokes all the HLS synthesis batches located 
+# * Description : A makefile that invokes all the HLS synthesis scripts located 
 # *   in the current sub-directories.
 # *
-# ******************************************************************************
+# *******************************************************************************
 
 
 .PHONY: all clean NTS FMC NAL
 
-all:	NTS FMC NAL  ## Run the HLS synthesis and IP Core export on all sub-directories
+# [FIXME] all:	NTS FMC NAL  ## Run the HLS synthesis and IP Core export on all sub-directories
+all: 	NTS                  ## Run the HLS synthesis and IP Core export on all sub-directories
 
 csim:	NTS.csim FMC.csim NAL.csim  ## Runs HLS C simulation on all sub-directories
 
-#TODO currently excluded: NRC.cosim
 cosim: NTS.cosim FMC.cosim  ## Runs HLS C/RTL cosimulation on all sub-directories
 
 *:
