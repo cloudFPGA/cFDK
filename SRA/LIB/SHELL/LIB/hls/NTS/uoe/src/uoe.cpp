@@ -41,7 +41,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace hls;
 
-#define USE_DEPRECATED_DIRECTIVES
 
 /************************************************
  * HELPERS FOR THE DEBUGGING TRACES
@@ -496,7 +495,8 @@ void pUdpChecksumChecker(
  * @param[out] soUpt_PortStateReq  Request for the state of port to UdpPortTable (Upt).
  * @param[in]  siUpt_PortStateRep  Port state reply from [Upt].
  * @param[out] soUAIF_Data   UDP data stream to UDP Application Interface (UAIF).
- * @param[out] soUAIF_Meta   UDP metadata stream to [UAIF].
+ * @param[out] soUAIF_Meta   UDP metadata to [UAIF].
+ * @param[out] soUAIF_DLen   UDP data length to [UAIF]
  * @param[out] soICMP_Data   Control message to InternetControlMessageProtocol[ICMP] engine.
 
  * @details
@@ -516,6 +516,7 @@ void pRxPacketHandler(
         stream<StsBool>     &siUpt_PortStateRep,
         stream<AxisApp>     &soUAIF_Data,
         stream<UdpAppMeta>  &soUAIF_Meta,
+        stream<UdpAppDLen>  &soUAIF_DLen,
         stream<AxisIcmp>    &soICMP_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -539,6 +540,7 @@ void pRxPacketHandler(
     static AxisUdp      rph_udpHeaderChunk;
     static FlagBit      rph_emptyPayloadFlag;
     static FlagBool     rph_doneWithIpHdrStream;
+    static UdpLen       rph_dgrmLen;
 
     static SocketPair   rph_udpMeta = SocketPair(SockAddr(0, 0), SockAddr(0, 0));
 
@@ -559,9 +561,12 @@ void pRxPacketHandler(
                 // Update the UDP metadata
                 rph_udpMeta.src.port = rph_udpHeaderChunk.getUdpSrcPort();
                 rph_udpMeta.dst.port = rph_udpHeaderChunk.getUdpDstPort();
+                // Save the length of the datagram
+                rph_dgrmLen = rph_udpHeaderChunk.getUdpLen() - 8;
             }
             else {
                 rph_emptyPayloadFlag = 1;
+                rph_dgrmLen = 0;
             }
             if (DEBUG_LEVEL & TRACE_RPH) {
                 printInfo(myName, "FSM_RPH_IDLE - Receive new datagram (UdpLen=%d)\n",
@@ -571,7 +576,8 @@ void pRxPacketHandler(
         }
         break;
     case FSM_RPH_PORT_LOOKUP:
-        if (!siUpt_PortStateRep.empty() and !siUcc_CsumVal.empty() and !siIhs_Ip4Hdr.empty()) {
+        if (!siUpt_PortStateRep.empty() and !siUcc_CsumVal.empty() and
+            !siIhs_Ip4Hdr.empty() and !soUAIF_DLen.full()) {
             bool csumResult = siUcc_CsumVal.read();
             bool portLkpRes = siUpt_PortStateRep.read();
             // Read the 2nd IPv4 header chunk and update the metadata structure
@@ -582,6 +588,7 @@ void pRxPacketHandler(
                           csumResult, portLkpRes);
             }
             if(portLkpRes and csumResult) {
+                soUAIF_DLen.write(rph_dgrmLen);
                 rph_fsmState = FSM_RPH_STREAM_FIRST;
             }
             else if (not csumResult) {
@@ -859,7 +866,8 @@ void pUdpPortTable(
  * @param[in]  siUAIF_ClsReq  UDP close port request from [UAIF].
  * @param[out] soUAIF_ClsRep  UDP close port reply to [UAIF].
  * @param[out] soUAIF_Data    UDP data stream to [UAIF].
- * @param[out] soUAIF_Meta    UDP metadata stream to [UAIF].
+ * @param[out] soUAIF_Meta    UDP metadata to [UAIF].
+ * @param[out] soUAIF_DLen    UDP data length to [UAIF].
  * @param[out] soICMP_Data    Control message to InternetControlMessageProtocol[ICMP] engine.
  *
  * @details
@@ -875,6 +883,7 @@ void pRxEngine(
         stream<StsBool>         &soUAIF_ClsRep,
         stream<AxisApp>         &soUAIF_Data,
         stream<UdpAppMeta>      &soUAIF_Meta,
+        stream<UdpAppDLen>      &soUAIF_DLen,
         stream<AxisIcmp>        &soICMP_Data)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
@@ -925,6 +934,7 @@ void pRxEngine(
             ssUptToRph_PortStateRep,
             soUAIF_Data,
             soUAIF_Meta,
+            soUAIF_DLen,
             soICMP_Data);
 
     pUdpPortTable(
@@ -1754,7 +1764,6 @@ void pTxEngine(
 
 }
 
-
 /*******************************************************************************
  * @brief  Main process of the UDP Offload Engine (UOE).
  *
@@ -1772,7 +1781,8 @@ void pTxEngine(
  * @param[out] soUAIF_ClsRep  UDP close port reply   to   [UAIF] (0=closed/1=opened).
  * -- UAIF / Rx Data Interfaces
  * @param[out] soUAIF_Data    UDP data stream to [UAIF].
- * @param[out] soUAIF_Meta    UDP metadata stream to [UAIF].
+ * @param[out] soUAIF_Meta    UDP metadata to [UAIF].
+ * @param[out] soUAIF_DLen    UDP data length to [UAIF].
  * -- UAIF / Tx Data Interfaces
  * @param[in]  siUAIF_Data    UDP data stream from [UAIF].
  * @param[in]  siUAIF_Meta    UDP metadata stream from [UAIF].
@@ -1807,6 +1817,7 @@ void uoe(
         //------------------------------------------------------
         stream<UdpAppData>              &soUAIF_Data,
         stream<UdpAppMeta>              &soUAIF_Meta,
+        stream<UdpAppDLen>              &soUAIF_DLen,
         //------------------------------------------------------
         //-- UAIF / Tx Data Interfaces
         //------------------------------------------------------
@@ -1838,6 +1849,7 @@ void uoe(
             soUAIF_ClsRep,
             soUAIF_Data,
             soUAIF_Meta,
+            soUAIF_DLen,
             soICMP_Data);
 
     pTxEngine(
@@ -1902,6 +1914,7 @@ void uoe(
         //------------------------------------------------------
         stream<UdpAppData>              &soUAIF_Data,
         stream<UdpAppMeta>              &soUAIF_Meta,
+        stream<UdpAppDLen>              &soUAIF_DLen,
         //------------------------------------------------------
         //-- UAIF / Tx Data Interfaces
         //------------------------------------------------------
@@ -1936,6 +1949,7 @@ void uoe(
     #pragma HLS RESOURCE core=AXI4Stream variable=soUAIF_Data       metadata="-bus_bundle soUAIF_Data"
     #pragma HLS RESOURCE core=AXI4Stream variable=soUAIF_Meta       metadata="-bus_bundle soUAIF_Meta"
     #pragma HLS DATA_PACK                variable=soUAIF_Meta
+    #pragma HLS RESOURCE core=AXI4Stream variable=soUAIF_DLen       metadata="-bus_bundle soUAIF_DLen"
 
     #pragma HLS RESOURCE core=AXI4Stream variable=siUAIF_Data       metadata="-bus_bundle siUAIF_Data"
     #pragma HLS RESOURCE core=AXI4Stream variable=siUAIF_Meta       metadata="-bus_bundle siUAIF_Meta"
@@ -1964,6 +1978,7 @@ void uoe(
         //-- UAIF / Rx Data Interfaces
         soUAIF_Data,
         soUAIF_Meta,
+        soUAIF_DLen,
         //-- UAIF / Tx Data Interfaces
         siUAIF_Data,
         siUAIF_Meta,
@@ -1999,6 +2014,7 @@ void uoe(
         //------------------------------------------------------
         stream<UdpAppData>              &soUAIF_Data,
         stream<UdpAppMeta>              &soUAIF_Meta,
+        stream<UdpAppDLen>              &soUAIF_DLen,
         //------------------------------------------------------
         //-- UAIF / Tx Data Interfaces
         //------------------------------------------------------
@@ -2029,6 +2045,7 @@ void uoe(
     #pragma HLS INTERFACE axis off              port=soUAIF_Data       name=soUAIF_Data
     #pragma HLS INTERFACE axis off              port=soUAIF_Meta       name=soUAIF_Meta
     #pragma HLS DATA_PACK                   variable=soUAIF_Meta   instance=soUAIF_Meta
+    #pragma HLS INTERFACE axis off              port=soUAIF_DLen       name=soUAIF_DLen
 
     #pragma HLS INTERFACE axis off              port=siUAIF_Data       name=siUAIF_Data
     #pragma HLS INTERFACE axis off              port=siUAIF_Meta       name=siUAIF_Meta
@@ -2066,6 +2083,7 @@ void uoe(
         //-- UAIF / Rx Data Interfaces
         soUAIF_Data,
         soUAIF_Meta,
+        soUAIF_DLen,
         //-- UAIF / Tx Data Interfaces
         siUAIF_Data,
         siUAIF_Meta,

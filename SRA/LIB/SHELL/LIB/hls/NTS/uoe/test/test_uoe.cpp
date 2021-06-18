@@ -63,7 +63,7 @@ void stepSim() {
  * @brief Empty an UdpMeta stream to a DAT file.
  *
  * @param[in/out] ss        A ref to the UDP metadata stream to drain.
- * @param[in]     ssName    Te name of the UDP metadata stream to drain.
+ * @param[in]     ssName    The name of the UDP metadata stream to drain.
  * @param[in]     fileName  The DAT file to write to.
  * @param[out     nrChunks  A ref to the number of written chunks.
  * @param[out]    nrFrames  A ref to the number of written AXI4 streams.
@@ -125,7 +125,69 @@ bool drainUdpMetaStreamToFile(stream<UdpAppMeta> &ss, string ssName,
     outFileStream.close();
 
     return(NTS_OK);
+}
 
+/*****************************************************************************
+ * @brief Empty an UdpDLen stream to a DAT file.
+ *
+ * @param[in/out] ss        A ref to the UDP data length stream to drain.
+ * @param[in]     ssName    The name of the UDP metadata stream to drain.
+ * @param[in]     fileName  The DAT file to write to.
+ * @param[out     nrChunks  A ref to the number of written chunks.
+ * @param[out]    nrFrames  A ref to the number of written AXI4 streams.
+ * @param[out]    nrBytes   A ref to the number of written bytes.
+  *
+ * @return NTS_OK if successful,  otherwise NTS_KO.
+ ******************************************************************************/
+bool drainUdpDLenStreamToFile(stream<UdpAppDLen> &ss, string ssName,
+        string datFile, int &nrChunks, int &nrFrames, int &nrBytes) {
+    ofstream    outFileStream;
+    char        currPath[FILENAME_MAX];
+    UdpAppDLen  udpDLen;
+
+    const char *myName  = concat3(THIS_NAME, "/", "DUMTF");
+
+    //-- REMOVE PREVIOUS FILE
+    remove(ssName.c_str());
+
+    //-- OPEN FILE
+    if (!outFileStream.is_open()) {
+        outFileStream.open(datFile.c_str(), ofstream::out);
+        if (!outFileStream) {
+            printError(THIS_NAME, "Cannot open the file: \'%s\'.\n", datFile.c_str());
+            return(NTS_KO);
+        }
+    }
+
+    // Assess that file has ".dat" extension
+    if ( datFile.find_last_of ( '.' ) != string::npos ) {
+        string extension ( datFile.substr( datFile.find_last_of ( '.' ) + 1 ) );
+        if (extension != "dat") {
+            printError(THIS_NAME, "Cannot dump DataLength stream to file \'%s\' because file is not of type \'DAT\'.\n", datFile.c_str());
+            outFileStream.close();
+            return(NTS_KO);
+        }
+    }
+
+    //-- READ FROM STREAM AND WRITE TO FILE
+    outFileStream << std::hex << std::noshowbase;
+    outFileStream << std::setfill('0');
+    outFileStream << std::uppercase;
+    while (!(ss.empty())) {
+        ss.read(udpDLen);
+        writeApUintToFile(udpDLen, outFileStream);
+        nrChunks++;
+        nrBytes += 2;
+        nrFrames++;
+        if (DEBUG_LEVEL & TRACE_DUMTF) {
+            printInfo(myName, "Writing a new data-length to file:\n");
+        }
+    }
+
+    //-- CLOSE FILE
+    outFileStream.close();
+
+    return(NTS_OK);
 }
 
 /*****************************************************************************
@@ -418,7 +480,8 @@ int createGoldenTxFiles(
  *
  * @param[in]  inpData_FileName  The input data file to generate from.
  * @param[in]  outData_GoldName  The output data gold file to create.
- * @param[in]  outMeta_GoldName  Tthe output meta gold file to create.
+ * @param[in]  outMeta_GoldName  The output meta gold file to create.
+ * @param[in]  outDLen_GoldName  The output dlen gold file to create.
  * @param[out] udpPortSet        A ref to an associative container which holds
  *                                the UDP destination ports.
  *
@@ -428,6 +491,7 @@ int createGoldenRxFiles(
         string        inpData_FileName,
         string        outData_GoldName,
         string        outMeta_GoldName,
+        string        outDLen_GoldName,
         set<UdpPort> &udpPorts)
 {
     const char *myName  = concat3(THIS_NAME, "/", "CGRF");
@@ -435,6 +499,7 @@ int createGoldenRxFiles(
     ifstream    ifsData;
     ofstream    ofsDataGold;
     ofstream    ofsMetaGold;
+    ofstream    ofsDLenGold;
 
     char        currPath[FILENAME_MAX];
     int         ret=NTS_OK;
@@ -461,6 +526,7 @@ int createGoldenRxFiles(
     //-- STEP-2 : OPEN THE OUTPUT GOLD FILES ----------------------------------
     remove(outData_GoldName.c_str());
     remove(outMeta_GoldName.c_str());
+    remove(outDLen_GoldName.c_str());
     if (!ofsDataGold.is_open()) {
         ofsDataGold.open (outData_GoldName.c_str(), ofstream::out);
         if (!ofsDataGold) {
@@ -473,6 +539,13 @@ int createGoldenRxFiles(
         if (!ofsMetaGold) {
             printFatal(THIS_NAME, "Could not open the output gold file \'%s\'. \n",
                        outMeta_GoldName.c_str());
+        }
+    }
+    if (!ofsDLenGold.is_open()) {
+        ofsDLenGold.open (outDLen_GoldName.c_str(), ofstream::out);
+        if (!ofsDLenGold) {
+            printFatal(THIS_NAME, "Could not open the output gold file \'%s\'. \n",
+                       outDLen_GoldName.c_str());
         }
     }
 
@@ -547,6 +620,7 @@ int createGoldenRxFiles(
             }
             // Part-2: Update the UDP container set
             udpPorts.insert(ip4DataPkt.getUdpDestinationPort());
+
             // Part-3: Write UDP datagram payload to gold file
             if (udpDatagram.writePayloadToDatFile(ofsDataGold) == false) {
                 printError(myName, "Failed to write UDP payload to GOLD file.\n");
@@ -556,6 +630,13 @@ int createGoldenRxFiles(
                 outPackets += 1;
                 outChunks  += udpDatagram.size();
                 outBytes   += udpDatagram.length();
+            }
+
+            // Part-4: Write datagram length to gold file
+            UdpAppDLen dgrmLen = udpDatagram.getUdpLength() - 8;
+            writeApUintToFile(dgrmLen, ofsDLenGold);
+            if (DEBUG_LEVEL & TRACE_CGRF) {
+                printInfo(myName, "Writing a new data-length to file:\n");
             }
 
         } // End-of: if (endOfPkt)
@@ -615,6 +696,7 @@ int createGoldenRxFiles(
         //-- UAIF / Rx Data Interfaces
         stream<UdpAppData>              &soUAIF_Data,
         stream<UdpAppMeta>              &soUAIF_Meta,
+        stream<UdpAppDLen>              &soUAIF_DLen,
         //-- UAIF / Tx Data Interfaces
         stream<UdpAppData>              &siUAIF_Data,
         stream<UdpAppMeta>              &siUAIF_Meta,
@@ -642,6 +724,7 @@ int createGoldenRxFiles(
         soUAIF_ClsRep,
         soUAIF_Data,
         soUAIF_Meta,
+        soUAIF_DLen,
         siUAIF_Data,
         siUAIF_Meta,
         siUAIF_DLen,
@@ -711,6 +794,7 @@ int main(int argc, char *argv[]) {
 
     stream<AxisApp>         ssUOE_UAIF_Data    ("ssUOE_UAIF_Data");
     stream<UdpAppMeta>      ssUOE_UAIF_Meta    ("ssUOE_UAIF_Meta");
+    stream<UdpAppDLen>      ssUOE_UAIF_DLen    ("ssUOE_UAIF_DLen");
 
     stream<AxisApp>         ssUAIF_UOE_Data    ("ssUAIF_UOE_Data");
     stream<UdpAppMeta>      ssUAIF_UOE_Meta    ("ssUAIF_UOE_Meta");
@@ -789,6 +873,7 @@ int main(int argc, char *argv[]) {
                 ssUOE_UAIF_ClsRep,
                 ssUOE_UAIF_Data,
                 ssUOE_UAIF_Meta,
+                ssUOE_UAIF_DLen,
                 ssUAIF_UOE_Data,
                 ssUAIF_UOE_Meta,
                 ssUAIF_UOE_DLen,
@@ -807,39 +892,41 @@ int main(int argc, char *argv[]) {
         printInfo(THIS_NAME, "== OPEN-TEST #1 : Request to close a port that isn't open.\n");
         ssUAIF_UOE_ClsReq.write(0x1532);
         for (int i=0; i<10; ++i) {
-			#if HLS_VERSION == 2017
-			uoe_top(
-				sMMIO_UOE_Enable,
-				ssUOE_MMIO_Ready,
-				ssIPRX_UOE_Data,
-				ssUOE_IPTX_Data,
-				ssUAIF_UOE_LsnReq,
-				ssUOE_UAIF_LsnRep,
-				ssUAIF_UOE_ClsReq,
-				ssUOE_UAIF_ClsRep,
-				ssUOE_UAIF_Data,
-				ssUOE_UAIF_Meta,
-				ssUAIF_UOE_Data,
-				ssUAIF_UOE_Meta,
-				ssUAIF_UOE_DLen,
-				ssUOE_ICMP_Data);
-			#else
-			uoe_top_wrap(
-				sMMIO_UOE_Enable,
-				ssUOE_MMIO_Ready,
-				ssIPRX_UOE_Data,
-				ssUOE_IPTX_Data,
-				ssUAIF_UOE_LsnReq,
-				ssUOE_UAIF_LsnRep,
-				ssUAIF_UOE_ClsReq,
-				ssUOE_UAIF_ClsRep,
-				ssUOE_UAIF_Data,
-				ssUOE_UAIF_Meta,
-				ssUAIF_UOE_Data,
-				ssUAIF_UOE_Meta,
-				ssUAIF_UOE_DLen,
-				ssUOE_ICMP_Data);
-			#endif
+            #if HLS_VERSION == 2017
+            uoe_top(
+                sMMIO_UOE_Enable,
+                ssUOE_MMIO_Ready,
+                ssIPRX_UOE_Data,
+                ssUOE_IPTX_Data,
+                ssUAIF_UOE_LsnReq,
+                ssUOE_UAIF_LsnRep,
+                ssUAIF_UOE_ClsReq,
+                ssUOE_UAIF_ClsRep,
+                ssUOE_UAIF_Data,
+                ssUOE_UAIF_Meta,
+                ssUOE_UAIF_DLen,
+                ssUAIF_UOE_Data,
+                ssUAIF_UOE_Meta,
+                ssUAIF_UOE_DLen,
+                ssUOE_ICMP_Data);
+            #else
+            uoe_top_wrap(
+                sMMIO_UOE_Enable,
+                ssUOE_MMIO_Ready,
+                ssIPRX_UOE_Data,
+                ssUOE_IPTX_Data,
+                ssUAIF_UOE_LsnReq,
+                ssUOE_UAIF_LsnRep,
+                ssUAIF_UOE_ClsReq,
+                ssUOE_UAIF_ClsRep,
+                ssUOE_UAIF_Data,
+                ssUOE_UAIF_Meta,
+                ssUOE_UAIF_DLen,
+                ssUAIF_UOE_Data,
+                ssUAIF_UOE_Meta,
+                ssUAIF_UOE_DLen,
+                ssUOE_ICMP_Data);
+            #endif
             //-- INCREMENT GLOBAL SIMULATION COUNTER
             stepSim();
         }
@@ -854,39 +941,41 @@ int main(int argc, char *argv[]) {
         printInfo(THIS_NAME, "Now - Trying to open port #%d.\n", portToOpen.to_int());
         ssUAIF_UOE_LsnReq.write(0x80);
         for (int i=0; i<3; ++i) {
-			#if HLS_VERSION == 2017
-			uoe_top(
-				sMMIO_UOE_Enable,
-				ssUOE_MMIO_Ready,
-				ssIPRX_UOE_Data,
-				ssUOE_IPTX_Data,
-				ssUAIF_UOE_LsnReq,
-				ssUOE_UAIF_LsnRep,
-				ssUAIF_UOE_ClsReq,
-				ssUOE_UAIF_ClsRep,
-				ssUOE_UAIF_Data,
-				ssUOE_UAIF_Meta,
-				ssUAIF_UOE_Data,
-				ssUAIF_UOE_Meta,
-				ssUAIF_UOE_DLen,
-				ssUOE_ICMP_Data);
-			#else
-			uoe_top_wrap(
-				sMMIO_UOE_Enable,
-				ssUOE_MMIO_Ready,
-				ssIPRX_UOE_Data,
-				ssUOE_IPTX_Data,
-				ssUAIF_UOE_LsnReq,
-				ssUOE_UAIF_LsnRep,
-				ssUAIF_UOE_ClsReq,
-				ssUOE_UAIF_ClsRep,
-				ssUOE_UAIF_Data,
-				ssUOE_UAIF_Meta,
-				ssUAIF_UOE_Data,
-				ssUAIF_UOE_Meta,
-				ssUAIF_UOE_DLen,
-				ssUOE_ICMP_Data);
-			#endif
+            #if HLS_VERSION == 2017
+            uoe_top(
+                sMMIO_UOE_Enable,
+                ssUOE_MMIO_Ready,
+                ssIPRX_UOE_Data,
+                ssUOE_IPTX_Data,
+                ssUAIF_UOE_LsnReq,
+                ssUOE_UAIF_LsnRep,
+                ssUAIF_UOE_ClsReq,
+                ssUOE_UAIF_ClsRep,
+                ssUOE_UAIF_Data,
+                ssUOE_UAIF_Meta,
+                ssUOE_UAIF_DLen,
+                ssUAIF_UOE_Data,
+                ssUAIF_UOE_Meta,
+                ssUAIF_UOE_DLen,
+                ssUOE_ICMP_Data);
+            #else
+            uoe_top_wrap(
+                sMMIO_UOE_Enable,
+                ssUOE_MMIO_Ready,
+                ssIPRX_UOE_Data,
+                ssUOE_IPTX_Data,
+                ssUAIF_UOE_LsnReq,
+                ssUOE_UAIF_LsnRep,
+                ssUAIF_UOE_ClsReq,
+                ssUOE_UAIF_ClsRep,
+                ssUOE_UAIF_Data,
+                ssUOE_UAIF_Meta,
+                ssUOE_UAIF_DLen,
+                ssUAIF_UOE_Data,
+                ssUAIF_UOE_Meta,
+                ssUAIF_UOE_DLen,
+                ssUOE_ICMP_Data);
+            #endif
             //-- INCREMENT GLOBAL SIMULATION COUNTER
             stepSim();
         }
@@ -915,41 +1004,43 @@ int main(int argc, char *argv[]) {
         printInfo(THIS_NAME, "Now - Trying to close port #%d.\n", portToOpen.to_int());
         ssUAIF_UOE_ClsReq.write(portToClose);
         for (int i=0; i<10; ++i) {
-			#if HLS_VERSION == 2017
-			uoe_top(
-				sMMIO_UOE_Enable,
-				ssUOE_MMIO_Ready,
-				ssIPRX_UOE_Data,
-				ssUOE_IPTX_Data,
-				ssUAIF_UOE_LsnReq,
-				ssUOE_UAIF_LsnRep,
-				ssUAIF_UOE_ClsReq,
-				ssUOE_UAIF_ClsRep,
-				ssUOE_UAIF_Data,
-				ssUOE_UAIF_Meta,
-				ssUAIF_UOE_Data,
-				ssUAIF_UOE_Meta,
-				ssUAIF_UOE_DLen,
-				ssUOE_ICMP_Data);
-			#else
-			uoe_top_wrap(
-				sMMIO_UOE_Enable,
-				ssUOE_MMIO_Ready,
-				ssIPRX_UOE_Data,
-				ssUOE_IPTX_Data,
-				ssUAIF_UOE_LsnReq,
-				ssUOE_UAIF_LsnRep,
-				ssUAIF_UOE_ClsReq,
-				ssUOE_UAIF_ClsRep,
-				ssUOE_UAIF_Data,
-				ssUOE_UAIF_Meta,
-				ssUAIF_UOE_Data,
-				ssUAIF_UOE_Meta,
-				ssUAIF_UOE_DLen,
-				ssUOE_ICMP_Data);
-			#endif
-        	//-- INCREMENT GLOBAL SIMULATION COUNTER
-         	stepSim();
+            #if HLS_VERSION == 2017
+            uoe_top(
+                sMMIO_UOE_Enable,
+                ssUOE_MMIO_Ready,
+                ssIPRX_UOE_Data,
+                ssUOE_IPTX_Data,
+                ssUAIF_UOE_LsnReq,
+                ssUOE_UAIF_LsnRep,
+                ssUAIF_UOE_ClsReq,
+                ssUOE_UAIF_ClsRep,
+                ssUOE_UAIF_Data,
+                ssUOE_UAIF_Meta,
+                ssUOE_UAIF_DLen,
+                ssUAIF_UOE_Data,
+                ssUAIF_UOE_Meta,
+                ssUAIF_UOE_DLen,
+                ssUOE_ICMP_Data);
+            #else
+            uoe_top_wrap(
+                sMMIO_UOE_Enable,
+                ssUOE_MMIO_Ready,
+                ssIPRX_UOE_Data,
+                ssUOE_IPTX_Data,
+                ssUAIF_UOE_LsnReq,
+                ssUOE_UAIF_LsnRep,
+                ssUAIF_UOE_ClsReq,
+                ssUOE_UAIF_ClsRep,
+                ssUOE_UAIF_Data,
+                ssUOE_UAIF_Meta,
+                ssUOE_UAIF_DLen,
+                ssUAIF_UOE_Data,
+                ssUAIF_UOE_Meta,
+                ssUAIF_UOE_DLen,
+                ssUOE_ICMP_Data);
+            #endif
+            //-- INCREMENT GLOBAL SIMULATION COUNTER
+             stepSim();
         }
         printInfo(THIS_NAME, "== OPEN-TEST #3 : Done.\n\n");
 
@@ -985,39 +1076,41 @@ int main(int argc, char *argv[]) {
 
         int tbRun = ipPacket.size() + 25;
         while (tbRun) {
-			#if HLS_VERSION == 2017
-			uoe_top(
-				sMMIO_UOE_Enable,
-				ssUOE_MMIO_Ready,
-				ssIPRX_UOE_Data,
-				ssUOE_IPTX_Data,
-				ssUAIF_UOE_LsnReq,
-				ssUOE_UAIF_LsnRep,
-				ssUAIF_UOE_ClsReq,
-				ssUOE_UAIF_ClsRep,
-				ssUOE_UAIF_Data,
-				ssUOE_UAIF_Meta,
-				ssUAIF_UOE_Data,
-				ssUAIF_UOE_Meta,
-				ssUAIF_UOE_DLen,
-				ssUOE_ICMP_Data);
-			#else
-			uoe_top_wrap(
-				sMMIO_UOE_Enable,
-				ssUOE_MMIO_Ready,
-				ssIPRX_UOE_Data,
-				ssUOE_IPTX_Data,
-				ssUAIF_UOE_LsnReq,
-				ssUOE_UAIF_LsnRep,
-				ssUAIF_UOE_ClsReq,
-				ssUOE_UAIF_ClsRep,
-				ssUOE_UAIF_Data,
-				ssUOE_UAIF_Meta,
-				ssUAIF_UOE_Data,
-				ssUAIF_UOE_Meta,
-				ssUAIF_UOE_DLen,
-				ssUOE_ICMP_Data);
-			#endif
+            #if HLS_VERSION == 2017
+            uoe_top(
+                sMMIO_UOE_Enable,
+                ssUOE_MMIO_Ready,
+                ssIPRX_UOE_Data,
+                ssUOE_IPTX_Data,
+                ssUAIF_UOE_LsnReq,
+                ssUOE_UAIF_LsnRep,
+                ssUAIF_UOE_ClsReq,
+                ssUOE_UAIF_ClsRep,
+                ssUOE_UAIF_Data,
+                ssUOE_UAIF_Meta,
+                ssUOE_UAIF_DLen,
+                ssUAIF_UOE_Data,
+                ssUAIF_UOE_Meta,
+                ssUAIF_UOE_DLen,
+                ssUOE_ICMP_Data);
+            #else
+            uoe_top_wrap(
+                sMMIO_UOE_Enable,
+                ssUOE_MMIO_Ready,
+                ssIPRX_UOE_Data,
+                ssUOE_IPTX_Data,
+                ssUAIF_UOE_LsnReq,
+                ssUOE_UAIF_LsnRep,
+                ssUAIF_UOE_ClsReq,
+                ssUOE_UAIF_ClsRep,
+                ssUOE_UAIF_Data,
+                ssUOE_UAIF_Meta,
+                ssUOE_UAIF_DLen,
+                ssUAIF_UOE_Data,
+                ssUAIF_UOE_Meta,
+                ssUAIF_UOE_DLen,
+                ssUOE_ICMP_Data);
+            #endif
             tbRun--;
             stepSim();
             if (!ssUOE_UAIF_Data.empty()) {
@@ -1062,11 +1155,14 @@ int main(int argc, char *argv[]) {
         //-- CREATE DUT OUTPUT TRAFFIC AS STREAMS -------------------
         string           ofsUAIF_Data_FileName      = "../../../../test/simOutFiles/soUAIF_Data.dat";
         string           ofsUAIF_Meta_FileName      = "../../../../test/simOutFiles/soUAIF_Meta.dat";
+        string           ofsUAIF_DLen_FileName      = "../../../../test/simOutFiles/soUAIF_DLen.dat";
         string           ofsUAIF_Gold_Data_FileName = "../../../../test/simOutFiles/soUAIF_Gold_Data.dat";
         string           ofsUAIF_Gold_Meta_FileName = "../../../../test/simOutFiles/soUAIF_Gold_Meta.dat";
+        string           ofsUAIF_Gold_DLen_FileName = "../../../../test/simOutFiles/soUAIF_Gold_DLen.dat";
         vector<string>   ofNames;
         ofNames.push_back(ofsUAIF_Data_FileName);
         ofNames.push_back(ofsUAIF_Meta_FileName);
+        ofNames.push_back(ofsUAIF_DLen_FileName);
         ofstream         ofStreams[ofNames.size()]; // Stored in the same order
 
         //-- Remove all previous '.dat' files and open new files
@@ -1091,7 +1187,7 @@ int main(int argc, char *argv[]) {
         //-- Create golden Rx files
         set<UdpPort> udpDstPorts;
         if (createGoldenRxFiles(string(argv[2]), ofsUAIF_Gold_Data_FileName,
-                ofsUAIF_Gold_Meta_FileName, udpDstPorts) != NTS_OK) {
+                ofsUAIF_Gold_Meta_FileName, ofsUAIF_Gold_DLen_FileName, udpDstPorts) != NTS_OK) {
             printError(THIS_NAME, "Failed to create golden Rx files. \n");
             nrErr++;
         }
@@ -1099,39 +1195,41 @@ int main(int argc, char *argv[]) {
         // Wait until UOE is ready (~2^16 cycles)
         bool isReady = false;
         do {
-			#if HLS_VERSION == 2017
-			uoe_top(
-				sMMIO_UOE_Enable,
-				ssUOE_MMIO_Ready,
-				ssIPRX_UOE_Data,
-				ssUOE_IPTX_Data,
-				ssUAIF_UOE_LsnReq,
-				ssUOE_UAIF_LsnRep,
-				ssUAIF_UOE_ClsReq,
-				ssUOE_UAIF_ClsRep,
-				ssUOE_UAIF_Data,
-				ssUOE_UAIF_Meta,
-				ssUAIF_UOE_Data,
-				ssUAIF_UOE_Meta,
-				ssUAIF_UOE_DLen,
-				ssUOE_ICMP_Data);
-			#else
-			uoe_top_wrap(
-				sMMIO_UOE_Enable,
-				ssUOE_MMIO_Ready,
-				ssIPRX_UOE_Data,
-				ssUOE_IPTX_Data,
-				ssUAIF_UOE_LsnReq,
-				ssUOE_UAIF_LsnRep,
-				ssUAIF_UOE_ClsReq,
-				ssUOE_UAIF_ClsRep,
-				ssUOE_UAIF_Data,
-				ssUOE_UAIF_Meta,
-				ssUAIF_UOE_Data,
-				ssUAIF_UOE_Meta,
-				ssUAIF_UOE_DLen,
-				ssUOE_ICMP_Data);
-			#endif
+            #if HLS_VERSION == 2017
+            uoe_top(
+                sMMIO_UOE_Enable,
+                ssUOE_MMIO_Ready,
+                ssIPRX_UOE_Data,
+                ssUOE_IPTX_Data,
+                ssUAIF_UOE_LsnReq,
+                ssUOE_UAIF_LsnRep,
+                ssUAIF_UOE_ClsReq,
+                ssUOE_UAIF_ClsRep,
+                ssUOE_UAIF_Data,
+                ssUOE_UAIF_Meta,
+                ssUOE_UAIF_DLen,
+                ssUAIF_UOE_Data,
+                ssUAIF_UOE_Meta,
+                ssUAIF_UOE_DLen,
+                ssUOE_ICMP_Data);
+            #else
+            uoe_top_wrap(
+                sMMIO_UOE_Enable,
+                ssUOE_MMIO_Ready,
+                ssIPRX_UOE_Data,
+                ssUOE_IPTX_Data,
+                ssUAIF_UOE_LsnReq,
+                ssUOE_UAIF_LsnRep,
+                ssUAIF_UOE_ClsReq,
+                ssUOE_UAIF_ClsRep,
+                ssUOE_UAIF_Data,
+                ssUOE_UAIF_Meta,
+                ssUOE_UAIF_DLen,
+                ssUAIF_UOE_Data,
+                ssUAIF_UOE_Meta,
+                ssUAIF_UOE_DLen,
+                ssUOE_ICMP_Data);
+            #endif
             if (!ssUOE_MMIO_Ready.empty()) {
                 isReady = ssUOE_MMIO_Ready.read();
             }
@@ -1143,39 +1241,40 @@ int main(int argc, char *argv[]) {
             portToOpen = *it;
             ssUAIF_UOE_LsnReq.write(portToOpen);
             for (int i=0; i<2; ++i) {
-				#if HLS_VERSION == 2017
-				uoe_top(
-					sMMIO_UOE_Enable,
-					ssUOE_MMIO_Ready,
-					ssIPRX_UOE_Data,
-					ssUOE_IPTX_Data,
-					ssUAIF_UOE_LsnReq,
-					ssUOE_UAIF_LsnRep,
-					ssUAIF_UOE_ClsReq,
-					ssUOE_UAIF_ClsRep,
-					ssUOE_UAIF_Data,
-					ssUOE_UAIF_Meta,
-					ssUAIF_UOE_Data,
-					ssUAIF_UOE_Meta,
-					ssUAIF_UOE_DLen,
-					ssUOE_ICMP_Data);
-				#else
-				uoe_top_wrap(
-					sMMIO_UOE_Enable,
-					ssUOE_MMIO_Ready,
-					ssIPRX_UOE_Data,
-					ssUOE_IPTX_Data,
-					ssUAIF_UOE_LsnReq,
-					ssUOE_UAIF_LsnRep,
-					ssUAIF_UOE_ClsReq,
-					ssUOE_UAIF_ClsRep,
-					ssUOE_UAIF_Data,
-					ssUOE_UAIF_Meta,
-					ssUAIF_UOE_Data,
-					ssUAIF_UOE_Meta,
-					ssUAIF_UOE_DLen,
-					ssUOE_ICMP_Data);
-				#endif
+                #if HLS_VERSION == 2017
+                uoe_top(
+                    sMMIO_UOE_Enable,
+                    ssUOE_MMIO_Ready,
+                    ssIPRX_UOE_Data,
+                    ssUOE_IPTX_Data,
+                    ssUAIF_UOE_LsnReq,
+                    ssUOE_UAIF_LsnRep,
+                    ssUAIF_UOE_ClsReq,
+                    ssUOE_UAIF_ClsRep,
+                    ssUOE_UAIF_Data,
+                    ssUOE_UAIF_Meta,
+                    ssUAIF_UOE_Data,
+                    ssUAIF_UOE_Meta,
+                    ssUAIF_UOE_DLen,
+                    ssUOE_ICMP_Data);
+                #else
+                uoe_top_wrap(
+                    sMMIO_UOE_Enable,
+                    ssUOE_MMIO_Ready,
+                    ssIPRX_UOE_Data,
+                    ssUOE_IPTX_Data,
+                    ssUAIF_UOE_LsnReq,
+                    ssUOE_UAIF_LsnRep,
+                    ssUAIF_UOE_ClsReq,
+                    ssUOE_UAIF_ClsRep,
+                    ssUOE_UAIF_Data,
+                    ssUOE_UAIF_Meta,
+                    ssUOE_UAIF_DLen,
+                    ssUAIF_UOE_Data,
+                    ssUAIF_UOE_Meta,
+                    ssUAIF_UOE_DLen,
+                    ssUOE_ICMP_Data);
+                #endif
                 stepSim();
             }
         }
@@ -1215,39 +1314,41 @@ int main(int argc, char *argv[]) {
         //-- RUN SIMULATION FOR IPRX->UOE INPUT TRAFFIC -----------------------
         int tbRun = (nrErr == 0) ? (nrIPRX_UOE_Chunks + TB_GRACE_TIME) : 0;
         while (tbRun) {
-			#if HLS_VERSION == 2017
-			uoe_top(
-				sMMIO_UOE_Enable,
-				ssUOE_MMIO_Ready,
-				ssIPRX_UOE_Data,
-				ssUOE_IPTX_Data,
-				ssUAIF_UOE_LsnReq,
-				ssUOE_UAIF_LsnRep,
-				ssUAIF_UOE_ClsReq,
-				ssUOE_UAIF_ClsRep,
-				ssUOE_UAIF_Data,
-				ssUOE_UAIF_Meta,
-				ssUAIF_UOE_Data,
-				ssUAIF_UOE_Meta,
-				ssUAIF_UOE_DLen,
-				ssUOE_ICMP_Data);
-			#else
-			uoe_top_wrap(
-				sMMIO_UOE_Enable,
-				ssUOE_MMIO_Ready,
-				ssIPRX_UOE_Data,
-				ssUOE_IPTX_Data,
-				ssUAIF_UOE_LsnReq,
-				ssUOE_UAIF_LsnRep,
-				ssUAIF_UOE_ClsReq,
-				ssUOE_UAIF_ClsRep,
-				ssUOE_UAIF_Data,
-				ssUOE_UAIF_Meta,
-				ssUAIF_UOE_Data,
-				ssUAIF_UOE_Meta,
-				ssUAIF_UOE_DLen,
-				ssUOE_ICMP_Data);
-			#endif
+            #if HLS_VERSION == 2017
+            uoe_top(
+                sMMIO_UOE_Enable,
+                ssUOE_MMIO_Ready,
+                ssIPRX_UOE_Data,
+                ssUOE_IPTX_Data,
+                ssUAIF_UOE_LsnReq,
+                ssUOE_UAIF_LsnRep,
+                ssUAIF_UOE_ClsReq,
+                ssUOE_UAIF_ClsRep,
+                ssUOE_UAIF_Data,
+                ssUOE_UAIF_Meta,
+                ssUOE_UAIF_DLen,
+                ssUAIF_UOE_Data,
+                ssUAIF_UOE_Meta,
+                ssUAIF_UOE_DLen,
+                ssUOE_ICMP_Data);
+            #else
+            uoe_top_wrap(
+                sMMIO_UOE_Enable,
+                ssUOE_MMIO_Ready,
+                ssIPRX_UOE_Data,
+                ssUOE_IPTX_Data,
+                ssUAIF_UOE_LsnReq,
+                ssUOE_UAIF_LsnRep,
+                ssUAIF_UOE_ClsReq,
+                ssUOE_UAIF_ClsRep,
+                ssUOE_UAIF_Data,
+                ssUOE_UAIF_Meta,
+                ssUOE_UAIF_DLen,
+                ssUAIF_UOE_Data,
+                ssUAIF_UOE_Meta,
+                ssUAIF_UOE_DLen,
+                ssUOE_ICMP_Data);
+            #endif
             tbRun--;
             stepSim();
         }
@@ -1269,11 +1370,18 @@ int main(int argc, char *argv[]) {
             printInfo(THIS_NAME, "\tReceived %d chunks in %d datagrams, for a total of %d bytes.\n\n",
                       nrUOE_UAIF_DataChunks, nrUOE_UAIF_DataGrams, nrUOE_UAIF_DataBytes);
         }
-        //-- DRAIN UOE-->UAIF META OUTPUT STREAM ------------------------------
+        //-- DRAIN UOE-->UAIF META OUTPUT STREAM -------------------------------
         int nrUOE_UAIF_MetaChunks=0, nrUOE_UAIF_MetaGrams=0, nrUOE_UAIF_MetaBytes=0;
         if (not drainUdpMetaStreamToFile(ssUOE_UAIF_Meta, "ssUOE_UAIF_Meta",
                 ofNames[1], nrUOE_UAIF_MetaChunks, nrUOE_UAIF_MetaGrams, nrUOE_UAIF_MetaBytes)) {
             printError(THIS_NAME, "Failed to drain UOE-to-UAIF meta traffic from DUT. \n");
+            nrErr++;
+        }
+        //-- DRAIN UOE-->UAIF DLEN OUTPUT STREAM -------------------------------
+        int nrUOE_UAIF_DLenChunks=0, nrUOE_UAIF_DLenGrams=0, nrUOE_UAIF_DLenBytes=0;
+        if (not drainUdpDLenStreamToFile(ssUOE_UAIF_DLen, "ssUOE_UAIF_DLen",
+                ofNames[2], nrUOE_UAIF_DLenChunks, nrUOE_UAIF_DLenGrams, nrUOE_UAIF_DLenBytes)) {
+            printError(THIS_NAME, "Failed to drain UOE-to-UAIF dlen traffic from DUT. \n");
             nrErr++;
         }
 
@@ -1294,6 +1402,14 @@ int main(int argc, char *argv[]) {
         if (res) {
             printError(THIS_NAME, "File \'%s\' does not match \'%s\'.\n", \
                        ofsUAIF_Meta_FileName.c_str(), ofsUAIF_Gold_Meta_FileName.c_str());
+            nrErr += 1;
+        }
+        res = system(("diff --brief -w " + \
+                       std::string(ofsUAIF_DLen_FileName) + " " + \
+                       std::string(ofsUAIF_Gold_DLen_FileName) + " ").c_str());
+        if (res) {
+            printError(THIS_NAME, "File \'%s\' does not match \'%s\'.\n", \
+                       ofsUAIF_DLen_FileName.c_str(), ofsUAIF_Gold_DLen_FileName.c_str());
             nrErr += 1;
         }
 
@@ -1348,39 +1464,41 @@ int main(int argc, char *argv[]) {
         //-- RUN SIMULATION ---------------------------------------------------
         int tbRun = (nrErr == 0) ? (nrUAIF_UOE_Chunks + TB_GRACE_TIME) : 0;
         while (tbRun) {
-			#if HLS_VERSION == 2017
-			uoe_top(
-				sMMIO_UOE_Enable,
-				ssUOE_MMIO_Ready,
-				ssIPRX_UOE_Data,
-				ssUOE_IPTX_Data,
-				ssUAIF_UOE_LsnReq,
-				ssUOE_UAIF_LsnRep,
-				ssUAIF_UOE_ClsReq,
-				ssUOE_UAIF_ClsRep,
-				ssUOE_UAIF_Data,
-				ssUOE_UAIF_Meta,
-				ssUAIF_UOE_Data,
-				ssUAIF_UOE_Meta,
-				ssUAIF_UOE_DLen,
-				ssUOE_ICMP_Data);
-			#else
-			uoe_top_wrap(
-				sMMIO_UOE_Enable,
-				ssUOE_MMIO_Ready,
-				ssIPRX_UOE_Data,
-				ssUOE_IPTX_Data,
-				ssUAIF_UOE_LsnReq,
-				ssUOE_UAIF_LsnRep,
-				ssUAIF_UOE_ClsReq,
-				ssUOE_UAIF_ClsRep,
-				ssUOE_UAIF_Data,
-				ssUOE_UAIF_Meta,
-				ssUAIF_UOE_Data,
-				ssUAIF_UOE_Meta,
-				ssUAIF_UOE_DLen,
-				ssUOE_ICMP_Data);
-			#endif
+            #if HLS_VERSION == 2017
+            uoe_top(
+                sMMIO_UOE_Enable,
+                ssUOE_MMIO_Ready,
+                ssIPRX_UOE_Data,
+                ssUOE_IPTX_Data,
+                ssUAIF_UOE_LsnReq,
+                ssUOE_UAIF_LsnRep,
+                ssUAIF_UOE_ClsReq,
+                ssUOE_UAIF_ClsRep,
+                ssUOE_UAIF_Data,
+                ssUOE_UAIF_Meta,
+                ssUOE_UAIF_DLen,
+                ssUAIF_UOE_Data,
+                ssUAIF_UOE_Meta,
+                ssUAIF_UOE_DLen,
+                ssUOE_ICMP_Data);
+            #else
+            uoe_top_wrap(
+                sMMIO_UOE_Enable,
+                ssUOE_MMIO_Ready,
+                ssIPRX_UOE_Data,
+                ssUOE_IPTX_Data,
+                ssUAIF_UOE_LsnReq,
+                ssUOE_UAIF_LsnRep,
+                ssUAIF_UOE_ClsReq,
+                ssUOE_UAIF_ClsRep,
+                ssUOE_UAIF_Data,
+                ssUOE_UAIF_Meta,
+                ssUOE_UAIF_DLen,
+                ssUAIF_UOE_Data,
+                ssUAIF_UOE_Meta,
+                ssUAIF_UOE_DLen,
+                ssUOE_ICMP_Data);
+            #endif
             tbRun--;
             stepSim();
         }
@@ -1408,7 +1526,6 @@ int main(int argc, char *argv[]) {
         //---------------------------------------------------------------
         int res = myDiffTwoFiles(std::string(ofsIPTX_Data_FileName),
                                  std::string(ofsIPTX_Gold_FileName));
-
         if (res) {
             printError(THIS_NAME, "File \'%s\' does not match \'%s\'.\n", \
                        ofsIPTX_Data_FileName.c_str(), ofsIPTX_Gold_FileName.c_str());
