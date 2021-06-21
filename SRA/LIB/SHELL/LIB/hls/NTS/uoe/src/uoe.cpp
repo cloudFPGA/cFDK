@@ -895,7 +895,7 @@ void pRxEngine(
 
     //-- IP Header Stripper (Ihs)
     static stream<AxisIp4>      ssIhsToRph_Ip4Hdr       ("ssIhsToRph_Ip4Hdr");
-    #pragma HLS STREAM variable=ssIhsToRph_Ip4Hdr       depth=UOE_RX_HDRS_BUFFERING
+    #pragma HLS STREAM variable=ssIhsToRph_Ip4Hdr       depth=UOE_RX_HDRS_BUFFERING*4  // 1-header=4-entries in the FiFo
     static stream<AxisUdp>      ssIhsToUcc_UdpDgrm      ("ssIhsToUcc_UdpDgrm");
     #pragma HLS STREAM variable=ssIhsToUcc_UdpDgrm      depth=UOE_RX_DATA_BUFFERING/2
     static stream<UdpCsum>      ssIhsToUcc_PsdHdrSum    ("ssIhsToUcc_PsdHdrSum");
