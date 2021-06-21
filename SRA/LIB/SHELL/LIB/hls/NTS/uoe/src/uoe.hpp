@@ -55,6 +55,11 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //--  FYI: MDS is rounded modulo 8 bytes to match the chunk size.
 static const Ly4Len UDP_MDS = (MTU_ZYC2-IP4_HEADER_LEN-UDP_HEADER_LEN) & ~0x7;  // 1416
 
+/*******************************************************************************
+ * DEFINITIONS
+ ******************************************************************************/
+#define UOE_RX_DATA_BUFFERING  2048  // In chunks (@10GbE:1-chunk=8-bytes)
+#define UOE_RX_HDRS_BUFFERING    64  // In headers
 
 /*******************************************************************************
  * INTERNAL TYPES and CLASSES USED BY TOE
