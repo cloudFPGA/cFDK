@@ -116,6 +116,7 @@ class IpAddrPair {
         //------------------------------------------------------
         stream<UdpAppData>      &soUAIF_Data,
         stream<UdpAppMeta>      &soUAIF_Meta,
+        stream<UdpAppDLen>      &soUAIF_DLen,
 
         //------------------------------------------------------
         //-- UAIF / Tx Data Interfaces
