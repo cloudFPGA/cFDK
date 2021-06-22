@@ -857,6 +857,7 @@ int main(int argc, char *argv[]) {
                 ssUOE_UAIF_ClsRep,
                 ssUOE_UAIF_Data,
                 ssUOE_UAIF_Meta,
+                ssUOE_UAIF_DLen,
                 ssUAIF_UOE_Data,
                 ssUAIF_UOE_Meta,
                 ssUAIF_UOE_DLen,

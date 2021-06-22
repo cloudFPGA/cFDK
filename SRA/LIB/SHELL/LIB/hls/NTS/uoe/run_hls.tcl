@@ -191,7 +191,7 @@ if { $hlsCSynth} {
 # Run C/RTL CoSimulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCoSim } {
-    cosim_design -tool xsim -rtl verilog -trace_level none -argv "3"
+    # cosim_design -tool xsim -rtl verilog -trace_level none -argv "3"
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_OneDatagram.dat"
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_FourDatagrams.dat"
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_RampDgrmSize.dat"

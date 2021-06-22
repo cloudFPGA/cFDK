@@ -895,16 +895,16 @@ void pRxEngine(
 
     //-- IP Header Stripper (Ihs)
     static stream<AxisIp4>      ssIhsToRph_Ip4Hdr       ("ssIhsToRph_Ip4Hdr");
-    #pragma HLS STREAM variable=ssIhsToRph_Ip4Hdr       depth=UOE_RX_HDRS_BUFFERING*4  // 1-header=4-entries in the FiFo
+    #pragma HLS STREAM variable=ssIhsToRph_Ip4Hdr       depth=cIp4RxHdrsFifoSize
     static stream<AxisUdp>      ssIhsToUcc_UdpDgrm      ("ssIhsToUcc_UdpDgrm");
-    #pragma HLS STREAM variable=ssIhsToUcc_UdpDgrm      depth=UOE_RX_DATA_BUFFERING/2
+    #pragma HLS STREAM variable=ssIhsToUcc_UdpDgrm      depth=cUdpRxDataFifoSize
     static stream<UdpCsum>      ssIhsToUcc_PsdHdrSum    ("ssIhsToUcc_PsdHdrSum");
-    #pragma HLS STREAM variable=ssIhsToUcc_PsdHdrSum    depth=UOE_RX_HDRS_BUFFERING/2
+    #pragma HLS STREAM variable=ssIhsToUcc_PsdHdrSum    depth=2
     //-- UDP Checksum Checker (Ucc)
     static stream<AxisUdp>      ssUccToRph_UdpDgrm      ("ssUccToRph_UdpDgrm");
-    #pragma HLS STREAM variable=ssUccToRph_UdpDgrm      depth=UOE_RX_DATA_BUFFERING/2
+    #pragma HLS STREAM variable=ssUccToRph_UdpDgrm      depth=cUdpRxDataFifoSize
     static stream<ValBool>      ssUccToRph_CsumVal      ("ssUccToRph_CsumVal");
-    #pragma HLS STREAM variable=ssUccToRph_CsumVal      depth=UOE_RX_HDRS_BUFFERING/2
+    #pragma HLS STREAM variable=ssUccToRph_CsumVal      depth=cUdpRxHdrsFifoSize
 
     //-- UDP Packet Handler (UPh)
     static stream<UdpPort>      ssRphToUpt_PortStateReq ("ssRphToUpt_PortStateReq");
