@@ -79,6 +79,7 @@ void uoe(
     //------------------------------------------------------
     stream<UdpAppData>              &soUAIF_Data,
     stream<UdpAppMeta>              &soUAIF_Meta,
+    stream<UdpAppDLen>              &soUAIF_DLen,
     //------------------------------------------------------
     //-- UAIF / Tx Data Interfaces
     //------------------------------------------------------
@@ -170,6 +171,7 @@ The data transfer between **`UOE`** and **`APP`** is flow-controlled by the stre
     //------------------------------------------------------
     stream<UdpAppData>              &soUAIF_Data,
     stream<UdpAppMeta>              &soUAIF_Meta,
+    stream<UdpAppDLen>              &soUAIF_DLen,
 ``` 
 * `soUAIF_Data` is the data stream forwarded by **`UOE`** upon data arrival from the network. It implements an 
     *AXI4-Stream interface* of type \<[UdpAppData](../../SRA/LIB/SHELL/LIB/hls/NTS/AxisApp.hpp)\> and its maximum 
@@ -178,6 +180,8 @@ The data transfer between **`UOE`** and **`APP`** is flow-controlled by the stre
 * `soUAIF_Meta` is the metadata of the data stream forwarded by **`UOE`** upon data arrival. It implements an
     *AXI4-Stream interface* of type \<[UdpAppMeta](../../SRA/LIB/SHELL/LIB/hls/NTS/nts.hpp)\> which specifies the
     socket-pair associated with this data stream.
+* `soUAIF_DLen` specifies the length of the data stream forwarded by **`UOE`**. It implements an 
+    *AXI4-Stream interface* of type \<[UdpAppDLen](../../SRA/LIB/SHELL/LIB/hls/NTS/nts.hpp)\>. 
 
 #### Tx Application Data Interface
 For **`UOE`** to send data on the network, the **`APP`** must provide the data as a stream of chunks, and every stream 

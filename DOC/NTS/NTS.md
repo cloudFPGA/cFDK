@@ -158,7 +158,7 @@ module NetworkTransportStack_TcpIp (
   input   [95:0] siAPP_Udp_Meta_tdata,
   input          siAPP_Udp_Meta_tvalid,
   output         siAPP_Udp_Meta_tready,
-  //---- Axi4-Stream UDP Data Length ---------
+  //---- Axi4-Stream UDP Data Length --------
   input   [15:0] siAPP_Udp_DLen_tdata,
   input          siAPP_Udp_DLen_tvalid,
   output         siAPP_Udp_DLen_tready,
@@ -175,6 +175,10 @@ module NetworkTransportStack_TcpIp (
   output  [95:0] soAPP_Udp_Meta_tdata,
   output         soAPP_Udp_Meta_tvalid,
   input          soAPP_Udp_Meta_tready,
+  //---- Axi4-Stream UDP Data Length --------
+  output  [15:0] soAPP_Udp_DLen_tdata,
+  output         soAPP_Udp_DLen_tvalid,
+  input          soAPP_Udp_DLen_tready,
   //------------------------------------------------------
   //-- UAIF / UDP Rx Ctrl Interfaces (.i.e NTS-->APP)
   //------------------------------------------------------
