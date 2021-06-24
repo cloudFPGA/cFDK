@@ -174,6 +174,10 @@ module Shell_Kale # (
   output  [95:0] soROL_Nts_Udp_Meta_tdata ,
   output         soROL_Nts_Udp_Meta_tvalid,
   input          soROL_Nts_Udp_Meta_tready,
+  //---- Axi4-Stream UDP Metadata -----------
+  output  [15:0] soROL_Nts_Udp_DLen_tdata ,
+  output         soROL_Nts_Udp_DLen_tvalid,
+  input          soROL_Nts_Udp_DLen_tready,
   //------------------------------------------------------
   //-- ROLE / Nts/ Udp / Rx Ctrl Interfaces (.i.e SHELL<-->ROLE)
   //------------------------------------------------------
@@ -1030,6 +1034,10 @@ module Shell_Kale # (
     .soAPP_Udp_Meta_tdata             (ssNTS0_UARS_Udp_Meta_tdata),
     .soAPP_Udp_Meta_tvalid            (ssNTS0_UARS_Udp_Meta_tvalid),
     .soAPP_Udp_Meta_tready            (ssNTS0_UARS_Udp_Meta_tready),
+    //---- Axi4-Stream UDP Data Len -----------
+    .soAPP_Udp_DLen_tdata             (ssNTS0_UARS_Udp_DLen_tdata),
+    .soAPP_Udp_DLen_tvalid            (ssNTS0_UARS_Udp_DLen_tvalid),
+    .soAPP_Udp_DLen_tready            (ssNTS0_UARS_Udp_DLen_tready),
     //------------------------------------------------------
     //-- UAIF / UDP Rx Ctrl Interfaces (.i.e NTS-->APP)
     //------------------------------------------------------
@@ -1301,6 +1309,10 @@ module Shell_Kale # (
     .soAPP_Udp_Meta_tdata     (soROL_Nts_Udp_Meta_tdata ),
     .soAPP_Udp_Meta_tvalid    (soROL_Nts_Udp_Meta_tvalid),
     .soAPP_Udp_Meta_tready    (soROL_Nts_Udp_Meta_tready),
+    //---- Axi4-Stream UDP Data Len -----------
+    .soAPP_Udp_DLen_tdata     (soROL_Nts_Udp_DLen_tdata ),
+    .soAPP_Udp_DLen_tvalid    (soROL_Nts_Udp_DLen_tvalid),
+    .soAPP_Udp_DLen_tready    (soROL_Nts_Udp_DLen_tready),
     //------------------------------------------------------
     //-- APP / Udp / Rx Ctrl Interfaces (.i.e UARS<-->APP)
     //------------------------------------------------------
@@ -1350,6 +1362,10 @@ module Shell_Kale # (
     .siNTS_Udp_Meta_tdata     (ssNTS0_UARS_Udp_Meta_tdata ),
     .siNTS_Udp_Meta_tvalid    (ssNTS0_UARS_Udp_Meta_tvalid),
     .siNTS_Udp_Meta_tready    (ssNTS0_UARS_Udp_Meta_tready),
+    //---- Axi4-Stream UDP Data Len -----------
+    .siNTS_Udp_DLen_tdata     (ssNTS0_UARS_Udp_DLen_tdata ),
+    .siNTS_Udp_DLen_tvalid    (ssNTS0_UARS_Udp_DLen_tvalid),
+    .siNTS_Udp_DLen_tready    (ssNTS0_UARS_Udp_DLen_tready),
     //------------------------------------------------------
     //-- NTS / Udp / Rx Ctrl Interfaces (.i.e NTS<-->UARS)
     //------------------------------------------------------

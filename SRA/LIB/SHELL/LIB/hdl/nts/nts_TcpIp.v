@@ -165,6 +165,10 @@ module NetworkTransportStack_TcpIp (
   output  [95:0] soAPP_Udp_Meta_tdata,
   output         soAPP_Udp_Meta_tvalid,
   input          soAPP_Udp_Meta_tready,
+  //---- Axi4-Stream UDP Data Len -----------
+  output  [15:0] soAPP_Udp_DLen_tdata,
+  output         soAPP_Udp_DLen_tvalid,
+  input          soAPP_Udp_DLen_tready,
     
   //------------------------------------------------------
   //-- UAIF / UDP Rx Ctrl Interfaces (.i.e NTS-->APP)
@@ -311,12 +315,6 @@ module NetworkTransportStack_TcpIp (
   wire          ssARS1_ICMP_Data_tlast;
   wire          ssARS1_ICMP_Data_tvalid;
   wire          ssARS1_ICMP_Data_tready;
-  //OBSOLETE //-- IPRX ==> ICMP/Derr
-  //OBSOLETE wire  [63:0]  ssIPRX_ICMP_Derr_tdata;
-  //OBSOLETE wire  [ 7:0]  ssIPRX_ICMP_Derr_tkeep;
-  //OBSOLETE wire          ssIPRX_ICMP_Derr_tlast;
-  //OBSOLETE wire          ssIPRX_ICMP_Derr_tvalid;
-  //OBSOLETE wire          ssIPRX_ICMP_Derr_tready;
   //-- IPRX ==>[ARS5]==> ICMP/Derr
   //---- IPRX ==>[ARS5] 
   wire  [63:0]  ssIPRX_ARS5_Derr_tdata;
@@ -1270,6 +1268,10 @@ module NetworkTransportStack_TcpIp (
     .soUAIF_Meta_TDATA          (soAPP_Udp_Meta_tdata),
     .soUAIF_Meta_TVALID         (soAPP_Udp_Meta_tvalid),
     .soUAIF_Meta_TREADY         (soAPP_Udp_Meta_tready),
+    //---- UDP Data Len
+    .soUAIF_DLen_TDATA          (soAPP_Udp_DLen_tdata),
+    .soUAIF_DLen_TVALID         (soAPP_Udp_DLen_tvalid),
+    .soUAIF_DLen_TREADY         (soAPP_Udp_DLen_tready),
     //------------------------------------------------------
     //-- UAIF / UDP Tx Data Interfaces (.i.e APP->UOE)
     //------------------------------------------------------ 
@@ -1356,6 +1358,10 @@ module NetworkTransportStack_TcpIp (
     .soUAIF_Meta_TDATA          (soAPP_Udp_Meta_tdata),
     .soUAIF_Meta_TVALID         (soAPP_Udp_Meta_tvalid),
     .soUAIF_Meta_TREADY         (soAPP_Udp_Meta_tready),
+    //---- UDP Data Len
+    .soUAIF_DLen_V_V_TDATA      (soAPP_Udp_DLen_tdata),
+    .soUAIF_DLen_V_V_TVALID     (soAPP_Udp_DLen_tvalid),
+    .soUAIF_DLen_V_V_TREADY     (soAPP_Udp_DLen_tready),
     //------------------------------------------------------
     //-- UAIF / UDP Tx Data Interfaces (.i.e APP->UOE)
     //------------------------------------------------------ 
