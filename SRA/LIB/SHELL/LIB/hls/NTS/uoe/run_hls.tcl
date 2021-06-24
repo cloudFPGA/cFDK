@@ -191,7 +191,6 @@ if { $hlsCSynth} {
 # Run C/RTL CoSimulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCoSim } {
-    # cosim_design -tool xsim -rtl verilog -trace_level none -argv "3"
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_OneDatagram.dat"
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_FourDatagrams.dat"
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_RampDgrmSize.dat"
@@ -204,6 +203,11 @@ if { $hlsCoSim } {
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "2 ../../../../test/testVectors/siUAIF_OneDatagram.dat"
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "2 ../../../../test/testVectors/siUAIF_RampDgrmSize.dat"
     cosim_design -tool xsim -rtl verilog -trace_level none -argv "2 ../../../../test/testVectors/siUAIF_LongDatagrams.dat"
+    if { [format "%.1f" ${VIVADO_VERSION}] != 2019.2 } {
+        # These parameters no longer work in 2019.2 ?!
+        cosim_design -tool xsim -rtl verilog -trace_level none -argv "3"
+    }
+
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF CO-SIMULATION            ####"

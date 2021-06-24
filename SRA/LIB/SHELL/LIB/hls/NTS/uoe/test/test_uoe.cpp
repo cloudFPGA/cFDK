@@ -1075,7 +1075,7 @@ int main(int argc, char *argv[]) {
             ssIPRX_UOE_Data.write(ipPacket.pullChunk());
         }
 
-        int tbRun = ipPacket.size() + 25;
+        int tbRun = ipPacket.size() + TB_GRACE_TIME;
         while (tbRun) {
             #if HLS_VERSION == 2017
             uoe_top(
@@ -1254,7 +1254,7 @@ int main(int argc, char *argv[]) {
                     ssUOE_UAIF_ClsRep,
                     ssUOE_UAIF_Data,
                     ssUOE_UAIF_Meta,
-					ssUOE_UAIF_DLen,
+                    ssUOE_UAIF_DLen,
                     ssUAIF_UOE_Data,
                     ssUAIF_UOE_Meta,
                     ssUAIF_UOE_DLen,

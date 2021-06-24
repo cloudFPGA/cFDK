@@ -56,13 +56,18 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 static const Ly4Len UDP_MDS = (MTU_ZYC2-IP4_HEADER_LEN-UDP_HEADER_LEN) & ~0x7;  // 1416
 
 //-------------------------------------------------------------------
-//-- CONSTANTS FOR THE UOE INTERNAl STREAMS
+//-- DEFINES FOR THE UOE INTERNAL STREAMS (can be changed)
 //-------------------------------------------------------------------
-const int cUdpRxDataFifoSize = 16384/(ARW/8);  // Size of UDP Rx data buffer (in chunks w/ 1-chunk=8-bytes at 10GbE)
-const int cUdpRxHdrsFifoSize = 64;             // Size of the UDP Rx header buffer (in UDP headers)
-const int cIp4RxHdrsFifoSize = (cUdpRxHdrsFifoSize* 4);  // Size of the IP4 Rx header buffer (1-header=4-entries in the FiFo)
+#define UOE_ELASTIC_DATA_BUFFER  16*1024  // In Bytes
+#define UOE_ELASTIC_HEADER_BUFF  64       // In Headers
 
-const int cMtuSize      = MTU/(ARW/8);  // Must be able to store one MTU packet
+//-------------------------------------------------------------------
+//-- DERIVED CONSTANTS FOR THE UOE INTERNAl STREAMS (don't touch)
+//-------------------------------------------------------------------
+const int cUdpRxDataFifoSize = (UOE_ELASTIC_DATA_BUFFER)/(ARW/8); // Size of UDP Rx data buffer (in chunks)
+const int cUdpRxHdrsFifoSize = (UOE_ELASTIC_HEADER_BUFF);            // Size of the UDP Rx header buffer (in UDP headers)
+const int cIp4RxHdrsFifoSize = (cUdpRxHdrsFifoSize * 4); // Size of the IP4 Rx header buffer (1-header=4-entries in the FiFo)
+const int cMtuSize           = (MTU)/(ARW/8);   // Minimum size to store one MTU
 
 /*******************************************************************************
  * INTERNAL TYPES and CLASSES USED BY TOE

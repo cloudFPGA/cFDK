@@ -47,6 +47,7 @@
 /*******************************************************************************
  * INTERFACE - GENERIC TCP & UDP APPLICATION INTERFACE (APP)
  *******************************************************************************/
+typedef AxisRaw     AppData;
 typedef AxisRaw     AxisApp;
 
 /*******************************************************************************
@@ -65,7 +66,7 @@ typedef AxisRaw     AxisApp;
 //-- TCP APP - DATA
 //--  The data section of a TCP segment over an AXI4S I/F.
 //---------------------------------------------------------
-typedef AxisApp     TcpAppData;
+typedef AxisRaw     TcpAppData;
 #endif
 
 //---------------------------------------------------------
