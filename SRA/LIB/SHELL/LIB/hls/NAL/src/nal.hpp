@@ -383,6 +383,7 @@ void nal_main(
     //-- UOE / Rx Data Interfaces
     stream<UdpAppData>          &siUOE_Data,
     stream<UdpAppMeta>          &siUOE_Meta,
+    stream<UdpAppDLen>          &siUOE_DLen,
 
     //-- UOE / Tx Data Interfaces
     stream<UdpAppData>          &soUOE_Data,

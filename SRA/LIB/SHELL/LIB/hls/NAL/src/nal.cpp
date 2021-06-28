@@ -505,6 +505,7 @@ void nal_main(
     //-- UOE / Rx Data Interfaces
     stream<UdpAppData>          &siUOE_Data,
     stream<UdpAppMeta>          &siUOE_Meta,
+    stream<UdpAppDLen>          &siUOE_DLen,
 
     //-- UOE / Tx Data Interfaces
     stream<UdpAppData>          &soUOE_Data,
@@ -548,6 +549,7 @@ void nal_main(
 #pragma HLS INTERFACE axis register both port=siUOE_Data
 #pragma HLS INTERFACE axis register both port=siUOE_Meta
 #pragma HLS DATA_PACK                variable=siUOE_Meta
+#pragma HLS INTERFACE axis register both port=siUOE_DLen
 
 #pragma HLS INTERFACE axis register both port=soUOE_Data
 #pragma HLS INTERFACE axis register both port=soUOE_Meta
@@ -811,7 +813,7 @@ void nal_main(
 
   pUdpLsn(soUOE_LsnReq, siUOE_LsnRep, sUdpPortsToOpen, sUdpPortsOpenFeedback);
 
-  pUdpRx(sRoleUdpDataRx_buffer, sRoleUdpMetaRx_buffer, siUOE_Data, siUOE_Meta,
+  pUdpRx(sRoleUdpDataRx_buffer, sRoleUdpMetaRx_buffer, siUOE_Data, siUOE_Meta, siUOE_DLen,
       sA4lToUdpRx, sGetNidReq_UdpRx, sGetNidRep_UdpRx,
       sCacheInvalSig_1, internal_event_fifo_1);
 

@@ -91,6 +91,7 @@ stream<StsBool>             sUOE_NRC_ClsRep  ("sUOE_NRC_ClsRep");
 //-- UOE / Rx Data Interfaces
 stream<UdpAppData>          sUOE_NRC_Data  ("sUOE_NRC_Data");
 stream<UdpAppMeta>          sUOE_NRC_Meta  ("sUOE_NRC_Meta");
+stream<UdpAppDLen>          sUOE_NRC_DLen  ("sUOE_NRC_DLen");
 
 //-- UOE / Tx Data Interfaces
 stream<UdpAppData>          sNRC_UOE_Data  ("sNRC_UOE_Data");
@@ -189,7 +190,7 @@ void stepDut() {
         sNRC_FMC_Tcp_sessId,
         sNRC_UOE_LsnReq, sUOE_NRC_LsnRep,
         sNRC_UOE_ClsReq, sUOE_NRC_ClsRep,
-        sUOE_NRC_Data, sUOE_NRC_Meta,
+        sUOE_NRC_Data, sUOE_NRC_Meta, sUOE_NRC_DLen,
         sNRC_UOE_Data, sNRC_UOE_Meta, sNRC_UOE_DLen,
         sTOE_Nrc_Notif, sNRC_Toe_DReq, sTOE_Nrc_Data, sTOE_Nrc_SessId,
         sNRC_Toe_LsnReq, sTOE_Nrc_LsnAck,
@@ -1221,6 +1222,11 @@ int main() {
           sUOE_NRC_Meta.write(udpMeta);
           sUOE_NRC_Meta.write(udpMeta);
           sUOE_NRC_Meta.write(udpMeta);
+          //the length of the streams are in ifsUDMX_Urif_Data.dat
+          sUOE_NRC_DLen.write(38);
+          sUOE_NRC_DLen.write(23);
+          sUOE_NRC_DLen.write(60);
+
           // Print Metadata to console
           //printf("[%4.4d] TB is filling input stream [Meta] - Metadata = {{SP=0x%4.4X,SA=0x%8.8X} {DP=0x%4.4X,DA=0x%8.8X}} \n",
           //simCnt, socketPair.udpSrcPort.to_int(), socketPair.ip4SrcAddr.to_int(), socketPair.udpDstPort.to_int(), socketPair.ip4DstAddr.to_int());
