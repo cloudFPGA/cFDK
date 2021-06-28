@@ -329,8 +329,8 @@ NalTriple newTriple(Ip4Addr ipRemoteAddres, TcpPort tcpRemotePort, TcpPort tcpLo
 Ip4Addr getRemoteIpAddrFromTriple(NalTriple triple);
 TcpPort getRemotePortFromTriple(NalTriple triple);
 TcpPort getLocalPortFromTriple(NalTriple triple);
-uint8_t extractByteCnt(Axis<64> currWord);
-uint8_t extractByteCntNW(NetworkWord currWord);
+uint8_t extractByteCnt(AxisRaw currWord);
+uint8_t extractByteCnt(NetworkWord currWord);
 
 
 #include "uss.hpp"

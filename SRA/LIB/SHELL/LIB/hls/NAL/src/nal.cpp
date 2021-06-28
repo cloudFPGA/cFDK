@@ -91,7 +91,7 @@ TcpPort getLocalPortFromTriple(NalTriple triple)
 }
 
 
-uint8_t extractByteCnt(Axis<64> currWord)
+uint8_t extractByteCnt(AxisRaw currWord)
 {
 #pragma HLS INLINE
 
@@ -127,7 +127,7 @@ uint8_t extractByteCnt(Axis<64> currWord)
   return ret;
 }
 
-uint8_t extractByteCntNW(NetworkWord currWord)
+uint8_t extractByteCnt(NetworkWord currWord)
 {
 #pragma HLS INLINE
 

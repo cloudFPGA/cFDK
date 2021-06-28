@@ -216,8 +216,10 @@ void pUdpTX(
       if ( !siUdp_data.empty() && !soUOE_Data.full() )
       {
         // Forward data chunk
-        UdpAppData    aWord = siUdp_data.read();
-        udpTX_current_packet_length += extractByteCnt((Axis<64>) aWord);
+        //UdpAppData    aWord = siUdp_data.read();
+        NetworkWord tmpWord = siUdp_data.read();
+        UdpAppData aWord = UdpAppData(tmpWord.tdata, tmpWord.tkeep, tmpWord.tlast);
+        udpTX_current_packet_length += extractByteCnt(aWord);
         if(udpTX_packet_length > 0 && udpTX_current_packet_length >= udpTX_packet_length)
         {//we need to set tlast manually
           aWord.setTLast(1);
@@ -235,8 +237,10 @@ void pUdpTX(
     case FSM_DROP_PACKET:
       if ( !siUdp_data.empty() )
       {
-        UdpAppData    aWord = siUdp_data.read();
-        udpTX_current_packet_length += extractByteCnt((Axis<64>) aWord);
+        //UdpAppData    aWord = siUdp_data.read();
+        NetworkWord tmpWord = siUdp_data.read();
+        UdpAppData aWord = UdpAppData(tmpWord.tdata, tmpWord.tkeep, tmpWord.tlast);
+        udpTX_current_packet_length += extractByteCnt(aWord);
 
         if( (udpTX_packet_length > 0 && udpTX_current_packet_length >= udpTX_packet_length)
             || aWord.getTLast() == 1 )
@@ -602,7 +606,9 @@ void pUdpRx(
       if ( !siUOE_Data.empty() && !soUdp_data.full() )
       {
         // Forward data chunk to ROLE
-        NetworkWord    udpWord = siUOE_Data.read();
+        //NetworkWord    udpWord = siUOE_Data.read();
+        UdpAppData udpWordtmp = siUOE_Data.read();
+        NetworkWord udpWord = NetworkWord(udpWordtmp.getTData(), udpWordtmp.getTKeep(), udpWordtmp.getTLast());
         soUdp_data.write(udpWord);
         // Until LAST bit is set
         if (udpWord.tlast == 1)

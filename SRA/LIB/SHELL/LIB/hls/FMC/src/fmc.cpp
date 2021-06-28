@@ -111,7 +111,8 @@ bool globalOperationDone_persistent = false;
 bool axi_wasnot_ready_persistent = false;
 ap_uint<32> global_state_wait_counter_persistent = 0;
 
-AppMeta currentTcpSessId = 0;
+//AppMeta currentTcpSessId = 0;
+TcpAppMeta currentTcpSessId = 0;
 bool TcpSessId_updated_persistent = false;
 ap_uint<1> tcpModeEnabled = 0;
 uint8_t tcp_iteration_count = 0;
@@ -532,10 +533,10 @@ void fmc(
     //NRC
     ap_uint<32> nalCtrl[NAL_CTRL_LINK_SIZE],
     ap_uint<1> *disable_ctrl_link,
-    stream<TcpWord>           &siNAL_Tcp_data,
-    stream<AppMeta>           &siNAL_Tcp_SessId,
-    stream<TcpWord>           &soNAL_Tcp_data,
-    stream<AppMeta>           &soNAL_Tcp_SessId,
+    stream<TcpAppData>       &siNAL_Tcp_data,
+    stream<TcpAppMeta>       &siNAL_Tcp_SessId,
+    stream<TcpAppData>       &soNAL_Tcp_data,
+    stream<TcpAppMeta>       &soNAL_Tcp_SessId,
 #ifdef INCLUDE_PYROLINK
     //Pyrolink
     stream<Axis<8> >  &soPYROLINK,
@@ -1801,7 +1802,7 @@ void fmc(
         if(!siNAL_Tcp_SessId.empty())
         {
           //we assume that the NRC always sends a valid pair of SessId and data (because we control it)
-          AppMeta tmp = 0x0;
+          TcpAppMeta tmp = 0x0;
           if(siNAL_Tcp_SessId.read_nb(tmp))
           {
           received_TCP_SessIds_cnt++;
@@ -1895,7 +1896,8 @@ void fmc(
               break;
             }
 
-            NetworkWord big = NetworkWord();
+            //NetworkWord big = NetworkWord();
+            TcpAppData big = TcpAppData();
             if(!siNAL_Tcp_data.read_nb(big))
             {
               break;
@@ -1905,11 +1907,12 @@ void fmc(
             for(int i = 0; i < 8; i++)
             {
 #pragma HLS unroll factor=8
-              if((big.tkeep >> i) == 0)
+              //if((big.tkeep >> i) == 0)
+              if((big.getTKeep() >> i) == 0)
               {
                 continue;
               }
-              ap_uint<8> current_byte = (ap_uint<8>) (big.tdata >> i*8);
+              ap_uint<8> current_byte = (ap_uint<8>) (big.getTData() >> i*8);
               if(!tcp_write_only_fifo)
               {
                 bufferIn[bufferInPtrWrite] = current_byte;
@@ -1992,7 +1995,7 @@ void fmc(
               }
             }
 
-            if( (big.tlast == 1 && (flag_continuous_tcp_rx == 0 || detected_http_nl_cnt >= target_http_nl_cnt ))
+            if( (big.getTLast() == 1 && (flag_continuous_tcp_rx == 0 || detected_http_nl_cnt >= target_http_nl_cnt ))
                 || goto_done_if_idle_tcp_rx )
             {
               fsmTcpData_RX = TCP_FSM_DONE;
@@ -2028,30 +2031,40 @@ void fmc(
         while(!soNAL_Tcp_data.full() && run_nested_loop_helper)
         {
           //out = NetworkWord();
-          NetworkWord out = NetworkWord();
-          out.tdata = 0;
-          out.tlast = 0;
-          out.tkeep = 0;
+          //NetworkWord out = NetworkWord();
+          //out.tdata = 0;
+          //out.tlast = 0;
+          //out.tkeep = 0;
+          TcpAppData out = TcpAppData(0, 0, 0);
+          ap_uint<64> tdata_tmp = 0;
+          ap_uint<8> tkeep_tmp = 0;
 
           for(int i = 0; i < 8; i++)
           {
 #pragma HLS unroll
-            out.tdata |= ((ap_uint<64>) (bufferOut[bufferOutPtrNextRead + i]) )<< (i*8);
-            out.tkeep |= (ap_uint<8>) 0x1 << i;
+            //out.tdata |= ((ap_uint<64>) (bufferOut[bufferOutPtrNextRead + i]) )<< (i*8);
+            //out.tkeep |= (ap_uint<8>) 0x1 << i;
+            tdata_tmp |= ((ap_uint<64>) (bufferOut[bufferOutPtrNextRead + i]) )<< (i*8);
+            tkeep_tmp |= (ap_uint<8>) 0x1 << i;
 
             if(bufferOutPtrNextRead + i >= (bufferOutContentLength-1))
             {
-              out.tlast = 1;
+              //out.tlast = 1;
+              out.setTLast(1);
               fsmTcpData_TX = TCP_FSM_DONE;
               break;
             }
 
           }
+          out.setTData(tdata_tmp);
+          out.setTKeep(tkeep_tmp);
+
           if(soNAL_Tcp_data.write_nb(out))
           {
             bufferOutPtrNextRead += 8;
             //break while
-            if(out.tlast == 1)
+            //if(out.tlast == 1)
+            if(out.getTLast() == 1)
             {
               run_nested_loop_helper = false;
               break;
