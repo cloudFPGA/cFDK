@@ -329,6 +329,7 @@ void nts(
         //------------------------------------------------------
         stream<UdpAppData>      &soUAIF_Data,
         stream<UdpAppMeta>      &soUAIF_Meta,
+        stream<UdpAppDLen>      &soUAIF_DLen,
 
         //------------------------------------------------------
         //-- UAIF / Transmit Datatagram Interfaces
