@@ -149,7 +149,7 @@ void pUdpTX(
         }
 
         //to create here due to timing...
-        txMeta = SocketPair(SockAddr(*ipAddrBE, src_port), SockAddr(0, dst_port));
+        txMeta = UdpAppMeta(*ipAddrBE, src_port, 0, dst_port);
 
         //request ip if necessary
         if(cache_init && cached_nodeid_udp_tx == dst_rank)
@@ -196,7 +196,7 @@ void pUdpTX(
         evsStreams[4].write_nb(new_ev_not);
         //UdpMeta txMeta = {{src_port, ipAddrBE}, {dst_port, dst_ip_addr}};
         //txMeta = SocketPair(SockAddr(*ipAddrBE, src_port), SockAddr(dst_ip_addr, dst_port));
-        txMeta.dst.addr = dst_ip_addr;
+        txMeta.ip4DstAddr = dst_ip_addr;
 
         // Forward data chunk, metadata and payload length
         soUOE_Meta.write(txMeta);
@@ -490,7 +490,7 @@ void pUdpRx(
 #pragma HLS RESET variable=evs_loop_i
 
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-  static UdpMeta udpRxMeta;
+  static UdpAppMeta udpRxMeta;
   static NodeId src_id = INVALID_MRT_VALUE;
   static NetworkMeta in_meta;
 
@@ -536,17 +536,17 @@ void pUdpRx(
         src_id = (NodeId) INVALID_MRT_VALUE;
 
         //to create here due to timing...
-        in_meta = NetworkMeta(own_rank, udpRxMeta.dst.port, 0, udpRxMeta.src.port, 0);
+        in_meta = NetworkMeta(own_rank, udpRxMeta.udpDstPort, 0, udpRxMeta.udpSrcPort, 0);
 
         //FIXME: add length here as soon as available from the UOE
         //ask cache
-        if(cache_init && cached_udp_rx_ipaddr == udpRxMeta.src.addr)
+        if(cache_init && cached_udp_rx_ipaddr == udpRxMeta.ip4SrcAddr)
         {
           printf("used UDP RX id cache\n");
           src_id = cached_udp_rx_id;
           fsmStateRX_Udp = FSM_FIRST_ACC;
         } else {
-          sGetNidReq_UdpRx.write(udpRxMeta.src.addr);
+          sGetNidReq_UdpRx.write(udpRxMeta.ip4SrcAddr);
           fsmStateRX_Udp = FSM_W8FORREQS;
           //break;
         }
@@ -557,7 +557,7 @@ void pUdpRx(
       if(!sGetNidRep_UdpRx.empty())
       {
         src_id = sGetNidRep_UdpRx.read();
-        cached_udp_rx_ipaddr = udpRxMeta.src.addr;
+        cached_udp_rx_ipaddr = udpRxMeta.ip4SrcAddr;
         cached_udp_rx_id = src_id;
         cache_init = true;
         fsmStateRX_Udp = FSM_FIRST_ACC;
@@ -580,9 +580,9 @@ void pUdpRx(
         //status
         new_ev_not = NalEventNotif(LAST_RX_NID, src_id);
         evsStreams[1].write_nb(new_ev_not);
-        new_ev_not = NalEventNotif(LAST_RX_PORT, udpRxMeta.dst.port);
+        new_ev_not = NalEventNotif(LAST_RX_PORT, udpRxMeta.udpDstPort);
         evsStreams[2].write_nb(new_ev_not);
-        //in_meta = NetworkMeta(own_rank, udpRxMeta.dst.port, src_id, udpRxMeta.src.port, 0);
+        //in_meta = NetworkMeta(own_rank, udpRxMeta.udpDstPort, src_id, udpRxMeta.udpSrcPort, 0);
         //FIXME: add length here as soon as available from the UOE
         in_meta.src_rank = src_id;
 

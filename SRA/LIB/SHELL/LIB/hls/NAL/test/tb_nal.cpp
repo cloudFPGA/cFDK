@@ -328,12 +328,12 @@ bool setInputDataStream(stream<NetworkWord> &sDataStream, const string dataStrea
  * @param[in] inpFileName, the name of the input file to read from.
  * @return OK if successful, otherwise KO.
  ******************************************************************************/
-bool setInputMetaStream(stream<UdpMeta> &sMetaStream, const string dataStreamName, const string inpFileName) {
+bool setInputMetaStream(stream<UdpAppMeta> &sMetaStream, const string dataStreamName, const string inpFileName) {
     string      strLine;
     ifstream    inpFileStream;
     string      datFile = "../../../../test/" + inpFileName;
     UdpWord     udpWord;
-    UdpMeta     socketPair;
+    UdpAppMeta  udpMeta;
 
     //-- STEP-1 : OPEN FILE
     inpFileStream.open(datFile.c_str());
@@ -355,9 +355,8 @@ bool setInputMetaStream(stream<UdpMeta> &sMetaStream, const string dataStreamNam
             if (udpWord.tlast) {
 
                 // Create an connection association {{SrcPort, SrcAdd}, {DstPort, DstAdd}}
-                //socketPair = {{0x0050, 0x0A0A0A0A}, {0x8000, 0x01010101}};
-                //socketPair = {{0x0050, 0x0A0B0C02}, {0x0050, 0x01010101}};
-                socketPair = (UdpMeta) {{DEFAULT_RX_PORT, 0x0A0B0C01}, {DEFAULT_RX_PORT, 0x0A0B0C0E}};
+                //socketPair = (UdpMeta) {{DEFAULT_RX_PORT, 0x0A0B0C01}, {DEFAULT_RX_PORT, 0x0A0B0C0E}};
+                udpMeta = UdpAppMeta(DEFAULT_RX_PORT, 0x0A0B0C01, DEFAULT_RX_PORT, 0x0A0B0C0E);
 
                 //  Write to sMetaStream
                 if (sMetaStream.full()) {
@@ -365,11 +364,11 @@ bool setInputMetaStream(stream<UdpMeta> &sMetaStream, const string dataStreamNam
                     return(KO);
                 }
                 else {
-                    sMetaStream.write(socketPair);
+                    sMetaStream.write(udpMeta);
                     // Print Metadata to console
                     printf("[%4.4d] TB is filling input stream [%s] - Metadata = {{SP=0x%4.4X,SA=0x%8.8X} {DP=0x%4.4X,DA=0x%8.8X}} \n",
                             simCnt, dataStreamName.c_str(),
-                            socketPair.src.port.to_int(), socketPair.src.addr.to_int(), socketPair.dst.port.to_int(), socketPair.dst.addr.to_int());
+                            udpMeta.udpSrcPort.to_int(), udpMeta.ip4SrcAddr.to_int(), udpMeta.udpDstPort.to_int(), udpMeta.ip4DstAddr.to_int());
                 }
             }
         }
@@ -406,14 +405,14 @@ bool readDataStream(stream <UdpAppData> &sDataStream, UdpAppData *udpWord) {
  * @param[out] udpMeta, a pointer to the storage location of the metadata to read.
  * @return VALID if a data was read, otherwise UNVALID.
  ******************************************************************************/
-bool readMetaStream(stream <UdpMeta> &sMetaStream, const string metaStreamName,
-                    UdpMeta *udpMeta) {
+bool readMetaStream(stream <UdpAppMeta> &sMetaStream, const string metaStreamName,
+                    UdpAppMeta *udpMeta) {
     // Get the DUT/Metadata results
     sMetaStream.read(*udpMeta);
     // Print DUT/Metadata to console
     printf("[%4.4d] TB is draining output stream [%s] - Metadata = {{SP=0x%4.4X,SA=0x%8.8X} {DP=0x%4.4X,DA=0x%8.8X}} \n",
             simCnt, metaStreamName.c_str(),
-            udpMeta->src.port.to_int(), udpMeta->src.addr.to_int(), udpMeta->dst.port.to_int(), udpMeta->dst.addr.to_int());
+            udpMeta->udpSrcPort.to_int(), udpMeta->ip4SrcAddr.to_int(), udpMeta->udpDstPort.to_int(), udpMeta->ip4DstAddr.to_int());
     return(VALID);
 }
 
@@ -479,18 +478,18 @@ bool dumpDataToFile(NetworkWord *udpWord, ofstream &outFileStream) {
  * @param[in] outFileStream,the output file stream to write to.
  * @return OK if successful, otherwise KO.
  ******************************************************************************/
-bool dumpMetaToFile(UdpMeta *udpMeta, ofstream &outFileStream) {
+bool dumpMetaToFile(UdpAppMeta *udpMeta, ofstream &outFileStream) {
     if (!outFileStream.is_open()) {
         printf("### ERROR : Output file stream is not open. \n");
         return(KO);
     }
-    outFileStream << hex << noshowbase << setfill('0') << setw(4) << udpMeta->src.port.to_int();
+    outFileStream << hex << noshowbase << setfill('0') << setw(4) << udpMeta->udpSrcPort.to_int();
     outFileStream << " ";
-    outFileStream << hex << noshowbase << setfill('0') << setw(8) << udpMeta->src.addr.to_int();
+    outFileStream << hex << noshowbase << setfill('0') << setw(8) << udpMeta->ip4SrcAddr.to_int();
     outFileStream << " ";
-    outFileStream << hex << noshowbase << setfill('0') << setw(4) << udpMeta->dst.port.to_int();
+    outFileStream << hex << noshowbase << setfill('0') << setw(4) << udpMeta->udpDstPort.to_int();
     outFileStream << " ";
-    outFileStream << hex << noshowbase << setfill('0') << setw(8) << udpMeta->dst.addr.to_int();
+    outFileStream << hex << noshowbase << setfill('0') << setw(8) << udpMeta->ip4DstAddr.to_int();
     outFileStream << "\n";
     return(OK);
 }
@@ -602,13 +601,13 @@ bool getOutputDataStream(stream<NetworkWord> &sDataStream,
  * @param[in] outFileName,    the name of the output file to write to.
  * @return OK if successful, otherwise KO.
  ******************************************************************************/
-bool getOutputMetaStream(stream<UdpMeta> &sMetaStream,
+bool getOutputMetaStream(stream<UdpAppMeta> &sMetaStream,
                          const string    metaStreamName, const string outFileName)
 {
     string      strLine;
     ofstream    outFileStream;
     string      datFile = "../../../../test/" + outFileName;
-    UdpMeta     udpMeta;
+    UdpAppMeta  udpMeta;
     bool        rc = OK;
 
     //-- STEP-1 : OPEN FILE
@@ -1152,7 +1151,7 @@ int main() {
     //    sUOE_NRC_Meta.write(socketPair);
     //    // Print Metadata to console
     //    printf("[%4.4d] TB is filling input stream [Meta] - Metadata = {{SP=0x%4.4X,SA=0x%8.8X} {DP=0x%4.4X,DA=0x%8.8X}} \n",
-    //    simCnt, socketPair.src.port.to_int(), socketPair.src.addr.to_int(), socketPair.dst.port.to_int(), socketPair.dst.addr.to_int());
+    //    simCnt, socketPair.udpSrcPort.to_int(), socketPair.ip4SrcAddr.to_int(), socketPair.udpDstPort.to_int(), socketPair.ip4DstAddr.to_int());
     //}
 
     //------------------------------------------------------
@@ -1217,14 +1216,14 @@ int main() {
           //    nrErr++;
           //}
           //there are 3 streams from the UDMX to NRC
-          //UdpMeta     socketPair = SocketPair({DEFAULT_RX_PORT, 0x0A0B0C0E}, {DEFAULT_RX_PORT, 0x0A0B0C01});
-          UdpMeta     socketPair = SocketPair({0x0A0B0C0E, DEFAULT_RX_PORT}, {0x0A0B0C01, DEFAULT_RX_PORT});
-          sUOE_NRC_Meta.write(socketPair);
-          sUOE_NRC_Meta.write(socketPair);
-          sUOE_NRC_Meta.write(socketPair);
+          //UdpMeta     socketPair = SocketPair({0x0A0B0C0E, DEFAULT_RX_PORT}, {0x0A0B0C01, DEFAULT_RX_PORT});
+          UdpAppMeta udpMeta = UdpAppMeta(0x0A0B0C0E, DEFAULT_RX_PORT, 0x0A0B0C01, DEFAULT_RX_PORT);
+          sUOE_NRC_Meta.write(udpMeta);
+          sUOE_NRC_Meta.write(udpMeta);
+          sUOE_NRC_Meta.write(udpMeta);
           // Print Metadata to console
           //printf("[%4.4d] TB is filling input stream [Meta] - Metadata = {{SP=0x%4.4X,SA=0x%8.8X} {DP=0x%4.4X,DA=0x%8.8X}} \n",
-          //simCnt, socketPair.src.port.to_int(), socketPair.src.addr.to_int(), socketPair.dst.port.to_int(), socketPair.dst.addr.to_int());
+          //simCnt, socketPair.udpSrcPort.to_int(), socketPair.ip4SrcAddr.to_int(), socketPair.udpDstPort.to_int(), socketPair.ip4DstAddr.to_int());
         }
 
         //-------------------------------------------------
