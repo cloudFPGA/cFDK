@@ -1925,7 +1925,7 @@ void uoe(
         //-- MMIO Interface
         //------------------------------------------------------
         CmdBit                           piMMIO_En,
-        ap_uint<16>                     &soMMIO_DropCnt,
+        stream<ap_uint<16> >            &soMMIO_DropCnt,
         stream<StsBool>                 &soMMIO_Ready,
         //------------------------------------------------------
         //-- IPRX / IP Rx / Data Interface
