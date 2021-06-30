@@ -98,6 +98,8 @@ module MmioClient_A8_D8 #(
   //----------------------------------------------
   input           piNTS0_CamReady,
   input           piNTS0_NtsReady,
+  input   [15:0]  piNTS0_UdpRxDropCnt,
+  //--
   output  [47:0]  poNTS0_MacAddress,
   output  [31:0]  poNTS0_Ip4Address,
   output  [31:0]  poNTS0_SubNetMask,
@@ -293,6 +295,9 @@ module MmioClient_A8_D8 #(
   localparam DIAG_CTRL_1   = DIAG_REG_BASE +  4;
   localparam DIAG_STAT_1   = DIAG_REG_BASE +  5;
   localparam DIAG_CTRL_2   = DIAG_REG_BASE +  6;
+  // UDP Rx Drop Counter
+  localparam DIAG_URDC0    = DIAG_REG_BASE +  8;
+  localparam DIAG_URDC1    = DIAG_REG_BASE +  9;
   
   //-- PAGE_REG ----------------------------------------------------------------
   // Extended Page Select Register 
@@ -430,8 +435,8 @@ module MmioClient_A8_D8 #(
   localparam cDefReg74 = 8'h00;  // DIAG_CTRL_1
   localparam cDefReg75 = 8'h00;  // DIAG_STAT_1
   localparam cDefReg76 = 8'h00;  // DIAG_CTRL_2
-  localparam cDefReg77 = 8'h00;
-  localparam cDefReg78 = 8'h00;  
+  localparam cDefReg77 = 8'h00;  // DIAG_URDC0
+  localparam cDefReg78 = 8'h00;  // DIAG_URDC1  
   localparam cDefReg79 = 8'h00;
   localparam cDefReg7A = 8'h00;
   localparam cDefReg7B = 8'h00;
@@ -440,8 +445,7 @@ module MmioClient_A8_D8 #(
   localparam cDefReg7E = 8'h00;
   //-- PAGE_REGS --------------
   localparam cDefReg7F = 8'h00;  // PAGE_SEL
-                         
- 
+  
   localparam cDefRegVal = {
     cDefReg7F, cDefReg7E, cDefReg7D, cDefReg7C, cDefReg7B, cDefReg7A, cDefReg79, cDefReg78,
     cDefReg77, cDefReg76, cDefReg75, cDefReg74, cDefReg73, cDefReg72, cDefReg71, cDefReg70,
@@ -640,7 +644,6 @@ module MmioClient_A8_D8 #(
     end
   endgenerate
   //---- MNGT_RDFMC[0:3] ---------------
-  //OBSOLETE_20200315 assign sStatusVec[cEDW*MNGT_RDFMC3+7:cEDW*MNGT_RDFMC0+0] = piFMC_RdReg;         // RO
   assign sStatusVec[cEDW*MNGT_RDFMC0+7:cEDW*MNGT_RDFMC0+0] = piFMC_RdReg[31:24];         // RO
   assign sStatusVec[cEDW*MNGT_RDFMC1+7:cEDW*MNGT_RDFMC1+0] = piFMC_RdReg[23:16];         // RO
   assign sStatusVec[cEDW*MNGT_RDFMC2+7:cEDW*MNGT_RDFMC2+0] = piFMC_RdReg[15: 8];         // RO
@@ -671,7 +674,6 @@ module MmioClient_A8_D8 #(
   //-- APP REGISTERS
   //--------------------------------------------------------
   //---- APP_RDROL[0:1] ----------------
-  //OBSOLETE_20200315 assign sStatusVec[cEDW*APP_RDROL1+7:cEDW*APP_RDROL0+0] = piROLE_RdReg;       // RO
   assign sStatusVec[cEDW*APP_RDROL0+7:cEDW*APP_RDROL0+0] = piROLE_RdReg[15: 8];
   assign sStatusVec[cEDW*APP_RDROL1+7:cEDW*APP_RDROL1+0] = piROLE_RdReg[ 7: 0];       // RO
   //---- APP_WRROL[0:1] ----------------
@@ -720,6 +722,9 @@ module MmioClient_A8_D8 #(
       assign sStatusVec[cEDW*DIAG_CTRL_2+id]  = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+id]; // RW   
     end
   endgenerate
+  //---- DIAG_URDC[0:1] ----------------
+  assign sStatusVec[cEDW*DIAG_URDC0+7:cEDW*DIAG_URDC0+0] = piNTS0_UdpRxDropCnt[15: 8]; // RO
+  assign sStatusVec[cEDW*DIAG_URDC1+7:cEDW*DIAG_URDC1+0] = piNTS0_UdpRxDropCnt[ 7: 0]; // RO
   
   //-------------------------------------------------------- 
   //-- PAGE REGISTER
@@ -767,7 +772,6 @@ module MmioClient_A8_D8 #(
   //---- LY2_STATUS ---------------------  
   //------ No Outputs to the Fabric
   //---- LY2_MAC[0:5] -------------------
-  //OBSOLETE-20200131 assign poNTS0_MacAddress[47: 0] = sEMIF_Ctrl[cEDW*LY2_MAC5+7:cEDW*LY2_MAC0+0];  // RW  [FIXME-Change the byte order]
   assign poNTS0_MacAddress[47:40] = sEMIF_Ctrl[cEDW*LY2_MAC0+7:cEDW*LY2_MAC0+0];  // RW
   assign poNTS0_MacAddress[39:32] = sEMIF_Ctrl[cEDW*LY2_MAC1+7:cEDW*LY2_MAC1+0];  // RW
   assign poNTS0_MacAddress[31:24] = sEMIF_Ctrl[cEDW*LY2_MAC2+7:cEDW*LY2_MAC2+0];  // RW
@@ -788,13 +792,11 @@ module MmioClient_A8_D8 #(
   assign poNTS0_Ip4Address[15: 8]  = sEMIF_Ctrl[cEDW*LY3_IP2+7:cEDW*LY3_IP2+0];   // RW
   assign poNTS0_Ip4Address[ 7: 0]  = sEMIF_Ctrl[cEDW*LY3_IP3+7:cEDW*LY3_IP3+0];   // RW
   //---- LY3_SUBNET[0:3] -------------------
-  //OBSOLETE-20200131 assign poNTS0_SubNetMask[31: 0]  = sEMIF_Ctrl[cEDW*LY3_SNM3+7:cEDW*LY3_SNM0+0]; // RW  [FIXME-Change the byte order]
   assign poNTS0_SubNetMask[31:24]  = sEMIF_Ctrl[cEDW*LY3_SNM0+7:cEDW*LY3_SNM0+0]; // RW
   assign poNTS0_SubNetMask[23:16]  = sEMIF_Ctrl[cEDW*LY3_SNM1+7:cEDW*LY3_SNM1+0]; // RW
   assign poNTS0_SubNetMask[15: 8]  = sEMIF_Ctrl[cEDW*LY3_SNM2+7:cEDW*LY3_SNM2+0]; // RW
   assign poNTS0_SubNetMask[ 7: 0]  = sEMIF_Ctrl[cEDW*LY3_SNM3+7:cEDW*LY3_SNM3+0]; // RW
   //---- LY3_GATEWAY[0:3] -------------------
-  //OBSOLETE-20200131 assign poNTS0_GatewayAddr[31: 0] = sEMIF_Ctrl[cEDW*LY3_GTW3+7:cEDW*LY3_GTW0+0]; // RW  [FIXME-Change the byte order]
   assign poNTS0_GatewayAddr[31:24] = sEMIF_Ctrl[cEDW*LY3_GTW0+7:cEDW*LY3_GTW0+0]; // RW
   assign poNTS0_GatewayAddr[23:16] = sEMIF_Ctrl[cEDW*LY3_GTW1+7:cEDW*LY3_GTW1+0]; // RW
   assign poNTS0_GatewayAddr[15: 8] = sEMIF_Ctrl[cEDW*LY3_GTW2+7:cEDW*LY3_GTW2+0]; // RW
@@ -804,7 +806,6 @@ module MmioClient_A8_D8 #(
   //-- MNGT REGISTERS
   //--------------------------------------------------------
   //---- MNGT_RMIP[0:3] ----------------
-  //OBSOLETE_20200315 assign poNRC_RmIpAddress[31: 0]  = sEMIF_Ctrl[cEDW*MNGT_RMIP3+7:cEDW*MNGT_RMIP0+0];     // RW  [FIXME-Change the byte order]
   assign poNRC_RmIpAddress[31:24]  = sEMIF_Ctrl[cEDW*MNGT_RMIP0+7:cEDW*MNGT_RMIP0+0];     // RW
   assign poNRC_RmIpAddress[23:16]  = sEMIF_Ctrl[cEDW*MNGT_RMIP1+7:cEDW*MNGT_RMIP1+0];
   assign poNRC_RmIpAddress[15: 8]  = sEMIF_Ctrl[cEDW*MNGT_RMIP2+7:cEDW*MNGT_RMIP2+0];
@@ -813,13 +814,11 @@ module MmioClient_A8_D8 #(
   //---- MNGT_RDFMC[0:3] ---------------
   //------ No Outputs to the Fabric (RO)
   //---- MNGT_WRFMC[0:3] ---------------
-  //OBSOLETE 20200315 assign poFMC_WrReg[31: 0]        = sEMIF_Ctrl[cEDW*MNGT_WRFMC3+7:cEDW*MNGT_WRFMC0+0];   // RW [FIXME-Agree on byte order w/ NGL]
   assign poFMC_WrReg[31:24]        = sEMIF_Ctrl[cEDW*MNGT_WRFMC0+7:cEDW*MNGT_WRFMC0+0];   // RW
   assign poFMC_WrReg[23:16]        = sEMIF_Ctrl[cEDW*MNGT_WRFMC1+7:cEDW*MNGT_WRFMC1+0];   // RW
   assign poFMC_WrReg[15: 8]        = sEMIF_Ctrl[cEDW*MNGT_WRFMC2+7:cEDW*MNGT_WRFMC2+0];   // RW
   assign poFMC_WrReg[ 7: 0]        = sEMIF_Ctrl[cEDW*MNGT_WRFMC3+7:cEDW*MNGT_WRFMC3+0];   // RW
   //---- MNGT_TCPLSN[0:1] --------------
-  //OBSOLETE_20200315 assign poNRC_TcpLsnPort[15: 0]   = sEMIF_Ctrl[cEDW*MNGT_TCPLSN1+7:cEDW*MNGT_TCPLSN0+0]; // RW  [FIXME-Change the byte order]
   assign poNRC_TcpLsnPort[15: 8]   = sEMIF_Ctrl[cEDW*MNGT_TCPLSN0+7:cEDW*MNGT_TCPLSN0+0]; // RW
   assign poNRC_TcpLsnPort[ 7: 0]   = sEMIF_Ctrl[cEDW*MNGT_TCPLSN1+7:cEDW*MNGT_TCPLSN1+0]; // RW
     
@@ -832,7 +831,6 @@ module MmioClient_A8_D8 #(
   //---- Read Role Register-------------
   //------ No Outputs to the Fabric (RO)
   //---- Write Role Register -----------
-  //OBSOLETE_20200315 assign poROLE_WrReg[15: 0]       = sEMIF_Ctrl[cEDW*APP_WRROL1+7:cEDW*APP_WRROL0+0]; // RW   // RW [FIXME-Agree on byte order w/ NGL]
   assign poROLE_WrReg[15: 8]       = sEMIF_Ctrl[cEDW*APP_WRROL0+7:cEDW*APP_WRROL0+0]; // RW
   assign poROLE_WrReg[ 7: 0]       = sEMIF_Ctrl[cEDW*APP_WRROL1+7:cEDW*APP_WRROL1+0]; // RW
 
