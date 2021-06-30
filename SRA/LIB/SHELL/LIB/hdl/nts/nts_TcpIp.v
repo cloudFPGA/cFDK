@@ -1227,9 +1227,9 @@ module NetworkTransportStack_TcpIp (
     //------------------------------------------------------
     .piMMIO_En_V                (piMMIO_Layer4En),
     //--
-    .soMMIO_DropCnt_V_V_TDATA   (ssUOE_ARS9_DropCnt_tdata),
-    .soMMIO_DropCnt_V_V_TVALID  (ssUOE_ARS9_DropCnt_tvalid), 
-    .soMMIO_DropCnt_V_V_TREADY  (ssUOE_ARS9_DropCnt_tready),    
+    .soMMIO_DropCnt_TDATA       (ssUOE_ARS9_DropCnt_tdata),
+    .soMMIO_DropCnt_TVALID      (ssUOE_ARS9_DropCnt_tvalid), 
+    .soMMIO_DropCnt_TREADY      (ssUOE_ARS9_DropCnt_tready),    
     //--
     .soMMIO_Ready_TDATA         (ssUOE_ARS6_Ready_tdata),
     .soMMIO_Ready_TVALID        (ssUOE_ARS6_Ready_tvalid),
