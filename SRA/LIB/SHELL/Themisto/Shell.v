@@ -459,12 +459,8 @@ module Shell_Themisto # (
   wire  [ 1:0]  sROL_MMIO_Mc1_MemTestStat;
   //---- Diagnostic Registers Interface ----------
   //------ [DIAG_CTRL_2] ---------------
-  //OBSOLETE-20190718 wire  [ 1:0]  sMMIO_ROL_UdpEchoCtrl;
-  //OBSOLETE-20190718 wire          sMMIO_ROL_UdpPostDgmEn;
-  //OBSOLETE-20190718 wire          sMMIO_ROL_UdpCaptDgmEn;
-  //OBSOLETE-20190718 wire  [ 1:0]  sMMIO_ROL_TcpEchoCtrl;
-  //OBSOLETE-20190718 wire          sMMIO_ROL_TcpPostSegEn;
-  //OBSOLETE-20190718 wire          sMMIO_ROL_TcpCaptSegEn; 
+  //------ [DIAG_URDC] -----------------
+  wire  [15:0]  sNTS0_MMIO_UdpRxDropCnt;
   
   
   //--------------------------------------------------------
@@ -950,7 +946,7 @@ module Shell_Themisto # (
   //-- END OF SIGNAL DECLARATIONS ----------------------------------------------
 
   //============================================================================
-  //  INST: MMIIO CLIENT
+  //  INST: MMIO CLIENT
   //============================================================================
   MmioClient_A8_D8 #(
     .gSecurityPriviledges (gSecurityPriviledges),
@@ -1002,6 +998,8 @@ module Shell_Themisto # (
     //----------------------------------------------
     .piNTS0_CamReady                (sNTS0_MMIO_CamReady),
     .piNTS0_NtsReady                (sNTS0_MMIO_NtsReady),
+    .piNTS0_UdpRxDropCnt            (sNTS0_MMIO_UdpRxDropCnt),
+    //--
     .poNTS0_MacAddress              (sMMIO_NTS0_MacAddress),
     .poNTS0_Ip4Address              (sMMIO_NTS0_Ip4Address),
     .poNTS0_SubNetMask              (sMMIO_NTS0_SubNetMask),
@@ -1418,7 +1416,8 @@ module Shell_Themisto # (
     .piMMIO_SubNetMask                (sMMIO_NTS0_SubNetMask),
     .piMMIO_GatewayAddr               (sMMIO_NTS0_GatewayAddr),
     .poMMIO_CamReady                  (sNTS0_MMIO_CamReady),      // [TODO-Merge this signal with NtsReady]
-    .poMMIO_NtsReady                  (sNTS0_MMIO_NtsReady)
+    .poMMIO_NtsReady                  (sNTS0_MMIO_NtsReady),
+    .poMMIO_UdpRxDropCnt              (sNTS0_MMIO_UdpRxDropCnt)
 
   );  // End of NTS0
 
