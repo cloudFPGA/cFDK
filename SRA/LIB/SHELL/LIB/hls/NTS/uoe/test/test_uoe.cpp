@@ -191,6 +191,32 @@ bool drainUdpDLenStreamToFile(stream<UdpAppDLen> &ss, string ssName,
 }
 
 /*****************************************************************************
+ * @brief Empty the DropCounter stream and throw it away.
+ *
+ * @param[in/out] ss        A ref to the stream to drain.
+ * @param[in]     ssName    The name of the stream to drain.
+ *
+ * @return NTS_OK if successful,  otherwise NTS_KO.
+ ******************************************************************************/
+bool drainMmioDropCounter(stream<ap_uint<16> > &ss, string ssName) {
+
+    int          nr=0;
+    const char  *myName  = concat3(THIS_NAME, "/", "DUMTF");
+    ap_uint<16>  currDropCount;
+    ap_uint<16>  prevDropCount=0;
+
+    //-- READ FROM STREAM
+    while (!(ss.empty())) {
+        ss.read(currDropCount);
+        if (currDropCount != prevDropCount) {
+            printWarn(myName, "A datagram has been dropped (currDropCounter=%d). \n", currDropCount.to_ushort());
+        }
+        prevDropCount = currDropCount;
+    }
+    return(NTS_OK);
+}
+
+/*****************************************************************************
  * @brief Create the UDP Tx traffic as streams from an input test file.
  *
  * @param[in/out] ssData      A ref to the data stream to set.
@@ -661,6 +687,7 @@ int createGoldenRxFiles(
  * @brief A wrapper for the Toplevel of the UDP Offload Engine (UOE)
  *
  * @param[in]  piMMIO_En      Enable signal from [SHELL/MMIO].
+ * @param[out] poMMIO_DropCnt Rx drop counter to [SHELL/MMIO].
  * @param[out] soMMIO_Ready   UOE ready stream to [SHELL/MMIO].
  * @param[in]  siIPRX_Data    IP4 data stream from IpRxHAndler (IPRX).
  * @param[out] soIPTX_Data    IP4 data stream to IpTxHandler (IPTX).
@@ -683,6 +710,7 @@ int createGoldenRxFiles(
   void uoe_top_wrap(
         //-- MMIO Interface
         CmdBit                           piMMIO_En,
+        stream<ap_uint<16> >            &soMMIO_DropCnt,
         stream<StsBool>                 &soMMIO_Ready,
         //-- IPRX / IP Rx / Data Interface
         stream<AxisIp4>                 &siIPRX_Data,
@@ -715,6 +743,7 @@ int createGoldenRxFiles(
     //-- MAIN IPRX_TOP PROCESS ----------------------------
     uoe_top(
         piMMIO_En,
+        soMMIO_DropCnt,
         soMMIO_Ready,
         ssiIPRX_Data,
         ssoIPTX_Data,
@@ -782,7 +811,8 @@ int main(int argc, char *argv[]) {
     //------------------------------------------------------
     //-- DUT STREAM INTERFACES and RELATED VARIABLEs
     //------------------------------------------------------
-    stream<StsBool>         ssUOE_MMIO_Ready;
+    stream<StsBool>         ssUOE_MMIO_Ready   ("ssUOE_MMIO_Ready");
+    stream<ap_uint<16> >    ssUOE_MMIO_DropCnt ("ssUOE_MMIO_DropCnt");
 
     stream<AxisIp4>         ssIPRX_UOE_Data    ("ssIPRX_UOE_Data");
     stream<AxisIp4>         ssUOE_IPTX_Data    ("ssUOE_IPTX_Data");
@@ -812,6 +842,7 @@ int main(int argc, char *argv[]) {
     case RX_MODE:
     case TX_DGRM_MODE:
     case TX_STRM_MODE:
+    case DROP_MODE:
         if (argc < 3) {
             printFatal(THIS_NAME, "Expected a minimum of 2 parameters with one of the following synopsis:\n \t\t mode(0)   siIPRX_<Filename>.dat\n \t\t mode(1|2) siUAIF_<Filename>.dat\n");
         }
@@ -848,6 +879,7 @@ int main(int argc, char *argv[]) {
             #if HLS_VERSION == 2017
             uoe_top(
                 sMMIO_UOE_Enable,
+                ssUOE_MMIO_DropCnt,
                 ssUOE_MMIO_Ready,
                 ssIPRX_UOE_Data,
                 ssUOE_IPTX_Data,
@@ -865,6 +897,7 @@ int main(int argc, char *argv[]) {
             #else
             uoe_top_wrap(
                 sMMIO_UOE_Enable,
+                ssUOE_MMIO_DropCnt,
                 ssUOE_MMIO_Ready,
                 ssIPRX_UOE_Data,
                 ssUOE_IPTX_Data,
@@ -896,6 +929,7 @@ int main(int argc, char *argv[]) {
             #if HLS_VERSION == 2017
             uoe_top(
                 sMMIO_UOE_Enable,
+                ssUOE_MMIO_DropCnt,
                 ssUOE_MMIO_Ready,
                 ssIPRX_UOE_Data,
                 ssUOE_IPTX_Data,
@@ -913,6 +947,7 @@ int main(int argc, char *argv[]) {
             #else
             uoe_top_wrap(
                 sMMIO_UOE_Enable,
+                ssUOE_MMIO_DropCnt,
                 ssUOE_MMIO_Ready,
                 ssIPRX_UOE_Data,
                 ssUOE_IPTX_Data,
@@ -928,6 +963,9 @@ int main(int argc, char *argv[]) {
                 ssUAIF_UOE_DLen,
                 ssUOE_ICMP_Data);
             #endif
+            if (!ssUOE_MMIO_Ready.empty()) {
+                isReady = ssUOE_MMIO_Ready.read();
+            }
             //-- INCREMENT GLOBAL SIMULATION COUNTER
             stepSim();
         }
@@ -945,6 +983,7 @@ int main(int argc, char *argv[]) {
             #if HLS_VERSION == 2017
             uoe_top(
                 sMMIO_UOE_Enable,
+                ssUOE_MMIO_DropCnt,
                 ssUOE_MMIO_Ready,
                 ssIPRX_UOE_Data,
                 ssUOE_IPTX_Data,
@@ -962,6 +1001,7 @@ int main(int argc, char *argv[]) {
             #else
             uoe_top_wrap(
                 sMMIO_UOE_Enable,
+                ssUOE_MMIO_DropCnt,
                 ssUOE_MMIO_Ready,
                 ssIPRX_UOE_Data,
                 ssUOE_IPTX_Data,
@@ -977,6 +1017,9 @@ int main(int argc, char *argv[]) {
                 ssUAIF_UOE_DLen,
                 ssUOE_ICMP_Data);
             #endif
+            if (!ssUOE_MMIO_Ready.empty()) {
+                isReady = ssUOE_MMIO_Ready.read();
+            }
             //-- INCREMENT GLOBAL SIMULATION COUNTER
             stepSim();
         }
@@ -1008,6 +1051,7 @@ int main(int argc, char *argv[]) {
             #if HLS_VERSION == 2017
             uoe_top(
                 sMMIO_UOE_Enable,
+                ssUOE_MMIO_DropCnt,
                 ssUOE_MMIO_Ready,
                 ssIPRX_UOE_Data,
                 ssUOE_IPTX_Data,
@@ -1025,6 +1069,7 @@ int main(int argc, char *argv[]) {
             #else
             uoe_top_wrap(
                 sMMIO_UOE_Enable,
+                ssUOE_MMIO_DropCnt,
                 ssUOE_MMIO_Ready,
                 ssIPRX_UOE_Data,
                 ssUOE_IPTX_Data,
@@ -1040,6 +1085,9 @@ int main(int argc, char *argv[]) {
                 ssUAIF_UOE_DLen,
                 ssUOE_ICMP_Data);
             #endif
+            if (!ssUOE_MMIO_Ready.empty()) {
+                isReady = ssUOE_MMIO_Ready.read();
+            }
             //-- INCREMENT GLOBAL SIMULATION COUNTER
              stepSim();
         }
@@ -1080,6 +1128,7 @@ int main(int argc, char *argv[]) {
             #if HLS_VERSION == 2017
             uoe_top(
                 sMMIO_UOE_Enable,
+                ssUOE_MMIO_DropCnt,
                 ssUOE_MMIO_Ready,
                 ssIPRX_UOE_Data,
                 ssUOE_IPTX_Data,
@@ -1097,6 +1146,7 @@ int main(int argc, char *argv[]) {
             #else
             uoe_top_wrap(
                 sMMIO_UOE_Enable,
+                ssUOE_MMIO_DropCnt,
                 ssUOE_MMIO_Ready,
                 ssIPRX_UOE_Data,
                 ssUOE_IPTX_Data,
@@ -1112,14 +1162,17 @@ int main(int argc, char *argv[]) {
                 ssUAIF_UOE_DLen,
                 ssUOE_ICMP_Data);
             #endif
-            tbRun--;
-            stepSim();
+            if (!ssUOE_MMIO_Ready.empty()) {
+                isReady = ssUOE_MMIO_Ready.read();
+            }
             if (!ssUOE_UAIF_Data.empty()) {
                 UdpAppData appData = ssUOE_UAIF_Data.read();
                 printError(THIS_NAME, "Received unexpected data from [UOE]");
                 printAxisRaw(THIS_NAME, appData);
                 nrErr++;
             }
+            tbRun--;
+            stepSim();
         }
 
         // Drain the ICMP packet
@@ -1145,7 +1198,7 @@ int main(int argc, char *argv[]) {
         }
     } // End-of: if (tbMode == OPEN_MODE)
 
-    if (tbMode == RX_MODE) {
+    else if (tbMode == RX_MODE) {
         //---------------------------------------------------------------
         //-- RX_MODE: Read in the test input data for the IPRX side.
         //--    This run will start by opening all the required ports in
@@ -1199,6 +1252,7 @@ int main(int argc, char *argv[]) {
             #if HLS_VERSION == 2017
             uoe_top(
                 sMMIO_UOE_Enable,
+                ssUOE_MMIO_DropCnt,
                 ssUOE_MMIO_Ready,
                 ssIPRX_UOE_Data,
                 ssUOE_IPTX_Data,
@@ -1216,6 +1270,7 @@ int main(int argc, char *argv[]) {
             #else
             uoe_top_wrap(
                 sMMIO_UOE_Enable,
+                ssUOE_MMIO_DropCnt,
                 ssUOE_MMIO_Ready,
                 ssIPRX_UOE_Data,
                 ssUOE_IPTX_Data,
@@ -1245,6 +1300,7 @@ int main(int argc, char *argv[]) {
                 #if HLS_VERSION == 2017
                 uoe_top(
                     sMMIO_UOE_Enable,
+                    ssUOE_MMIO_DropCnt,
                     ssUOE_MMIO_Ready,
                     ssIPRX_UOE_Data,
                     ssUOE_IPTX_Data,
@@ -1262,6 +1318,7 @@ int main(int argc, char *argv[]) {
                 #else
                 uoe_top_wrap(
                     sMMIO_UOE_Enable,
+                    ssUOE_MMIO_DropCnt,
                     ssUOE_MMIO_Ready,
                     ssIPRX_UOE_Data,
                     ssUOE_IPTX_Data,
@@ -1319,6 +1376,7 @@ int main(int argc, char *argv[]) {
             #if HLS_VERSION == 2017
             uoe_top(
                 sMMIO_UOE_Enable,
+                ssUOE_MMIO_DropCnt,
                 ssUOE_MMIO_Ready,
                 ssIPRX_UOE_Data,
                 ssUOE_IPTX_Data,
@@ -1336,6 +1394,7 @@ int main(int argc, char *argv[]) {
             #else
             uoe_top_wrap(
                 sMMIO_UOE_Enable,
+                ssUOE_MMIO_DropCnt,
                 ssUOE_MMIO_Ready,
                 ssIPRX_UOE_Data,
                 ssUOE_IPTX_Data,
@@ -1351,6 +1410,9 @@ int main(int argc, char *argv[]) {
                 ssUAIF_UOE_DLen,
                 ssUOE_ICMP_Data);
             #endif
+            if (!ssUOE_MMIO_Ready.empty()) {
+                isReady = ssUOE_MMIO_Ready.read();
+            }
             tbRun--;
             stepSim();
         }
@@ -1386,6 +1448,11 @@ int main(int argc, char *argv[]) {
             printError(THIS_NAME, "Failed to drain UOE-to-UAIF dlen traffic from DUT. \n");
             nrErr++;
         }
+        //-- DRAIN UOE-->MMIO RX DROP COUNTER STREAM ---------------------------
+        if (not drainMmioDropCounter(ssUOE_MMIO_DropCnt, "ssUOE_MMIO_DropCnt")) {
+                printError(THIS_NAME, "Failed to drain UOE-to-MMIO drop counter from DUT. \n");
+            nrErr++;
+        }
 
         //---------------------------------------------------------------
         //-- COMPARE OUTPUT DAT and GOLD STREAMS
@@ -1417,7 +1484,7 @@ int main(int argc, char *argv[]) {
 
     } // End-of: if (tbMode == RX_MODE)
 
-    if ((tbMode == TX_DGRM_MODE) or (tbMode == TX_STRM_MODE)) {
+    else if ((tbMode == TX_DGRM_MODE) or (tbMode == TX_STRM_MODE)) {
         //---------------------------------------------------------------
         //-- TX_MODE: Read in the test input data for the UAIF side.
         //---------------------------------------------------------------
@@ -1469,6 +1536,7 @@ int main(int argc, char *argv[]) {
             #if HLS_VERSION == 2017
             uoe_top(
                 sMMIO_UOE_Enable,
+                ssUOE_MMIO_DropCnt,
                 ssUOE_MMIO_Ready,
                 ssIPRX_UOE_Data,
                 ssUOE_IPTX_Data,
@@ -1486,6 +1554,7 @@ int main(int argc, char *argv[]) {
             #else
             uoe_top_wrap(
                 sMMIO_UOE_Enable,
+                ssUOE_MMIO_DropCnt,
                 ssUOE_MMIO_Ready,
                 ssIPRX_UOE_Data,
                 ssUOE_IPTX_Data,
@@ -1535,6 +1604,171 @@ int main(int argc, char *argv[]) {
         }
 
     } // End-of: if (tbMode == TX_MODE)
+
+    else if (tbMode == DROP_MODE) {
+
+        //---------------------------------------------------------------
+        //-- DROP_MODE: This run will feed the UOE with input data for
+        //--    the IPRX side but will expect all the traffic to be
+        //--    dropped because the UOE is disabled or because the ROLE
+        //--    does not drain the UOE.
+        //---------------------------------------------------------------
+        if (0) {
+            printInfo(THIS_NAME, "== DROP-MODE : Fill up UOE with IPv4 traffic and expect packets to be dropped.\n");
+        }
+        else {
+            //-- DE-ASSERT THE UOE ENABLE SIGNAL
+            printInfo(THIS_NAME, "== DISABLE-MODE : Send IPv4 traffic to the disabled UOE.\n");
+            sMMIO_UOE_Enable = CMD_DISABLE;
+        }
+
+        //-- CREATE DUT OUTPUT TRAFFIC AS STREAMS -------------------
+        string           ofsUAIF_Data_FileName      = "../../../../test/simOutFiles/soUAIF_Data.dat";
+        string           ofsUAIF_Meta_FileName      = "../../../../test/simOutFiles/soUAIF_Meta.dat";
+        string           ofsUAIF_DLen_FileName      = "../../../../test/simOutFiles/soUAIF_DLen.dat";
+        string           ofsUAIF_Gold_Data_FileName = "../../../../test/simOutFiles/soUAIF_Gold_Data.dat";
+        string           ofsUAIF_Gold_Meta_FileName = "../../../../test/simOutFiles/soUAIF_Gold_Meta.dat";
+        string           ofsUAIF_Gold_DLen_FileName = "../../../../test/simOutFiles/soUAIF_Gold_DLen.dat";
+        vector<string>   ofNames;
+        ofNames.push_back(ofsUAIF_Data_FileName);
+        ofNames.push_back(ofsUAIF_Meta_FileName);
+        ofNames.push_back(ofsUAIF_DLen_FileName);
+        ofstream         ofStreams[ofNames.size()]; // Stored in the same order
+
+        //-- Remove all previous '.dat' files and open new files
+        string rmCmd = "rm ../../../../test/simOutFiles/*.dat";
+        system(rmCmd.c_str());
+        for (int i = 0; i < ofNames.size(); i++) {
+            if (not isDatFile(ofNames[i])) {
+                printError(THIS_NAME, "File \'%s\' is not of type \'DAT\'.\n", ofNames[i].c_str());
+                nrErr++;
+                continue;
+            }
+            if (!ofStreams[i].is_open()) {
+                ofStreams[i].open(ofNames[i].c_str(), ofstream::out);
+                if (!ofStreams[i]) {
+                    printError(THIS_NAME, "Cannot open the file: \'%s\'.\n", ofNames[i].c_str());
+                    nrErr++;
+                    continue;
+                }
+            }
+        }
+
+        //-- Create empty golden Rx files
+        string touchCmd;
+        touchCmd = "touch " + ofsUAIF_Gold_Data_FileName;
+        system(touchCmd.c_str());
+        touchCmd = "touch " + ofsUAIF_Gold_Meta_FileName;
+        system(touchCmd.c_str());
+        touchCmd = "touch " + ofsUAIF_Gold_DLen_FileName;
+        system(touchCmd.c_str());
+
+        //-- CREATE IPRX->UOE INPUT TRAFFIC AS A STREAM -----------------------
+        int nrIPRX_UOE_Chunks  = 0;
+        int nrIPRX_UOE_Packets = 0;
+        int nrIPRX_UOE_Bytes   = 0;
+        if (feedAxisFromFile(ssIPRX_UOE_Data, "ssIPRX_UOE_Data", string(argv[2]),
+                nrIPRX_UOE_Chunks, nrIPRX_UOE_Packets, nrIPRX_UOE_Bytes)) {
+            printInfo(THIS_NAME, "Done with the creation of the Rx input traffic as streams:\n");
+            printInfo(THIS_NAME, "\tGenerated %d chunks in %d IP packets, for a total of %d bytes.\n\n",
+                nrIPRX_UOE_Chunks, nrIPRX_UOE_Packets, nrIPRX_UOE_Bytes);
+        }
+        else {
+            printFatal(THIS_NAME, "Failed to create traffic as input stream. \n");
+            nrErr++;
+        }
+
+        //-- RUN SIMULATION FOR IPRX->UOE INPUT TRAFFIC -----------------------
+        int tbRun = (nrErr == 0) ? (nrIPRX_UOE_Chunks + TB_GRACE_TIME) : 0;
+        while (tbRun) {
+            #if HLS_VERSION == 2017
+            uoe_top(
+                sMMIO_UOE_Enable,
+                ssUOE_MMIO_DropCnt,
+                ssUOE_MMIO_Ready,
+                ssIPRX_UOE_Data,
+                ssUOE_IPTX_Data,
+                ssUAIF_UOE_LsnReq,
+                ssUOE_UAIF_LsnRep,
+                ssUAIF_UOE_ClsReq,
+                ssUOE_UAIF_ClsRep,
+                ssUOE_UAIF_Data,
+                ssUOE_UAIF_Meta,
+                ssUOE_UAIF_DLen,
+                ssUAIF_UOE_Data,
+                ssUAIF_UOE_Meta,
+                ssUAIF_UOE_DLen,
+                ssUOE_ICMP_Data);
+            #else
+            uoe_top_wrap(
+                sMMIO_UOE_Enable,
+                ssUOE_MMIO_DropCnt,
+                ssUOE_MMIO_Ready,
+                ssIPRX_UOE_Data,
+                ssUOE_IPTX_Data,
+                ssUAIF_UOE_LsnReq,
+                ssUOE_UAIF_LsnRep,
+                ssUAIF_UOE_ClsReq,
+                ssUOE_UAIF_ClsRep,
+                ssUOE_UAIF_Data,
+                ssUOE_UAIF_Meta,
+                ssUOE_UAIF_DLen,
+                ssUAIF_UOE_Data,
+                ssUAIF_UOE_Meta,
+                ssUAIF_UOE_DLen,
+                ssUOE_ICMP_Data);
+            #endif
+            if (!ssUOE_MMIO_Ready.empty()) {
+                ssUOE_MMIO_Ready.read();
+            }
+            tbRun--;
+            stepSim();
+        }
+
+        printInfo(THIS_NAME, "############################################################################\n");
+        printInfo(THIS_NAME, "## TESTBENCH 'test_uoe' ENDS HERE                                         ##\n");
+        printInfo(THIS_NAME, "############################################################################\n");
+        stepSim();
+
+        //-- DRAIN UOE-->MMIO RX DROP COUNTER STREAM ---------------------------
+        if (not drainMmioDropCounter(ssUOE_MMIO_DropCnt, "ssUOE_MMIO_DropCnt")) {
+                printError(THIS_NAME, "Failed to drain UOE-to-MMIO drop counter from DUT. \n");
+            nrErr++;
+        }
+
+        //---------------------------------------------------------------
+        //-- COMPARE OUTPUT DAT and GOLD STREAMS
+        //---------------------------------------------------------------
+        int res = system(("diff --brief -w " + \
+                           std::string(ofsUAIF_Data_FileName) + " " + \
+                           std::string(ofsUAIF_Gold_Data_FileName) + " ").c_str());
+        if (res) {
+            printError(THIS_NAME, "File \'%s\' does not match \'%s\'.\n", \
+                       ofsUAIF_Data_FileName.c_str(), ofsUAIF_Gold_Data_FileName.c_str());
+            nrErr += 1;
+        }
+        res = system(("diff --brief -w " + \
+                       std::string(ofsUAIF_Meta_FileName) + " " + \
+                       std::string(ofsUAIF_Gold_Meta_FileName) + " ").c_str());
+        if (res) {
+            printError(THIS_NAME, "File \'%s\' does not match \'%s\'.\n", \
+                       ofsUAIF_Meta_FileName.c_str(), ofsUAIF_Gold_Meta_FileName.c_str());
+            nrErr += 1;
+        }
+        res = system(("diff --brief -w " + \
+                       std::string(ofsUAIF_DLen_FileName) + " " + \
+                       std::string(ofsUAIF_Gold_DLen_FileName) + " ").c_str());
+        if (res) {
+            printError(THIS_NAME, "File \'%s\' does not match \'%s\'.\n", \
+                       ofsUAIF_DLen_FileName.c_str(), ofsUAIF_Gold_DLen_FileName.c_str());
+            nrErr += 1;
+        }
+    } // End-of: if (tbMode == DROP_MODE)
+
+    else {
+        nrErr = 1;
+        printFatal(THIS_NAME, "The test mode (%c) is not yet implemented...\n", tbMode);
+    }
 
     //---------------------------------------------------------------
     //-- PRINT TESTBENCH STATUS

@@ -617,8 +617,9 @@ module Shell_Kale # (
   wire          sMMIO_ETH0_PcsLoopbackEn;
   wire          sMMIO_ETH0_MacLoopbackEn;
   wire          sMMIO_ETH0_MacAddrSwapEn;  
-  //---- Diagnostic Registers Interface ----------
   //------ [DIAG_CTRL_2] ---------------
+  //------ [DIAG_URDC] -----------------
+  wire  [15:0]  sNTS0_MMIO_UdpRxDropCnt;
   
   //-- END OF SIGNAL DECLARATIONS ----------------------------------------------
 
@@ -670,6 +671,8 @@ module Shell_Kale # (
     //----------------------------------------------
     .piNTS0_CamReady                (sNTS0_MMIO_CamReady),
     .piNTS0_NtsReady                (sNTS0_MMIO_NtsReady),
+    .piNTS0_UdpRxDropCnt            (sNTS0_MMIO_UdpRxDropCnt),
+    //--
     .poNTS0_MacAddress              (sMMIO_NTS0_MacAddress),
     .poNTS0_Ip4Address              (sMMIO_NTS0_Ip4Address),
     .poNTS0_SubNetMask              (sMMIO_NTS0_SubNetMask),
@@ -1132,8 +1135,10 @@ module Shell_Kale # (
     .piMMIO_Ip4Address                (sMMIO_NTS0_Ip4Address),
     .piMMIO_SubNetMask                (sMMIO_NTS0_SubNetMask),
     .piMMIO_GatewayAddr               (sMMIO_NTS0_GatewayAddr),
+    //--
     .poMMIO_CamReady                  (sNTS0_MMIO_CamReady),      // [TODO-Merge this signal with NtsReady]
-    .poMMIO_NtsReady                  (sNTS0_MMIO_NtsReady)
+    .poMMIO_NtsReady                  (sNTS0_MMIO_NtsReady),
+    .poMMIO_UdpRxDropCnt              (sNTS0_MMIO_UdpRxDropCnt)
   );  // End of NTS0
 
 

@@ -270,7 +270,8 @@ module NetworkTransportStack_TcpIp (
   input  [ 31:0] piMMIO_SubNetMask,
   input  [ 31:0] piMMIO_GatewayAddr,
   output         poMMIO_CamReady,
-  output         poMMIO_NtsReady
+  output         poMMIO_NtsReady,
+  output [ 15:0] poMMIO_UdpRxDropCnt
   
 ); // End of PortList
 
@@ -379,6 +380,15 @@ module NetworkTransportStack_TcpIp (
   wire          ssUOE_ICMP_Data_tlast;
   wire          ssUOE_ICMP_Data_tvalid;
   wire          ssUOE_ICMP_Data_tready;
+  //-- UOE ==>[ARS9]==>
+  //---- UOE ==>[ARS9]
+  wire  [15:0]  ssUOE_ARS9_DropCnt_tdata;
+  wire          ssUOE_ARS9_DropCnt_tvalid;
+  wire          ssUOE_ARS9_DropCnt_tready;  
+  //-- ARS6 ==> RLB / ReadyLogicBarrier
+  wire  [15:0]  ssARS9_MMIO_DropCnt_tdata;
+  wire          ssARS9_MMIO_DropCnt_tvalid;
+  wire          ssARS9_MMIO_DropCnt_tready;
   
   //------------------------------------------------------------------
   //-- TOE = TCP-OFFLOAD-ENGINE
@@ -1217,6 +1227,10 @@ module NetworkTransportStack_TcpIp (
     //------------------------------------------------------
     .piMMIO_En_V                (piMMIO_Layer4En),
     //--
+    .soMMIO_DropCnt_TDATA       (ssUOE_ARS9_DropCnt_tdata),
+    .soMMIO_DropCnt_TVALID      (ssUOE_ARS9_DropCnt_tvalid), 
+    .soMMIO_DropCnt_TREADY      (ssUOE_ARS9_DropCnt_tready),    
+    //--
     .soMMIO_Ready_TDATA         (ssUOE_ARS6_Ready_tdata),
     .soMMIO_Ready_TVALID        (ssUOE_ARS6_Ready_tvalid),
     .soMMIO_Ready_TREADY        (ssUOE_ARS6_Ready_tready),
@@ -1306,6 +1320,10 @@ module NetworkTransportStack_TcpIp (
     //-- MMIO Interface
     //------------------------------------------------------
     .piMMIO_En_V                (piMMIO_Layer4En),
+    //--   
+    .soMMIO_DropCnt_V_V_TDATA   (ssUOE_ARS9_DropCnt_tdata),
+    .soMMIO_DropCnt_V_V_TVALID  (ssUOE_ARS9_DropCnt_tvalid),
+    .soMMIO_DropCnt_V_V_TREADY  (ssUOE_ARS9_DropCnt_tready),      
     //--
     .soMMIO_Ready_V_TDATA       (ssUOE_ARS6_Ready_tdata),
     .soMMIO_Ready_V_TVALID      (ssUOE_ARS6_Ready_tvalid),
@@ -1382,11 +1400,11 @@ module NetworkTransportStack_TcpIp (
     //------------------------------------------------------
     //-- ICMP / Message Data Interface (Port Unreachable)
     //------------------------------------------------------
-    .soICMP_Data_TDATA           (ssUOE_ICMP_Data_tdata),
-    .soICMP_Data_TKEEP           (ssUOE_ICMP_Data_tkeep),
-    .soICMP_Data_TLAST           (ssUOE_ICMP_Data_tlast),
-    .soICMP_Data_TVALID          (ssUOE_ICMP_Data_tvalid),
-    .soICMP_Data_TREADY          (ssUOE_ICMP_Data_tready)
+    .soICMP_Data_TDATA          (ssUOE_ICMP_Data_tdata),
+    .soICMP_Data_TKEEP          (ssUOE_ICMP_Data_tkeep),
+    .soICMP_Data_TLAST          (ssUOE_ICMP_Data_tlast),
+    .soICMP_Data_TVALID         (ssUOE_ICMP_Data_tvalid),
+    .soICMP_Data_TREADY         (ssUOE_ICMP_Data_tready)
    ); // End-of: UdpOffloadEngine
   `endif
 
@@ -1405,6 +1423,22 @@ module NetworkTransportStack_TcpIp (
     .m_axis_tvalid  (ssARS6_RLB_Ready_tvalid),
     .m_axis_tready  (ssARS6_RLB_Ready_tready)
   ); 
+
+  //============================================================================
+  //  INST: AXI4-STREAM-REGISTER-SLICE (UOE ==>[ARS9]==> MMIO)
+  //============================================================================
+  AxisRegisterSlice_16 ARS9 (
+    .aclk           (piShlClk),
+    .aresetn        (~piMMIO_Layer3Rst),
+    //-- From UOE / Data ---------------
+    .s_axis_tdata   (ssUOE_ARS9_DropCnt_tdata),
+    .s_axis_tvalid  (ssUOE_ARS9_DropCnt_tvalid),
+    .s_axis_tready  (ssUOE_ARS9_DropCnt_tready),
+    //-- To   UOE / Data ---------------
+    .m_axis_tdata   (poMMIO_UdpRxDropCnt),
+    .m_axis_tvalid  (),
+    .m_axis_tready  (sHIGH_1b1)
+  );
 
   //============================================================================
   //  INST: ICMP-SERVER
@@ -1535,9 +1569,9 @@ module NetworkTransportStack_TcpIp (
     //-- ARP Interfaces
     //------------------------------------------------------
     //-- To   ARP / LookupRequest ------                 
-    .soARP_LookupReq_TDATA     (ssIPTX_ARS8_MacLkpReq_tdata),
-    .soARP_LookupReq_TVALID    (ssIPTX_ARS8_MacLkpReq_tvalid),
-    .soARP_LookupReq_TREADY    (ssIPTX_ARS8_MacLkpReq_tready),
+    .soARP_LookupReq_TDATA    (ssIPTX_ARS8_MacLkpReq_tdata),
+    .soARP_LookupReq_TVALID   (ssIPTX_ARS8_MacLkpReq_tvalid),
+    .soARP_LookupReq_TREADY   (ssIPTX_ARS8_MacLkpReq_tready),
     //-- From ARP / LookupReply --------
     .siARP_LookupRep_TDATA    (ssARS7_IPTX_MacLkpRep_tdata),
     .siARP_LookupRep_TVALID   (ssARS7_IPTX_MacLkpRep_tvalid),

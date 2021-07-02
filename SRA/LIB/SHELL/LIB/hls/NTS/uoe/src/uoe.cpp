@@ -70,11 +70,13 @@ using namespace hls;
 /*******************************************************************************
  * IPv4 Header Stripper (Ihs)
  *
+ * @param[in]  piMMIO_En       Enable signal from [SHELL/MMIO].
  * @param[in]  siIPRX_Data     IP4 data stream from IpRxHAndler (IPRX).
  * @param[out] soUcc_UdpDgrm   UDP datagram stream to UdpChecksumChecker (Ucc).
  * @param[out] soUcc_PsdHdrSum Sum of the pseudo header information to [Ucc].
  * @param[out] soRph_Ip4Hdr    The header part of the IPv4 packet as a stream to [Rph].
  * @param[in]  siUcc_ClearToSend Clear to send signal from [Ucc].
+ * @param[out] soMMIO_DropCnt  The content of the datagram drop counter.
  *
  * @details
  *  This process extracts the UDP pseudo header and the IP header from the
@@ -89,11 +91,13 @@ using namespace hls;
  *  send signal not being asserted.
  *******************************************************************************/
 void pIpHeaderStripper(
+          CmdBit                piMMIO_En,
           stream<AxisIp4>      &siIPRX_Data,
           stream<AxisUdp>      &soUcc_UdpDgrm,
           stream<UdpCsum>      &soUcc_PsdHdrSum,
           stream<AxisIp4>      &soRph_Ip4Hdr,
-          stream<SigBit>       &siUcc_ClearToSend)
+          stream<SigBit>       &siUcc_ClearToSend,
+          stream<ap_uint<16> > &soMMIO_DropCnt)
   {
       //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
       #pragma HLS INLINE off
@@ -107,8 +111,11 @@ void pIpHeaderStripper(
                              FSM_IHS_IPW2,       FSM_IHS_OPT,
                              FSM_IHS_UDP_HEADER, FSM_IHS_UDP_HEADER_ALIGNED,
                              FSM_IHS_FORWARD,    FSM_IHS_FORWARD_ALIGNED,
-                             FSM_IHS_RESIDUE,    FSM_IHS_DROP } ihs_fsmState=FSM_IHS_IDLE;
-      #pragma HLS RESET                            variable=ihs_fsmState
+                             FSM_IHS_RESIDUE,    FSM_IHS_DONE,
+                             FSM_IHS_DROP } ihs_fsmState=FSM_IHS_IDLE;
+      #pragma HLS RESET            variable=ihs_fsmState
+      static ap_uint<16>                    ihs_dropCounter=0;
+      #pragma HLS reset            variable=ihs_dropCounter
 
       //-- STATIC DATAFLOW VARIABLES --------------------------------------------
       static ap_uint<4>    ihs_bitCount;
@@ -123,9 +130,17 @@ void pIpHeaderStripper(
 
       switch(ihs_fsmState) {
       case FSM_IHS_IDLE:
-          if (!siUcc_ClearToSend.empty()) {
-              // At least one MTU of space is available in UOE
-              siUcc_ClearToSend.read();
+          if ((piMMIO_En == CMD_DISABLE) and !siIPRX_Data.empty()) {
+              printWarn(myName, "FSM_IHS_IDLE - UOE is disabled. This packet will be dropped.\n");
+              ihs_fsmState  = FSM_IHS_DROP;
+          }
+          else if (siUcc_ClearToSend.empty() and !siIPRX_Data.empty()) {
+              printWarn(myName, "FSM_IHS_IDLE - UOE buffers are full. This packet will be dropped.\n");
+              ihs_fsmState  = FSM_IHS_DROP;
+          }
+          else if (!siUcc_ClearToSend.empty()) {
+              // We can proceed, there is at least one MTU of space is available in UOE.
+              //  From now on, no need to test the 'soUcc_UdpDgrm' fullness anymore.
               ihs_fsmState = FSM_IHS_IPW0;
           }
           break;
@@ -134,7 +149,7 @@ void pIpHeaderStripper(
               printWarn(myName, "FSM_IHS_IPW0 - Header-buffer space is exhausted. This packet will be dropped.\n");
               ihs_fsmState  = FSM_IHS_DROP;
           }
-          else if (!siIPRX_Data.empty()) {
+          else if (!siIPRX_Data.empty() and !soUcc_PsdHdrSum.full() and !soRph_Ip4Hdr.full()) {
               //-- READ 1st AXI-CHUNK (Frag|Flags|Id|TotLen|ToS|Ver|IHL) ---------
               siIPRX_Data.read(currIp4Chunk);
               ihs_ip4HdrLen = currIp4Chunk.getIp4HdrLen();
@@ -252,7 +267,7 @@ void pIpHeaderStripper(
                   if (currIp4Chunk.getTKeep() == 0xF0) {
                       printWarn(myName, "Received a UDP datagram of length = 0!\n");
                       sendChunk.setTKeep(0xFF);
-                      ihs_fsmState = FSM_IHS_IDLE;
+                      ihs_fsmState = FSM_IHS_DONE;
                   }
                   else {
                       sendChunk.setTKeepHi(ihs_prevChunk.getTKeepLo());
@@ -283,7 +298,7 @@ void pIpHeaderStripper(
               soUcc_UdpDgrm.write(currUdpChunk);
               if (currUdpChunk.getTLast()) {
                   printWarn(myName, "Received a UDP datagram of length = 0!\n");
-                  ihs_fsmState = FSM_IHS_IDLE;
+                  ihs_fsmState = FSM_IHS_DONE;
               }
               else {
                   ihs_fsmState = FSM_IHS_FORWARD_ALIGNED;
@@ -304,7 +319,7 @@ void pIpHeaderStripper(
               if (currIp4Chunk.getTLast()) {
                    if (currIp4Chunk.getTKeep() <= 0xF0) {
                       sendChunk.setTLast(TLAST);
-                      ihs_fsmState = FSM_IHS_IDLE;
+                      ihs_fsmState = FSM_IHS_DONE;
                   }
                   else {
                       sendChunk.setTLast(0);
@@ -328,7 +343,7 @@ void pIpHeaderStripper(
               AxisUdp  currUdpChunk(currIp4Chunk);
               soUcc_UdpDgrm.write(currUdpChunk);
               if (currUdpChunk.getTLast()) {
-                  ihs_fsmState = FSM_IHS_IDLE;
+                  ihs_fsmState = FSM_IHS_DONE;
               }
               else {
                   ihs_fsmState = FSM_IHS_FORWARD_ALIGNED;
@@ -345,14 +360,21 @@ void pIpHeaderStripper(
           sendChunk.setTKeepHi(ihs_prevChunk.getTKeepLo());
           sendChunk.setTLast(TLAST);
           soUcc_UdpDgrm.write(sendChunk);
-          ihs_fsmState = FSM_IHS_IDLE;
+          ihs_fsmState = FSM_IHS_DONE;
           if (DEBUG_LEVEL & TRACE_IHS) { printAxisRaw(myName, "FSM_IHS_RESIDUE         -", sendChunk); }
+          break;
+      case FSM_IHS_DONE:
+          // We are done with this datagram; Consume one CTS token
+          siUcc_ClearToSend.read();
+          ihs_fsmState = FSM_IHS_IDLE;
+          if (DEBUG_LEVEL & TRACE_IHS) { printInfo(myName, "FSM_IHS_DONE \n"); }
           break;
       case FSM_IHS_DROP:
           if (!siIPRX_Data.empty()) {
-              //-- READ and DRAIN all AXI-CHUNK -------------
+              //-- READ and DRAIN all AXI-CHUNKS ------------
               siIPRX_Data.read(currIp4Chunk);
               if (currIp4Chunk.getTLast()) {
+                  ihs_dropCounter++;
                   ihs_fsmState = FSM_IHS_IDLE;
               }
               if (DEBUG_LEVEL & TRACE_IHS) { printAxisRaw(myName, "FSM_IHS_DROP            -", currIp4Chunk); }
@@ -360,7 +382,14 @@ void pIpHeaderStripper(
           break;
       } // End-of: switch
 
-      ihs_prevChunk = currIp4Chunk;
+      //-- ALWAYS
+      ihs_prevChunk  = currIp4Chunk;
+      if (!soMMIO_DropCnt.full()) {
+          soMMIO_DropCnt.write(ihs_dropCounter);
+      }
+      else {
+          printWarn(myName, "Cannot write soMMIO_DropCnt stream...");
+      }
 
   } // End-of: pIpHeaderStripper
 
@@ -396,9 +425,9 @@ void pUdpChecksumChecker(
     const char *myName  = concat3(THIS_NAME, "/RXe/", "Ucc");
 
     //-- STATIC CONTROL VARIABLES (with RESET) --------------------------------
-    static enum FsmStates { FSM_UCC_IDLE=0,  FSM_UCC_START, FSM_UCC_ACCUMULATE,
-                            FSM_UCC_CHK0,   FSM_UCC_CHK1,
-                            FSM_UCC_STREAM } ucc_fsmState=FSM_UCC_IDLE;
+    static enum FsmStates { FSM_UCC_INIT=0, FSM_UCC_IDLE,  FSM_UCC_START,
+                            FSM_UCC_CHK0,   FSM_UCC_CHK1,  FSM_UCC_ACCUMULATE,
+                            FSM_UCC_STREAM } ucc_fsmState=FSM_UCC_INIT;
     #pragma HLS RESET               variable=ucc_fsmState
     static ap_uint<10>                       ucc_chunkCount=0;
     #pragma HLS RESET               variable=ucc_chunkCount
@@ -414,9 +443,14 @@ void pUdpChecksumChecker(
     AxisUdp     currChunk;
 
     switch (ucc_fsmState) {
+    case FSM_UCC_INIT:
+        // Initialize the first CTS token
+        soIhs_ClearToSend.write(1);
+        ucc_fsmState = FSM_UCC_IDLE;
+        break;
     case FSM_UCC_IDLE:
-        if (siIhs_UdpDgrm.empty() and !soIhs_ClearToSend.full()) {
-            // We are able to accept MTU+ bytes
+        if (!soIhs_ClearToSend.full()) {
+            // Init 2nd CTS token. We are now able to accept up 2 MTUs bytes
             soIhs_ClearToSend.write(1);
             ucc_fsmState = FSM_UCC_START;
         }
@@ -452,7 +486,7 @@ void pUdpChecksumChecker(
                     ucc_fsmState = FSM_UCC_ACCUMULATE;
                 }
             }
-            if (DEBUG_LEVEL & TRACE_UCC) { printAxisRaw(myName,"FSM_UCC_IDLE       - ", currChunk); }
+            if (DEBUG_LEVEL & TRACE_UCC) { printAxisRaw(myName,"FSM_UCC_START           -", currChunk); }
         }
         break;
     case FSM_UCC_STREAM:
@@ -500,7 +534,7 @@ void pUdpChecksumChecker(
             if (currChunk.getTLast()) {
               ucc_fsmState = FSM_UCC_CHK0;
           }
-            if (DEBUG_LEVEL & TRACE_UCC) { printAxisRaw(myName,"FSM_UCC_ACCUMULATE - ", currChunk); }
+            if (DEBUG_LEVEL & TRACE_UCC) { printAxisRaw(myName,"FSM_UCC_ACCUMULATE      -", currChunk); }
         }
         break;
     case FSM_UCC_CHK0:
@@ -908,6 +942,7 @@ void pUdpPortTable(
 /*******************************************************************************
  * Rx Engine (RXe)
  *
+ * @param[in]  piMMIO_En      Enable signal from [SHELL/MMIO].
  * @param[out] soMMIO_Ready   Process ready signal.
  * @param[in]  siIPRX_Data    IP4 data stream from IpRxHAndler (IPRX).
  * @param[in]  siUAIF_LsnReq  UDP open port request from UdpAppInterface (UAIF).
@@ -929,16 +964,18 @@ void pUdpPortTable(
  *
  *******************************************************************************/
 void pRxEngine(
+        CmdBit                   piMMIO_En,
         stream<StsBool>         &soMMIO_Ready,
         stream<AxisIp4>         &siIPRX_Data,
         stream<UdpPort>         &siUAIF_LsnReq,
         stream<StsBool>         &soUAIF_LsnRep,
         stream<UdpPort>         &siUAIF_ClsReq,
         stream<StsBool>         &soUAIF_ClsRep,
-        stream<UdpAppData>         &soUAIF_Data,
+        stream<UdpAppData>      &soUAIF_Data,
         stream<UdpAppMeta>      &soUAIF_Meta,
         stream<UdpAppDLen>      &soUAIF_DLen,
-        stream<AxisIcmp>        &soICMP_Data)
+        stream<AxisIcmp>        &soICMP_Data,
+        stream<ap_uint<16> >    &soMMIO_DropCnt)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE
@@ -971,11 +1008,13 @@ void pRxEngine(
     #pragma HLS STREAM variable=ssUptToRph_PortStateRep depth=2
 
     pIpHeaderStripper(
+            piMMIO_En,
             siIPRX_Data,
             ssIhsToUcc_UdpDgrm,
             ssIhsToUcc_PsdHdrSum,
             ssIhsToRph_Ip4Hdr,
-            ssUccToIhs_ClearToSend);
+            ssUccToIhs_ClearToSend,
+            soMMIO_DropCnt);
 
     pUdpChecksumChecker(
             ssIhsToUcc_UdpDgrm,
@@ -1744,7 +1783,6 @@ void pTxEngine(
             ssUhaToIha_IpPair,
             ssUhaToIha_UdpLen);
 
-
     pIp4HeaderAdder(
             ssUhaToIha_Data,
             ssUhaToIha_IpPair,
@@ -1758,6 +1796,7 @@ void pTxEngine(
  *
  * -- MMIO Interface
  * @param[in]  piMMIO_En      Enable signal from [SHELL/MMIO].
+ * @param[out] soMMIO_DropCnt Rx drop counter to [SHELL/MMIO].
  * @param[out] soMMIO_Ready   UOE ready stream to [SHELL/MMIO].
  * -- IPRX / IP Rx / Data Interface
  * @param[in]  siIPRX_Data    IP4 data stream from IpRxHAndler (IPRX).
@@ -1785,6 +1824,7 @@ void uoe(
         //-- MMIO Interface
         //------------------------------------------------------
         CmdBit                           piMMIO_En,
+        stream<ap_uint<16> >            &soMMIO_DropCnt,
         stream<StsBool>                 &soMMIO_Ready,
         //------------------------------------------------------
         //-- IPRX / IP Rx / Data Interface
@@ -1830,6 +1870,7 @@ void uoe(
     //-- PROCESS FUNCTIONS -----------------------------------------------------
 
     pRxEngine(
+            piMMIO_En,
             soMMIO_Ready,
             siIPRX_Data,
             siUAIF_LsnReq,
@@ -1839,7 +1880,8 @@ void uoe(
             soUAIF_Data,
             soUAIF_Meta,
             soUAIF_DLen,
-            soICMP_Data);
+            soICMP_Data,
+            soMMIO_DropCnt);
 
     pTxEngine(
             piMMIO_En,
@@ -1855,6 +1897,7 @@ void uoe(
  *
  * -- MMIO Interface
  * @param[in]  piMMIO_En      Enable signal from [SHELL/MMIO].
+ * @param[out] soMMIO_DropCnt Rx drop counter to [SHELL/MMIO].
  * @param[out] soMMIO_Ready   UOE ready stream to [SHELL/MMIO].
  * -- IPRX / IP Rx / Data Interface
  * @param[in]  siIPRX_Data    IP4 data stream from IpRxHAndler (IPRX).
@@ -1882,6 +1925,7 @@ void uoe(
         //-- MMIO Interface
         //------------------------------------------------------
         CmdBit                           piMMIO_En,
+        stream<ap_uint<16> >            &soMMIO_DropCnt,
         stream<StsBool>                 &soMMIO_Ready,
         //------------------------------------------------------
         //-- IPRX / IP Rx / Data Interface
@@ -1925,6 +1969,7 @@ void uoe(
     /*********************************************************************/
     #pragma HLS INTERFACE ap_stable          port=piMMIO_En         name=piMMIO_En
 
+    #pragma HLS RESOURCE core=AXI4Stream variable=soMMIO_DropCnt    metadata="-bus_bundle soMMIO_DropCnt"
     #pragma HLS RESOURCE core=AXI4Stream variable=soMMIO_Ready      metadata="-bus_bundle soMMIO_Ready"
 
     #pragma HLS RESOURCE core=AXI4Stream variable=siIPRX_Data       metadata="-bus_bundle siIPRX_Data"
@@ -1954,6 +1999,7 @@ void uoe(
     uoe(
         //-- MMIO Interface
         piMMIO_En,
+        soMMIO_DropCnt,
         soMMIO_Ready,
         //-- IPRX / IP Rx / Data Interface
         siIPRX_Data,
@@ -1982,6 +2028,7 @@ void uoe(
         //-- MMIO Interface
         //------------------------------------------------------
         CmdBit                           piMMIO_En,
+        stream<ap_uint<16> >            &soMMIO_DropCnt,
         stream<StsBool>                 &soMMIO_Ready,
         //------------------------------------------------------
         //-- IPRX / IP Rx / Data Interface
@@ -2021,6 +2068,7 @@ void uoe(
 
     #pragma HLS INTERFACE ap_stable             port=piMMIO_En         name=piMMIO_En
 
+    #pragma HLS INTERFACE axis register both    port=soMMIO_DropCnt    name=soMMIO_DropCnt
     #pragma HLS INTERFACE axis register both    port=soMMIO_Ready      name=soMMIO_Ready
 
     #pragma HLS INTERFACE axis off              port=siIPRX_Data       name=siIPRX_Data
@@ -2059,6 +2107,7 @@ void uoe(
     uoe(
         //-- MMIO Interface
         piMMIO_En,
+        soMMIO_DropCnt,
         soMMIO_Ready,
         //-- IPRX / IP Rx / Data Interface
         ssiIPRX_Data,

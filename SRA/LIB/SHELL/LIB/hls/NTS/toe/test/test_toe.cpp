@@ -1412,6 +1412,8 @@ void pIPTX(
     //-- STATIC VARIABLES ------------------------------------------------------
     static SimIp4Packet iptx_ipPacket;
     static int          iptx_rttSim = RTT_LINK;
+    // [TODO] static ap_shift_reg<SimIp4Packet, RTT_LINK> rttPktBuffer; // A shift reg. holding RTT packets
+
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     AxisIp4     ipTxChunk;  // An IP4 chunk

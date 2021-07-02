@@ -168,6 +168,8 @@ if { $hlsCSim} {
     csim_design -argv "2 ../../../../test/testVectors/siUAIF_RampDgrmSize.dat"
     csim_design -argv "2 ../../../../test/testVectors/siUAIF_LongDatagrams.dat"
     csim_design -argv "3"
+    csim_design -argv "7 ../../../../test/testVectors/siIPRX_FourDatagrams.dat"
+    csim_design -argv "7 ../../../../test/testVectors/siIPRX_RampDgrmSize.dat"
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF C SIMULATION             ####"
@@ -206,6 +208,7 @@ if { $hlsCoSim } {
     if { [format "%.1f" ${VIVADO_VERSION}] != 2019.2 } {
         # These parameters no longer work in 2019.2 ?!
         cosim_design -tool xsim -rtl verilog -trace_level none -argv "3"
+        cosim_design -tool xsim -rtl verilog -trace_level none -argv "7 ../../../../test/testVectors/siIPRX_RampDgrmSize.dat"
     }
 
     puts "#############################################################"
