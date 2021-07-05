@@ -40,6 +40,7 @@
 #include "../src/fmc.hpp"
 #include "../../../../../hls/cfdk.hpp"
 #include "../../../../../hls/network.hpp"
+#include "../../../../../hls/axi_utils.hpp"
 #include "../../NAL/src/nal.hpp" //AFTER fmc.hpp
 
 #include <stdint.h>

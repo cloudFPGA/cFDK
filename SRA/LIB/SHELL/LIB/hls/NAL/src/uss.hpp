@@ -73,6 +73,7 @@ void pUdpRx(
     stream<NetworkMetaStream>   &soUdp_meta,
     stream<UdpAppData>          &siUOE_Data,
     stream<UdpAppMeta>          &siUOE_Meta,
+    stream<UdpAppDLen>          &siUOE_DLen,
     stream<NalConfigUpdate>     &sConfigUpdate,
     stream<Ip4Addr>             &sGetNidReq_UdpRx,
     stream<NodeId>              &sGetNidRep_UdpRx,

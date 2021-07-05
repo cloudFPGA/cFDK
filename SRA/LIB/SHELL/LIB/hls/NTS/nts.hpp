@@ -61,13 +61,13 @@ typedef AxisRaw     AxisApp;
 //== TAIF / RECEIVED & TRANSMITTED SEGMENT INTERFACES
 //=========================================================
 
-#ifndef _AXIS_CLASS_DEFINED_
+//OBSOLETE_20210628 #ifndef _AXIS_CLASS_DEFINED_
 //---------------------------------------------------------
 //-- TCP APP - DATA
 //--  The data section of a TCP segment over an AXI4S I/F.
 //---------------------------------------------------------
 typedef AxisRaw     TcpAppData;
-#endif
+//OBSOLETE_20210628 #endif
 
 //---------------------------------------------------------
 //-- TCP APP - METADATA
@@ -209,14 +209,14 @@ typedef RepBool     TcpAppLsnRep;
 //== UAIF / RECEIVED & TRANSMITTED DATAGRAM INTERFACES
 //=========================================================
 
-#ifndef _AXIS_CLASS_DEFINED_  // [FIXME - Consider removing]
-#define _AXIS_CLASS_DEFINED_  // [FIXME - Consider removing]
+//OBSOLETE_20210628 #ifndef _AXIS_CLASS_DEFINED_  // [FIXME - Consider removing]
+//OBSOLETE_20210628 #define _AXIS_CLASS_DEFINED_  // [FIXME - Consider removing]
 //---------------------------------------------------------
 //-- UDP APP - DATA
 //--  The data section of an UDP datagram over an AXI4S I/F.
 //---------------------------------------------------------
 typedef AxisRaw     UdpAppData;
-#endif
+//OBSOLETE_20210628 #endif
 
 //---------------------------------------------------------
 //-- UDP APP - METADATA

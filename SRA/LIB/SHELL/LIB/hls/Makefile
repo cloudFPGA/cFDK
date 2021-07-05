@@ -24,8 +24,7 @@
 
 .PHONY: all clean NTS FMC NAL
 
-# [FIXME] all:	NTS FMC NAL  ## Run the HLS synthesis and IP Core export on all sub-directories
-all: 	NTS                  ## Run the HLS synthesis and IP Core export on all sub-directories
+all:	NTS FMC NAL  ## Run the HLS synthesis and IP Core export on all sub-directories
 
 csim:	NTS.csim FMC.csim NAL.csim  ## Runs HLS C simulation on all sub-directories
 

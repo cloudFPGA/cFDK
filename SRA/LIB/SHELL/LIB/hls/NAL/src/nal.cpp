@@ -91,13 +91,13 @@ TcpPort getLocalPortFromTriple(NalTriple triple)
 }
 
 
-uint8_t extractByteCnt(Axis<64> currWord)
+uint8_t extractByteCnt(AxisRaw currWord)
 {
 #pragma HLS INLINE
 
   uint8_t ret = 0;
 
-  switch (currWord.getTKeep()) {
+  switch (currWord.getLE_TKeep()) {
     case 0b11111111:
       ret = 8;
       break;
@@ -127,7 +127,7 @@ uint8_t extractByteCnt(Axis<64> currWord)
   return ret;
 }
 
-uint8_t extractByteCntNW(NetworkWord currWord)
+uint8_t extractByteCnt(NetworkWord currWord)
 {
 #pragma HLS INLINE
 
@@ -491,10 +491,10 @@ void nal_main(
     stream<NetworkMetaStream>   &soTcp_meta,
 
     // -- FMC TCP connection
-    stream<TcpAppData>          &siFMC_data,
-    stream<TcpAppMeta>          &siFMC_SessId,
-    stream<TcpAppData>          &soFMC_data,
-    stream<TcpAppMeta>          &soFMC_SessId,
+    stream<NetworkWord>         &siFMC_data,
+    stream<TcpSessId>           &siFMC_SessId,
+    stream<NetworkWord>         &soFMC_data,
+    stream<TcpSessId>           &soFMC_SessId,
 
     //-- UOE / Control Port Interfaces
     stream<UdpPort>             &soUOE_LsnReq,
@@ -505,6 +505,7 @@ void nal_main(
     //-- UOE / Rx Data Interfaces
     stream<UdpAppData>          &siUOE_Data,
     stream<UdpAppMeta>          &siUOE_Meta,
+    stream<UdpAppDLen>          &siUOE_DLen,
 
     //-- UOE / Tx Data Interfaces
     stream<UdpAppData>          &soUOE_Data,
@@ -548,6 +549,7 @@ void nal_main(
 #pragma HLS INTERFACE axis register both port=siUOE_Data
 #pragma HLS INTERFACE axis register both port=siUOE_Meta
 #pragma HLS DATA_PACK                variable=siUOE_Meta
+#pragma HLS INTERFACE axis register both port=siUOE_DLen
 
 #pragma HLS INTERFACE axis register both port=soUOE_Data
 #pragma HLS INTERFACE axis register both port=soUOE_Meta
@@ -688,8 +690,8 @@ void nal_main(
 
   static stream<bool>                 sCacheInvalDel_Notif ("sCacheInvalDel_Notif");
 
-  static stream<TcpAppData>          sFmcTcpDataRx_buffer ("sFmcTcpDataRx_buffer");
-  static stream<TcpAppMeta>          sFmcTcpMetaRx_buffer ("sFmcTcpMetaRx_buffer");
+  static stream<NetworkWord>         sFmcTcpDataRx_buffer ("sFmcTcpDataRx_buffer");
+  static stream<TcpSessId>           sFmcTcpMetaRx_buffer ("sFmcTcpMetaRx_buffer");
 
 
 #pragma HLS STREAM variable=internal_event_fifo_0 depth=16
@@ -811,7 +813,7 @@ void nal_main(
 
   pUdpLsn(soUOE_LsnReq, siUOE_LsnRep, sUdpPortsToOpen, sUdpPortsOpenFeedback);
 
-  pUdpRx(sRoleUdpDataRx_buffer, sRoleUdpMetaRx_buffer, siUOE_Data, siUOE_Meta,
+  pUdpRx(sRoleUdpDataRx_buffer, sRoleUdpMetaRx_buffer, siUOE_Data, siUOE_Meta, siUOE_DLen,
       sA4lToUdpRx, sGetNidReq_UdpRx, sGetNidRep_UdpRx,
       sCacheInvalSig_1, internal_event_fifo_1);
 

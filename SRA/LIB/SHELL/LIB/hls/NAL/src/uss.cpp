@@ -149,7 +149,8 @@ void pUdpTX(
         }
 
         //to create here due to timing...
-        txMeta = SocketPair(SockAddr(*ipAddrBE, src_port), SockAddr(0, dst_port));
+        //dst addres as 0 for now
+        txMeta = UdpAppMeta(*ipAddrBE, src_port, 0, dst_port);
 
         //request ip if necessary
         if(cache_init && cached_nodeid_udp_tx == dst_rank)
@@ -196,7 +197,7 @@ void pUdpTX(
         evsStreams[4].write_nb(new_ev_not);
         //UdpMeta txMeta = {{src_port, ipAddrBE}, {dst_port, dst_ip_addr}};
         //txMeta = SocketPair(SockAddr(*ipAddrBE, src_port), SockAddr(dst_ip_addr, dst_port));
-        txMeta.dst.addr = dst_ip_addr;
+        txMeta.ip4DstAddr = dst_ip_addr;
 
         // Forward data chunk, metadata and payload length
         soUOE_Meta.write(txMeta);
@@ -216,8 +217,10 @@ void pUdpTX(
       if ( !siUdp_data.empty() && !soUOE_Data.full() )
       {
         // Forward data chunk
-        UdpAppData    aWord = siUdp_data.read();
-        udpTX_current_packet_length += extractByteCnt((Axis<64>) aWord);
+        //UdpAppData    aWord = siUdp_data.read();
+        NetworkWord tmpWord = siUdp_data.read();
+        UdpAppData aWord = UdpAppData(tmpWord.tdata, tmpWord.tkeep, tmpWord.tlast);
+        udpTX_current_packet_length += extractByteCnt(aWord);
         if(udpTX_packet_length > 0 && udpTX_current_packet_length >= udpTX_packet_length)
         {//we need to set tlast manually
           aWord.setTLast(1);
@@ -235,8 +238,10 @@ void pUdpTX(
     case FSM_DROP_PACKET:
       if ( !siUdp_data.empty() )
       {
-        UdpAppData    aWord = siUdp_data.read();
-        udpTX_current_packet_length += extractByteCnt((Axis<64>) aWord);
+        //UdpAppData    aWord = siUdp_data.read();
+        NetworkWord tmpWord = siUdp_data.read();
+        UdpAppData aWord = UdpAppData(tmpWord.tdata, tmpWord.tkeep, tmpWord.tlast);
+        udpTX_current_packet_length += extractByteCnt(aWord);
 
         if( (udpTX_packet_length > 0 && udpTX_current_packet_length >= udpTX_packet_length)
             || aWord.getTLast() == 1 )
@@ -449,6 +454,7 @@ void pUdpLsn(
  * @param[out]  soUdp_meta,            UDP Metadata for the Role
  * @param[in]   siUOE_Data,            UDP Data from the UOE
  * @param[in]   siUOE_Meta,            UDP Metadata from the UOE
+ * @param[in]   siUOE_DLen,            UDP Packetlength from the UOE (UDP header)
  * @param[in]   sConfigUpdate,         Updates from axi4liteProcessing (own rank)
  * @param[out]  sGetNidReq_UdpRx,      Request stream for the the MRT Agency
  * @param[in]   sGetNidRep_UdpRx,      Reply stream from the MRT Agency
@@ -461,6 +467,7 @@ void pUdpRx(
     stream<NetworkMetaStream>   &soUdp_meta,
     stream<UdpAppData>          &siUOE_Data,
     stream<UdpAppMeta>          &siUOE_Meta,
+    stream<UdpAppDLen>          &siUOE_DLen,
     stream<NalConfigUpdate>     &sConfigUpdate,
     stream<Ip4Addr>             &sGetNidReq_UdpRx,
     stream<NodeId>              &sGetNidRep_UdpRx,
@@ -490,7 +497,8 @@ void pUdpRx(
 #pragma HLS RESET variable=evs_loop_i
 
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
-  static UdpMeta udpRxMeta;
+  static UdpAppMeta udpRxMeta;
+  static UdpAppDLen udpRxLen;
   static NodeId src_id = INVALID_MRT_VALUE;
   static NetworkMeta in_meta;
 
@@ -529,24 +537,25 @@ void pUdpRx(
         }
         break;
       } else if ( !siUOE_Meta.empty()
+          && !siUOE_DLen.empty()
           && !sGetNidReq_UdpRx.full())
       {
         //extract src ip address
         siUOE_Meta.read(udpRxMeta);
+        siUOE_DLen.read(udpRxLen);
         src_id = (NodeId) INVALID_MRT_VALUE;
 
         //to create here due to timing...
-        in_meta = NetworkMeta(own_rank, udpRxMeta.dst.port, 0, udpRxMeta.src.port, 0);
+        in_meta = NetworkMeta(own_rank, udpRxMeta.udpDstPort, 0, udpRxMeta.udpSrcPort, udpRxLen);
 
-        //FIXME: add length here as soon as available from the UOE
         //ask cache
-        if(cache_init && cached_udp_rx_ipaddr == udpRxMeta.src.addr)
+        if(cache_init && cached_udp_rx_ipaddr == udpRxMeta.ip4SrcAddr)
         {
           printf("used UDP RX id cache\n");
           src_id = cached_udp_rx_id;
           fsmStateRX_Udp = FSM_FIRST_ACC;
         } else {
-          sGetNidReq_UdpRx.write(udpRxMeta.src.addr);
+          sGetNidReq_UdpRx.write(udpRxMeta.ip4SrcAddr);
           fsmStateRX_Udp = FSM_W8FORREQS;
           //break;
         }
@@ -557,7 +566,7 @@ void pUdpRx(
       if(!sGetNidRep_UdpRx.empty())
       {
         src_id = sGetNidRep_UdpRx.read();
-        cached_udp_rx_ipaddr = udpRxMeta.src.addr;
+        cached_udp_rx_ipaddr = udpRxMeta.ip4SrcAddr;
         cached_udp_rx_id = src_id;
         cache_init = true;
         fsmStateRX_Udp = FSM_FIRST_ACC;
@@ -580,10 +589,8 @@ void pUdpRx(
         //status
         new_ev_not = NalEventNotif(LAST_RX_NID, src_id);
         evsStreams[1].write_nb(new_ev_not);
-        new_ev_not = NalEventNotif(LAST_RX_PORT, udpRxMeta.dst.port);
+        new_ev_not = NalEventNotif(LAST_RX_PORT, udpRxMeta.udpDstPort);
         evsStreams[2].write_nb(new_ev_not);
-        //in_meta = NetworkMeta(own_rank, udpRxMeta.dst.port, src_id, udpRxMeta.src.port, 0);
-        //FIXME: add length here as soon as available from the UOE
         in_meta.src_rank = src_id;
 
         //write metadata
@@ -602,8 +609,12 @@ void pUdpRx(
       if ( !siUOE_Data.empty() && !soUdp_data.full() )
       {
         // Forward data chunk to ROLE
-        NetworkWord    udpWord = siUOE_Data.read();
+        //NetworkWord    udpWord = siUOE_Data.read();
+        UdpAppData udpWordtmp = siUOE_Data.read();
+        NetworkWord udpWord = NetworkWord(udpWordtmp.getLE_TData(), udpWordtmp.getLE_TKeep(), udpWordtmp.getLE_TLast());
         soUdp_data.write(udpWord);
+        //TODO: should we verify the length of udpRxLen?
+
         // Until LAST bit is set
         if (udpWord.tlast == 1)
         {

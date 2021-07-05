@@ -34,6 +34,7 @@
 #include "http.hpp"
 #include "../../../../../hls/cfdk.hpp"
 #include "../../../../../hls/network.hpp"
+#include "../../../../../hls/axi_utils.hpp"
 #include "../../network_utils.hpp"
 
 

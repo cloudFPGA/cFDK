@@ -53,6 +53,6 @@
  *****************************************************************************/
 void printAxiWord(const char *callerName, AxisRaw chunk);
 void printAxiWord(const char *callerName, NetworkWord chunk);
-void printAxiWord(const char *callerName, Axis<64> chunk);
+//OBSOLETE_20210628 void printAxiWord(const char *callerName, Axis<64> chunk);
 
 #endif

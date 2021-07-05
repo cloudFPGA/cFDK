@@ -584,8 +584,8 @@ void pTcpRDp(
     stream<TcpAppRdReq>         &sRDp_ReqNotif,
     stream<TcpAppData>          &siTOE_Data,
     stream<TcpAppMeta>          &siTOE_SessId,
-    stream<TcpAppData>          &soFMC_data,
-    stream<TcpAppMeta>          &soFMC_SessId,
+    stream<NetworkWord>         &soFMC_data,
+    stream<TcpSessId>           &soFMC_SessId,
     stream<NetworkWord>         &soTcp_data,
     stream<NetworkMetaStream>   &soTcp_meta,
     stream<NalConfigUpdate>     &sConfigUpdate,
@@ -857,7 +857,7 @@ void pTcpRDp(
       else if (!siTOE_Data.empty() && !soTcp_data.full())
       {
         siTOE_Data.read(currWord);
-        NetworkWord tcpWord = currWord;
+        NetworkWord tcpWord = NetworkWord(currWord.getLE_TData(), currWord.getLE_TKeep(), currWord.getLE_TLast());
         soTcp_data.write(tcpWord);
         if (currWord.getTLast() == 1)
         {
@@ -876,8 +876,9 @@ void pTcpRDp(
           )
       {
         siTOE_Data.read(currWord);
-        soFMC_data.write(currWord);
-        fmc_tcp_bytes_cnt += extractByteCnt((Axis<64>) currWord);
+        NetworkWord tcpWord = NetworkWord(currWord.getLE_TData(), currWord.getLE_TKeep(), currWord.getLE_TLast());
+        soFMC_data.write(tcpWord);
+        fmc_tcp_bytes_cnt += extractByteCnt(currWord);
         if (currWord.getTLast() == 1)
         {
           new_ev_not = NalEventNotif(FMC_TCP_BYTES, fmc_tcp_bytes_cnt);
@@ -968,7 +969,7 @@ void pRoleTcpRxDeq(
       {
         cur_word = sRoleTcpDataRx_buffer.read();
         cur_meta = sRoleTcpMetaRx_buffer.read();
-        current_bytes_written = extractByteCntNW(cur_word);
+        current_bytes_written = extractByteCnt(cur_word);
         if(!role_disabled)
         {
           soTcp_data.write(cur_word);
@@ -988,7 +989,7 @@ void pRoleTcpRxDeq(
         )
       {
         cur_word = sRoleTcpDataRx_buffer.read();
-        current_bytes_written += extractByteCntNW(cur_word);
+        current_bytes_written += extractByteCnt(cur_word);
         if(!role_disabled)
         {
           soTcp_data.write(cur_word);
@@ -1009,10 +1010,10 @@ void pRoleTcpRxDeq(
  *
  ******************************************************************************/
 void pFmcTcpRxDeq(
-    stream<TcpAppData>    &sFmcTcpDataRx_buffer,
-    stream<TcpAppMeta>    &sFmcTcpMetaRx_buffer,
-    stream<TcpAppData>    &soFmc_data,
-    stream<TcpAppMeta>    &soFmc_meta,
+    stream<NetworkWord>   &sFmcTcpDataRx_buffer,
+    stream<TcpSessId>     &sFmcTcpMetaRx_buffer,
+    stream<NetworkWord>   &soFmc_data,
+    stream<TcpSessId>     &soFmc_meta,
     stream<PacketLen>     &fmc_write_cnt_sig
     )
 {
@@ -1025,8 +1026,8 @@ void pFmcTcpRxDeq(
   //-- STATIC DATAFLOW VARIABLES --------------------------------------------
   static PacketLen current_bytes_written = 0;
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
-  TcpAppData cur_word = TcpAppData();
-  TcpAppMeta cur_meta = TcpAppMeta();
+  NetworkWord cur_word = NetworkWord();
+  TcpSessId cur_meta = TcpSessId();
 
   switch(deqFsmState)
   {
@@ -1047,10 +1048,10 @@ void pFmcTcpRxDeq(
         printf("[pFmcTcpRxDeq] Start processing FMC packet\n");
         cur_word = sFmcTcpDataRx_buffer.read();
         cur_meta = sFmcTcpMetaRx_buffer.read();
-        current_bytes_written = extractByteCnt((Axis<64>) cur_word);
+        current_bytes_written = extractByteCnt(cur_word);
         soFmc_data.write(cur_word);
         soFmc_meta.write(cur_meta);
-        if(cur_word.getTLast() == 0)
+        if(cur_word.tlast == 0)
         {
           deqFsmState = DEQ_STREAM_DATA;
         } else {
@@ -1065,8 +1066,8 @@ void pFmcTcpRxDeq(
       {
         cur_word = sFmcTcpDataRx_buffer.read();
         soFmc_data.write(cur_word);
-        current_bytes_written += extractByteCnt((Axis<64>) cur_word);
-        if(cur_word.getTLast() == 1)
+        current_bytes_written += extractByteCnt(cur_word);
+        if(cur_word.tlast == 1)
         {
           deqFsmState = DEQ_SEND_NOTIF;
         }
@@ -1103,8 +1104,8 @@ void pFmcTcpRxDeq(
 void pTcpWRp(
     ap_uint<1>                  *layer_4_enabled,
     ap_uint<1>                  *piNTS_ready,
-    stream<TcpAppData>          &siFMC_data,
-    stream<TcpAppMeta>          &siFMC_SessId,
+    stream<NetworkWord>         &siFMC_data,
+    stream<TcpSessId>           &siFMC_SessId,
     stream<NetworkWord>         &siTcp_data,
     stream<NetworkMetaStream>   &siTcp_meta,
     stream<TcpAppData>          &soTOE_Data,
@@ -1163,7 +1164,7 @@ void pTcpWRp(
 
 
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
-  NetworkWord  currWordIn;
+  //NetworkWord  currWordIn;
   //TcpAppData   currWordOut;
   NalEventNotif new_ev_not;
 
@@ -1436,8 +1437,9 @@ void pTcpWRp(
       }
       else if (!siFMC_data.empty() && !soTOE_Data.full() && !soTOE_len.full() )
       {
-        TcpAppData tcpWord = siFMC_data.read();
-        tcpTX_current_packet_length += extractByteCnt((Axis<64>) tcpWord);
+        NetworkWord tmpWord = siFMC_data.read();
+        TcpAppData tcpWord = TcpAppData(tmpWord.tdata, tmpWord.tkeep, tmpWord.tlast); //LE stays LE
+        tcpTX_current_packet_length += extractByteCnt(tcpWord);
         soTOE_Data.write(tcpWord);
         if(tcpWord.getTLast() == 1) {
           wrpFsmState = WRP_WAIT_META;
@@ -1460,7 +1462,7 @@ void pTcpWRp(
       }
       else if (!siTcp_data.empty() && !soTOE_Data.full()  && !soTOE_len.full() )
       {
-        currWordIn = siTcp_data.read();
+        NetworkWord currWordIn = siTcp_data.read();
         tcpTX_current_packet_length += extractByteCnt(currWordIn);
         if(!streaming_mode)
         {
@@ -1488,7 +1490,8 @@ void pTcpWRp(
             currWordIn.tlast = 1; //to be sure? (actually, unecessary)
           }
         }
-        soTOE_Data.write((TcpAppData) currWordIn);
+        TcpAppData currWordOutTmp = TcpAppData(currWordIn.tdata, currWordIn.tkeep, currWordIn.tlast);
+        soTOE_Data.write(currWordOutTmp);
       }
       break;
 
@@ -1499,7 +1502,7 @@ void pTcpWRp(
       }
       else if( !siTcp_data.empty())
       {
-        siTcp_data.read(currWordIn);
+        NetworkWord currWordIn = siTcp_data.read();
         tcpTX_current_packet_length += extractByteCnt(currWordIn);
         //until Tlast or length
         if( (tcpTX_packet_length > 0 && tcpTX_current_packet_length >= tcpTX_packet_length)
@@ -1673,7 +1676,7 @@ void pTcpWBu(
       else if(!soTOE_Data.full() && !siWrp_Data.empty() )
       {
         TcpAppData tmp = siWrp_Data.read();
-        dequeue_cnt += extractByteCnt((Axis<64>) tmp);
+        dequeue_cnt += extractByteCnt(tmp);
         if(dequeue_cnt >= current_approved_length)
         {
           tmp.setTLast(1); //to be sure
@@ -1703,7 +1706,7 @@ void pTcpWBu(
           //dequeue_cnt = 0;
           wbuState = WBU_WAIT_META;
         } else {
-          dequeue_cnt -= extractByteCnt((Axis<64>) tmp);
+          dequeue_cnt -= extractByteCnt(tmp);
           if(dequeue_cnt == 0)
           {
             wbuState = WBU_WAIT_META;

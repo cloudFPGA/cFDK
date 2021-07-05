@@ -248,13 +248,13 @@ typedef ap_uint<16> UdpSrcPort;     // UDP Source Port
 typedef ap_uint<16> UdpDstPort;     // UDP Destination Port
 typedef ap_uint<16> UdpPort;        // UDP source or destination Port
 typedef ap_uint<16> UdpLen;         // UDP header and data Length
-typedef SocketPair   UdpAppMeta;
+//DELME typedef SocketPair   UdpAppMeta;
 //typedef Axis<64>     UdpAppData;
 //typedef NetworkWord  UdpAppData;
 //typedef UdpMeta      UdpAppMeta;
 typedef UdpLen       UdpAppDLen;
 
-typedef UdpAppMeta  UdpMeta;
+//DELME typedef UdpAppMeta  UdpMeta;
 typedef UdpAppDLen  UdpPLen;
 
 typedef ap_uint<16> PacketLen;
@@ -329,8 +329,8 @@ NalTriple newTriple(Ip4Addr ipRemoteAddres, TcpPort tcpRemotePort, TcpPort tcpLo
 Ip4Addr getRemoteIpAddrFromTriple(NalTriple triple);
 TcpPort getRemotePortFromTriple(NalTriple triple);
 TcpPort getLocalPortFromTriple(NalTriple triple);
-uint8_t extractByteCnt(Axis<64> currWord);
-uint8_t extractByteCntNW(NetworkWord currWord);
+uint8_t extractByteCnt(AxisRaw currWord);
+uint8_t extractByteCnt(NetworkWord currWord);
 
 
 #include "uss.hpp"
@@ -369,10 +369,10 @@ void nal_main(
     stream<NetworkMetaStream>   &soTcp_meta,
 
     // -- FMC TCP connection
-    stream<TcpAppData>          &siFMC_data,
-    stream<TcpAppMeta>          &siFMC_SessId,
-    stream<TcpAppData>          &soFMC_data,
-    stream<TcpAppMeta>          &soFMC_SessId,
+    stream<NetworkWord>         &siFMC_data,
+    stream<TcpSessId>           &siFMC_SessId,
+    stream<NetworkWord>         &soFMC_data,
+    stream<TcpSessId>           &soFMC_SessId,
 
     //-- UOE / Control Port Interfaces
     stream<UdpPort>             &soUOE_LsnReq,
@@ -383,6 +383,7 @@ void nal_main(
     //-- UOE / Rx Data Interfaces
     stream<UdpAppData>          &siUOE_Data,
     stream<UdpAppMeta>          &siUOE_Meta,
+    stream<UdpAppDLen>          &siUOE_DLen,
 
     //-- UOE / Tx Data Interfaces
     stream<UdpAppData>          &soUOE_Data,
