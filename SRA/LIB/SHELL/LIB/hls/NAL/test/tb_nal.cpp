@@ -108,12 +108,12 @@ stream<NetworkMetaStream>   sROLE_Nrc_Tcp_meta  ("sROLE_Nrc_Tcp_meta");
 stream<NetworkWord>             sNRC_Role_Tcp_data  ("sNRC_Role_Tcp_data");
 stream<NetworkMetaStream>   sNRC_Role_Tcp_meta  ("sNRC_Role_Tcp_meta");
 //--FMC TCP connection
-stream<TcpAppData>             sFMC_Nrc_Tcp_data   ("sFMC_Nrc_Tcp_data");
-stream<TcpAppMeta>           sFMC_Nrc_Tcp_sessId ("sFMC_Nrc_Tcp_sessId");
+stream<NetworkWord>        sFMC_Nrc_Tcp_data   ("sFMC_Nrc_Tcp_data");
+stream<TcpSessId>          sFMC_Nrc_Tcp_sessId ("sFMC_Nrc_Tcp_sessId");
 //ap_uint<1>                piFMC_Tcp_data_FIFO_prog_full = 0;
-stream<TcpAppData>             sNRC_FMC_Tcp_data   ("sNRC_FMC_Tcp_data");
+stream<NetworkWord>        sNRC_FMC_Tcp_data   ("sNRC_FMC_Tcp_data");
 //ap_uint<1>                piFMC_Tcp_sessid_FIFO_prog_full = 0;
-stream<TcpAppMeta>           sNRC_FMC_Tcp_sessId ("sNRC_FMC_Tcp_sessId");
+stream<TcpSessId>          sNRC_FMC_Tcp_sessId ("sNRC_FMC_Tcp_sessId");
 //--TOE connection
 stream<TcpAppNotif>         sTOE_Nrc_Notif  ("sTOE_Nrc_Notif");
 stream<TcpAppRdReq>         sNRC_Toe_DReq   ("sNrc_TOE_DReq");
@@ -294,10 +294,11 @@ bool setInputDataStream(stream<NetworkWord> &sDataStream, const string dataStrea
             //printf(strLine.c_str()); printf("\n");
             //sscanf(strLine.c_str(), "%u" PRIx64 " %x %d", &newd, &newk, &newl);
             sscanf(strLine.c_str(), "%llx %x %d", &newd, &newk, &newl);
-            NetworkWord     udpWord;
-            udpWord.tdata = newd; //BE version
-            udpWord.tkeep = newk; //BE version
-            udpWord.tlast = newl; //BE version
+            UdpAppData udpWordTmp;
+            udpWordTmp.setTData(newd); //BE version
+            udpWordTmp.setTKeep(newk); //BE version
+            udpWordTmp.setTLast(newl); //BE version
+            NetworkWord udpWord = NetworkWord(udpWordTmp.getLE_TData(), udpWordTmp.getLE_TKeep(), udpWordTmp.getLE_TLast());
             //printf("scanff reads %llx, %x %d\n", newd, newk, newl);
 
             // Write to sDataStream
@@ -564,7 +565,7 @@ bool getOutputDataStream(stream<NetworkWord> &sDataStream,
     string      strLine;
     ofstream    outFileStream;
     string      datFile = "../../../../test/" + outFileName;
-    NetworkWord udpWord;
+    UdpAppData  udpWord;
     bool        rc = OK;
 
     //-- STEP-1 : OPEN FILE
@@ -576,11 +577,12 @@ bool getOutputDataStream(stream<NetworkWord> &sDataStream,
 
     //-- STEP-2 : EMPTY STREAM AND DUMP DATA TO FILE
     while (!sDataStream.empty()) {
-      sDataStream.read(udpWord);
+      NetworkWord wordtmp = sDataStream.read();
+      udpWord = UdpAppData(wordtmp.tdata, wordtmp.tkeep, wordtmp.tlast);
             // Print DUT/Data to console
             printf("[%4.4d] TB is draining output stream [%s] - Data read = {D=0x%16.16llX, K=0x%2.2X, L=%d} \n",
                     simCnt, dataStreamName.c_str(),
-                    udpWord.tdata.to_uint64(), udpWord.tkeep.to_int(), udpWord.tlast.to_int());
+                    udpWord.getTData().to_uint64(), udpWord.getTData().to_int(), udpWord.getTData().to_int());
             if (!dumpDataToFile(&udpWord, outFileStream)) {
                 rc = KO;
                 break;
@@ -690,14 +692,14 @@ enum RxFsmStates { RX_WAIT_META=0, RX_STREAM } rxFsmState = RX_WAIT_META;
  ******************************************************************************/
 void pFMC(
         //-- TRIF / Rx Data Interface
-        stream<TcpAppData>     &siTRIF_Data,
-        stream<AppMeta>     &siTRIF_SessId,
+        stream<NetworkWord>     &siTRIF_Data,
+        stream<TcpSessId>       &siTRIF_SessId,
         //-- TRIF / Tx Data Interface
-        stream<TcpAppData>     &soTRIF_Data,
-        stream<AppMeta>     &soTRIF_SessId)
+        stream<NetworkWord>     &soTRIF_Data,
+        stream<TcpSessId>       &soTRIF_SessId)
 {
-    TcpAppData currWord;
-    AppMeta     tcpSessId;
+    NetworkWord currWord;
+    TcpSessId   tcpSessId;
 
     const char *myRxName  = concat3(THIS_NAME, "/", "FMC-Rx");
     const char *myTxName  = concat3(THIS_NAME, "/", "FMC-Tx");
@@ -719,7 +721,7 @@ void pFMC(
                  printAxiWord(myRxName, currWord);
             //}
             soTRIF_Data.write(currWord);
-            if (currWord.getTLast() == 1) {
+            if (currWord.tlast == 1) {
                 rxFsmState  = RX_WAIT_META;
             }
         }

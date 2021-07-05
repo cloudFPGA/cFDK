@@ -149,6 +149,7 @@ void pUdpTX(
         }
 
         //to create here due to timing...
+        //dst addres as 0 for now
         txMeta = UdpAppMeta(*ipAddrBE, src_port, 0, dst_port);
 
         //request ip if necessary
@@ -610,7 +611,7 @@ void pUdpRx(
         // Forward data chunk to ROLE
         //NetworkWord    udpWord = siUOE_Data.read();
         UdpAppData udpWordtmp = siUOE_Data.read();
-        NetworkWord udpWord = NetworkWord(udpWordtmp.getTData(), udpWordtmp.getTKeep(), udpWordtmp.getTLast());
+        NetworkWord udpWord = NetworkWord(udpWordtmp.getLE_TData(), udpWordtmp.getLE_TKeep(), udpWordtmp.getLE_TLast());
         soUdp_data.write(udpWord);
         //TODO: should we verify the length of udpRxLen?
 

@@ -81,8 +81,8 @@ void pTcpRDp(
     stream<TcpAppRdReq>       &sRDp_ReqNotif,
     stream<TcpAppData>        &siTOE_Data,
     stream<TcpAppMeta>        &siTOE_SessId,
-    stream<TcpAppData>        &soFMC_data,
-    stream<TcpAppMeta>        &soFMC_SessId,
+    stream<NetworkWord>       &soFMC_data,
+    stream<TcpSessId>         &soFMC_SessId,
     stream<NetworkWord>       &soTcp_data,
     stream<NetworkMetaStream> &soTcp_meta,
     stream<NalConfigUpdate>   &sConfigUpdate,
@@ -109,18 +109,18 @@ void pTcpRDp(
         );
 
     void pFmcTcpRxDeq(
-        stream<TcpAppData>        &sFmcTcpDataRx_buffer,
-        stream<TcpAppMeta>        &sFmcTcpMetaRx_buffer,
-        stream<TcpAppData>        &soFmc_data,
-        stream<TcpAppMeta>        &soFmc_meta,
-        stream<PacketLen>         &fmc_write_cnt_sig
+        stream<NetworkWord>      &sFmcTcpDataRx_buffer,
+        stream<TcpSessId>        &sFmcTcpMetaRx_buffer,
+        stream<NetworkWord>      &soFmc_data,
+        stream<TcpSessId>        &soFmc_meta,
+        stream<PacketLen>        &fmc_write_cnt_sig
         );
 
     void pTcpWRp(
         ap_uint<1>                *layer_4_enabled,
         ap_uint<1>                *piNTS_ready,
-        stream<TcpAppData>        &siFMC_data,
-        stream<TcpAppMeta>        &siFMC_SessId,
+        stream<NetworkWord>       &siFMC_data,
+        stream<TcpSessId>         &siFMC_SessId,
         stream<NetworkWord>       &siTcp_data,
         stream<NetworkMetaStream> &siTcp_meta,
         stream<TcpAppData>        &soTOE_Data,

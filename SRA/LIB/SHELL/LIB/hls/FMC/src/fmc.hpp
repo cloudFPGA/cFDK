@@ -33,10 +33,9 @@
 #include "ap_int.h"
 #include "http.hpp"
 #include "../../../../../hls/cfdk.hpp"
-#include "../../../../../hls/axi_utils.hpp"
 #include "../../../../../hls/network.hpp"
+#include "../../../../../hls/axi_utils.hpp"
 #include "../../network_utils.hpp"
-#include "../../NTS/nts.hpp"
 
 
 using namespace hls;
@@ -327,10 +326,10 @@ void fmc(
     //NRC 
     ap_uint<32> nalCtrl[NAL_CTRL_LINK_SIZE],
     ap_uint<1> *disable_ctrl_link,
-    stream<TcpAppData>       &siNAL_Tcp_data,
-    stream<TcpAppMeta>       &siNAL_Tcp_SessId,
-    stream<TcpAppData>       &soNAL_Tcp_data,
-    stream<TcpAppMeta>       &soNAL_Tcp_SessId,
+    stream<TcpWord>           &siNAL_Tcp_data,
+    stream<AppMeta>           &siNAL_Tcp_SessId,
+    stream<TcpWord>           &soNAL_Tcp_data,
+    stream<AppMeta>           &soNAL_Tcp_SessId,
 #ifdef INCLUDE_PYROLINK
     //Pyrolink
     stream<Axis<8> >  &soPYROLINK,

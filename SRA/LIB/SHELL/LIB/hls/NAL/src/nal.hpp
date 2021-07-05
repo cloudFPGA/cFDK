@@ -369,10 +369,10 @@ void nal_main(
     stream<NetworkMetaStream>   &soTcp_meta,
 
     // -- FMC TCP connection
-    stream<TcpAppData>          &siFMC_data,
-    stream<TcpAppMeta>          &siFMC_SessId,
-    stream<TcpAppData>          &soFMC_data,
-    stream<TcpAppMeta>          &soFMC_SessId,
+    stream<NetworkWord>         &siFMC_data,
+    stream<TcpSessId>           &siFMC_SessId,
+    stream<NetworkWord>         &soFMC_data,
+    stream<TcpSessId>           &soFMC_SessId,
 
     //-- UOE / Control Port Interfaces
     stream<UdpPort>             &soUOE_LsnReq,

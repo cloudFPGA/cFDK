@@ -39,8 +39,8 @@
 #include <assert.h>
 #include "../src/fmc.hpp"
 #include "../../../../../hls/cfdk.hpp"
-#include "../../../../../hls/axi_utils.hpp"
 #include "../../../../../hls/network.hpp"
+#include "../../../../../hls/axi_utils.hpp"
 #include "../../NAL/src/nal.hpp" //AFTER fmc.hpp
 
 #include <stdint.h>
@@ -85,10 +85,10 @@ ap_uint<1>  disable_ctrl_link = 0b0;
 ap_uint<1>  disable_pyro_link = 0b0;
 stream<Axis<8> >  FMC_Debug_Pyrolink    ("FMC_Debug_Pyrolink"); //soPYROLINK
 stream<Axis<8> >  Debug_FMC_Pyrolink    ("Debug_FMC_Pyrolink"); //siPYROLINK
-stream<TcpAppData>   sFMC_NAL_Tcp_data   ("sFMC_Nal_Tcp_data");
-stream<TcpAppMeta>   sFMC_NAL_Tcp_sessId ("sFMC_Nal_Tcp_sessId");
-stream<TcpAppData>   sNAL_FMC_Tcp_data   ("sNAL_FMC_Tcp_data");
-stream<TcpAppMeta>   sNAL_FMC_Tcp_sessId ("sNAL_FMC_Tcp_sessId");
+stream<TcpWord>   sFMC_NAL_Tcp_data   ("sFMC_Nal_Tcp_data");
+stream<AppMeta>   sFMC_NAL_Tcp_sessId ("sFMC_Nal_Tcp_sessId");
+stream<TcpWord>   sNAL_FMC_Tcp_data   ("sNAL_FMC_Tcp_data");
+stream<AppMeta>   sNAL_FMC_Tcp_sessId ("sNAL_FMC_Tcp_sessId");
 
 ap_uint<32> reverse_byte_order(ap_uint<32> input)
 {
@@ -357,44 +357,6 @@ void copyBufferToStream(char *buffer_int, stream<NetworkWord> &tcp_data, int con
 
 }
 
-void copyBufferToStream(char *buffer_int, stream<AxisRaw> &tcp_data, int content_len)
-{
-  printf("Writing %d bytes to Stream: (in hex)\n", content_len);
-  for(int i = 0; i<content_len; i+=8)
-  {
-    ap_uint<64> new_word = 0;
-    ap_uint<8> tkeep = 0;
-    for(int j = 0; j<8; j++)
-    {
-        if(i+j < content_len)
-        {
-          new_word |= ((ap_uint<64>) ((uint8_t) buffer_int[i+j])) << (j*8);
-          tkeep |= ((ap_uint<8>) 1) << j;
-        } else {
-          new_word |= ((ap_uint<64>) ((uint8_t) 0 ))<< (j*8);
-          tkeep |= ((ap_uint<8>) 0) << j;
-        }
-    }
-    //printf("Writing to Stream: 0x%llx\n",(unsigned long long) new_word);
-    //printf("%016llx\n",(unsigned long long) new_word);
-
-    AxisRaw tmp = AxisRaw();
-    tmp.setTData(new_word);
-    tmp.setTKeep(tkeep);
-    if(i >= (content_len - 8))
-    {
-      tmp.setTLast(1);
-    } else {
-      tmp.setTLast(0);
-    }
-
-    printf("%016llx   | %02x  | %d \n",(unsigned long long) new_word, (int) tkeep, (int) tmp.getTLast());
-    tcp_data.write(tmp);
-
-  }
-
-}
-
 void drainStream(stream<NetworkWord> &tcp_data)
 {
   printf("Draining NetworkStream: (in hex)\n");
@@ -403,18 +365,6 @@ void drainStream(stream<NetworkWord> &tcp_data)
   {
     NetworkWord tmp = tcp_data.read();
     printf("%016llx\n",(unsigned long long) tmp.tdata);
-  }
-
-}
-
-void drainStream(stream<AxisRaw> &tcp_data)
-{
-  printf("Draining NetworkStream: (in hex)\n");
-
-  while(!tcp_data.empty())
-  {
-    AxisRaw tmp = tcp_data.read();
-    printf("%016llx\n",(unsigned long long) tmp.getTData());
   }
 
 }
@@ -1374,11 +1324,11 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   
   //check 422
   printf("Check stream:\n0x312e312f50545448\n0x706e552032323420\n0x6261737365636f72\n0x7469746e4520656c\n0x65686361430a0d79\n");
-  assert(sFMC_NAL_Tcp_data.read().getTData() == 0x312e312f50545448);
-  assert(sFMC_NAL_Tcp_data.read().getTData() == 0x706e552032323420);
-  assert(sFMC_NAL_Tcp_data.read().getTData() == 0x6261737365636f72);
-  assert(sFMC_NAL_Tcp_data.read().getTData() == 0x7469746e4520656c);
-  assert(sFMC_NAL_Tcp_data.read().getTData() == 0x65686361430a0d79);
+  assert(sFMC_NAL_Tcp_data.read().tdata == 0x312e312f50545448);
+  assert(sFMC_NAL_Tcp_data.read().tdata == 0x706e552032323420);
+  assert(sFMC_NAL_Tcp_data.read().tdata == 0x6261737365636f72);
+  assert(sFMC_NAL_Tcp_data.read().tdata == 0x7469746e4520656c);
+  assert(sFMC_NAL_Tcp_data.read().tdata == 0x65686361430a0d79);
   //drain remaining
   printf("Partial ");
   drainStream(sFMC_NAL_Tcp_data);
@@ -1693,8 +1643,8 @@ Content-Type: application/x-www-form-urlencodedAB\r\n\r\nffffffffffbb11220044fff
   sessId_back = sFMC_NAL_Tcp_sessId.read();
   assert(sessId.getTData() == sessId_back.getTData());
   printf("Check stream:\n0x312e312f50545448\n0x0d4b4f2030303220\n");
-  assert(sFMC_NAL_Tcp_data.read().getTData() == 0x312e312f50545448);
-  assert(sFMC_NAL_Tcp_data.read().getTData() == 0x0d4b4f2030303220);
+  assert(sFMC_NAL_Tcp_data.read().tdata == 0x312e312f50545448);
+  assert(sFMC_NAL_Tcp_data.read().tdata == 0x0d4b4f2030303220);
   //drain remaining
   printf("Partial ");
   drainStream(sFMC_NAL_Tcp_data);

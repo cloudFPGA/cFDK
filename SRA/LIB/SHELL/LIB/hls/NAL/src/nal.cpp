@@ -491,10 +491,10 @@ void nal_main(
     stream<NetworkMetaStream>   &soTcp_meta,
 
     // -- FMC TCP connection
-    stream<TcpAppData>          &siFMC_data,
-    stream<TcpAppMeta>          &siFMC_SessId,
-    stream<TcpAppData>          &soFMC_data,
-    stream<TcpAppMeta>          &soFMC_SessId,
+    stream<NetworkWord>         &siFMC_data,
+    stream<TcpSessId>           &siFMC_SessId,
+    stream<NetworkWord>         &soFMC_data,
+    stream<TcpSessId>           &soFMC_SessId,
 
     //-- UOE / Control Port Interfaces
     stream<UdpPort>             &soUOE_LsnReq,
@@ -690,8 +690,8 @@ void nal_main(
 
   static stream<bool>                 sCacheInvalDel_Notif ("sCacheInvalDel_Notif");
 
-  static stream<TcpAppData>          sFmcTcpDataRx_buffer ("sFmcTcpDataRx_buffer");
-  static stream<TcpAppMeta>          sFmcTcpMetaRx_buffer ("sFmcTcpMetaRx_buffer");
+  static stream<NetworkWord>         sFmcTcpDataRx_buffer ("sFmcTcpDataRx_buffer");
+  static stream<TcpSessId>           sFmcTcpMetaRx_buffer ("sFmcTcpMetaRx_buffer");
 
 
 #pragma HLS STREAM variable=internal_event_fifo_0 depth=16
