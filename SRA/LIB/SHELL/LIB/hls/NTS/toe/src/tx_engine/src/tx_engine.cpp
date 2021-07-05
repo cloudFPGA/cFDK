@@ -52,6 +52,8 @@ using namespace hls;
 
 #define THIS_NAME "TOE/TXe"
 
+#define FIXME 1
+
 #define TRACE_OFF 0x0000
 #define TRACE_MDL 1 << 1
 #define TRACE_IHC 1 << 2
@@ -64,7 +66,7 @@ using namespace hls;
 #define TRACE_IPS 1 << 9
 #define TRACE_ALL 0xFFFF
 
-#define DEBUG_LEVEL (TRACE_OFF)
+#define DEBUG_LEVEL (TRACE_MDL)
 
 
 /*******************************************************************************
@@ -246,7 +248,7 @@ void pMetaDataLoader(
             break;
 #else
         case TX_EVENT:
-            if (DEBUG_LEVEL & TRACE_MDL) {
+            if (FIXME) { // (DEBUG_LEVEL & TRACE_MDL) {
                 printInfo(myName, "Entering the 'TX' processing.\n");
             }
             // Send everything between txSar.not_ackd and txSar.app
