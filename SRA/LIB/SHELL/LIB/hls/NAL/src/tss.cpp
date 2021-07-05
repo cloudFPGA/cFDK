@@ -1164,7 +1164,7 @@ void pTcpWRp(
 
 
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
-  NetworkWord  currWordIn;
+  //NetworkWord  currWordIn;
   //TcpAppData   currWordOut;
   NalEventNotif new_ev_not;
 
@@ -1462,7 +1462,7 @@ void pTcpWRp(
       }
       else if (!siTcp_data.empty() && !soTOE_Data.full()  && !soTOE_len.full() )
       {
-        currWordIn = siTcp_data.read();
+        NetworkWord currWordIn = siTcp_data.read();
         tcpTX_current_packet_length += extractByteCnt(currWordIn);
         if(!streaming_mode)
         {
@@ -1502,7 +1502,7 @@ void pTcpWRp(
       }
       else if( !siTcp_data.empty())
       {
-        siTcp_data.read(currWordIn);
+        NetworkWord currWordIn = siTcp_data.read();
         tcpTX_current_packet_length += extractByteCnt(currWordIn);
         //until Tlast or length
         if( (tcpTX_packet_length > 0 && tcpTX_current_packet_length >= tcpTX_packet_length)

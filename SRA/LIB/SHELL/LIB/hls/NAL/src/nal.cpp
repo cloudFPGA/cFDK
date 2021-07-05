@@ -97,7 +97,7 @@ uint8_t extractByteCnt(AxisRaw currWord)
 
   uint8_t ret = 0;
 
-  switch (currWord.getTKeep()) {
+  switch (currWord.getLE_TKeep()) {
     case 0b11111111:
       ret = 8;
       break;
