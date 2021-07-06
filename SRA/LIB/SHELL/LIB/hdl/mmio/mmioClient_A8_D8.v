@@ -296,8 +296,8 @@ module MmioClient_A8_D8 #(
   localparam DIAG_STAT_1   = DIAG_REG_BASE +  5;
   localparam DIAG_CTRL_2   = DIAG_REG_BASE +  6;
   // UDP Rx Drop Counter
-  localparam DIAG_URDC0    = DIAG_REG_BASE +  8;
-  localparam DIAG_URDC1    = DIAG_REG_BASE +  9;
+  localparam DIAG_URDC0    = DIAG_REG_BASE +  7;
+  localparam DIAG_URDC1    = DIAG_REG_BASE +  8;
   
   //-- PAGE_REG ----------------------------------------------------------------
   // Extended Page Select Register 
