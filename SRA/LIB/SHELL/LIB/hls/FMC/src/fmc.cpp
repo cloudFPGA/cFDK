@@ -96,6 +96,8 @@ ap_uint<32> fpga_time_seconds = 0;
 ap_uint<32> fpga_time_minutes = 0;
 ap_uint<32> fpga_time_hours   = 0;
 
+ap_uint<16> nts_udp_drop_cnt = 0;
+
 ap_uint<7> lastResponsePageCnt = 0;
 ap_uint<4> responePageCnt = 0; //for Display 4
 
@@ -390,6 +392,14 @@ uint32_t writeDisplaysToOutBuffer()
   bufferOut[bufferOutPtrWrite + 1] = '\n'; 
   bufferOutPtrWrite  += 2;
   len += 2;
+  
+  //print NTS drop count
+  len += writeString("UDP RX drop count: ");
+  len += writeUnsignedLong((uint16_t) nts_udp_drop_cnt, 16);
+  bufferOut[bufferOutPtrWrite + 0] = '\r'; 
+  bufferOut[bufferOutPtrWrite + 1] = '\n'; 
+  bufferOutPtrWrite  += 2;
+  len += 2;
 
   
   len += writeString(httpNL);
@@ -523,6 +533,8 @@ void fmc(
     ap_uint<32> *in_time_hours,
     //get ROLE version
     ap_uint<16> *role_mmio_in,
+    //get UOE drop count
+    ap_uint<16> *uoe_drop_cnt_in,
     //HWICAP and DECOUPLING
     ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup,
     // Soft Reset
@@ -560,6 +572,7 @@ void fmc(
 #pragma HLS INTERFACE ap_vld register port=in_time_minutes name=piTime_minutes
 #pragma HLS INTERFACE ap_vld register port=in_time_hours   name=piTime_hours
 #pragma HLS INTERFACE ap_vld register port=role_mmio_in    name=piRole_mmio
+#pragma HLS INTERFACE ap_vld register port=uoe_drop_cnt_in name=piUOE_drop_cnt
 #pragma HLS INTERFACE ap_stable register port=decoupStatus name=piDECOUP_status
 #pragma HLS INTERFACE ap_ovld register port=setDecoup name=poDECOUP_activate
 #pragma HLS INTERFACE ap_ovld register port=role_rank name=poROLE_rank
@@ -791,6 +804,8 @@ void fmc(
   fpga_time_hours   = *in_time_hours;
 
   current_role_mmio = *role_mmio_in;
+
+  nts_udp_drop_cnt = *uoe_drop_cnt_in;
   
   
   // ++++++++++++++++++ IMMEDIATE ACTIONS +++++++++++++++++++

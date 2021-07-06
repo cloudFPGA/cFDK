@@ -317,6 +317,8 @@ void fmc(
     ap_uint<32> *in_time_hours,
     //get ROLE version
     ap_uint<16> *role_mmio_in,
+    //get UOE drop count
+    ap_uint<16> *uoe_drop_cnt_in,
     //HWICAP and DECOUPLING
     ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup,
     // Soft Reset 
