@@ -1,7 +1,7 @@
 # ###################################################################################################################################
 #
 # @file  : siIPRX_TwentydPkt.dat
-# @brief : A sequence of 20 IPv4 packets following a SYN packet that opens the connection.
+# @brief : A sequence of 20 IPv4 packets.
 #          
 #         6                   5                   4                   3                   2                   1                   0   
 #   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0      

@@ -542,9 +542,12 @@ bool setGlobalParameters(const char *callerName, unsigned int startupDelay, ifst
                     // The test vector file is specifying a minimum number of simulation cycles.
                     int noSimCycles = atoi(stringVector[3].c_str());
                     noSimCycles += startupDelay;
-                    if (noSimCycles > gMaxSimCycles)
+                    if (noSimCycles > gMaxSimCycles) {
                         gMaxSimCycles = noSimCycles;
-                    printInfo(myName, "Requesting the simulation to last for %d cycles. \n", gMaxSimCycles);
+                    }
+                    if ((DEBUG_LEVEL & TRACE_IPRX) or (DEBUG_LEVEL & TRACE_TAIF)) {
+                        printInfo(myName, "Requesting the simulation to last for %d cycles. \n", gMaxSimCycles);
+                    }
                 }
                 else if (stringVector[2] == "FpgaIp4Addr") {
                     char * ptr;
@@ -628,7 +631,9 @@ bool setGlobalParameters(const char *callerName, unsigned int startupDelay, ifst
         }
     } while(!inputFile.eof());
 
-    printInfo(myName, "Done with the parsing of the input test file.\n");
+    if ((DEBUG_LEVEL & TRACE_IPRX) or (DEBUG_LEVEL & TRACE_TAIF)) {
+        printInfo(myName, "Done with the parsing of the input test file.\n");
+    }
 
     // Seek back to the start of stream
     inputFile.clear();
@@ -757,92 +762,92 @@ void cmdTestCommandParser(const char *callerName, vector<string> stringVector) {
     if (stringVector[2] == "RcvdIp4Packet") {
         if (stringVector[3] == "false") {
             gTest_RcvdIp4Packet = false;
-            printInfo(callerName, "Disabling receive IPv4 checker.\n");
+            printWarn(callerName, "Disabling receive IPv4 checker.\n");
         }
         else {
             gTest_RcvdIp4Packet = true;
-            printInfo(callerName, "Enabling  receive IPv4 checker.\n");
+            printWarn(callerName, "Enabling  receive IPv4 checker.\n");
         }
     }
     else if (stringVector[2] == "RcvdIp4TotLen") {
         if (stringVector[3] == "false") {
             gTest_RcvdIp4TotLen = false;
-            printInfo(callerName, "Disabling receive IPv4-Total-Length checker.\n");
+            printWarn(callerName, "Disabling receive IPv4-Total-Length checker.\n");
         }
         else {
             gTest_RcvdIp4HdrCsum = true;
-            printInfo(callerName, "Enabling  receive IPv4-Total_Length checker.\n");
+            printWarn(callerName, "Enabling  receive IPv4-Total_Length checker.\n");
         }
     }
     else if (stringVector[2] == "RcvdIp4HdrCsum") {
         if (stringVector[3] == "false") {
             gTest_RcvdIp4HdrCsum = false;
-            printInfo(callerName, "Disabling receive IPv4-Header-Checksum checker.\n");
+            printWarn(callerName, "Disabling receive IPv4-Header-Checksum checker.\n");
         }
         else {
             gTest_RcvdIp4HdrCsum = true;
-            printInfo(callerName, "Enabling  receive IPv4-Header-Checksum checker.\n");
+            printWarn(callerName, "Enabling  receive IPv4-Header-Checksum checker.\n");
         }
     }
     else if (stringVector[2] == "RcvdUdpLen") {
         if (stringVector[3] == "false") {
             gTest_RcvdUdpLen = false;
-            printInfo(callerName, "Disabling receive UDP-Length Checker.\n");
+            printWarn(callerName, "Disabling receive UDP-Length Checker.\n");
         }
         else {
             gTest_RcvdUdpLen = true;
-            printInfo(callerName, "Enabling  receive IPv4-Header-Checksum checker.\n");
+            printWarn(callerName, "Enabling  receive IPv4-Header-Checksum checker.\n");
         }
     }
     else if (stringVector[2] == "RcvdLy4Csum") {
         if (stringVector[3] == "false") {
             gTest_RcvdLy4Csum = false;
-            printInfo(callerName, "Disabling receive TCP|UDP-Checksum checker.\n");
+            printWarn(callerName, "Disabling receive TCP|UDP-Checksum checker.\n");
         }
         else {
             gTest_RcvdUdpLen = true;
-            printInfo(callerName, "Enabling  receive TCP|UDP-Checksum checker.\n");
+            printWarn(callerName, "Enabling  receive TCP|UDP-Checksum checker.\n");
         }
     }
     //-- SEND CHECKERS ----------------
     if (stringVector[2] == "SentIp4TotLen") {
         if (stringVector[3] == "false") {
             gTest_SentIp4TotLen = false;
-            printInfo(callerName, "Disabling send IPv4-Total-Length checker.\n");
+            printWarn(callerName, "Disabling send IPv4-Total-Length checker.\n");
         }
         else {
             gTest_SentIp4HdrCsum = true;
-            printInfo(callerName, "Enabling  send IPv4-Total_Length checker.\n");
+            printWarn(callerName, "Enabling  send IPv4-Total_Length checker.\n");
         }
     }
     else if (stringVector[2] == "SentIp4HdrCsum") {
         if (stringVector[3] == "false") {
             gTest_SentIp4HdrCsum = false;
-            printInfo(callerName, "Disabling send IPv4-Header-Checksum checker.\n");
+            printWarn(callerName, "Disabling send IPv4-Header-Checksum checker.\n");
         }
         else {
             gTest_SentIp4HdrCsum = true;
-            printInfo(callerName, "Enabling  send IPv4-Header-Checksum checker.\n");
+            printWarn(callerName, "Enabling  send IPv4-Header-Checksum checker.\n");
         }
     }
     else if (stringVector[2] == "SentUdpLen") {
         if (stringVector[3] == "false") {
             gTest_SentUdpLen = false;
-            printInfo(callerName, "Disabling send UDP-Length Checker.\n");
+            printWarn(callerName, "Disabling send UDP-Length Checker.\n");
         }
         else {
             gTest_SentUdpLen = true;
-            printInfo(callerName, "Enabling  send IPv4-Header-Checksum checker.\n");
+            printWarn(callerName, "Enabling  send IPv4-Header-Checksum checker.\n");
         }
     }
     else if (stringVector[2] == "SentLy4Csum") {
         if (stringVector[3] == "false") {
             gTest_SentLy4Csum = false;
-            printInfo(callerName, "Disabling send TCP|UDP-Checksum checker.\n");
+            printWarn(callerName, "Disabling send TCP|UDP-Checksum checker.\n");
         }
         else {
             gTest_SentUdpLen = true;
-            printInfo(callerName, "Enabling  send TCP|UDP-Checksum checker.\n");
+            printWarn(callerName, "Enabling  send TCP|UDP-Checksum checker.\n");
         }
     }
     return;
@@ -890,8 +895,10 @@ int pIPRX_InjectAckNumber(
             else {
                 // Create a new entry (with TcpAckNum=0) in the session table
                 sessAckList[newSockPair] = 0;
-                printInfo(myName, "Successfully opened a new session for connection:\n");
-                printSockPair(myName, newSockPair);
+                if (DEBUG_LEVEL & TRACE_IPRX) {
+                    printInfo(myName, "Successfully opened a new session for connection:\n");
+                    printSockPair(myName, newSockPair);
+                }
                 return 0;
             }
         }
@@ -1530,8 +1537,10 @@ bool pTcpAppListen(
             if (rc) {
                 // Add the current port # to the set of opened ports
                 openedPorts.insert(tal_portNum);
-                printInfo(myName, "TOE is now listening on port %d (0x%4.4X).\n",
-                          tal_portNum.to_uint(), tal_portNum.to_uint());
+                if (DEBUG_LEVEL & TRACE_Tal) {
+                    printInfo(myName, "TOE is now listening on port %d (0x%4.4X).\n",
+                              tal_portNum.to_uint(), tal_portNum.to_uint());
+                }
             }
             else {
                 printWarn(myName, "TOE denied listening on port %d (0x%4.4X).\n",
