@@ -450,6 +450,8 @@ void pUdpLsn(
 /*****************************************************************************
  * @brief Processes the incoming UDP packets (i.e. Network -> ROLE ).
  *
+ * @param[in]   layer_7_enabled,       External signal if layer 7 is enabled
+ * @param[in]   role_decoupled,        External signal if the role is decoupled
  * @param[out]  soUdp_data,            UDP Data for the Role
  * @param[out]  soUdp_meta,            UDP Metadata for the Role
  * @param[in]   siUOE_Data,            UDP Data from the UOE
@@ -463,6 +465,8 @@ void pUdpLsn(
  *
  ******************************************************************************/
 void pUdpRx(
+    ap_uint<1>                  *layer_7_enabled,
+    ap_uint<1>                  *role_decoupled,
     stream<NetworkWord>         &soUdp_data,
     stream<NetworkMetaStream>   &soUdp_meta,
     stream<UdpAppData>          &siUOE_Data,
@@ -507,6 +511,7 @@ void pUdpRx(
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
   NalEventNotif new_ev_not;
   NetworkMetaStream in_meta_udp_stream;
+  bool role_disabled = (*layer_7_enabled == 0 || *role_decoupled == 1);
 
 
   switch(fsmStateRX_Udp) {
@@ -544,6 +549,14 @@ void pUdpRx(
         siUOE_Meta.read(udpRxMeta);
         siUOE_DLen.read(udpRxLen);
         src_id = (NodeId) INVALID_MRT_VALUE;
+
+        if(role_disabled)
+        {
+          fsmStateRX_Udp = FSM_DROP_PACKET;
+          //no notifications necessary, UOE counts?
+          cache_init = false;
+          break;
+        }
 
         //to create here due to timing...
         in_meta = NetworkMeta(own_rank, udpRxMeta.udpDstPort, 0, udpRxMeta.udpSrcPort, udpRxLen);
@@ -676,7 +689,7 @@ void pRoleUdpRxDeq(
   //-- LOCAL DATAFLOW VARIABLES ---------------------------------------------
   NetworkWord cur_word = NetworkWord();
   NetworkMetaStream cur_meta = NetworkMetaStream();
-  bool role_disabled = (*layer_7_enabled == 0 && *role_decoupled == 1);
+  bool role_disabled = (*layer_7_enabled == 0 || *role_decoupled == 1);
 
   switch(deqFsmState)
   {

@@ -813,7 +813,8 @@ void nal_main(
 
   pUdpLsn(soUOE_LsnReq, siUOE_LsnRep, sUdpPortsToOpen, sUdpPortsOpenFeedback);
 
-  pUdpRx(sRoleUdpDataRx_buffer, sRoleUdpMetaRx_buffer, siUOE_Data, siUOE_Meta, siUOE_DLen,
+  pUdpRx(layer_7_enabled, role_decoupled, sRoleUdpDataRx_buffer, sRoleUdpMetaRx_buffer,
+      siUOE_Data, siUOE_Meta, siUOE_DLen,
       sA4lToUdpRx, sGetNidReq_UdpRx, sGetNidRep_UdpRx,
       sCacheInvalSig_1, internal_event_fifo_1);
 

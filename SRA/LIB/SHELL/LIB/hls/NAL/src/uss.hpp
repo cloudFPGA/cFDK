@@ -47,9 +47,9 @@ using namespace hls;
 void pUdpTX(
     stream<NetworkWord>         &siUdp_data,
     stream<NetworkMetaStream>   &siUdp_meta,
-      stream<UdpAppData>        &soUOE_Data,
-      stream<UdpAppMeta>        &soUOE_Meta,
-      stream<UdpAppDLen>        &soUOE_DLen,
+    stream<UdpAppData>          &soUOE_Data,
+    stream<UdpAppMeta>          &soUOE_Meta,
+    stream<UdpAppDLen>          &soUOE_DLen,
     stream<NodeId>              &sGetIpReq_UdpTx,
     stream<Ip4Addr>             &sGetIpRep_UdpTx,
     const ap_uint<32>           *ipAddrBE,
@@ -69,6 +69,8 @@ void pUoeUdpTxDeq(
     );
 
 void pUdpRx(
+    ap_uint<1>                  *layer_7_enabled,
+    ap_uint<1>                  *role_decoupled,
     stream<NetworkWord>         &soUdp_data,
     stream<NetworkMetaStream>   &soUdp_meta,
     stream<UdpAppData>          &siUOE_Data,
@@ -100,8 +102,8 @@ void pUdpLsn(
     );
 
 void pUdpCls(
-      stream<UdpPort>           &soUOE_ClsReq,
-      stream<StsBool>           &siUOE_ClsRep,
+    stream<UdpPort>             &soUOE_ClsReq,
+    stream<StsBool>             &siUOE_ClsRep,
     stream<UdpPort>             &sUdpPortsToClose
     );
 
