@@ -187,31 +187,30 @@ The events are handled with a best-effort methodology, because the NAL won't blo
 
 The NAL maintains a set of registers that reports some events and internal states for debugging reasons. The registers are all 32bit wide, but some of them are devided to report multiple events, as shown below:
 
-| `ctrlLink` address | bit address | description |
-|:------------------:|:-----------:|:------------|
-| 0x90 | 31 -- 0 | Current version of the MRT (counter since power-on) |
-| 0x91 | 31 -- 0 | Currently opened UDP ports (vector encoded, as described above) |
-| 0x92 | 31 -- 0 | Currently opened TCP ports (for the Role, vector encoded) |
-| 0x93 | 31 -- 0 | Currently opened privileged TCP port (for the FMC, absolute number) |
-| 0x94 | 31 -- 0 | FMC unauthorized access count |
-| 0x95 | 31 -- 0 | FMC authorized access count |
-| 0x96 | 31 -- 0 | Unused |
-| 0x97 | 31 -- 0 | Unused |
-| 0x98 | 31 -- 0 | Number of *bytes* received for the FMC in total |
-| 0x99 | 15 -- 0 | Last RX NodeId |
-| 0x99 | 31 -- 16| Last RX Port (absolute number) |
-| 0x9a | 15 -- 0 | Number of packets received with an invalid/unkown ip address (i.e. not part of the cluster) |
-| 0x9a | 31 -- 15| Number of packets tried to send to an invalid port |
-| 0x9b | 15 -- 0 | Last TX NodeId |
-| 0x9b | 31 -- 16| Last TX Port (absolute number) |
-| 0x9c | 15 -- 0 | Number of packets tried to send to an invalid/unkown ip address (i.e. not part of the cluster) |
-| 0x9c | 31 -- 16| Number of TCP connection failures/timeouts (TX side) |
-| 0x9d | 31 -- 0 | NodeId of this NAL |
-| 0x9e | 31 -- 0 | Total number of packets received (for TCP: based on `tlast` of seqments) |
-| 0x9f | 31 -- 0 | Total number of packets send (for TCP: based on `tlast` of seqments) |
+| `ctrlLink` address | bit address | description                                                                                    |
+|:------------------:|:-----------:|:---------------------------------------------------------------------------------------------- |
+| 0x90               | 31 -- 0     | Current version of the MRT (counter since power-on)                                            |
+| 0x91               | 31 -- 0     | Currently opened UDP ports (vector encoded, as described above)                                |
+| 0x92               | 31 -- 0     | Currently opened TCP ports (for the Role, vector encoded)                                      |
+| 0x93               | 31 -- 0     | Currently opened privileged TCP port (for the FMC, absolute number)                            |
+| 0x94               | 31 -- 0     | FMC unauthorized access count                                                                  |
+| 0x95               | 31 -- 0     | FMC authorized access count                                                                    |
+| 0x96               | 31 -- 0     | Unused                                                                                         |
+| 0x97               | 31 -- 0     | Unused                                                                                         |
+| 0x98               | 31 -- 0     | Number of *bytes* received for the FMC in total                                                |
+| 0x99               | 15 -- 0     | Last RX NodeId                                                                                 |
+| 0x99               | 31 -- 16    | Last RX Port (absolute number)                                                                 |
+| 0x9a               | 15 -- 0     | Number of packets received with an invalid/unkown ip address (i.e. not part of the cluster)    |
+| 0x9a               | 31 -- 15    | Number of packets tried to send to an invalid port                                             |
+| 0x9b               | 15 -- 0     | Last TX NodeId                                                                                 |
+| 0x9b               | 31 -- 16    | Last TX Port (absolute number)                                                                 |
+| 0x9c               | 15 -- 0     | Number of packets tried to send to an invalid/unkown ip address (i.e. not part of the cluster) |
+| 0x9c               | 31 -- 16    | Number of TCP connection failures/timeouts (TX side)                                           |
+| 0x9d               | 31 -- 0     | NodeId of this NAL                                                                             |
+| 0x9e               | 31 -- 0     | Total number of packets received (for TCP: based on `tlast` of seqments)                       |
+| 0x9f               | 31 -- 0     | Total number of packets send (for TCP: based on `tlast` of seqments)                           |
 
 The FMC of the Themisto Shell requests this status registers regularly and includes them in the corresponding HTTP responses. Some of the debugging registers are also reported to the user, via the `flight recorder data`-functionality of the CFRM.
-
 
 ## Latencies of the components
 

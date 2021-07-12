@@ -6,7 +6,7 @@ There exists a stream-based memory port, as wall a AXI4 (full) memory secondary.
 
 ## node2node communication
 
-## Port opening
+### Port opening
 
 The management of the **listen ports** is silently done in the background, **but only the following port range is allowed, currently**:
 
@@ -31,8 +31,8 @@ The routing tables are configured during the cluster setup by the *cloudFPGA Res
 
 #### Known limitations
 
-Currently, only *node-ids smaller than 63* are supported.
-For TCP, *only 8 parallel connections per FPGA* are possible for the time being (i.e. connections in the sense of different TCP-sessions that are not-yet closed).
+*Currently, only node-ids smaller than 634 are supported* (i.e. `0 -- 63`). 
+For *TCP, only 8 parallel connections per FPGA* are possible for the time being (i.e. connections in the sense of different TCP-sessions that are not-yet closed).
 
 ### HLS structs
 
@@ -70,7 +70,7 @@ struct NetworkMetaStream {
 As long as there is only one Role per FPGA node supported, the `rank` is equivalent to `node_id`. 
 
 The *`len` field can be 0*, if the data stream sets `tlast` accordingly. If no `tlast` will be set, the length must be specified in advance!.
-*The SHELL will always set the `tlast` bit*, and the `len` field only if it is known in advance.
+The SHELL will *always* set the `tlast` bit *and* the `len` field.
 
 ### Example
 
@@ -108,17 +108,45 @@ For each data stream *one valid* transaction of the meta stream *must be issued 
 The network stack does not process a data stream, before a valid Meta-word was received.
 
 If the `len` field in the Meta-Stream is set, there is no need for the `tlast` for data streams from the ROLE to the SHELL.
-If the `len` field is specified (i.e. != 0), the latency of the packet processing will be lower, because the network stack will not need to buffer the packet in oder to determine the length. 
+If the `len` field is specified (i.e. != 0), the latency of the packet processing will be slightly lower, because the network stack will not need to buffer the packet in order to determine the length. 
 
 ### Error handling
 
-Some Counters and date from the last processed packet can be requested through the `GET /instances/{instance_id}/flight_recorder_data` or `GET /clusters/{cluster_id}/flight_recorder_data` calls from the CloudFPGA Resource Manager API.
+Some counters and meta data from the last processed packet can be requested through the `GET /instances/{instance_id}/flight_recorder_data` or `GET /clusters/{cluster_id}/flight_recorder_data` HTTP requests at the CloudFPGA Resource Manager (CFRM) API.
 
-RX path:
+#### RX path:
+
 If the packet comes from an unknown IP address, the packet will be dropped (and the corresponding `node_id_missmatch_RX` counter in the "Flight data" will be increased).
 
-TX path:
+#### TX path:
+
 If the user tries to send to an unknown node-id, the packet will be dropped (and the corresponding `node_id_missmatch_TX` counter in the "Flight data" will be increased).
+
+### UDP packet dropping/loss
+
+The UDP protocol has no flow-control, i.e. if the sender sends more or faster packets than the receiver can process, the packets will be dropped by the network stacks (Linux on CPU and the cloudFPGA NTS). 
+
+#### UDP buffer in the SHELL
+
+The cFDK network stack has built-in FIFOs to store some UDP packets before UDP packets are dropped, in case the ROLE is not reading them fast enough.
+
+Since payload and header data are stored separately, the following two FIFOs exist (NTS & NAL combined):
+
+* 18KB payload (+/- 2*MTU)
+
+* 98 headers (+/- 2)
+
+The network stack will drop newly arriving UDP packets if *one* of the two FIFOs above is full (whatever will happen first). 
+
+The number of dropped UDP packets can be requested via the debugging APIs (`fligh_recorder_data`) of the CFRM. 
+
+*Please Note: The mentioned buffers are filled first, before packets are dropped.* Hence, the first dropped packet will not be the first packet where the ROLE was to slow to process. 
+
+#### Increasing network buffer on Linux
+
+1. increase the allowed maximum `sudo sysctl -w net.core.rmem_max=2147483647`
+
+2. request to increase the buffer *per socket*, i.e. in C with `setsockopt(sock, SOL_SOCKET, SO_RCVBUF, &recvBufSize, sizeof(recvBufSize))`
 
 ## Role templates
 
