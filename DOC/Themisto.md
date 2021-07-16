@@ -132,7 +132,7 @@ The cFDK network stack has built-in FIFOs to store some UDP packets before UDP p
 
 Since payload and header data are stored separately, the following two FIFOs exist (NTS & NAL combined):
 
-* 18KB payload (+/- `1* MTU`)
+* 18KB payload (+/- `1*MTU`)
 
 * 98 headers (+/- 1)
 
