@@ -90,17 +90,16 @@ void tx_sar_table(
     //-- STATIC ARRAYS ---------------------------------------------------------
     static TxSarEntry               TX_SAR_TABLE[TOE_MAX_SESSIONS];
     #pragma HLS DEPENDENCE variable=TX_SAR_TABLE inter false
-    //OBSOLETE_20210424 #pragma HLS RESOURCE   variable=TX_SAR_TABLE core=RAM_T2P_BRAM
-    //OBSOLETE_20210423 #pragma HLS RESET      variable=TX_SAR_TABLE
+    #pragma HLS RESOURCE   variable=TX_SAR_TABLE core=RAM_T2P_BRAM
 
     if (!siTXe_TxSarQry.empty()) {
         TXeTxSarQuery sTXeQry;
         //----------------------------------------
-        //-- Query from TX Engine
+        //-- Rd/Wr Query from TX Engine
         //----------------------------------------
         siTXe_TxSarQry.read(sTXeQry);
         if (sTXeQry.write) {
-            //-- Write Query
+            //-- TXe Write Query
             if (!sTXeQry.isRtQuery) {
                 TX_SAR_TABLE[sTXeQry.sessionID].unak = sTXeQry.not_ackd;
                 if (sTXeQry.init) {
@@ -122,7 +121,7 @@ void tx_sar_table(
                 }
             }
             else {
-                //-- Write RtQuery
+                //-- TXe Write RtQuery
                 TXeTxSarRtQuery sTXeRtQry = sTXeQry;
                 TX_SAR_TABLE[sTXeQry.sessionID].slowstart_threshold = sTXeRtQry.getThreshold();
                 TX_SAR_TABLE[sTXeQry.sessionID].cong_window = 0x3908; // 10 x 1460(MSS) TODO is this correct or less, eg. 1/2 * MSS
@@ -133,7 +132,7 @@ void tx_sar_table(
             }
         }
         else {
-            //-- Read Query
+            //-- TXe Read Query
             TxSarEntry txSarEntry = TX_SAR_TABLE[sTXeQry.sessionID];
 
             TcpWindow   minWindow;
@@ -154,15 +153,16 @@ void tx_sar_table(
     else if (!siTAi_PushCmd.empty()) {
         TAiTxSarPush sTAiCmd;
         //---------------------------------------
-        //-- Update the 'txAppPtr' in the table
+        //-- Wr Command from TX APP Interface
         //---------------------------------------
         siTAi_PushCmd.read(sTAiCmd);
+        //--  Update the 'txAppWrPtr'
         TX_SAR_TABLE[sTAiCmd.sessionID].appw = sTAiCmd.app;
     }
     else if (!siRXe_TxSarQry.empty()) {
         RXeTxSarQuery sRXeQry;
         //---------------------------------------
-        //-- RX Engine
+        //-- Rd/Wr Query from RX Engine
         //---------------------------------------
         siRXe_TxSarQry.read(sRXeQry);
         if (sRXeQry.write) {
