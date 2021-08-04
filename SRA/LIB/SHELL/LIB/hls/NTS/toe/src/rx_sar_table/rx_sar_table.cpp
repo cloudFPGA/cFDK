@@ -108,37 +108,73 @@ void rx_sar_table(
 
     if(!siTXe_RxSarReq.empty()) {
         SessionId sessId;
-        // Read only access from the Tx Engine
+        //---------------------------------------
+        // [TXe] - Read only access
+        //---------------------------------------
         siTXe_RxSarReq.read(sessId);
         soTxe_RxSarRep.write(RxSarReply(RX_SAR_TABLE[sessId].appd,
                                         RX_SAR_TABLE[sessId].rcvd,
                                         RX_SAR_TABLE[sessId].ooo,
                                         RX_SAR_TABLE[sessId].oooHead,
                                         RX_SAR_TABLE[sessId].oooTail));
+        if (DEBUG_LEVEL & TRACE_RST) {
+            RxBufPtr free_space = ((RX_SAR_TABLE[sessId].appd -
+                          (RxBufPtr)RX_SAR_TABLE[sessId].oooHead(TOE_WINDOW_BITS-1, 0)) - 1);
+            printInfo(myName, "[TXe] Read  S%d - FreeSpace=%d\n",
+                              sessId.to_uint(), free_space.to_uint());
+        }
     }
     else if(!siRAi_RxSarQry.empty()) {
         RAiRxSarQuery raiQry;
-        // Read or write access from [TAi] to update the application pointer
+        //----------------------------------------------------------------
+        // [RAi] - Read or write access to update the application pointer
+        //----------------------------------------------------------------
         siRAi_RxSarQry.read(raiQry);
         if(raiQry.write) {
             RX_SAR_TABLE[raiQry.sessionID].appd = raiQry.appd;
+            if (DEBUG_LEVEL & TRACE_RST) {
+                RxBufPtr free_space = ((RX_SAR_TABLE[raiQry.sessionID].appd -
+                              (RxBufPtr)RX_SAR_TABLE[raiQry.sessionID].oooHead(TOE_WINDOW_BITS-1, 0)) - 1);
+                printInfo(myName, "[RAi] Write S%d - FreeSpace=%d\n",
+                                  raiQry.sessionID.to_uint(), free_space.to_uint());
+            }
         }
         else {
             soRAi_RxSarRep.write(RAiRxSarReply(raiQry.sessionID,
                                                RX_SAR_TABLE[raiQry.sessionID].appd));
+            if (DEBUG_LEVEL & TRACE_RST) {
+                RxBufPtr free_space = ((RX_SAR_TABLE[raiQry.sessionID].appd -
+                              (RxBufPtr)RX_SAR_TABLE[raiQry.sessionID].oooHead(TOE_WINDOW_BITS-1, 0)) - 1);
+                printInfo(myName, "[RAi] Read  S%d - FreeSpace=%d\n",
+                                  raiQry.sessionID.to_uint(), free_space.to_uint());
+            }
         }
     }
     else if(!siRXe_RxSarQry.empty()) {
         RXeRxSarQuery rxeQry = siRXe_RxSarQry.read();
+        //---------------------------------------
+        // [RXe] - Write access
+        //---------------------------------------
         if (rxeQry.write) {
-            // Write access from [RXe]
-            RX_SAR_TABLE[rxeQry.sessionID].rcvd    = rxeQry.rcvd;
-            RX_SAR_TABLE[rxeQry.sessionID].ooo     = rxeQry.ooo;
-            RX_SAR_TABLE[rxeQry.sessionID].oooHead = rxeQry.oooHead;
-            RX_SAR_TABLE[rxeQry.sessionID].oooTail = rxeQry.oooTail;
-
+            RX_SAR_TABLE[rxeQry.sessionID].rcvd = rxeQry.rcvd;
             if (rxeQry.init) {
-                RX_SAR_TABLE[rxeQry.sessionID].appd = rxeQry.rcvd;
+                RX_SAR_TABLE[rxeQry.sessionID].appd    = rxeQry.rcvd;
+            }
+            if (rxeQry.ooo) {
+                RX_SAR_TABLE[rxeQry.sessionID].ooo     = true;
+                RX_SAR_TABLE[rxeQry.sessionID].oooHead = rxeQry.oooHead;
+                RX_SAR_TABLE[rxeQry.sessionID].oooTail = rxeQry.oooTail;
+            }
+            else {
+                RX_SAR_TABLE[rxeQry.sessionID].ooo     = false;
+                RX_SAR_TABLE[rxeQry.sessionID].oooHead = rxeQry.rcvd;
+                RX_SAR_TABLE[rxeQry.sessionID].oooTail = rxeQry.rcvd;
+            }
+            if (DEBUG_LEVEL & TRACE_RST) {
+                RxBufPtr free_space = ((RX_SAR_TABLE[rxeQry.sessionID].appd -
+                              (RxBufPtr)RX_SAR_TABLE[rxeQry.sessionID].oooHead(TOE_WINDOW_BITS-1, 0)) - 1);
+                printInfo(myName, "[RXe] Write S%d - FreeSpace=%d\n",
+                                  rxeQry.sessionID.to_uint(), free_space.to_uint());
             }
         }
         else {
@@ -148,6 +184,12 @@ void rx_sar_table(
                                             RX_SAR_TABLE[rxeQry.sessionID].ooo,
                                             RX_SAR_TABLE[rxeQry.sessionID].oooHead,
                                             RX_SAR_TABLE[rxeQry.sessionID].oooTail));
+            if (DEBUG_LEVEL & TRACE_RST) {
+                RxBufPtr free_space = ((RX_SAR_TABLE[rxeQry.sessionID].appd -
+                              (RxBufPtr)RX_SAR_TABLE[rxeQry.sessionID].oooHead(TOE_WINDOW_BITS-1, 0)) - 1);
+                printInfo(myName, "[RXe] Read  S%d - FreeSpace=%d\n",
+                                  rxeQry.sessionID.to_uint(), free_space.to_uint());
+            }
         }
     }
 }
