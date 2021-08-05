@@ -138,11 +138,12 @@ void pMetaDataLoader(
     static ExtendedEvent  mdl_curEvent;
     static RxSarReply     mdl_rxSar;
     static TXeTxSarReply  mdl_txSar;
-    static ap_uint<32>    mdl_randomValue= 0x562301af; // [FIXME - Add a random Initial Sequence Number in EMIF]
+    //OBSOLETE_20210728 static ap_uint<32>    mdl_randomValue= 0x562301af; // [FIXME - Add a random Initial Sequence Number in EMIF]
+    static ap_uint<32>    mdl_randomValue = 100000; // [FIXME - Add a random Initial Sequence Number in EMIF]
     static TXeMeta        mdl_txeMeta;
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
-    TcpWindow             windowSize;
+    TcpWindow             winSize;
     TcpWindow             usableWindow;
     TcpDatLen             currDatLen;
     ap_uint<16>           slowstart_threshold;
@@ -210,10 +211,10 @@ void pMetaDataLoader(
                 }
 
                 // Compute our space, Advertise at least a quarter/half, otherwise 0
-                windowSize = (rxSar.appd - ((ap_uint<16>)rxSar.recvd)) - 1; // This works even for wrap around
+                winSize = (rxSar.appd - ((ap_uint<16>)rxSar.recvd)) - 1; // This works even for wrap around
                 meta.ackNumb = rxSar.recvd;
                 meta.seqNumb = mdl_txSar.not_ackd;
-                meta.window_size = windowSize;
+                meta.window_size = winSize;
                 meta.ack = 1; // ACK is always set when established
                 meta.rst = 0;
                 meta.syn = 0;
@@ -258,10 +259,12 @@ void pMetaDataLoader(
                     siTSt_TxSarRep.read(mdl_txSar);
                 }
                 // Compute our space, Advertise at least a quarter/half, otherwise 0
-                windowSize = (mdl_rxSar.appd - ((RxBufPtr)mdl_rxSar.rcvd)) - 1; // This works even for wrap around
+                //OBSOLETE_20210801 windowSize = (mdl_rxSar.appd - ((RxBufPtr)mdl_rxSar.rcvd)) - 1; // This works even for wrap around
+                //[FIXME-TODO: It is better to compute and maintain the window_size in the [Rst] module]
+                winSize = ((mdl_rxSar.appd - (RxBufPtr)mdl_rxSar.oooHead(TOE_WINDOW_BITS-1, 0)) - 1);
                 mdl_txeMeta.ackNumb = mdl_rxSar.rcvd;
                 mdl_txeMeta.seqNumb = mdl_txSar.not_ackd;
-                mdl_txeMeta.winSize = windowSize;
+                mdl_txeMeta.winSize = winSize;
                 mdl_txeMeta.ack = 1; // ACK is always set when ESTABISHED
                 mdl_txeMeta.rst = 0;
                 mdl_txeMeta.syn = 0;
@@ -353,14 +356,16 @@ void pMetaDataLoader(
                     siTSt_TxSarRep.read(mdl_txSar);
                 }
                 // Compute our window size
-                windowSize = (mdl_rxSar.appd - ((RxBufPtr)mdl_rxSar.rcvd)) - 1; // This works even for wrap around
+                //OBSOLETE_20210801 winSize = (mdl_rxSar.appd - ((RxBufPtr)mdl_rxSar.rcvd)) - 1; // This works even for wrap around
+                //[FIXME-TODO: It is better to compute and maintain the window_size in the [Rst] module]
+                winSize = ((mdl_rxSar.appd - (RxBufPtr)mdl_rxSar.oooHead(TOE_WINDOW_BITS-1, 0)) - 1);
                 if (!mdl_txSar.finSent) // No FIN sent
                     currDatLen = ((TxBufPtr) mdl_txSar.not_ackd - mdl_txSar.ackd);
                 else // FIN already sent
                     currDatLen = ((TxBufPtr) mdl_txSar.not_ackd - mdl_txSar.ackd)-1;
                 mdl_txeMeta.ackNumb = mdl_rxSar.rcvd;
                 mdl_txeMeta.seqNumb = mdl_txSar.ackd;
-                mdl_txeMeta.winSize = windowSize;
+                mdl_txeMeta.winSize = winSize;
                 mdl_txeMeta.ack = 1; // ACK is always set when session is established
                 mdl_txeMeta.rst = 0;
                 mdl_txeMeta.syn = 0;
@@ -424,14 +429,16 @@ void pMetaDataLoader(
         case ACK_EVENT:
         case ACK_NODELAY_EVENT:
             if (DEBUG_LEVEL & TRACE_MDL) { printInfo(myName, "Entering the 'ACK' processing.\n"); }
-            if (!siRSt_RxSarRep.empty() && !siTSt_TxSarRep.empty()) {
+            if (!siRSt_RxSarRep.empty() and !siTSt_TxSarRep.empty()) {
                 siRSt_RxSarRep.read(mdl_rxSar);
                 siTSt_TxSarRep.read(mdl_txSar);
 
-                windowSize = (mdl_rxSar.appd - ((RxMemPtr)mdl_rxSar.rcvd)) - 1;
+                //[FIXME-TODO: It is better to compute and maintain the window_size in the [Rst] module]
+                //OBSOLETE_20210801 windowSize = (mdl_rxSar.appd - ((RxMemPtr)mdl_rxSar.rcvd)) - 1;
+                winSize = ((mdl_rxSar.appd - (RxBufPtr)mdl_rxSar.oooHead(TOE_WINDOW_BITS-1, 0)) - 1);
                 mdl_txeMeta.ackNumb = mdl_rxSar.rcvd;
                 mdl_txeMeta.seqNumb = mdl_txSar.not_ackd; //Always send SEQ
-                mdl_txeMeta.winSize = windowSize;
+                mdl_txeMeta.winSize = winSize;
                 mdl_txeMeta.length  = 0;
                 mdl_txeMeta.ack = 1;
                 mdl_txeMeta.rst = 0;
@@ -479,6 +486,7 @@ void pMetaDataLoader(
             if (!siRSt_RxSarRep.empty() && !siTSt_TxSarRep.empty()) {
                 siRSt_RxSarRep.read(mdl_rxSar);
                 siTSt_TxSarRep.read(mdl_txSar);
+
                 // Construct SYN_ACK message
                 mdl_txeMeta.ackNumb = mdl_rxSar.rcvd;
                 mdl_txeMeta.winSize = 0xFFFF;
@@ -514,10 +522,12 @@ void pMetaDataLoader(
                     siTSt_TxSarRep.read(mdl_txSar);
                 }
                 // Construct FIN message
-                windowSize = (mdl_rxSar.appd - ((RxMemPtr)mdl_rxSar.rcvd)) - 1;
+                //OBSOLETE_20210801 winSize = (mdl_rxSar.appd - ((RxMemPtr)mdl_rxSar.rcvd)) - 1;
+                //[FIXME-TODO: It is better to compute and maintain the window_size in the [Rst] module]
+                winSize = ((mdl_rxSar.appd - (RxBufPtr)mdl_rxSar.oooHead(TOE_WINDOW_BITS-1, 0)) - 1);
                 mdl_txeMeta.ackNumb = mdl_rxSar.rcvd;
                 //meta.seqNumb = mdl_txSar.not_ackd;
-                mdl_txeMeta.winSize = windowSize;
+                mdl_txeMeta.winSize = winSize;
                 mdl_txeMeta.length = 0;
                 mdl_txeMeta.ack = 1; // has to be set for FIN message as well
                 mdl_txeMeta.rst = 0;
@@ -572,7 +582,14 @@ void pMetaDataLoader(
                 mdl_fsmState = MDL_WAIT_EVENT;
             }
             break;
-        } // End of: switch
+        } // End of: switch(mdl_curEvent.type)
+        if (DEBUG_LEVEL & TRACE_MDL) {
+            printInfo(myName, "Event : [%s]\n", getEventName(mdl_curEvent.type));
+            printInfo(myName, "\t ackNumb = %lu\n", mdl_txeMeta.ackNumb.to_ulong());
+            printInfo(myName, "\t seqNumb = %lu\n", mdl_txeMeta.seqNumb.to_ulong());
+            printInfo(myName, "\t winSize = %d \n", mdl_txeMeta.winSize.to_uint());
+            printInfo(myName, "\t length  = %d \n", mdl_txeMeta.length.to_uint());
+        }
         break;
     } // End of: switch
 
