@@ -358,7 +358,7 @@ void pMetaDataLoader(
                 // Compute our window size
                 //OBSOLETE_20210801 winSize = (mdl_rxSar.appd - ((RxBufPtr)mdl_rxSar.rcvd)) - 1; // This works even for wrap around
                 //[FIXME-TODO: It is better to compute and maintain the window_size in the [Rst] module]
-                winSize = ((mdl_rxSar.appd - (RxBufPtr)mdl_rxSar.oooHead(TOE_WINDOW_BITS-1, 0)) - 1);
+                winSize = ((mdl_rxSar.appd - (RxBufPtr)mdl_rxSar.oooHead(TOE_WINDOW_BITS-1, 0)) - 1); // This works even for wrap around
                 if (!mdl_txSar.finSent) // No FIN sent
                     currDatLen = ((TxBufPtr) mdl_txSar.not_ackd - mdl_txSar.ackd);
                 else // FIN already sent
