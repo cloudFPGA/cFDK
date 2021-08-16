@@ -54,7 +54,7 @@ void ack_delay(
         //-- Event Engine Interfaces
         stream<ExtendedEvent>   &siEVe_Event,
         stream<SigBit>          &soEVe_RxEventSig,
-        stream<SigBool>         &soEVe_TxEventSig,
+        stream<SigBit>          &soEVe_TxEventSig,
         //-- Tx Engine Interface
         stream<ExtendedEvent>   &soTXe_Event
 );

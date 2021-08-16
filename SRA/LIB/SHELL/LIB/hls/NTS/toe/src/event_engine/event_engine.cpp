@@ -61,7 +61,7 @@ using namespace hls;
 
 /*******************************************************************************
  * @brief The Event Engine (EVe) arbitrates the incoming events and forwards
- *         them to the Tx Engine (TXe).
+ *         them to the Tx Engine (TXe) via the ACK Delayer (AKd).
  *
  * @param[in]  siTAi_Event      Event from TxApplicationInterface (TAi).
  * @param[in]  siRXe_Event      Event from RxEngine (RXe).
@@ -77,7 +77,7 @@ void event_engine(
         stream<Event>           &siTIm_Event,
         stream<ExtendedEvent>   &soAKd_Event,
         stream<SigBit>          &siAKd_RxEventSig,
-        stream<SigBool>         &siAKd_TxEventSig,
+        stream<SigBit>          &siAKd_TxEventSig,
         stream<SigBit>          &siTXe_RxEventSig)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------

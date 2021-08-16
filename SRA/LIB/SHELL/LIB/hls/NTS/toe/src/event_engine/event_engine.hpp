@@ -62,7 +62,7 @@ void event_engine(
         //-- Ack Delayer Interface
         stream<ExtendedEvent>   &soAKd_Event,
         stream<SigBit>          &siAKd_RxEventSig,
-        stream<SigBool>         &siAKd_TxEventSig,
+        stream<SigBit>          &siAKd_TxEventSig,
         //-- Tx Engine Interface
         stream<SigBit>          &siTXe_RxEventSig
 );

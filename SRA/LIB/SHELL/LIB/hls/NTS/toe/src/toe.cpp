@@ -318,7 +318,7 @@ void toe(
     static stream<SigBit>             ssAKdToEVe_RxEventSig      ("ssAKdToEVe_RxEventSig");
     #pragma HLS stream       variable=ssAKdToEVe_RxEventSig      depth=2
 
-    static stream<SigBool>            ssAKdToEVe_TxEventSig      ("ssAKdToEVe_TxEventSig");
+    static stream<SigBit>             ssAKdToEVe_TxEventSig      ("ssAKdToEVe_TxEventSig");
     #pragma HLS stream       variable=ssAKdToEVe_TxEventSig      depth=2
 
     //-------------------------------------------------------------------------

@@ -60,7 +60,7 @@ using namespace hls;
 
 
 /*******************************************************************************
- * @brief Ack Delayer (AKd)
+ * @brief ACK Delayer (AKd)
  *
  * @param[in]  siEVe_Event      Event from Event Engine (EVe).
  * @param[out] soEVe_RxEventSig Signals the reception of an event.
@@ -68,7 +68,7 @@ using namespace hls;
  * @param[out] soTXe_Event      Event to Tx Engine (TXe).
  *
  * @details
- *  This process manages the the transmission delay of the ACKs. Upon reception
+ *  This process manages the transmission delay of the ACKs. Upon reception
  *   of an ACK, the counter associated to the corresponding session is
  *   initialized to (100ms/MAX_SESSIONS). Next, this counter is decremented
  *   every (MAX_SESSIONS) until it reaches zero. At that time, a request to
@@ -77,7 +77,7 @@ using namespace hls;
 void ack_delay(
         stream<ExtendedEvent>   &siEVe_Event,
         stream<SigBit>          &soEVe_RxEventSig,
-        stream<SigBool>         &soEVe_TxEventSig,
+        stream<SigBit>          &soEVe_TxEventSig,
         stream<ExtendedEvent>   &soTXe_Event)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
@@ -131,7 +131,7 @@ void ack_delay(
             soTXe_Event.write(ev);
             // Tell the EventEngine that we just forwarded an event to TXe
             assessSize(myName, soEVe_TxEventSig, "soEVe_TxEventSig", 2);
-            soEVe_TxEventSig.write(true);
+            soEVe_TxEventSig.write(1);
         }
     }
     else {
