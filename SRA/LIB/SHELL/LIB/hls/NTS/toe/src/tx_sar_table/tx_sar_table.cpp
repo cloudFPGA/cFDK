@@ -82,15 +82,16 @@ void tx_sar_table(
         stream<TStTxSarPush>       &soTAi_PushCmd)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1 enable_flush
-    #pragma HLS INLINE off
+    #pragma HLS PIPELINE II=1 // OBSOLETE_2012108 enable_flush
+    // OBSOLETE_2012108#pragma HLS INLINE off
 
     const char *myName = THIS_NAME;
 
     //-- STATIC ARRAYS ---------------------------------------------------------
     static TxSarEntry               TX_SAR_TABLE[TOE_MAX_SESSIONS];
     #pragma HLS DEPENDENCE variable=TX_SAR_TABLE inter false
-    #pragma HLS RESOURCE   variable=TX_SAR_TABLE core=RAM_T2P_BRAM
+    //OBSOLETE_2012108 (no need for a true dual port here) #pragma HLS RESOURCE   variable=TX_SAR_TABLE core=RAM_T2P_BRAM
+    #pragma HLS RESOURCE   variable=TX_SAR_TABLE core=RAM_2P
 
     if (!siTXe_TxSarQry.empty()) {
         TXeTxSarQuery sTXeQry;
@@ -107,16 +108,19 @@ void tx_sar_table(
                     TX_SAR_TABLE[sTXeQry.sessionID].ackd        = sTXeQry.not_ackd-1;
                     TX_SAR_TABLE[sTXeQry.sessionID].cong_window = 0x3908; // 10 x 1460(MSS)
                     TX_SAR_TABLE[sTXeQry.sessionID].slowstart_threshold = 0xFFFF;
-                    TX_SAR_TABLE[sTXeQry.sessionID].finReady    = sTXeQry.finReady;
-                    TX_SAR_TABLE[sTXeQry.sessionID].finSent     = sTXeQry.finSent;
+                    // Avoid initializing 'finReady' and 'finSent' at two different
+                    // places because it will translate into II=2 and DRC message:
+                    // 'Unable to schedule store operation on array due to limited memory ports'.
+                    //OBSOLETE_20210818 TX_SAR_TABLE[sTXeQry.sessionID].finReady    = sTXeQry.finReady;
+                    //OBSOLETE_20210818 TX_SAR_TABLE[sTXeQry.sessionID].finSent     = sTXeQry.finSent;
                     // Init ACK on the TxAppInterface side
                     soTAi_PushCmd.write(TStTxSarPush(sTXeQry.sessionID,
                                                      sTXeQry.not_ackd, CMD_INIT));
                 }
-                if (sTXeQry.finReady) {
+                if (sTXeQry.finReady or sTXeQry.init) {
                     TX_SAR_TABLE[sTXeQry.sessionID].finReady = sTXeQry.finReady;
                 }
-                if (sTXeQry.finSent) {
+                if (sTXeQry.finSent or sTXeQry.init) {
                     TX_SAR_TABLE[sTXeQry.sessionID].finSent  = sTXeQry.finSent;
                 }
             }
