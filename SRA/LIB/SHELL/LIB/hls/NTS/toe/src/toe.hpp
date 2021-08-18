@@ -116,9 +116,12 @@ extern unsigned int  gSimCycCnt;     // [FIXME] Remove
   static const ap_uint<32> TIME_100ms     = (((ap_uint<32>)(TIME_1s/  10) > 1) ? (ap_uint<32>)(TIME_1s/  10) : (ap_uint<32>)1);
   static const ap_uint<32> TIME_250ms     = (((ap_uint<32>)(TIME_1s/   4) > 1) ? (ap_uint<32>)(TIME_1s/   4) : (ap_uint<32>)1);
 
+  static const ap_uint<32> TIME_3s        = (  3*TIME_1s);
   static const ap_uint<32> TIME_5s        = (  5*TIME_1s);
+  static const ap_uint<32> TIME_6s        = (  6*TIME_1s);
   static const ap_uint<32> TIME_7s        = (  7*TIME_1s);
   static const ap_uint<32> TIME_10s       = ( 10*TIME_1s);
+  static const ap_uint<32> TIME_12s       = ( 12*TIME_1s);
   static const ap_uint<32> TIME_15s       = ( 15*TIME_1s);
   static const ap_uint<32> TIME_20s       = ( 20*TIME_1s);
   static const ap_uint<32> TIME_30s       = ( 30*TIME_1s);
@@ -141,9 +144,12 @@ extern unsigned int  gSimCycCnt;     // [FIXME] Remove
   static const ap_uint<32> TIME_250ms     = (250.0/0.0000064/TOE_MAX_SESSIONS) + 1;
 
   static const ap_uint<32> TIME_1s        = (  1.0/0.0000000064/TOE_MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_3s        = (  3.0/0.0000000064/TOE_MAX_SESSIONS) + 1;
   static const ap_uint<32> TIME_5s        = (  5.0/0.0000000064/TOE_MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_6s        = (  6.0/0.0000000064/TOE_MAX_SESSIONS) + 1;
   static const ap_uint<32> TIME_7s        = (  7.0/0.0000000064/TOE_MAX_SESSIONS) + 1;
   static const ap_uint<32> TIME_10s       = ( 10.0/0.0000000064/TOE_MAX_SESSIONS) + 1;
+  static const ap_uint<32> TIME_12s       = ( 12.0/0.0000000064/TOE_MAX_SESSIONS) + 1;
   static const ap_uint<32> TIME_15s       = ( 15.0/0.0000000064/TOE_MAX_SESSIONS) + 1;
   static const ap_uint<32> TIME_20s       = ( 20.0/0.0000000064/TOE_MAX_SESSIONS) + 1;
   static const ap_uint<32> TIME_30s       = ( 30.0/0.0000000064/TOE_MAX_SESSIONS) + 1;
@@ -568,7 +574,7 @@ class RXeReTransTimerCmd {
 };
 
 //=========================================================
-//== TIm / ReTransmit Timer Command form TXe
+//== TIm / ReTransmit Timer Command from TXe
 //=========================================================
 class TXeReTransTimerCmd {
   public:
@@ -576,7 +582,7 @@ class TXeReTransTimerCmd {
     EventType   type;
     TXeReTransTimerCmd() {}
     TXeReTransTimerCmd(SessionId id) :
-        sessionID(id), type(RT_EVENT) {} // [FIXME - Why RT??]
+        sessionID(id), type(RT_EVENT) {}
     TXeReTransTimerCmd(SessionId id, EventType type) :
         sessionID(id), type(type) {}
 };

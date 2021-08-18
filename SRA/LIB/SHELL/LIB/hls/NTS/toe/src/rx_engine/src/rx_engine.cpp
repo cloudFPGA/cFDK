@@ -1354,7 +1354,14 @@ void pFiniteStateMachine(
                 siSTt_StateRep.read(tcpState);
                 siRSt_RxSarRep.read(rxSar);
                 siTSt_TxSarRep.read(txSar);
-                TimerCmd timerCmd = (fsm_Meta.meta.ackNumb == txSar.prevUnak) ? STOP_TIMER : LOAD_TIMER;
+                //OBSOLETE_20210817 TimerCmd timerCmd = (fsm_Meta.meta.ackNumb == txSar.prevUnak) ? STOP_TIMER : LOAD_TIMER;
+                TimerCmd timerCmd;
+                if (fsm_Meta.meta.ackNumb == txSar.prevUnak) {
+                    timerCmd = STOP_TIMER;
+                }
+                else {
+                    timerCmd = LOAD_TIMER;
+                }
                 soTIm_ReTxTimerCmd.write(RXeReTransTimerCmd(fsm_Meta.sessionId, timerCmd));
                 if ( (tcpState == ESTABLISHED) || (tcpState == SYN_RECEIVED) ||
                      (tcpState == FIN_WAIT_1)  || (tcpState == CLOSING)      ||

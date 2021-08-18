@@ -90,27 +90,35 @@ template<typename T> void pStreamMux(
  * @brief ReTransmit Timer (Rtt) process
  *
  * @param[in]  siRXe_ReTxTimerCmd   Retransmit timer command from RxEngine (RXe).
- * @param[in]  siTXe_ReTxTimerEvent Retransmit timer event from TxEngine (TXe).
+ * @param[in]  siTXe_ReTxTimerCmd   Retransmit timer command from TxEngine (TXe).
  * @param[out] soEmx_Event          Event to EventMultiplexer (Emx).
  * @param[out] soSmx_SessCloseCmd   Close command to StateTableMux (Smx).
  * @param[out] soTAi_Notif          Notification to TxApplicationInterface (TAi).
  * @param[out] soRAi_Notif          Notification to RxApplicationInterface (RAi).
  *
  * @details
- *  This process receives a session-id and an event-type from [TXe]. If the
- *   retransmit timer corresponding to this session-id is not active, then it
- *   is activated and its time-out interval is set depending on how often the
- *   session already time-outed. Next, an event is fired back to [TXe], whenever
- *   a timer times-out.
- *  The process also receives a retransmission command from [RXe] specifying if
- *   the timer of a session must be stopped or loaded with a default time-out
- *   value.
+ *  This process implements the retransmission timers at the session level. This
+ *   is slightly different from the software method used to detect lost segments
+ *   and for retransmitting them. Instead of managing a retransmission timer per
+ *   segment, the current implementation only keeps track of a single timer per
+ *   session. Such a session timer is managed as follows:
+ *    [START] The retransmit timer of a session is re-started with an initial
+ *     retransmission timeout value (RTO) whenever the timer is not active and a
+ *     new segment is transmitted by [TXe]. The RTO value is set between 3 and
+ *     24 seconds, depending on how often the session already timed-out in the
+ *     recent past.
+ *    [STOP] The retransmit timer of a session is stopped and deactivated
+ *     whenever an ACK is received by [RXe] and its received AckNum equals to
+ *     the previously transmitted bytes but not yet acknowledged.
+ *    [LOAD] Otherwise, the retransmit timer of a session is loaded with a RTO
+ *     value of 1 second.
+ *    [TIMEOUT] Upon a time-out, an event is fired to [TXe].
  *  If a session times-out more than 4 times in a row, it is aborted. A release
- *   command is then sent to the StateTable (STt) and the application is notified.
+ *   command is sent to the StateTable (STt) and the application is notified.
  *******************************************************************************/
 void pRetransmitTimer(
         stream<RXeReTransTimerCmd>       &siRXe_ReTxTimerCmd,
-        stream<TXeReTransTimerCmd>       &siTXe_ReTxTimerEvent,
+        stream<TXeReTransTimerCmd>       &siTXe_ReTxTimerCmd,
         stream<Event>                    &soEmx_Event,
         stream<SessionId>                &soSmx_SessCloseCmd,
         stream<SessState>                &soTAi_Notif,
@@ -142,80 +150,103 @@ void pRetransmitTimer(
     //-- DYNAMIC VARIABLES ----------------------------------------------------
     ReTxTimerEntry     currEntry;
     TXeReTransTimerCmd txeCmd;
-    ap_uint<1>         operationSwitch;
+    ValBool            txeCmdVal;
     SessionId          currID;
 
     if (rtt_waitForWrite and (rtt_rxeCmd.sessionID != rtt_prevPosition)) {
-        // [TODO - maybe prevprev too]
+        //-------------------------------------------------------------
+        // Handle previously read command from [RXe] (i.e. RELOAD|STOP)
+        //-------------------------------------------------------------
         if (rtt_rxeCmd.command == LOAD_TIMER) {
             RETRANSMIT_TIMER_TABLE[rtt_rxeCmd.sessionID].time = TIME_1s;
+            if (DEBUG_LEVEL & TRACE_RTT) {
+                 printInfo(myName, "Session #%d - Reloading RTO timer (value=%d i.e. %d clock cycles).\n",
+                           rtt_rxeCmd.sessionID.to_int(), RETRANSMIT_TIMER_TABLE[rtt_rxeCmd.sessionID].time.to_uint(),
+                                       TOE_MAX_SESSIONS * RETRANSMIT_TIMER_TABLE[rtt_rxeCmd.sessionID].time.to_uint());
+             }
         }
-        else {  //-- STOP/CLEAR the timer
+        else {  //-- STOP the timer
             RETRANSMIT_TIMER_TABLE[rtt_rxeCmd.sessionID].time   = 0;
             RETRANSMIT_TIMER_TABLE[rtt_rxeCmd.sessionID].active = false;
+            if (DEBUG_LEVEL & TRACE_RTT) {
+                 printInfo(myName, "Session #%d - Stopping  RTO timer.\n",
+                           rtt_rxeCmd.sessionID.to_int());
+             }
         }
         RETRANSMIT_TIMER_TABLE[rtt_rxeCmd.sessionID].retries = 0;
         rtt_waitForWrite = false;
     }
-    //------------------------------------------------
-    // Handle the input streams from RxEngine
-    //------------------------------------------------
     else if (!siRXe_ReTxTimerCmd.empty() and !rtt_waitForWrite) {
-        // INFO: Rx path has priority over Tx path
+        //------------------------------------------------
+        // Read input command from [RXe]
+        //   INFO: Rx path has priority over Tx path
+        //------------------------------------------------
         siRXe_ReTxTimerCmd.read(rtt_rxeCmd);
         rtt_waitForWrite = true;
     }
     else {
-        currID = rtt_position;
-        //------------------------------------------------
-        // Handle the input streams from TxEngine
-        //------------------------------------------------
-        if (!siTXe_ReTxTimerEvent.empty()) {
-            siTXe_ReTxTimerEvent.read(txeCmd);
-            currID = txeCmd.sessionID;
-            operationSwitch = 1;
+        if (!siTXe_ReTxTimerCmd.empty()) {
+            //------------------------------------------------
+            // Read input command from [TXe]
+            //------------------------------------------------
+            txeCmd    = siTXe_ReTxTimerCmd.read();
+            txeCmdVal = true;
+            currID    = txeCmd.sessionID;
             if ( (txeCmd.sessionID-3 <  rtt_position) and
-                 (rtt_position    <= txeCmd.sessionID) ) {
-                rtt_position += 5;
+                 (rtt_position <= txeCmd.sessionID) ) {
+                //OBSOLETE printf(">>> rtt_position=%d | txeCmd.SessId=%d | rtt_prevPosition=%d\n",
+                //OBSOLETE             rtt_position.to_uint(), txeCmd.sessionID.to_uint(), rtt_prevPosition.to_uint());
+                rtt_position += 5;  // [FIXME - Why is this?]
             }
         }
         else {
-            // Increment position
+            txeCmdVal = false;
+            currID = rtt_position;
+            // Increment position to be used in next loop
             rtt_position++;
             if (rtt_position >= TOE_MAX_SESSIONS) {
                 rtt_position = 0;
             }
-            operationSwitch = 0;
         }
 
         // Get current entry from table
         currEntry = RETRANSMIT_TIMER_TABLE[currID];
 
-        switch (operationSwitch) {
-        case 1: // Got an event from [TxEngine]
+        if (txeCmdVal) {
+            // There is a pending set command from [TXe]. Go and process it.
             currEntry.type = txeCmd.type;
-            if (!currEntry.active) {
+            if (not currEntry.active) {
                 switch(currEntry.retries) {
                 case 0:
-                    currEntry.time = TIME_1s;
+                    currEntry.time = TIME_3s;
                     break;
                 case 1:
-                    currEntry.time = TIME_5s;
+                    currEntry.time = TIME_6s;
                     break;
                 case 2:
-                    currEntry.time = TIME_10s;
-                    break;
-                case 3:
-                    currEntry.time = TIME_15s;
+                    currEntry.time = TIME_12s;
                     break;
                 default:
                     currEntry.time = TIME_30s;
                     break;
                 }
+                currEntry.active = true;
+                if (DEBUG_LEVEL & TRACE_RTT) {
+                    printInfo(myName, "Session #%d - Starting  RTO timer (value=%d i.e. %d clock cycles).\n",
+                              currID.to_int(), currEntry.time.to_uint(),
+                                               currEntry.time.to_uint()*TOE_MAX_SESSIONS);
+                }
             }
-            currEntry.active = true;
-            break;
-        case 0:
+            else {
+                if (DEBUG_LEVEL & TRACE_RTT) {
+                    printInfo(myName, "Session #%d - Current   RTO timer (value=%d i.e. %d clock cycles).\n",
+                              currID.to_int(), currEntry.time.to_uint(),
+                                               currEntry.time.to_uint()*TOE_MAX_SESSIONS);
+                }
+            }
+        }
+        else {
+            // No [TXe] command. Manage RETRANSMIT_TIMER_TABLE entries
             if (currEntry.active) {
                 if (currEntry.time > 0) {
                     currEntry.time--;
@@ -232,10 +263,8 @@ void pRetransmitTimer(
                         soEmx_Event.write(Event((EventType)currEntry.type,
                                           currID,
                                           currEntry.retries));
-                        if (DEBUG_LEVEL & TRACE_RTT) {
-                            printInfo(myName, "Forwarding event \'%s\' to [EVe].\n",
-                                      getEventName(currEntry.type));
-                        }
+                        printWarn(myName, "Session #%d - RTO Timeout (retries=%d).\n",
+                                  currID.to_int(), currEntry.retries.to_uint());
                     }
                     else {
                         currEntry.retries = 0;
@@ -248,7 +277,7 @@ void pRetransmitTimer(
                             }
                         }
                         else {
-                            soRAi_Notif.write(TcpAppNotif(currID, ESTABLISHED));
+                            soRAi_Notif.write(TcpAppNotif(currID, CLOSED));
                             if (DEBUG_LEVEL & TRACE_RTT) {
                                 printWarn(myName, "Notifying [RAi] - Session %d timeout (event=\'%s\').\n",
                                           currID.to_int(), getEventName(currEntry.type));
@@ -257,14 +286,14 @@ void pRetransmitTimer(
                     }
                 }
             }
-            break;
-
-        } // End of: switch
+        } // End of: txeCmdVal
 
         // Write the entry back into the table
         RETRANSMIT_TIMER_TABLE[currID] = currEntry;
         rtt_prevPosition = currID;
     }
+
+    //OBSOLETE printf(">>> rtt_position=%d | rtt_prevPosition=%d\n", rtt_position.to_uint(), rtt_prevPosition.to_uint());
 }
 
 /*******************************************************************************
@@ -275,10 +304,10 @@ void pRetransmitTimer(
  * @param[out] soEmx_Event         Event to EventMultiplexer (Emx).
  *
  * @details
- *   This process reads in 'set-' and 'clear-session-id' commands from [RXe]
- *    and [TXe]. Upon set request, a timer is initialized with an interval of
- *    of 50ms. When the timer expires, an 'RT_EVENT' is fired to the EventEngine
- *    via [Emx].
+ *   This process reads in 'set-probe-timer' commands from [TXe] and
+ *    'clear-probe-timer' commands from [RXe]. Upon a set request, a timer is
+ *    initialized with an interval of 10s. When the timer expires, an 'RT_EVENT'
+ *    is fired to the TxEngine via the [Emx] and the EventEngine.
  *   In case of a zero-window (or too small window) an 'RT_EVENT' will generate
  *    a packet without payload which is the same as a probing packet.
  *
@@ -317,8 +346,12 @@ void pProbeTimer(
     if (pbt_WaitForWrite) {
         //-- Update the table
         if (pbt_updtSessId != pbt_prevSessId) {
-            PROBE_TIMER_TABLE[pbt_updtSessId].time = TIME_50ms;
-            PROBE_TIMER_TABLE[pbt_updtSessId].active = true;
+            //OBSOLETE_20210816 PROBE_TIMER_TABLE[pbt_updtSessId].time = TIME_50ms;
+            PROBE_TIMER_TABLE[pbt_updtSessId].time = TIME_10s;
+            //****************************************************************
+            //** [FIXME - Disabling the KeepAlive process for the time being]
+            //****************************************************************
+            PROBE_TIMER_TABLE[pbt_updtSessId].active = false;
             pbt_WaitForWrite = false;
         }
         pbt_prevSessId--;
@@ -329,23 +362,32 @@ void pProbeTimer(
         pbt_WaitForWrite = true;
     }
     else { // if (!soEmx_Event.full()) this leads to II=2
-        SessionId sessIdToProcess = pbt_currSessId;
+        SessionId sessIdToProcess;
 
         if (!siRXe_ClrProbeTimer.empty()) {
             //-- Read the Session-Id to clear
-            siRXe_ClrProbeTimer.read(sessIdToProcess);
+            sessIdToProcess = siRXe_ClrProbeTimer.read();
             fastResume = true;
         }
         else {
+            sessIdToProcess = pbt_currSessId;
             pbt_currSessId++;
             if (pbt_currSessId == TOE_MAX_SESSIONS) {
                 pbt_currSessId = 0;
             }
         }
 
-        if (PROBE_TIMER_TABLE[sessIdToProcess].active and !soEmx_Event.full()) {
-            if (PROBE_TIMER_TABLE[sessIdToProcess].time == 0 or fastResume) {
-                //-- Clear (de-activate) the current session-ID
+        //OBSOLETE_20210816 if (PROBE_TIMER_TABLE[sessIdToProcess].active and !soEmx_Event.full()) {
+        if (PROBE_TIMER_TABLE[sessIdToProcess].active) {
+            //OBSOLETE_20210816 if (PROBE_TIMER_TABLE[sessIdToProcess].time == 0 or fastResume) {
+            if (fastResume) {
+                //-- Clear (de-activate) the keepalive process for the current session-ID
+                PROBE_TIMER_TABLE[sessIdToProcess].time = 0;
+                PROBE_TIMER_TABLE[sessIdToProcess].active = false;
+                fastResume = false;
+            }
+            else if (PROBE_TIMER_TABLE[sessIdToProcess].time == 0 and !soEmx_Event.full()) {
+                //-- Request to send a keepalive probe
                 PROBE_TIMER_TABLE[sessIdToProcess].time = 0;
                 PROBE_TIMER_TABLE[sessIdToProcess].active = false;
                 #if !(TCP_NODELAY)
@@ -353,7 +395,6 @@ void pProbeTimer(
                 #else
                     soEmx_Event.write(Event(RT_EVENT, sessIdToProcess));
                 #endif
-                fastResume = false;
             }
             else {
                 PROBE_TIMER_TABLE[sessIdToProcess].time -= 1;
@@ -442,7 +483,7 @@ void pCloseTimer(
  * @param[in]  siRXe_ReTxTimerCmd   Retransmission timer command from Rx Engine (RXe).
  * @param[in]  siRXe_ClrProbeTimer  Clear probe timer from [RXe].
  * @param[in]  siRXe_CloseTimer     Close timer from [RXe].
- * @param[in]  siTXe_ReTxTimerEvent Retransmission timer event from Tx Engine (TXe).
+ * @param[in]  siTXe_ReTxTimerCmd   Retransmission timer command from Tx Engine (TXe).
  * @param[in]  siTXe_SetProbeTimer  Set probe timer from [TXe].
  * @param[out] soEVe_Event          Event to EventEngine (EVe).
  * @param[out] soSTt_SessCloseCmd   Close session command to State Table (STt).
@@ -456,7 +497,7 @@ void timers(
         stream<RXeReTransTimerCmd> &siRXe_ReTxTimerCmd,
         stream<SessionId>          &siRXe_ClrProbeTimer,
         stream<SessionId>          &siRXe_CloseTimer,
-        stream<TXeReTransTimerCmd> &siTXe_ReTxTimerevent,
+        stream<TXeReTransTimerCmd> &siTXe_ReTxTimerCmd,
         stream<SessionId>          &siTXe_SetProbeTimer,
         stream<SessionId>          &soSTt_SessCloseCmd,
         stream<Event>              &soEVe_Event,
@@ -493,7 +534,7 @@ void timers(
     // ReTransmit  Timer (Rtt)
     pRetransmitTimer(
         siRXe_ReTxTimerCmd,
-        siTXe_ReTxTimerevent,
+        siTXe_ReTxTimerCmd,
         ssRttToEmx_Event,
         ssRttToSmx_SessCloseCmd,
         soTAi_Notif,

@@ -96,7 +96,7 @@ void timers(
         stream<ap_uint<16> >       &siRXe_ClrProbeTimer,
         stream<ap_uint<16> >       &siRXe_CloseTimer,
         //-- Tx Engine Interfaces
-        stream<TXeReTransTimerCmd> &siTXe_ReTxTimerevent,
+        stream<TXeReTransTimerCmd> &siTXe_ReTxTimerCmd,
         stream<ap_uint<16> >       &siTXe_SetProbeTimer,
         //-- State Table Interface
         stream<SessionId>          &soSTt_SessCloseCmd,

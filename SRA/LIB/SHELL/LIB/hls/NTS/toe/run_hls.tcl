@@ -195,11 +195,12 @@ if { $hlsCSim} {
     csim_design -argv "0 ../../../../test/testVectors/siIPRX_TcpOutOfOrder2.dat"
 
     csim_design -argv "1 ../../../../test/testVectors/siTAIF_OneSeg.dat"
+    csim_design -argv "1 ../../../../test/testVectors/siTAIF_OneLongSeg.dat"
     csim_design -argv "1 ../../../../test/testVectors/siTAIF_TwoSeg.dat"
     csim_design -argv "1 ../../../../test/testVectors/siTAIF_ThreeSeg.dat"
-    csim_design -argv "1 ../../../../test/testVectors/siTAIF_OneLongSeg.dat"
+#    csim_design -argv "1 ../../../../test/testVectors/siTAIF_4SegIn2Sess.dat"
     csim_design -argv "1 ../../../../test/testVectors/siTAIF_FourLongSeg.dat"
-    csim_design -argv "1 ../../../../test/testVectors/siTAIF_EightSeg.dat"
+    csim_design -argv "1 ../../../../test/testVectors/siTAIF_8SegIn8Sess.dat"
     csim_design -argv "1 ../../../../test/testVectors/siTAIF_SixtyFourSeg.dat"
     csim_design -argv "1 ../../../../test/testVectors/siTAIF_Ramp.dat"
    
@@ -260,7 +261,7 @@ if { $hlsCoSim } {
     # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/siTAIF_TwoSeg.dat"
     # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/siTAIF_ThreeSeg.dat"
     # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/siTAIF_FourLongSeg.dat"
-    # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/siTAIF_EightSeg.dat"
+    # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/siTAIF_8SegIn8Sess.dat"
 
     # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../test/testVectors/siIPRX_OnePkt.dat"
     # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../test/testVectors/siIPRX_OnePkt160.dat"

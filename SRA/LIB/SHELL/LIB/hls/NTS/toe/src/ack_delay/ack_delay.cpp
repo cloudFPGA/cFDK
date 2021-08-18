@@ -86,19 +86,20 @@ void ack_delay(
     const char *myName = THIS_NAME;
 
     //-- STATIC ARRAYS ---------------------------------------------------------
-    // [TODO - The type of 'ACK_TABLE' can be configured as a functions of 'TIME_XXX']
-    // [TODO - TIME_64us  = ( 64.000/0.0064/MAX_SESSIONS) + 1 = 10.000/32 = 0x139 ( 9-bits)
-    // [TODO - TIME_128us = (128.000/0.0064/MAX_SESSIONS) + 1 = 20.000/32 = 0x271 (10-bits)
+    // [TODO - The type of 'ACK_TABLE' can be configured as a functions of 'TIME_XXX' and 'MAX_SESSIONS']
+    // [ E.g. - TIME_64us  = ( 64.000/0.0064/32) + 1 =  313 = 0x139 ( 9-bits)
+    // [ E.g. - TIME_64us  = ( 64.000/0.0064/ 8) + 1 = 1251 = 0x4E3 (11-bits)
+    // [ E.g. - TIME_128us = (128.000/0.0064/32) + 1 =  626 = 0x271 (10-bits)
     static ap_uint<12>              ACK_TABLE[TOE_MAX_SESSIONS];
     #pragma HLS RESOURCE   variable=ACK_TABLE core=RAM_T2P_BRAM
     #pragma HLS DEPENDENCE variable=ACK_TABLE inter false
     #pragma HLS RESET      variable=ACK_TABLE
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    // [TODO - The type of 'akdPtr' could be configured as a functions of 'MAX_SESSIONS']
-    // [TODO - static const int NR_BITS = ceil(log10(MAX_SESSIONS)/log10(2));
-    static SessionId           akdPtr;
-    #pragma HLS RESET variable=akdPtr
+    // [TODO - The type of 'akd_Ptr' could be configured as a functions of 'MAX_SESSIONS']
+    // [ E.g. - static const int NR_BITS = ceil(log10(MAX_SESSIONS)/log10(2));
+    static SessionId           akd_Ptr;
+    #pragma HLS RESET variable=akd_Ptr
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     ExtendedEvent ev;
@@ -116,7 +117,7 @@ void ack_delay(
         if (ev.type == ACK_EVENT and ACK_TABLE[ev.sessionID] == 0) {
             ACK_TABLE[ev.sessionID] = ACKD_64us;
             if (DEBUG_LEVEL & TRACE_AKD) {
-                printInfo(myName, "Creating a delayed ACK for session #%d.\n", ev.sessionID.to_int());
+                printInfo(myName, "Scheduling a delayed ACK for session #%d.\n", ev.sessionID.to_int());
             }
         }
         else {
@@ -135,22 +136,22 @@ void ack_delay(
         }
     }
     else {
-        if (ACK_TABLE[akdPtr] > 0 and !soTXe_Event.full()) {
-            if (ACK_TABLE[akdPtr] == 1) {
-                soTXe_Event.write(Event(ACK_EVENT, akdPtr));
+        if (ACK_TABLE[akd_Ptr] > 0 and !soTXe_Event.full()) {
+            if (ACK_TABLE[akd_Ptr] == 1) {
+                soTXe_Event.write(Event(ACK_EVENT, akd_Ptr));
                 if (DEBUG_LEVEL & TRACE_AKD) {
-                    printInfo(myName, "Requesting [TXe] to generate an ACK for session #%d.\n", akdPtr.to_int());
+                    printInfo(myName, "Requesting [TXe] to generate an ACK for session #%d.\n", akd_Ptr.to_int());
                 }
                 // Tell the EventEngine that we just forwarded an event to TXe
                 assessSize(myName, soEVe_TxEventSig, "soEVe_TxEventSig", 2);  // [FIXME-Use constant for the length]
-                soEVe_TxEventSig.write(true);
+                soEVe_TxEventSig.write(1);
             }
             // [FIXME - Shall we not move the decrement outside of the 'full()' condition ?]
-            ACK_TABLE[akdPtr] -= 1;     // Decrease value
+            ACK_TABLE[akd_Ptr] -= 1;     // Decrease value
         }
-        akdPtr++;
-        if (akdPtr == TOE_MAX_SESSIONS) {
-            akdPtr = 0;
+        akd_Ptr++;
+        if (akd_Ptr == TOE_MAX_SESSIONS) {
+            akd_Ptr = 0;
         }
     }
 }

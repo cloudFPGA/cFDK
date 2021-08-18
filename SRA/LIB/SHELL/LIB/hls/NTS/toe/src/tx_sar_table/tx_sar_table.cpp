@@ -100,7 +100,7 @@ void tx_sar_table(
         siTXe_TxSarQry.read(sTXeQry);
         if (sTXeQry.write) {
             //-- TXe Write Query
-            if (!sTXeQry.isRtQuery) {
+            if (not sTXeQry.isRtQuery) {
                 TX_SAR_TABLE[sTXeQry.sessionID].unak = sTXeQry.not_ackd;
                 if (sTXeQry.init) {
                     TX_SAR_TABLE[sTXeQry.sessionID].appw        = sTXeQry.not_ackd;

@@ -1,6 +1,6 @@
 # ########################################################################################
-# @file  : appRx_EightSeg.dat
-# @brief : Eight TCP segments for the Rx Application I/F of TOE.
+# @file  : siTAIF_8SegIn8Sess.dat
+# @brief : Eight TCP segments in 8 du=ifferent sessions for the TxApp I/F of TOE.
 #
 #  @info : Such a '.dat' file can also contain global testbench parameters,
 #          testbench commands and comments.

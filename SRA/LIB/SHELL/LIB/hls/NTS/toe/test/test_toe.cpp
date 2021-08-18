@@ -2179,7 +2179,7 @@ void pTAIF_Send(
                             gHostLsnPort = tcpPort;
 
                             SockAddr newHostServerSocket(gHostIp4Addr, gHostLsnPort);
-                            printInfo(myName, "Setting current host server socket to be: ");
+                            printInfo(myName, "Setting current host server socket to be: \n");
                             printSockAddr(myName, newHostServerSocket);
                             return;
                         }
