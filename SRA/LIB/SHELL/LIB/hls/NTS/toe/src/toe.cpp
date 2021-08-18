@@ -312,20 +312,20 @@ void toe(
     //-- ACK Delayer (AKd)
     //-------------------------------------------------------------------------
     static stream<ExtendedEvent>      ssAKdToTXe_Event           ("ssAKdToTXe_Event");
-    #pragma HLS stream       variable=ssAKdToTXe_Event           depth=16
+    #pragma HLS stream       variable=ssAKdToTXe_Event           depth=cDepth_AKdToTXe
     #pragma HLS DATA_PACK    variable=ssAKdToTXe_Event
 
     static stream<SigBit>             ssAKdToEVe_RxEventSig      ("ssAKdToEVe_RxEventSig");
-    #pragma HLS stream       variable=ssAKdToEVe_RxEventSig      depth=2
+    #pragma HLS stream       variable=ssAKdToEVe_RxEventSig      depth=cDepth_AKdToEVe
 
     static stream<SigBit>             ssAKdToEVe_TxEventSig      ("ssAKdToEVe_TxEventSig");
-    #pragma HLS stream       variable=ssAKdToEVe_TxEventSig      depth=2
+    #pragma HLS stream       variable=ssAKdToEVe_TxEventSig      depth=cDepth_AKdToEVe
 
     //-------------------------------------------------------------------------
     //-- Event Engine (EVe)
     //-------------------------------------------------------------------------
     static stream<ExtendedEvent>      ssEVeToAKd_Event           ("ssEVeToAKd_Event");
-    #pragma HLS stream       variable=ssEVeToAKd_Event           depth=4
+    #pragma HLS stream       variable=ssEVeToAKd_Event           depth=cDepth_EVeToAKd
     #pragma HLS DATA_PACK    variable=ssEVeToAKd_Event
 
     //-------------------------------------------------------------------------
@@ -369,7 +369,7 @@ void toe(
     #pragma HLS DATA_PACK    variable=ssRXeToRSt_RxSarQry
 
     static stream<RXeTxSarQuery>      ssRXeToTSt_TxSarQry        ("ssRXeToTSt_TxSarQry");
-    #pragma HLS stream       variable=ssRXeToTSt_TxSarQry        depth=2
+    #pragma HLS stream       variable=ssRXeToTSt_TxSarQry        depth=cDepth_RXeToTSt
     #pragma HLS DATA_PACK    variable=ssRXeToTSt_TxSarQry
 
     static stream<RXeReTransTimerCmd> ssRXeToTIm_ReTxTimerCmd    ("ssRXeToTIm_ReTxTimerCmd");
@@ -391,7 +391,7 @@ void toe(
     #pragma HLS DATA_PACK    variable=ssRXeToTAi_SessOpnSts
 
     static stream<ExtendedEvent>      ssRXeToEVe_Event           ("ssRXeToEVe_Event");
-    #pragma HLS stream       variable=ssRXeToEVe_Event           depth=512
+    #pragma HLS stream       variable=ssRXeToEVe_Event           depth=cDepth_RXeToEVe
     #pragma HLS DATA_PACK    variable=ssRXeToEVe_Event
 
     //-- Rx SAR Table (RSt) ---------------------------------------------------
@@ -429,10 +429,10 @@ void toe(
     //-- State Table (STt)
     //-------------------------------------------------------------------------
     static stream<TcpState>           ssSTtToRXe_SessStateRep    ("ssSTtToRXe_SessStateRep");
-    #pragma HLS stream       variable=ssSTtToRXe_SessStateRep    depth=2
+    #pragma HLS stream       variable=ssSTtToRXe_SessStateRep    depth=cDepth_STtToRXe
 
     static stream<TcpState>           ssSTtToTAi_AcceptStateRep  ("ssSTtToTAi_AcceptStateRep");
-    #pragma HLS stream       variable=ssSTtToTAi_AcceptStateRep  depth=2
+    #pragma HLS stream       variable=ssSTtToTAi_AcceptStateRep  depth=cDepth_STtToTAi
 
     static stream<TcpState>           ssSTtToTAi_SessStateRep    ("ssSTtToTAi_SessStateRep");
     #pragma HLS stream       variable=ssSTtToTAi_SessStateRep    depth=2
@@ -451,11 +451,11 @@ void toe(
     #pragma HLS stream       variable=ssTAiToSLc_SessLookupReq   depth=4
 
     static stream<Event>              ssTAiToEVe_Event           ("ssTAiToEVe_Event");
-    #pragma HLS stream       variable=ssTAiToEVe_Event           depth=4
+    #pragma HLS stream       variable=ssTAiToEVe_Event           depth=cDepth_TAiToEVe
     #pragma HLS DATA_PACK    variable=ssTAiToEVe_Event
 
     static stream<TAiTxSarPush>       ssTAiToTSt_PushCmd         ("ssTAiToTSt_PushCmd");
-    #pragma HLS stream       variable=ssTAiToTSt_PushCmd         depth=2
+    #pragma HLS stream       variable=ssTAiToTSt_PushCmd         depth=cDepth_TAiToTSt
     #pragma HLS DATA_PACK    variable=ssTAiToTSt_PushCmd
 
     static stream<StateQuery>         ssTAiToSTt_AcceptStateQry  ("ssTAiToSTt_AcceptStateQry");
@@ -469,7 +469,7 @@ void toe(
     //-- Timers (TIm)
     //-------------------------------------------------------------------------
     static stream<Event>              ssTImToEVe_Event           ("ssTImToEVe_Event");
-    #pragma HLS stream       variable=ssTImToEVe_Event           depth=4 //TODO maybe reduce to 2, there should be no evil cycle
+    #pragma HLS stream       variable=ssTImToEVe_Event           depth=cDepth_TImToEVe
     #pragma HLS DATA_PACK    variable=ssTImToEVe_Event
 
     static stream<SessionId>          ssTImToSTt_SessCloseCmd    ("ssTImToSTt_SessCloseCmd");
@@ -487,13 +487,13 @@ void toe(
     //-- Tx Engine (TXe)
     //-------------------------------------------------------------------------
     static stream<SigBit>             ssTXeToEVe_RxEventSig      ("ssTXeToEVe_RxEventSig");
-    #pragma HLS stream       variable=ssTXeToEVe_RxEventSig      depth=2
+    #pragma HLS stream       variable=ssTXeToEVe_RxEventSig      depth=cDepth_TXeToEVe
 
     static stream<SessionId>          ssTXeToRSt_RxSarReq        ("ssTXeToRSt_RxSarReq");
     #pragma HLS stream       variable=ssTXeToRSt_RxSarReq        depth=2
 
     static stream<TXeTxSarQuery>      ssTXeToTSt_TxSarQry        ("ssTXeToTSt_TxSarQry");
-    #pragma HLS stream       variable=ssTXeToTSt_TxSarQry        depth=2
+    #pragma HLS stream       variable=ssTXeToTSt_TxSarQry        depth=cDepth_TXeToTSt
     #pragma HLS DATA_PACK    variable=ssTXeToTSt_TxSarQry
 
     static stream<SessionId>          ssTXeToSLc_ReverseLkpReq   ("ssTXeToSLc_ReverseLkpReq");
@@ -510,15 +510,15 @@ void toe(
     //-- Tx SAR Table (TSt)
     //-------------------------------------------------------------------------
     static stream<RXeTxSarReply>      ssTStToRXe_TxSarRep        ("ssTStToRXe_TxSarRep");
-    #pragma HLS stream       variable=ssTStToRXe_TxSarRep        depth=2
+    #pragma HLS stream       variable=ssTStToRXe_TxSarRep        depth=cDepth_TStToRXe
     #pragma HLS DATA_PACK    variable=ssTStToRXe_TxSarRep
 
     static stream<TXeTxSarReply>      ssTStToTXe_TxSarRep        ("ssTStToTXe_TxSarRep");
-    #pragma HLS stream       variable=ssTStToTXe_TxSarRep        depth=2
+    #pragma HLS stream       variable=ssTStToTXe_TxSarRep        depth=cDepth_TStToTXe
     #pragma HLS DATA_PACK    variable=ssTStToTXe_TxSarRep
 
     static stream<TStTxSarPush>       ssTStToTAi_PushCmd         ("ssTStToTAi_PushCmd");
-    #pragma HLS stream       variable=ssTStToTAi_PushCmd         depth=2
+    #pragma HLS stream       variable=ssTStToTAi_PushCmd         depth=cDepth_TStToTAi
     #pragma HLS DATA_PACK    variable=ssTStToTAi_PushCmd
 
     /**********************************************************************

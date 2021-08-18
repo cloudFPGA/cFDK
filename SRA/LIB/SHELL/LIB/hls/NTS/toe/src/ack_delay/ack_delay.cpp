@@ -107,7 +107,7 @@ void ack_delay(
     if (!siEVe_Event.empty()) {
         siEVe_Event.read(ev);
         // Tell the EventEngine that we just received an event
-        assessSize(myName, soEVe_RxEventSig, "soEVe_RxEventSig", 2); // [FIXME-Use constant for the length]
+        assessSize(myName, soEVe_RxEventSig, "soEVe_RxEventSig", cDepth_AKdToEVe);
         soEVe_RxEventSig.write(1);
         if (DEBUG_LEVEL & TRACE_AKD) {
             printInfo(myName, "Received event of type \'%s\' for session #%d.\n", getEventName(ev.type), ev.sessionID.to_int());
@@ -128,10 +128,10 @@ void ack_delay(
                 printInfo(myName, "Forwarding event \'%s\' to [TXe].\n", getEventName(ev.type));
             }
             // Forward event to TxEngine
-            assessSize(myName, soTXe_Event, "soTXe_Event", 16);  // [FIXME-Use constant for the length]
+            assessSize(myName, soTXe_Event, "soTXe_Event", cDepth_AKdToTXe);
             soTXe_Event.write(ev);
             // Tell the EventEngine that we just forwarded an event to TXe
-            assessSize(myName, soEVe_TxEventSig, "soEVe_TxEventSig", 2);
+            assessSize(myName, soEVe_TxEventSig, "soEVe_TxEventSig", cDepth_AKdToEVe);
             soEVe_TxEventSig.write(1);
         }
     }
@@ -143,7 +143,7 @@ void ack_delay(
                     printInfo(myName, "Requesting [TXe] to generate an ACK for session #%d.\n", akd_Ptr.to_int());
                 }
                 // Tell the EventEngine that we just forwarded an event to TXe
-                assessSize(myName, soEVe_TxEventSig, "soEVe_TxEventSig", 2);  // [FIXME-Use constant for the length]
+                assessSize(myName, soEVe_TxEventSig, "soEVe_TxEventSig", cDepth_AKdToEVe);
                 soEVe_TxEventSig.write(1);
             }
             // [FIXME - Shall we not move the decrement outside of the 'full()' condition ?]

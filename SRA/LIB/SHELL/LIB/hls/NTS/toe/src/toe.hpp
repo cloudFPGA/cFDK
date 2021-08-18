@@ -178,6 +178,32 @@ typedef ap_uint<cSHL_TOE_OPN_REQ_WIDTH> OpnReq;
 typedef ap_uint<cSHL_TOE_CLS_REQ_WIDTH> ClsReq;
 
 /*******************************************************************************
+ * CONSTANTS FOR THE INTERNAL STREAM DEPTHS
+ *******************************************************************************/
+const int cDepth_AKdToEVe     =   8;
+const int cDepth_AKdToTXe     =  16;
+
+const int cDepth_EVeToAKd     =   8;
+
+const int cDepth_RXeToEVe     =  64;
+const int cDepth_RXeToTSt     =   4;
+
+const int cDepth_STtToRXe     =   2;
+const int cDepth_STtToTAi     =   2;
+
+const int cDepth_TAiToEVe     =   8;
+const int cDepth_TAiToTSt     =   4;
+
+const int cDepth_TStToRXe     =   4;
+const int cDepth_TStToTAi     =   4;
+const int cDepth_TStToTXe     =   4;
+
+const int cDepth_TImToEVe     =   4;
+
+const int cDepth_TXeToEVe     =   8;
+const int cDepth_TXeToTSt     =   4;
+
+/*******************************************************************************
  * GENERAL ENUMERATIONS
  *
  *  WARNING ABOUT ENUMERATIONS:
