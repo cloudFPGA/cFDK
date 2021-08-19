@@ -106,8 +106,8 @@ void event_engine(
         siRXe_Event.read(ev);
         soAKd_Event.write(ev);
         if (DEBUG_LEVEL & TRACE_EVE) {
-            printInfo(myName, "Received event '%s' from [RXe] (WrCnt=%3d|RdCnt=%3d).\n",
-                      getEventName(ev.type), eve_eve2akd_WrCnt.to_uint(), eve_eve2akd_RdCnt.to_uint());
+            printInfo(myName, "S%d - Received '%s' from [RXe] (WrCnt=%3d|RdCnt=%3d).\n",
+                      ev.sessionID.to_int(), getEventName(ev.type), eve_eve2akd_WrCnt.to_uint(), eve_eve2akd_RdCnt.to_uint());
         }
         eve_eve2akd_WrCnt++;
     }
@@ -121,8 +121,8 @@ void event_engine(
             siTIm_Event.read(ev);
             soAKd_Event.write(ev);
             if (DEBUG_LEVEL & TRACE_EVE) {
-                printInfo(myName, "Received event '%s' from [TIm] (WrCnt=%3d|RdCnt=%3d).\n",
-                          getEventName(ev.type), eve_eve2akd_WrCnt.to_uint(), eve_eve2akd_RdCnt.to_uint());
+                printInfo(myName, "S%d - Received '%s' from [TIm] (WrCnt=%3d|RdCnt=%3d).\n",
+                        ev.sessionID.to_int(), getEventName(ev.type), eve_eve2akd_WrCnt.to_uint(), eve_eve2akd_RdCnt.to_uint());
             }
             eve_eve2akd_WrCnt++;
         }
@@ -131,11 +131,11 @@ void event_engine(
         //--------------------------------------------
         else if (!siTAi_Event.empty()) {
             siTAi_Event.read(ev);
-            assessSize(myName, soAKd_Event, "soAKd_Event", 4);
+            assessSize(myName, soAKd_Event, "soAKd_Event", cDepth_EVeToAKd_Event);
             soAKd_Event.write(ev);
             if (DEBUG_LEVEL & TRACE_EVE) {
-                printInfo(myName, "Received event '%s' from [TAi] (WrCnt=%3d|RdCnt=%3d).\n",
-                          getEventName(ev.type), eve_eve2akd_WrCnt.to_uint(), eve_eve2akd_RdCnt.to_uint());
+                printInfo(myName, "S%d - Received '%s' from [TAi] (WrCnt=%3d|RdCnt=%3d).\n",
+                        ev.sessionID.to_int(), getEventName(ev.type), eve_eve2akd_WrCnt.to_uint(), eve_eve2akd_RdCnt.to_uint());
             }
             eve_eve2akd_WrCnt++;
         }

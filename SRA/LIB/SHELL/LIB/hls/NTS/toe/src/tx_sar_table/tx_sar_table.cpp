@@ -90,7 +90,6 @@ void tx_sar_table(
     //-- STATIC ARRAYS ---------------------------------------------------------
     static TxSarEntry               TX_SAR_TABLE[TOE_MAX_SESSIONS];
     #pragma HLS DEPENDENCE variable=TX_SAR_TABLE inter false
-    //OBSOLETE_2012108 (no need for a true dual port here) #pragma HLS RESOURCE   variable=TX_SAR_TABLE core=RAM_T2P_BRAM
     #pragma HLS RESOURCE   variable=TX_SAR_TABLE core=RAM_2P
 
     if (!siTXe_TxSarQry.empty()) {

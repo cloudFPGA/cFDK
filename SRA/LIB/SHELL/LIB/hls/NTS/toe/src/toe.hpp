@@ -105,9 +105,9 @@ extern unsigned int  gSimCycCnt;     // [FIXME] Remove
   static const ap_uint<32> TIME_256us     = (((ap_uint<32>)(TIME_1s/  62500) > 1) ? (ap_uint<32>)(TIME_1s/  62500) : (ap_uint<32>)1);
   static const ap_uint<32> TIME_512us     = (((ap_uint<32>)(TIME_1s/ 125000) > 1) ? (ap_uint<32>)(TIME_1s/ 125000) : (ap_uint<32>)1);
 
-  static const ap_uint<32> ACKD_16us      = ( 16.0/0.0064/TOE_MAX_SESSIONS/100) + 1;
-  static const ap_uint<32> ACKD_32us      = ( 32.0/0.0064/TOE_MAX_SESSIONS/100) + 1;
-  static const ap_uint<32> ACKD_64us      = ( 64.0/0.0064/TOE_MAX_SESSIONS/100) + 1;
+  static const ap_uint<32> ACKD_16us      = ( 16.0/0.0064/TOE_MAX_SESSIONS/10) + 1;
+  static const ap_uint<32> ACKD_32us      = ( 32.0/0.0064/TOE_MAX_SESSIONS/10) + 1;
+  static const ap_uint<32> ACKD_64us      = ( 64.0/0.0064/TOE_MAX_SESSIONS/10) + 1;
 
   static const ap_uint<32> TIME_1ms       = (((ap_uint<32>)(TIME_1s/1000) > 1) ? (ap_uint<32>)(TIME_1s/1000) : (ap_uint<32>)1);
   static const ap_uint<32> TIME_5ms       = (((ap_uint<32>)(TIME_1s/ 200) > 1) ? (ap_uint<32>)(TIME_1s/ 200) : (ap_uint<32>)1);
@@ -180,28 +180,32 @@ typedef ap_uint<cSHL_TOE_CLS_REQ_WIDTH> ClsReq;
 /*******************************************************************************
  * CONSTANTS FOR THE INTERNAL STREAM DEPTHS
  *******************************************************************************/
-const int cDepth_AKdToEVe     =   8;
-const int cDepth_AKdToTXe     =  16;
+const int cDepth_AKdToEVe_Event =   8;
+const int cDepth_AKdToTXe_Event =  16;
 
-const int cDepth_EVeToAKd     =   8;
+const int cDepth_EVeToAKd_Event =   8;
 
-const int cDepth_RXeToEVe     =  64;
-const int cDepth_RXeToTSt     =   4;
+const int cDepth_RAiToRSt_Qry   =   4;
 
-const int cDepth_STtToRXe     =   2;
-const int cDepth_STtToTAi     =   2;
+const int cDepth_RXeToEVe_Event =  64;
+const int cDepth_RXeToRSt_Qry   =   4;
+const int cDepth_RXeToTSt_Qry   =   4;
 
-const int cDepth_TAiToEVe     =   8;
-const int cDepth_TAiToTSt     =   4;
+const int cDepth_STtToRXe_Rep   =   2;
+const int cDepth_STtToTAi_Rep   =   2;
 
-const int cDepth_TStToRXe     =   4;
-const int cDepth_TStToTAi     =   4;
-const int cDepth_TStToTXe     =   4;
+const int cDepth_TAiToEVe_Event =   8;
+const int cDepth_TAiToTSt_Cmd   =   4;
 
-const int cDepth_TImToEVe     =   4;
+const int cDepth_TStToRXe_Rep   =   2;
+const int cDepth_TStToTAi_Cmd   =   4;
+const int cDepth_TStToTXe_Rep   =   2;
 
-const int cDepth_TXeToEVe     =   8;
-const int cDepth_TXeToTSt     =   4;
+const int cDepth_TImToEVe_Event =   4;
+
+const int cDepth_TXeToEVe_Event =   8;
+const int cDepth_TXeToRSt_Req   =   4;
+const int cDepth_TXeToTSt_Qry   =   4;
 
 /*******************************************************************************
  * GENERAL ENUMERATIONS

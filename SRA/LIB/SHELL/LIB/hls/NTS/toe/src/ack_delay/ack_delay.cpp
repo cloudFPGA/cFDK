@@ -70,7 +70,7 @@ using namespace hls;
  * @details
  *  This process manages the transmission delay of the ACKs. Upon reception
  *   of an ACK, the counter associated to the corresponding session is
- *   initialized to (100ms/MAX_SESSIONS). Next, this counter is decremented
+ *   initialized to (64us/MAX_SESSIONS). Next, this counter is decremented
  *   every (MAX_SESSIONS) until it reaches zero. At that time, a request to
  *   generate an ACK for that session is forwarded to the TxEngine (Txe).
  *******************************************************************************/
@@ -81,7 +81,7 @@ void ack_delay(
         stream<ExtendedEvent>   &soTXe_Event)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1 enable_flush
+    #pragma HLS PIPELINE II=1 //OBSOLETE_20210819 enable_flush
 
     const char *myName = THIS_NAME;
 
@@ -105,49 +105,55 @@ void ack_delay(
     ExtendedEvent ev;
 
     if (!siEVe_Event.empty()) {
-        siEVe_Event.read(ev);
-        // Tell the EventEngine that we just received an event
-        assessSize(myName, soEVe_RxEventSig, "soEVe_RxEventSig", cDepth_AKdToEVe);
-        soEVe_RxEventSig.write(1);
-        if (DEBUG_LEVEL & TRACE_AKD) {
-            printInfo(myName, "Received event of type \'%s\' for session #%d.\n", getEventName(ev.type), ev.sessionID.to_int());
-        }
 
-        // Check if there is a delayed ACK
-        if (ev.type == ACK_EVENT and ACK_TABLE[ev.sessionID] == 0) {
-            ACK_TABLE[ev.sessionID] = ACKD_64us;
+        // Read incoming event and inform [EVe] that the FiFo stream was read
+        siEVe_Event.read(ev);
+        assessSize(myName, soEVe_RxEventSig, "soEVe_RxEventSig", cDepth_AKdToEVe_Event);
+        soEVe_RxEventSig.write(1);
+
+        if (ev.type == ACK_EVENT) {
+            if (ACK_TABLE[ev.sessionID] == 0) {
+                // There is no delayed ACK pending --> Schedule a new one
+                ACK_TABLE[ev.sessionID] = ACKD_64us;
+            }
             if (DEBUG_LEVEL & TRACE_AKD) {
-                printInfo(myName, "Scheduling a delayed ACK for session #%d.\n", ev.sessionID.to_int());
+                if (ACK_TABLE[ev.sessionID] == ACKD_64us)
+                    printInfo(myName, "S%d - Received \'%s\' - Setting ACK_TABLE[%d]=%d\n",
+                              ev.sessionID.to_int(), getEventName(ev.type), ev.sessionID.to_uint(), ACK_TABLE[ev.sessionID].to_uint());
+                else
+                    printInfo(myName, "S%d - Received \'%s\' - Current ACK_TABLE[%d]=%d\n",
+                              ev.sessionID.to_int(), getEventName(ev.type), ev.sessionID.to_uint(), ACK_TABLE[ev.sessionID].to_uint());
             }
         }
         else {
-            // Assumption no SYN/RST
+            // Any other event
             ACK_TABLE[ev.sessionID] = 0;
-            if (DEBUG_LEVEL & TRACE_AKD) {
-                printInfo(myName, "Removing any pending delayed ACK for session #%d.\n", ev.sessionID.to_int());
-                printInfo(myName, "Forwarding event \'%s\' to [TXe].\n", getEventName(ev.type));
-            }
             // Forward event to TxEngine
-            assessSize(myName, soTXe_Event, "soTXe_Event", cDepth_AKdToTXe);
+            assessSize(myName, soTXe_Event, "soTXe_Event", cDepth_AKdToTXe_Event);
             soTXe_Event.write(ev);
-            // Tell the EventEngine that we just forwarded an event to TXe
-            assessSize(myName, soEVe_TxEventSig, "soEVe_TxEventSig", cDepth_AKdToEVe);
+            // Tell the EventEngine that we just forwarded an mone-ACK event to TXe
+            assessSize(myName, soEVe_TxEventSig, "soEVe_TxEventSig", cDepth_AKdToEVe_Event);
             soEVe_TxEventSig.write(1);
+            // Debug trace
+            if (DEBUG_LEVEL & TRACE_AKD) {
+                printInfo(myName, "S%d - Received '%s' - Clearing ACK_TABLE[%d]=%d\n",
+                                  ev.sessionID.to_int(), getEventName(ev.type), ev.sessionID.to_uint(), ACK_TABLE[ev.sessionID].to_uint());
+            }
         }
     }
     else {
         if (ACK_TABLE[akd_Ptr] > 0 and !soTXe_Event.full()) {
             if (ACK_TABLE[akd_Ptr] == 1) {
                 soTXe_Event.write(Event(ACK_EVENT, akd_Ptr));
-                if (DEBUG_LEVEL & TRACE_AKD) {
-                    printInfo(myName, "Requesting [TXe] to generate an ACK for session #%d.\n", akd_Ptr.to_int());
-                }
                 // Tell the EventEngine that we just forwarded an event to TXe
-                assessSize(myName, soEVe_TxEventSig, "soEVe_TxEventSig", cDepth_AKdToEVe);
+                assessSize(myName, soEVe_TxEventSig, "soEVe_TxEventSig", cDepth_AKdToEVe_Event);
                 soEVe_TxEventSig.write(1);
+                if (DEBUG_LEVEL & TRACE_AKD) {
+                    printInfo(myName, "S%d - It's ACK Time - Requesting [TXe] to generate an new ACK\n",
+                              akd_Ptr.to_int());
+                }
             }
-            // [FIXME - Shall we not move the decrement outside of the 'full()' condition ?]
-            ACK_TABLE[akd_Ptr] -= 1;     // Decrease value
+            ACK_TABLE[akd_Ptr] -= 1;
         }
         akd_Ptr++;
         if (akd_Ptr == TOE_MAX_SESSIONS) {

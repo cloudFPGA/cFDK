@@ -95,16 +95,17 @@ void rx_sar_table(
         stream<RxSarReply>         &soTxe_RxSarRep)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1 enable_flush
-    #pragma HLS INLINE off
+    #pragma HLS PIPELINE II=1 //OBSOLETE_20210819 enable_flush
+	//OBSOLETE_20210819 #pragma HLS INLINE off
 
     const char *myName = THIS_NAME;
 
     //-- STATIC ARRAYS ---------------------------------------------------------
     static RxSarEntry               RX_SAR_TABLE[TOE_MAX_SESSIONS];
-    #pragma HLS RESOURCE   variable=RX_SAR_TABLE core=RAM_1P_BRAM
+    //OBSOLETE_20210819 #pragma HLS RESOURCE   variable=RX_SAR_TABLE core=RAM_1P_BRAM
+    #pragma HLS RESOURCE   variable=RX_SAR_TABLE core=RAM_2P
     #pragma HLS DEPENDENCE variable=RX_SAR_TABLE inter false
-    #pragma HLS RESET      variable=RX_SAR_TABLE
+    //OBSOLETE_20210819 #pragma HLS RESET      variable=RX_SAR_TABLE
 
     if(!siTXe_RxSarReq.empty()) {
         SessionId sessId;

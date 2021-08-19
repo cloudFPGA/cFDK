@@ -1,0 +1,262 @@
+# ########################################################################################
+#  @file  : siIPRX_Ramp64_with_long_ifg.dat
+#  @brief : A sequence of 64 IPv4 packets of incremental sizes.
+#
+#  @info : Such a '.dat' file can also contain global testbench parameters,
+#          testbench commands and comments.
+#
+#  @details:
+#   A global parameter, a testbench command or a comment line must start with a
+#    single character (G|>|#) followed by a space character.
+#   Examples:
+#    G PARAM SimCycles   <NUM>   --> Request a minimum of <NUM> simulation cycles.
+#    G PARAM FpgaIp4Addr <ADDR>  --> Request to set the default IPv4 address of the FPGA.
+#    G PARAM FpgaLsnPort <PORT>  --> Request to set the default TCP  server listen port on the FPGA side.
+#    G PARAM HostIp4Addr <ADDR>  --> Request to set the default IPv4 address of the HOST.
+#    G PARAM HostLsnPort <PORT>  --> Request to set the default TCP  server listen port on the HOST side.
+#    #                            --> This is a comment
+#    > IDLE  <NUM>                --> Request to idle for <NUM> cycles.
+#    > SET   HostIp4Addr <ADDR>  --> Request to add a new destination HOST IPv4 address. 
+#    > SET   HostLsnPort <PORT>  --> Request to add a new listen port on the HOST side.
+#    > SET   HostServerSocket <ADDR> <PORT> --> Request to add a new HOST socket.
+#    > TEST  RcvdIp4TotLen  <true|false> --> Request to enable/disable testing of received IPv4-Total-Length field.
+#    > TEST  RcvdIp4HdrCsum <true|false> --> Request to enable/disable testing of received IPv4-Header-Ckecksum field.
+#    > TEST  RcvdUdpLen     <true|false> --> Request to enable/disable testing of received UDP-Length field.
+#    > TEST  RcvdLy4Csum    <true|false> --> Request to enable/disable testing of received TCP|UDP-Checksum field. 
+#    > TEST  SentIp4TotLen  <true|false> --> Request to enable/disable testing of transmitted IPv4-Total-Length field.
+#    > TEST  SentIp4HdrCsum <true|false> --> Request to enable/disable testing of transmitted IPv4-Header-Ckecksum field.
+#    > TEST  SentUdpLen     <true|false> --> Request to enable/disable testing of transmitted UDP-Length field.
+#    > TEST  SentLy4Csum    <true|false> --> Request to enable/disable testing of transmitted TCP|UDP-Checksum field. 
+#
+# ########################################################################################
+#          
+#         6                   5                   4                   3                   2                   1                   0   
+#   3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0      
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  | Frag. Offset  |Flags|         |         Identification        |          Total Length         |Type of Service|Version|  IHL  |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |                       Source Address                          |         Header Checksum       |    Protocol   |  Time to Live |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |       Destination Port        |          Source Port          |                    Destination Address                        |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |                    Acknowledgment Number                      |                        Sequence Number                        |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |                               |                               |                               |   |U|A|P|R|S|F|  Data |       |
+#  |         Urgent Pointer        |           Checksum            |            Window             |   |R|C|S|S|Y|I| Offset|  Res  |
+#  |                               |                               |                               |   |G|K|H|T|N|N|       |       |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#  |                                                             data                                                              |
+#  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#
+# ###################################################################################################################################
+
+G PARAM SimCycles   5000
+G PARAM FpgaIp4Addr 10.12.200.19
+G PARAM FpgaLsnPort 8803
+
+> IDLE 100
+
+# -- PKT[1] (SYN) --------------------------------
+004006142c000045 0 FF
+20c80c0a7a820640 0 FF
+63224aa513c80c0a 0 FF
+0000000000000000 0 FF
+00001cba10720260 0 FF
+00000000b4050402 1 0F
+
+> IDLE 100
+
+# -- [ACK] TcpLen=0 ------------------------------
+0040071428000045 0 FF
+20c80c0a7d820640 0 FF
+63224aa513c80c0a 0 FF
+0000000000000000 0 FF
+0000cad110721050 1 FF
+
+# > IDLE 100
+
+# --  PKT[2] (TcpLen=16) -------------------------
+0040081438000045 0 FF
+20c80c0a6c820640 0 FF
+63224aa513c80c0a 0 FF
+032d175901000000 0 FF
+00001ed310721850 0 FF
+0F0F0F0F0F0F0F0F 0 FF
+0F0F0F0F0F0F0F0F 1 FF
+
+> IDLE 200
+
+# --  PKT[3] (TcpLen=1) --------------------------
+0040081429000045 0 FF
+20c80c0a7b820640 0 FF
+63224aa513c80c0a 0 FF
+032d175911000000 0 FF
+0000964a10721850 0 FF
+0000000000000001 1 01
+
+> IDLE 200
+
+# --  PKT[4] (TcpLen=2) --------------------------
+004008142a000045 0 FF
+20c80c0a7a820640 0 FF
+63224aa513c80c0a 0 FF
+032d175912000000 0 FF
+0000924910721850 0 FF
+0000000000000202 1 03
+
+> IDLE 200
+
+# --  PKT[5] (TcpLen=3) --------------------------
+004008142b000045 0 FF
+20c80c0a79820640 0 FF
+63224aa513c80c0a 0 FF
+032d175914000000 0 FF
+00008e4510721850 0 FF
+0000000000030303 1 07
+
+> IDLE 200
+
+# --  PKT[5] (TcpLen=4) --------------------------
+004008142c000045 0 FF
+20c80c0a78820640 0 FF
+63224aa513c80c0a 0 FF
+032d175917000000 0 FF
+0000854310721850 0 FF
+0000000004040404 1 0F
+
+> IDLE 200
+
+# --  PKT[6] (TcpLen=5) --------------------------
+004008142d000045 0 FF
+20c80c0a77820640 0 FF
+63224aa513c80c0a 0 FF
+032d17591B000000 0 FF
+00007e3c10721850 0 FF
+0000000505050505 1 1F
+
+> IDLE 200
+
+# --  PKT[7] (TcpLen=6) --------------------------
+004008142e000045 0 FF
+20c80c0a76820640 0 FF
+63224aa513c80c0a 0 FF
+032d175920000000 0 FF
+0000703910721850 0 FF
+0000060606060606 1 3F
+
+> IDLE 200
+
+# --  PKT[8] (TcpLen=7) --------------------------
+004008142f000045 0 FF
+20c80c0a75820640 0 FF
+63224aa513c80c0a 0 FF
+032d175926000000 0 FF
+0000662f10721850 0 FF
+0007070707070707 1 7F
+
+> IDLE 200
+
+# --  PKT[9] (TcpLen=8) --------------------------
+0040081430000045 0 FF
+20c80c0a74820640 0 FF
+63224aa513c80c0a 0 FF
+032d17592d000000 0 FF
+0000532b10721850 0 FF
+0808080808080808 1 FF
+
+> IDLE 200
+
+# --  PKT[10] (TcpLen=9) -------------------------
+0040081431000045 0 FF
+20c80c0a73820640 0 FF
+63224aa513c80c0a 0 FF
+032d175935000000 0 FF
+0000461e10721850 0 FF
+0909090909090909 0 FF
+0000000000000009 1 01
+
+> IDLE 200
+
+# --  PKT[11] (TcpLen=10) -------------------------
+0040081432000045 0 FF
+20c80c0a72820640 0 FF
+63224aa513c80c0a 0 FF
+032d17593e000000 0 FF
+00002e1910721850 0 FF
+0A0A0A0A0A0A0A0A 0 FF
+0000000000000A0A 1 03
+
+> IDLE 200
+
+# --  PKT[12] (TcpLen=11) -------------------------
+0040081433000045 0 FF
+20c80c0a71820640 0 FF
+63224aa513c80c0a 0 FF
+032d175948000000 0 FF
+00001e0910721850 0 FF
+0B0B0B0B0B0B0B0B 0 FF
+00000000000B0B0B 1 07
+
+> IDLE 200
+
+# --  PKT[13] (TcpLen=12) -------------------------
+0040081434000045 0 FF
+20c80c0a70820640 0 FF
+63224aa513c80c0a 0 FF
+032d175953000000 0 FF
+0000020310721850 0 FF
+0B0C0C0C0C0C0C0C 0 FF
+000000000C0C0C0C 1 0F
+
+> IDLE 200
+
+# --  PKT[14] (TcpLen=13) -------------------------
+0040081435000045 0 FF
+20c80c0a6f820640 0 FF
+63224aa513c80c0a 0 FF
+032d17595f000000 0 FF
+0000edef10721850 0 FF
+0D0D0D0D0D0D0D0D 0 FF
+0000000D0D0D0D0D 1 1F
+
+> IDLE 200
+
+# --  PKT[15] (TcpLen=14) -------------------------
+0040081436000045 0 FF
+20c80c0a6e820640 0 FF
+63224aa513c80c0a 0 FF
+032d17596c000000 0 FF
+0000cbe810721850 0 FF
+0E0E0E0E0E0E0E0E 0 FF
+000E0E0E0E0E0E0E 1 3F
+
+> IDLE 200
+
+# --  PKT[16] (TcpLen=15) -------------------------
+0040081437000045 0 FF
+20c80c0a6d820640 0 FF
+63224aa513c80c0a 0 FF
+032d17597a000000 0 FF
+0000b5d210721850 0 FF
+0F0F0F0F0F0F0F0F 0 FF
+0F0F0F0F0F0F0F0F 1 7F
+
+
+> TEST  RcvdIp4TotLen   false
+> TEST  RcvdIp4HdrCsum  false
+> TEST  RcvdLy4Csum     false 
+
+> IDLE 200
+
+# --  PKT[17] (TcpLen=16) -------------------------
+# 0040081400000045 0 FF
+# 20c80c0a00000640 0 FF
+# 63224aa513c80c0a 0 FF
+# 032d175989000000 0 FF
+# 0000000010721850 0 FF
+# 0F0F0F0F0F0F0F0F 0 FF
+# 0F0F0F0F0F0F0F0F 1 7F
+
+> IDLE 700
+
+
