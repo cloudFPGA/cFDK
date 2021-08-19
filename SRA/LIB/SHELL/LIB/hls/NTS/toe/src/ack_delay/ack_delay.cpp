@@ -115,14 +115,16 @@ void ack_delay(
             if (ACK_TABLE[ev.sessionID] == 0) {
                 // There is no delayed ACK pending --> Schedule a new one
                 ACK_TABLE[ev.sessionID] = ACKD_64us;
-            }
-            if (DEBUG_LEVEL & TRACE_AKD) {
-                if (ACK_TABLE[ev.sessionID] == ACKD_64us)
+                if (DEBUG_LEVEL & TRACE_AKD) {
                     printInfo(myName, "S%d - Received \'%s\' - Setting ACK_TABLE[%d]=%d\n",
                               ev.sessionID.to_int(), getEventName(ev.type), ev.sessionID.to_uint(), ACK_TABLE[ev.sessionID].to_uint());
-                else
-                    printInfo(myName, "S%d - Received \'%s\' - Current ACK_TABLE[%d]=%d\n",
+                }
+            }
+            else {
+                if (DEBUG_LEVEL & TRACE_AKD) {
+                     printInfo(myName, "S%d - Received \'%s\' - Current ACK_TABLE[%d]=%d\n",
                               ev.sessionID.to_int(), getEventName(ev.type), ev.sessionID.to_uint(), ACK_TABLE[ev.sessionID].to_uint());
+                }
             }
         }
         else {
