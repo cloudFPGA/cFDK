@@ -334,6 +334,7 @@ void pRxMemoryReader(
  * @param[in]  siMEM_RxP_Data  Rx data segment from [MEM].
  * @param[out] soTAIF_Data     Rx data stream to TcpAppInterface (TAIF).
  * @param[in]  siMrd_SplitSeg  Split segment from Rx MemoryReader (MRd).
+ * @param[out] soMMIO_DataDropCnt The value of the data drop counter.
  *
  * @details
  *  This process is the data read front-end of the memory sub-system (MEM). It
@@ -349,12 +350,14 @@ void pRxMemoryReader(
  *  This implies that the application process must provision enough buffering to
  *  store all the bytes that were requested to be read from the TCP Rx buffer,
  *  or the application must read them as fast as they come in i.e., as fast as
- *  one chunk per clock cycle.
+ *  one chunk per clock cycle. A 16-bit data drop counter register is provided
+ *  in MMIO to help diagnose such issues.
  *******************************************************************************/
 void pAppSegmentStitcher(
-        stream<AxisApp>     &siMEM_RxP_Data,
-        stream<TcpAppData>  &soTAIF_Data,
-        stream<FlagBool>    &siMrd_SplitSegFlag)
+        stream<AxisApp>      &siMEM_RxP_Data,
+        stream<TcpAppData>   &soTAIF_Data,
+        stream<FlagBool>     &siMrd_SplitSegFlag,
+        stream<ap_uint<16> > &soMMIO_DataDropCnt)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1 enable_flush
@@ -370,6 +373,8 @@ void pAppSegmentStitcher(
     #pragma HLS RESET variable=ass_fsmState
     static ap_uint<3>          ass_psdHdrChunkCount = 0;
     #pragma HLS RESET variable=ass_psdHdrChunkCount
+    static ap_uint<16>         ass_dataDropCounter=0;
+    #pragma HLS reset variable=ass_dataDropCounter
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static AxisApp      ass_prevChunk;
@@ -392,7 +397,8 @@ void pAppSegmentStitcher(
                         if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
                     }
                     else {
-                        // Drop this chunk
+                        // Drop this data and increment the Data Drop Counter
+                        ass_dataDropCounter++;
                         printFatal(myName, "Cannot write 'soTAIF_Data()'. Stream is full!");
                     }
                     ass_fsmState = ASS_IDLE;
@@ -416,7 +422,8 @@ void pAppSegmentStitcher(
                             if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
                         }
                         else {
-                            // Drop this chunk
+                            // Drop this data and increment the Data Drop Counter
+                            ass_dataDropCounter++;
                             printFatal(myName, "Cannot write 'soTAIF_Data()'. Stream is full!");
                         }
                         ass_fsmState = ASS_FWD_2ND_BUF;
@@ -430,7 +437,8 @@ void pAppSegmentStitcher(
                    if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
                }
                else {
-                   // Drop this chunk
+                   // Drop this data and increment the Data Drop Counter
+                   ass_dataDropCounter++;
                    printFatal(myName, "Cannot write 'soTAIF_Data()'. Stream is full!");
                }
                ass_fsmState = ASS_FWD_1ST_BUF;
@@ -478,7 +486,8 @@ void pAppSegmentStitcher(
                            if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
                         }
                         else {
-                            // Drop this chunk
+                            // Drop this data and increment the Data Drop Counter
+                            ass_dataDropCounter++;
                             printFatal(myName, "Cannot write 'soTAIF_Data()'. Stream is full!");
                         }
                         ass_fsmState = ASS_FWD_2ND_BUF;
@@ -492,6 +501,8 @@ void pAppSegmentStitcher(
                     if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
                 }
                 else {
+                    // Drop this data and increment the Data Drop Counter
+                    ass_dataDropCounter++;
                     printFatal(myName, "Cannot write 'soTAIF_Data()'. Stream is full!");
                 }
             }
@@ -506,6 +517,8 @@ void pAppSegmentStitcher(
                 if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
             }
             else {
+                // Drop this data and increment the Data Drop Counter
+                ass_dataDropCounter++;
                 printFatal(myName, "Cannot write 'soTAIF_Data()'. Stream is full!");
             }
             if (currAppChunk.getTLast()) {
@@ -552,6 +565,8 @@ void pAppSegmentStitcher(
                 if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", joinedChunk); }
             }
             else {
+                // Drop this data and increment the Data Drop Counter
+                ass_dataDropCounter++;
                 printFatal(myName, "Cannot write 'soTAIF_Data()'. Stream is full!");
             }
 
@@ -575,12 +590,23 @@ void pAppSegmentStitcher(
             if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", lastChunk); }
         }
         else {
+            // Drop this data and increment the Data Drop Counter
+            ass_dataDropCounter++;
             printFatal(myName, "Cannot write 'soTAIF_Data()'. Stream is full!");
         }
         ass_fsmState = ASS_IDLE;
         break;
+    } // End-of: switch
+
+    //-- ALWAYS
+    if (!soMMIO_DataDropCnt.full()) {
+        soMMIO_DataDropCnt.write(ass_dataDropCounter);
     }
-}
+    else {
+        printFatal(myName, "Cannot write soMMIO_DataDropCnt stream...");
+    }
+
+}  // End-of: pAppSegmentStitcher
 
 /*******************************************************************************
  * @brief Listen Application Interface (Lai)
@@ -667,6 +693,7 @@ void pLsnAppInterface(
  * @param[in]  siMEM_RxP_Data  Rx memory data stream from [MEM].
  * @param[out] soMMIO_NotifDropCnt The value of the notification drop counter.
  * @param[out] soMMIO_MetaDropCnt  The value of the metadata drop counter.
+ * @param[out] soMMIO_DataDropCnt  The value of the data drop counter.
  *
  * @details
  *  The Rx Application Interface (Rai) retrieves the data of an established
@@ -709,7 +736,8 @@ void rx_app_interface(
         stream<AxisApp>             &siMEM_RxP_Data,
         //-- MMIO Interfaces
         stream<ap_uint<8> >         &soMMIO_NotifDropCnt,
-        stream<ap_uint<8> >         &soMMIO_MetaDropCnt)
+        stream<ap_uint<8> >         &soMMIO_MetaDropCnt,
+        stream<ap_uint<16> >        &soMMIO_DataDropCnt)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE
@@ -742,7 +770,8 @@ void rx_app_interface(
     pAppSegmentStitcher(
             siMEM_RxP_Data,
             soTAIF_Data,
-            ssMrdToAss_SplitSeg);
+            ssMrdToAss_SplitSeg,
+            soMMIO_DataDropCnt);
 
     pLsnAppInterface(
             siTAIF_LsnReq,

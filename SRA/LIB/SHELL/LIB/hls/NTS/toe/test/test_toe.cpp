@@ -2388,6 +2388,7 @@ void pTAIF(
  * @param[in]  piMMIO_IpAddr    IP4 Address from [MMIO].
  * @param[out] soMMIO_NotifDrop The value of the notification drop counter.
  * @param[out] soMMIO_MetaDrop  The value of the metadata drop counter.
+ * @param[out] soMMIO_DataDrop  The value of the data drop counter.
  * @param[out] poNTS_Ready      Ready signal of TOE.
  * @param[in]  siIPRX_Data      IP4 data stream from [IPRX].
  * @param[out] soIPTX_Data      IP4 data stream to [IPTX].
@@ -2433,6 +2434,7 @@ void pTAIF(
         Ip4Addr                                  piMMIO_IpAddr,
         stream<ap_uint<8> >                     &soMMIO_NotifDropCnt,
         stream<ap_uint<8> >                     &soMMIO_MetaDropCnt,
+        stream<ap_uint<16> >                    &soMMIO_DataDropCnt,
         //-- NTS Interfaces
         StsBit                                  &poNTS_Ready,
         //-- IPRX / IP Rx / Data Interface
@@ -2499,6 +2501,7 @@ void pTAIF(
       piMMIO_IpAddr,
       soMMIO_NotifDropCnt,
       soMMIO_MetaDropCnt,
+      soMMIO_DataDropCnt,
       //-- NTS Interfaces
       poNTS_Ready,
       //-- IPv4 / Rx & Tx Data Interfaces
@@ -2629,7 +2632,8 @@ int main(int argc, char *argv[]) {
     stream<CamSessionUpdateReply>   ssCAM_TOE_SssUpdRep  ("ssCAM_TOE_SssUpdRep");
 
     stream<ap_uint<8> >             ssTOE_MMIO_NotifDropCnt ("ssTOE_MMIO_NotifDropCnt");
-    stream<ap_uint<8> >             ssTOE_MMIO_MetaDropCnt ("ssTOE_MMIO_MetaDropCnt");
+    stream<ap_uint<8> >             ssTOE_MMIO_MetaDropCnt  ("ssTOE_MMIO_MetaDropCnt");
+    stream<ap_uint<16> >            ssTOE_MMIO_DataDropCnt  ("ssTOE_MMIO_DataDropCnt");
 
     stream<ap_uint<16> >            ssTOE_OpnSessCount   ("ssTOE_OpnSessCount");
     stream<ap_uint<16> >            ssTOE_ClsSessCount   ("ssTOE_ClsSessCount");
@@ -2837,6 +2841,7 @@ int main(int argc, char *argv[]) {
             gFpgaIp4Addr,
             ssTOE_MMIO_NotifDropCnt,
             ssTOE_MMIO_MetaDropCnt,
+            ssTOE_MMIO_DataDropCnt,
             //-- NTS Interfaces
             sTOE_Ready,
             //-- IPv4 / Rx & Tx Data Interfaces
@@ -3012,6 +3017,10 @@ int main(int argc, char *argv[]) {
     }
     if (not drainMmioDropCounter(ssTOE_MMIO_MetaDropCnt, "ssTOE_MMIO_MetaDropCnt")) {
         printError(THIS_NAME, "Failed to drain TOE-to-MMIO metadata drop counter from DUT. \n");
+        nrErr++;
+    }
+    if (not drainMmioDropCounter(ssTOE_MMIO_DataDropCnt, "ssTOE_MMIO_DataDropCnt")) {
+        printError(THIS_NAME, "Failed to drain TOE-to-MMIO data drop counter from DUT. \n");
         nrErr++;
     }
 
