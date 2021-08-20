@@ -71,7 +71,9 @@ void rx_app_interface(
         stream<RAiRxSarReply>       &siRSt_RxSarRep,
         //-- MEM / DDR4 Memory Interface 
         stream<DmCmd>               &soMEM_RxP_RdCmd,
-        stream<AxisApp>             &siMEM_RxP_Data
+        stream<AxisApp>             &siMEM_RxP_Data,
+        //-- MMIO Interface
+        stream<ap_uint<8> >         &soMMIO_NotifDropCnt
 );
 
 #endif

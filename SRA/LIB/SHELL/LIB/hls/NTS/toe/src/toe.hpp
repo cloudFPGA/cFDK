@@ -714,6 +714,7 @@ template<typename T> void pStreamMux(
         //-- MMIO Interfaces
         //------------------------------------------------------
         Ip4Addr                                  piMMIO_IpAddr,
+        stream<ap_uint<8> >                     &soMMIO_NotifDropCnt,
 
         //------------------------------------------------------
         //-- NTS Interfaces
@@ -810,6 +811,7 @@ template<typename T> void pStreamMux(
         //-- MMIO Interfaces
         //------------------------------------------------------
         Ip4Addr                                  piMMIO_IpAddr,
+        stream<ap_uint<8> >                     &soMMIO_NotifDropCnt,
 
         //------------------------------------------------------
         //-- NTS Interfaces

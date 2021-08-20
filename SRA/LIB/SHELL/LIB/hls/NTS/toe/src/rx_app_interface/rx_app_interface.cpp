@@ -66,9 +66,10 @@ using namespace hls;
 /*******************************************************************************
  * @brief Rx Notification Multiplexer (Nmx)
  *
- *  @param[in]  siRXe_Notif   Notification from RxEngine (RXe).
- *  @param[in]  siTIm_Notif   Notification from Timers (TIm).
- *  @param[out] soTAIF_Notif  Notification to TcpAppInterface (TAIF).
+ *  @param[in]  siRXe_Notif    Notification from RxEngine (RXe).
+ *  @param[in]  siTIm_Notif    Notification from Timers (TIm).
+ *  @param[out] soTAIF_Notif   Notification to TcpAppInterface (TAIF).
+ *  @param[out] soMMIO_NotifDropCnt The value of the notification drop counter.
  *
  * @details
  *  This 2-to-1 stream multiplexer behaves like an arbiter. It takes two streams
@@ -80,18 +81,25 @@ using namespace hls;
  *  To avoid any blocking of [RAi], the current notification to be sent on the
  *  outgoing stream will be dropped if that stream is full. As a results, the
  *  application process must provision enough buffering to store all incoming
- *  notifications, or the application must drain the stream as fast it fills up.
+ *  notifications, or the application must drain the stream as fast as it fills
+ *  up. An 8-bit notification drop counter register is provided in MMIO to help
+ *  diagnose such issues.
  *******************************************************************************/
 void pNotificationMux(
         stream<TcpAppNotif>     &siRXe_Notif,
         stream<TcpAppNotif>     &siTIm_Notif,
-        stream<TcpAppNotif>     &soTAIF_Notif)
+        stream<TcpAppNotif>     &soTAIF_Notif,
+        stream<ap_uint<8> >     &soMMIO_NotifDropCnt)
 {
    //-- DIRECTIVES FOR THIS PROCESS --------------------------------------------
     #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     const char *myName = concat3(THIS_NAME, "/", "Nmx");
+
+    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
+    static ap_uint<8 >            nmx_notifDropCounter=0;
+    #pragma HLS reset    variable=nmx_notifDropCounter
 
     TcpAppNotif  currNotif;
 
@@ -101,7 +109,8 @@ void pNotificationMux(
             soTAIF_Notif.write(currNotif);
         }
         else {
-            // Drop this notification
+            // Drop this notification and increment the Notif Drop Counter
+            nmx_notifDropCounter++;
             printFatal(myName, "Cannot write 'soTAIF_Notif()'. Stream is full!");
         }
     }
@@ -114,6 +123,14 @@ void pNotificationMux(
             // Drop this notification
             printFatal(myName, "Cannot write 'soTAIF_Notif()'. Stream is full!");
         }
+    }
+
+    //-- ALWAYS
+    if (!soMMIO_NotifDropCnt.full()) {
+        soMMIO_NotifDropCnt.write(nmx_notifDropCounter);
+    }
+    else {
+        printFatal(myName, "Cannot write soMMIO_NotifDropCnt stream...");
     }
 }
 
@@ -322,9 +339,9 @@ void pAppSegmentStitcher(
     const char *myName = concat3(THIS_NAME, "/", "Ass");
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static enum FsmState {ASS_IDLE,
-                          ASS_FWD_1ST_BUF,  ASS_FWD_2ND_BUF,
-                          ASS_JOIN_2ND_BUF, ASS_RESIDUE } \
+    static enum FsmState { ASS_IDLE,
+                           ASS_FWD_1ST_BUF,  ASS_FWD_2ND_BUF,
+                           ASS_JOIN_2ND_BUF, ASS_RESIDUE } \
                                ass_fsmState=ASS_IDLE;
     #pragma HLS RESET variable=ass_fsmState
     static ap_uint<3>          ass_psdHdrChunkCount = 0;
@@ -624,6 +641,7 @@ void pLsnAppInterface(
  * @param[in]  siRSt_RxSarRep  Rx SAR reply from [RSt].
  * @param[out] soMEM_RxP_RdCmd Rx memory read command to Memory sub-system (MEM).
  * @param[in]  siMEM_RxP_Data  Rx memory data stream from [MEM].
+ * @param[out] soMMIO_NotifDropCnt The value of the notification drop counter.
  *
  * @details
  *  The Rx Application Interface (Rai) retrieves the data of an established
@@ -663,7 +681,9 @@ void rx_app_interface(
         stream<RAiRxSarReply>       &siRSt_RxSarRep,
         //-- MEM / DDR4 Memory Interface
         stream<DmCmd>               &soMEM_RxP_RdCmd,
-        stream<AxisApp>             &siMEM_RxP_Data)
+        stream<AxisApp>             &siMEM_RxP_Data,
+        //-- MMIO Interfaces
+        stream<ap_uint<8> >         &soMMIO_NotifDropCnt)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE
@@ -706,7 +726,8 @@ void rx_app_interface(
     pNotificationMux(
             siRXe_Notif,
             siTIm_Notif,
-            soTAIF_Notif);
+            soTAIF_Notif,
+            soMMIO_NotifDropCnt);
 
 }
 

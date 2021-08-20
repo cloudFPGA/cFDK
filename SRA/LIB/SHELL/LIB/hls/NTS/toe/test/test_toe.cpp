@@ -90,6 +90,32 @@ const char *myCamAccessToString(int initiator) {
     return camAccessorStrings[initiator];
 }
 
+/*****************************************************************************
+ * @brief Empty a DropCounter stream and throw it away.
+ *
+ * @param[in/out] ss        A ref to the stream to drain.
+ * @param[in]     ssName    The name of the stream to drain.
+ *
+ * @return NTS_OK if successful,  otherwise NTS_KO.
+ ******************************************************************************/
+template<typename T> bool drainMmioDropCounter(stream<T> &ss, string ssName) {
+    int          nr=0;
+    const char  *myName  = concat3(THIS_NAME, "/", "DMDC");
+    T  currDropCount;
+    T  prevDropCount=0;
+
+    //-- READ FROM STREAM
+    while (!(ss.empty())) {
+        ss.read(currDropCount);
+        if (currDropCount != prevDropCount) {
+            printWarn(myName, "Detected a drop event on stream '%s' (currDropCounter=%d). \n",
+                      ssName.c_str(), currDropCount.to_ushort());
+        }
+        prevDropCount = currDropCount;
+    }
+    return(NTS_OK);
+}
+
 /*******************************************************************************
  * @brief Emulate the behavior of the Content Addressable Memory (TOECAM).
  *
@@ -2360,6 +2386,7 @@ void pTAIF(
  * @brief A wrapper for the Toplevel of the TCP Offload Engine (TOE).
  *
  * @param[in]  piMMIO_IpAddr    IP4 Address from [MMIO].
+ * @param[out] soMMIO_NotifDrop The value of the notification drop counter.
  * @param[out] poNTS_Ready      Ready signal of TOE.
  * @param[in]  siIPRX_Data      IP4 data stream from [IPRX].
  * @param[out] soIPTX_Data      IP4 data stream to [IPTX].
@@ -2403,6 +2430,7 @@ void pTAIF(
   void toe_top_wrap(
         //-- MMIO Interfaces
         Ip4Addr                                  piMMIO_IpAddr,
+        stream<ap_uint<8> >                     &soMMIO_NotifDropCnt,
         //-- NTS Interfaces
         StsBit                                  &poNTS_Ready,
         //-- IPRX / IP Rx / Data Interface
@@ -2467,6 +2495,7 @@ void pTAIF(
     toe_top(
       //-- MMIO Interfaces
       piMMIO_IpAddr,
+      soMMIO_NotifDropCnt,
       //-- NTS Interfaces
       poNTS_Ready,
       //-- IPv4 / Rx & Tx Data Interfaces
@@ -2596,10 +2625,10 @@ int main(int argc, char *argv[]) {
     stream<CamSessionUpdateRequest> ssTOE_CAM_SssUpdReq  ("ssTOE_CAM_SssUpdReq");
     stream<CamSessionUpdateReply>   ssCAM_TOE_SssUpdRep  ("ssCAM_TOE_SssUpdRep");
 
+    stream<ap_uint<8> >             ssTOE_MMIO_NotifDropCnt ("ssTOE_MMIO_NotifDropCnt");
+
     stream<ap_uint<16> >            ssTOE_OpnSessCount   ("ssTOE_OpnSessCount");
     stream<ap_uint<16> >            ssTOE_ClsSessCount   ("ssTOE_ClsSessCount");
-    
-   
 
     //------------------------------------------------------
     //-- TB SIGNALS
@@ -2802,6 +2831,7 @@ int main(int argc, char *argv[]) {
         #endif
             //-- MMIO Interfaces
             gFpgaIp4Addr,
+            ssTOE_MMIO_NotifDropCnt,
             //-- NTS Interfaces
             sTOE_Ready,
             //-- IPv4 / Rx & Tx Data Interfaces
@@ -2962,6 +2992,20 @@ int main(int argc, char *argv[]) {
 
     } while ( (gSimCycCnt < gMaxSimCycles) and (not gFatalError) and (nrErr < 10) );
 
+
+    printInfo(THIS_NAME, "############################################################################\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'test_toe' ENDS HERE                                          ##\n");
+    printInfo(THIS_NAME, "############################################################################\n");
+    stepSim();
+
+    //---------------------------------------------
+    //-- DRAIN TOE-->MMIO DROP COUNTER STREAMS
+    //---------------------------------------------
+    if (not drainMmioDropCounter(ssTOE_MMIO_NotifDropCnt, "ssTOE_MMIO_NotifDropCnt")) {
+            printError(THIS_NAME, "Failed to drain TOE-to-MMIO drop counter from DUT. \n");
+        nrErr++;
+    }
+
     //---------------------------------
     //-- CLOSING OPEN FILES
     //---------------------------------
@@ -2979,11 +3023,6 @@ int main(int argc, char *argv[]) {
         ofIPTX_Data2 << endl; ofIPTX_Data2.close();
         ofIPTX_Gold2 << endl; ofIPTX_Gold2.close();
     }
-
-    printInfo(THIS_NAME, "############################################################################\n");
-    printInfo(THIS_NAME, "## TESTBENCH 'test_toe' ENDS HERE                                          ##\n");
-    printInfo(THIS_NAME, "############################################################################\n");
-    stepSim();
 
     //---------------------------------------------------------------
     //-- PRINT AN OVERALL TESTBENCH STATUS
