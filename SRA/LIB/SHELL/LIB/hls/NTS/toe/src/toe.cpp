@@ -202,8 +202,8 @@ void pTbSimCount(
  * @param[out] soCAM_SssLkpReq  Session lookup request to [CAM].
  * @param[out] soCAM_SssUpdReq  Session update request to [CAM].
  * -- DEBUG / Session Statistics Interfaces
- * @param[out] poDBG_SssRelCnt  Session release count to DEBUG.  // [FIXMS-Remove]
- * @param[out] poDBG_SssRegCnt  Session register count to DEBUG. // [FIXMS-Remove]
+ * @param[out] soDBG_SssRelCnt  Session release count to DEBUG.
+ * @param[out] soDBG_SssRegCnt  Session register count to DEBUG.
  *******************************************************************************/
 void toe(
 
@@ -291,8 +291,8 @@ void toe(
         //------------------------------------------------------
         //-- DEBUG Interfaces
         //------------------------------------------------------
-        ap_uint<16>                         &poDBG_SssRelCnt,
-        ap_uint<16>                         &poDBG_SssRegCnt
+        stream<ap_uint<16> >                &soDBG_SssRelCnt,
+        stream<ap_uint<16> >                &soDBG_SssRegCnt
         #if TOE_FEATURE_USED_FOR_DEBUGGING
         ap_uint<32>                         &poSimCycCount
         #endif
@@ -539,8 +539,8 @@ void toe(
             siCAM_SssLkpRep,
             soCAM_SssUpdReq,
             siCAM_SssUpdRep,
-            poDBG_SssRelCnt,
-            poDBG_SssRegCnt);
+            soDBG_SssRelCnt,
+            soDBG_SssRegCnt);
 
     //-- State Table (STt) -------------------------------------------------
     state_table(
@@ -756,8 +756,8 @@ void toe(
  * @param[in]  siCAM_SssLkpRep  Session lookup reply from [CAM].
  * @param[out] soCAM_SssUpdReq  Session update request to [CAM].
  * @param[in]  siCAM_SssUpdRep  Session update reply from [CAM].
- * @param[out] poDBG_SssRelCnt  Session release count (for DEBUG).
- * @param[out] poDBG_SssRegCnt  Session register count (foe DEBUG).
+ * @param[out] soDBG_SssRelCnt  Session release count (for DEBUG).
+ * @param[out] soDBG_SssRegCnt  Session register count (foe DEBUG).
  *******************************************************************************/
 #if HLS_VERSION == 2017
     void toe_top(
@@ -833,8 +833,8 @@ void toe(
         //------------------------------------------------------
         //-- DEBUG Interfaces
         //------------------------------------------------------
-        ap_uint<16>                         &poDBG_SssRelCnt,
-        ap_uint<16>                         &poDBG_SssRegCnt
+        stream<ap_uint<16> >                &soDBG_SssRelCnt,
+        stream<ap_uint<16> >                &soDBG_SssRegCnt
         #if TOE_FEATURE_USED_FOR_DEBUGGING
         ap_uint<32>                         &poSimCycCount
         #endif
@@ -905,8 +905,8 @@ void toe(
     #pragma HLS resource core=AXI4Stream variable=soCAM_SssUpdReq metadata="-bus_bundle soCAM_SssUpdReq"
     #pragma HLS DATA_PACK                variable=soCAM_SssUpdReq
     //-- DEBUG / Session Statistics Interfaces
-    #pragma HLS INTERFACE ap_none register port=poDBG_SssRelCnt
-    #pragma HLS INTERFACE ap_none register port=poDBG_SssRegCnt
+    #pragma HLS resource core=AXI4Stream variable=soDBG_SssRelCnt metadata="-bus_bundle soDBG_SssRelCnt"
+    #pragma HLS resource core=AXI4Stream variable=soDBG_SssRegCnt metadata="-bus_bundle soDBG_SssRegCnt"
     //-- DEBUG / Simulation Counter Interfaces
    #if TOE_FEATURE_USED_FOR_DEBUGGING
     #pragma HLS INTERFACE ap_none register port=poSimCycCount
@@ -963,8 +963,8 @@ void toe(
         soCAM_SssUpdReq,
         siCAM_SssUpdRep,
         //-- DEBUG Interfaces
-        poDBG_SssRelCnt,
-        poDBG_SssRegCnt
+        soDBG_SssRelCnt,
+        soDBG_SssRegCnt
         #if TOE_FEATURE_USED_FOR_DEBUGGING
         poSimCycCount
         #endif
@@ -1045,8 +1045,8 @@ void toe(
         //------------------------------------------------------
         //-- DEBUG Interfaces
         //------------------------------------------------------
-        ap_uint<16>                         &poDBG_SssRelCnt,
-        ap_uint<16>                         &poDBG_SssRegCnt
+        stream<ap_uint<16> >                &soDBG_SssRelCnt,
+        stream<ap_uint<16> >                &soDBG_SssRegCnt
         #if TOE_FEATURE_USED_FOR_DEBUGGING
         ap_uint<32>                         &poSimCycCount
         #endif
@@ -1113,11 +1113,9 @@ void toe(
     #pragma HLS DATA_PACK                   variable=soCAM_SssUpdReq
     #pragma HLS INTERFACE axis off              port=siCAM_SssUpdRep name=siCAM_SssUpdRep
     #pragma HLS DATA_PACK                   variable=siCAM_SssUpdRep
-
-
     //-- DEBUG / Session Statistics Interfaces
-    #pragma HLS INTERFACE ap_none register   port=poDBG_SssRelCnt name=poDBG_SssRelCnt
-    #pragma HLS INTERFACE ap_none register   port=poDBG_SssRegCnt name=poDBG_SssRegCnt
+    #pragma HLS INTERFACE axis register both    port=soDBG_SssRelCnt name=soDBG_SssRelCnt
+    #pragma HLS INTERFACE axis register both    port=soDBG_SssRegCnt name=soDBG_SssRegCnt
     //-- DEBUG / Simulation Counter Interfaces
   #if TOE_FEATURE_USED_FOR_DEBUGGING
     #pragma HLS INTERFACE ap_ovld register   port=poSimCycCount   name=poSimCycCount
@@ -1181,8 +1179,8 @@ void toe(
         soCAM_SssUpdReq,
         siCAM_SssUpdRep,
         //-- DEBUG Interfaces
-        poDBG_SssRelCnt,
-        poDBG_SssRegCnt
+        soDBG_SssRelCnt,
+        soDBG_SssRegCnt
         #if TOE_FEATURE_USED_FOR_DEBUGGING
         poSimCycCount
         #endif

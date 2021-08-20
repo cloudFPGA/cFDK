@@ -2392,8 +2392,8 @@ void pTAIF(
  * @param[in]  siCAM_SssLkpRep  Session lookup reply from [CAM].
  * @param[out] soCAM_SssUpdReq  Session update request to [CAM].
  * @param[in]  siCAM_SssUpdRep  Session update reply from [CAM].
- * @param[out] poDBG_SssRelCnt  Session release count (for DEBUG).
- * @param[out] poDBG_SssRegCnt  Session register count (foe DEBUG).
+ * @param[out] soDBG_SssRelCnt  Session release count (for DEBUG).
+ * @param[out] soDBG_SssRegCnt  Session register count (foe DEBUG).
  *
  * @details
  *  This process is a wrapper for the 'toe_top' entity. It instantiates such an
@@ -2448,11 +2448,11 @@ void pTAIF(
         stream<CamSessionUpdateReply>           &siCAM_SssUpdRep,
         //-- DEBUG / Interfaces
         //-- DEBUG / Session Statistics Interfaces
-        ap_uint<16>                             &poDBG_SssRelCnt,
-        ap_uint<16>                             &poDBG_SssRegCnt
+        stream<ap_uint<16> >                    &soDBG_SssRelCnt,
+        stream<ap_uint<16> >                    &soDBG_SssRegCnt
         #if TOE_FEATURE_USED_FOR_DEBUGGING
         //-- DEBUG / SimCycCounter
-        ap_uint<32>                        &poSimCycCount
+        ap_uint<32>                             &poSimCycCount
         #endif
   )
 {
@@ -2508,8 +2508,8 @@ void pTAIF(
       soCAM_SssUpdReq,
       siCAM_SssUpdRep,
       //-- DEBUG / Session Statistics Interfaces
-      poDBG_SssRelCnt,
-      poDBG_SssRegCnt
+      soDBG_SssRelCnt,
+      soDBG_SssRegCnt
       #if TOE_FEATURE_USED_FOR_DEBUGGING
       ,
       sTOE_TB_SimCycCnt
@@ -2596,6 +2596,11 @@ int main(int argc, char *argv[]) {
     stream<CamSessionUpdateRequest> ssTOE_CAM_SssUpdReq  ("ssTOE_CAM_SssUpdReq");
     stream<CamSessionUpdateReply>   ssCAM_TOE_SssUpdRep  ("ssCAM_TOE_SssUpdRep");
 
+    stream<ap_uint<16> >            ssTOE_OpnSessCount   ("ssTOE_OpnSessCount");
+    stream<ap_uint<16> >            ssTOE_ClsSessCount   ("ssTOE_ClsSessCount");
+    
+   
+
     //------------------------------------------------------
     //-- TB SIGNALS
     //------------------------------------------------------
@@ -2611,8 +2616,8 @@ int main(int argc, char *argv[]) {
     AxisIp4         ipRxData;    // An IP4 chunk
     AxisApp         tcpTxData;   // A  TCP chunk
 
-    ap_uint<16>     opnSessionCount;
-    ap_uint<16>     clsSessionCount;
+    ap_uint<16>     nrOpenedSessions;
+    ap_uint<16>     nrClosedSessions;
 
     DummyMemory     rxMemory;
     DummyMemory     txMemory;
@@ -2838,13 +2843,40 @@ int main(int argc, char *argv[]) {
             ssTOE_CAM_SssUpdReq,
             ssCAM_TOE_SssUpdRep,
             //-- DEBUG / Session Statistics Interfaces
-            clsSessionCount,
-            opnSessionCount
+            ssTOE_ClsSessCount,
+            ssTOE_OpnSessCount
             #if TOE_FEATURE_USED_FOR_DEBUGGING
             ,
             sTOE_TB_SimCycCnt
             #endif
           );
+
+        //------------------------------------------------------
+        //-- STEP-2.1 : Drain TOE's Debug Streams
+        //------------------------------------------------------
+        if (!ssTOE_ClsSessCount.empty()) {
+            nrClosedSessions = ssTOE_ClsSessCount.read();
+        }
+        if (!ssTOE_OpnSessCount.empty()) {
+            nrOpenedSessions = ssTOE_OpnSessCount.read();
+        }
+
+        //------------------------------------------------------
+        //-- STEP-2.2 : GENERATE THE 'ReadyDly' SIGNAL
+        //------------------------------------------------------
+        if (sTOE_Ready == 1) {
+            if (startUpDelay > 0) {
+                startUpDelay--;
+                if (DEBUG_LEVEL & TRACE_MAIN) {
+                    if (startUpDelay == 0) {
+                        printInfo(THIS_NAME, "TOE and TB are ready.\n");
+                    }
+                }
+            }
+            else {
+                sTOE_ReadyDly = sTOE_Ready;
+            }
+        }
 
         //-------------------------------------------------
         //-- STEP-3 : Emulate DRAM & CAM Interfaces
@@ -2909,23 +2941,7 @@ int main(int argc, char *argv[]) {
             ssTOE_TAIF_SndRep,
             ssTAIF_TOE_ClsReq);
 
-        //------------------------------------------------------
-        //-- STEP-6 : GENERATE THE 'ReadyDly' SIGNAL
-        //------------------------------------------------------
-        if (sTOE_Ready == 1) {
-            if (startUpDelay > 0) {
-                startUpDelay--;
-                if (DEBUG_LEVEL & TRACE_MAIN) {
-                    if (startUpDelay == 0) {
-                        printInfo(THIS_NAME, "TOE and TB are ready.\n");
-                    }
-                }
-            }
-            else {
-                sTOE_ReadyDly = sTOE_Ready;
-            }
-        }
-
+        
         //------------------------------------------------------
         //-- STEP-7 : INCREMENT SIMULATION COUNTER
         //------------------------------------------------------
@@ -2972,8 +2988,8 @@ int main(int argc, char *argv[]) {
     //---------------------------------------------------------------
     //-- PRINT AN OVERALL TESTBENCH STATUS
     //---------------------------------------------------------------
-    printInfo(THIS_NAME, "Number of sessions opened by TOE       : %6d \n", opnSessionCount.to_uint());
-    printInfo(THIS_NAME, "Number of sessions closed by TOE       : %6d \n", clsSessionCount.to_uint());
+    printInfo(THIS_NAME, "Number of sessions opened by TOE       : %6d \n", nrOpenedSessions.to_uint());
+    printInfo(THIS_NAME, "Number of sessions closed by TOE       : %6d \n", nrClosedSessions.to_uint());
 
     printInfo(THIS_NAME, "Number of IP  Packets from IPRX-to-TOE : %6d \n", pktCounter_IPRX_TOE);
     printInfo(THIS_NAME, "Number of IP  Packets from TOE-to-IPTX : %6d \n", pktCounter_TOE_IPTX);
@@ -3023,7 +3039,7 @@ int main(int argc, char *argv[]) {
                 }
             }
         }
-        if ((opnSessionCount == 0) and (pktCounter_IPRX_TOE > 0)) {
+        if ((nrOpenedSessions == 0) and (pktCounter_IPRX_TOE > 0)) {
             printWarn(THIS_NAME, "No session was opened by the TOE during this run. Please double check!!!\n");
             nrErr++;
         }

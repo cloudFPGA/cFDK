@@ -224,8 +224,8 @@ void pLookupReplyHandler(
  * @param[in]  siRlt_SessDeleteReq Request to delete session from Reverse Lookup Table (Rlt).
  * @param[out] soCAM_SessUpdateReq Update request to [CAM].
  * @param[out] soSim_FreeId        The SessId to recycle to the [SessionIdManager].
- * @param[out] poSssRelCnt         Session release count to DEBUG.
- * @param[out] poSssRegCnt         Session register count to DEBUG.
+ * @param[out] soSssRelCnt         Session release count to DEBUG.
+ * @param[out] soSssRegCnt         Session register count to DEBUG.
  *
  * @details
  *  This process sends the insertion or deletion requests to the ternary content
@@ -239,8 +239,8 @@ void pUpdateRequestSender(
         stream<CamSessionUpdateRequest>     &siRlt_SessDeleteReq,
         stream<CamSessionUpdateRequest>     &soCAM_SessUpdateReq,
         stream<RtlSessId>                   &soSim_FreeId,
-        ap_uint<16>                         &poSssRelCnt,  // [FIXME - Remove]
-        ap_uint<16>                         &poSssRegCnt)
+        stream<ap_uint<16> >                &soSssRelCnt,
+        stream<ap_uint<16> >                &soSssRegCnt)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1 enable_flush
@@ -266,8 +266,12 @@ void pUpdateRequestSender(
         urs_releasedSessions++;
     }
     // Always
-    poSssRegCnt = urs_insertedSessions;
-    poSssRelCnt = urs_releasedSessions;
+    if (!soSssRegCnt.full()) {
+        soSssRegCnt.write(urs_insertedSessions);
+    }
+    if (!soSssRelCnt.full()) {
+        soSssRelCnt.write(urs_releasedSessions);
+    }
 }
 
 
@@ -393,8 +397,8 @@ void pReverseLookupTable(
  * @param[in]  siCAM_SessLookupRep  Lookup reply from [CAM].
  * @param[out] soCAM_SessUpdateReq  Update request to [CAM].
  * @param[in]  siCAM_SessUpdateRep  Update reply from [CAM].
- * @param[out] poSssRelCnt          Session release count.
- * @param[out] poSssRegCnt          Session register count.
+ * @param[out] soSssRelCnt          Session release count.
+ * @param[out] soSssRegCnt          Session register count.
  *
  * @details
  *  The SLc maps a four-tuple information {{IP4_SA,TCP_SA},{IP4_DA,TCP_DP}} of
@@ -420,8 +424,8 @@ void session_lookup_controller(
         stream<CamSessionLookupReply>      &siCAM_SessLookupRep,
         stream<CamSessionUpdateRequest>    &soCAM_SessUpdateReq,
         stream<CamSessionUpdateReply>      &siCAM_SessUpdateRep,
-        ap_uint<16>                        &poSssRelCnt,  // [FIXME - To Be removed]
-        ap_uint<16>                        &poSssRegCnt)
+        stream<ap_uint<16> >               &soSssRelCnt,
+        stream<ap_uint<16> >               &soSssRegCnt)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE
@@ -478,8 +482,8 @@ void session_lookup_controller(
             ssRltToUrs_SessDeleteReq,
             soCAM_SessUpdateReq,
             ssUrsToSim_FreeId,
-            poSssRelCnt,
-            poSssRegCnt);
+            soSssRelCnt,
+            soSssRegCnt);
 
     pUpdateReplyHandler(
             siCAM_SessUpdateRep,

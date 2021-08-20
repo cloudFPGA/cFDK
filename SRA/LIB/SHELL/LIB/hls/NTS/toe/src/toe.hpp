@@ -795,8 +795,8 @@ template<typename T> void pStreamMux(
         //-- DEBUG / Interfaces
         //------------------------------------------------------
         //-- DEBUG / Session Statistics Interfaces
-        ap_uint<16>                             &poDBG_SssRelCnt,
-        ap_uint<16>                             &poDBG_SssRegCnt
+        stream<ap_uint<16> >                    &soDBG_SssRelCnt,
+        stream<ap_uint<16> >                    &soDBG_SssRegCnt
         #if TOE_FEATURE_USED_FOR_DEBUGGING
         //-- DEBUG / SimCycCounter
         ap_uint<32>                        &poSimCycCount
@@ -891,8 +891,8 @@ template<typename T> void pStreamMux(
         //-- DEBUG / Interfaces
         //------------------------------------------------------
         //-- DEBUG / Session Statistics Interfaces
-        ap_uint<16>                             &poDBG_SssRelCnt,
-        ap_uint<16>                             &poDBG_SssRegCnt
+        stream<ap_uint<16> >                    &soDBG_SssRelCnt,
+        stream<ap_uint<16> >                    &soDBG_SssRegCnt
         #if TOE_FEATURE_USED_FOR_DEBUGGING
         //-- DEBUG / SimCycCounter
         ap_uint<32>                             &poSimCycCount
