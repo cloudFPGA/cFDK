@@ -159,6 +159,7 @@ void pTbSimCount(
  * -- MMIO Interfaces
  * @param[in]  piMMIO_IpAddr    IP4 Address from [MMIO].
  * @param[out] soMMIO_NotifDrop The value of the notification drop counter.
+ * @param[out] soMMIO_MetaDrop  The value of the matadata drop counter.
  * -- NTS Interfaces
  * @param[out] poNTS_Ready      Ready signal of TOE.
  * -- IPRX / IP Rx / Data Interface
@@ -213,6 +214,7 @@ void toe(
         //------------------------------------------------------
         Ip4Addr                              piMMIO_IpAddr,
         stream<ap_uint<8> >                 &soMMIO_NotifDropCnt,
+        stream<ap_uint<8> >                 &soMMIO_MetaDropCnt,
 
         //------------------------------------------------------
         //-- NTS Interfaces
@@ -678,7 +680,8 @@ void toe(
              ssRStToRAi_RxSarRep,
              soMEM_RxP_RdCmd,
              siMEM_RxP_Data,
-             soMMIO_NotifDropCnt);
+             soMMIO_NotifDropCnt,
+             soMMIO_MetaDropCnt);
 
     //-- Tx Application Interface (TAi) ------------------------------------
     tx_app_interface(
@@ -728,6 +731,7 @@ void toe(
  *
  * @param[in]  piMMIO_IpAddr    IP4 Address from [MMIO].
  * @param[out] soMMIO_NotifDrop The value of the notification drop counter.
+ * @param[out] soMMIO_MetaDrop  The value of the metadata drop counter.
  * @param[out] poNTS_Ready      Ready signal of TOE.
  * @param[in]  siIPRX_Data      IP4 data stream from [IPRX].
  * @param[out] soIPTX_Data      IP4 data stream to [IPTX].
@@ -770,6 +774,7 @@ void toe(
         //------------------------------------------------------
         Ip4Addr                              piMMIO_IpAddr,
         stream<ap_uint<8> >                 &soMMIO_NotifDropCnt,
+        stream<ap_uint<8> >                 &soMMIO_MetaDropCnt,
         //------------------------------------------------------
         //-- NTS Interfaces
         //------------------------------------------------------
@@ -855,6 +860,7 @@ void toe(
     //-- MMIO Interfaces
     #pragma HLS INTERFACE ap_stable          port=piMMIO_IpAddr
     #pragma HLS RESOURCE core=AXI4Stream variable=soMMIO_NotifDropCnt metadata="-bus_bundle soMMIO_NotifDropCnt"
+    #pragma HLS RESOURCE core=AXI4Stream variable=soMMIO_MetaDropCnt  metadata="-bus_bundle soMMIO_MetaDropCnt"
     //-- NTS Interfaces
     #pragma HLS INTERFACE ap_none register   port=poNTS_Ready
     //-- IPRX / IP Rx Data Interface ------------------------------------------
@@ -926,6 +932,7 @@ void toe(
         //-- MMIO Interfaces
         piMMIO_IpAddr,
         soMMIO_NotifDropCnt,
+        soMMIO_MetaDropCnt,
         //-- NTS Interfaces
         poNTS_Ready,
         //-- IPRX / IP Rx / Data Interface
@@ -985,6 +992,7 @@ void toe(
         //------------------------------------------------------
         Ip4Addr                              piMMIO_IpAddr,
         stream<ap_uint<8> >                 &soMMIO_NotifDropCnt,
+        stream<ap_uint<8> >                 &soMMIO_MetaDropCnt,
         //------------------------------------------------------
         //-- NTS Interfaces
         //------------------------------------------------------
@@ -1067,6 +1075,7 @@ void toe(
     //-- MMIO Interfaces
     #pragma HLS INTERFACE ap_stable          port=piMMIO_IpAddr       name=piMMIO_IpAddr
     #pragma HLS INTERFACE axis register both port=soMMIO_NotifDropCnt name=soMMIO_NotifDropCnt
+    #pragma HLS INTERFACE axis register both port=soMMIO_MetaDropCnt  name=soMMIO_MetaDropCnt
     //-- NTS Interfaces
     #pragma HLS INTERFACE ap_none register   port=poNTS_Ready     name=poNTS_Ready
     //-- IPRX / IP Rx Data Interface -------------------------------------------
@@ -1145,6 +1154,7 @@ void toe(
         //-- MMIO Interfaces
         piMMIO_IpAddr,
         soMMIO_NotifDropCnt,
+        soMMIO_MetaDropCnt,
         //-- NTS Interfaces
         poNTS_Ready,
         //-- IPRX / IP Rx / Data Interface

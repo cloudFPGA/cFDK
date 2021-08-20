@@ -142,6 +142,7 @@ void pNotificationMux(
  * @param[out] soRSt_RxSarQry  Query to RxSarTable (RSt).
  * @param[in]  siRSt_RxSarRep  Reply from [RSt].
  * @param[out] soMrd_MemRdCmd  Rx memory read command to Rx MemoryReader (Mrd).
+ * @param[out] soMMIO_MetaDropCnt The value of the metadata drop counter.
  *
  * @detail
  *  This process waits for a valid data read request from the TcpAppInterface
@@ -156,14 +157,16 @@ void pNotificationMux(
  *  outgoing stream 'soTAIF_Meta' will be dropped if that stream is full. This
  *  implies that the application process must provision enough buffering to
  *  store the metadata returned by this process upon a granted request to be
- *  read from the TCP Rx buffer.
+ *  read from the TCP Rx buffer. An 8-bit metadata drop counter register is
+ *  provided in MMIO to help diagnose such issues.
  *******************************************************************************/
 void pRxAppStream(
     stream<TcpAppRdReq>         &siTAIF_DataReq,
     stream<TcpAppMeta>          &soTAIF_Meta,
     stream<RAiRxSarQuery>       &soRSt_RxSarQry,
     stream<RAiRxSarReply>       &siRSt_RxSarRep,
-    stream<DmCmd>               &soMrd_MemRdCmd)
+    stream<DmCmd>               &soMrd_MemRdCmd,
+    stream<ap_uint<8> >         &soMMIO_MetaDropCnt)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1 enable_flush
@@ -175,6 +178,8 @@ void pRxAppStream(
     static enum FsmStates { S0=0, S1 } \
                                  ras_fsmState=S0;
     #pragma HLS RESET   variable=ras_fsmState
+    static ap_uint<8 >           ras_metaDropCounter=0;
+    #pragma HLS reset   variable=ras_metaDropCounter
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static TcpSegLen    ras_readLength;
@@ -189,19 +194,30 @@ void pRxAppStream(
                 ras_readLength = appReadRequest.length;
                 ras_fsmState = S1;
             }
+            else {
+                // Do nothing but return the metadata to avoid blocking the APP
+                if (!soTAIF_Meta.full()) {
+                    soTAIF_Meta.write(appReadRequest.sessionID);
+                }
+                else {
+                    // Drop this metadata and increment the Meta Drop Counter
+                    ras_metaDropCounter++;
+                    printFatal(myName, "Cannot write 'soTAIF_Meta()'. Stream is full!");
+                }
+            }
         }
         break;
     case S1:
         if (!siRSt_RxSarRep.empty() and
             !soMrd_MemRdCmd.full() and !soRSt_RxSarQry.full()) {
             RAiRxSarReply rxSarRep = siRSt_RxSarRep.read();
-            // Signal that the data request has been processed by sending
-            // the SessId back to [TAIF]
+            // Signal that the data request has been processed by sending the SessId back to [TAIF]
             if (!soTAIF_Meta.full()) {
                 soTAIF_Meta.write(rxSarRep.sessionID);
             }
             else {
-                // Drop this metadata
+                // Drop this metadata and increment the Meta Drop Counter
+                ras_metaDropCounter++;
                 printFatal(myName, "Cannot write 'soTAIF_Meta()'. Stream is full!");
             }
             // Generate a memory buffer read command
@@ -214,6 +230,14 @@ void pRxAppStream(
             ras_fsmState = S0;
         }
         break;
+    }
+
+    //-- ALWAYS
+    if (!soMMIO_MetaDropCnt.full()) {
+        soMMIO_MetaDropCnt.write(ras_metaDropCounter);
+    }
+    else {
+        printFatal(myName, "Cannot write soMMIO_MetaDropCnt stream...");
     }
 }
 
@@ -642,6 +666,7 @@ void pLsnAppInterface(
  * @param[out] soMEM_RxP_RdCmd Rx memory read command to Memory sub-system (MEM).
  * @param[in]  siMEM_RxP_Data  Rx memory data stream from [MEM].
  * @param[out] soMMIO_NotifDropCnt The value of the notification drop counter.
+ * @param[out] soMMIO_MetaDropCnt  The value of the metadata drop counter.
  *
  * @details
  *  The Rx Application Interface (Rai) retrieves the data of an established
@@ -683,7 +708,8 @@ void rx_app_interface(
         stream<DmCmd>               &soMEM_RxP_RdCmd,
         stream<AxisApp>             &siMEM_RxP_Data,
         //-- MMIO Interfaces
-        stream<ap_uint<8> >         &soMMIO_NotifDropCnt)
+        stream<ap_uint<8> >         &soMMIO_NotifDropCnt,
+        stream<ap_uint<8> >         &soMMIO_MetaDropCnt)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE
@@ -705,7 +731,8 @@ void rx_app_interface(
             soTAIF_Meta,
             soRSt_RxSarReq,
             siRSt_RxSarRep,
-            ssRasToMrd_MemRdCmd);
+            ssRasToMrd_MemRdCmd,
+            soMMIO_MetaDropCnt);
 
     pRxMemoryReader(
             ssRasToMrd_MemRdCmd,
