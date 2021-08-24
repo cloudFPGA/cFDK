@@ -345,9 +345,9 @@ class RxSarReply {
   public:
     RxBufPtr    appd;
     RxSeqNum    rcvd;
-    FlagBool    ooo;
     RxSeqNum    oooHead;
     RxSeqNum    oooTail;
+    FlagBool    ooo;
     RxSarReply() {}
     RxSarReply(RxBufPtr appd, RxSeqNum rcvd, StsBool ooo, RxSeqNum oooHead, RxSeqNum oooTail) :
         appd(appd), rcvd(rcvd), ooo(ooo), oooHead(oooHead), oooTail(oooTail) {}
@@ -360,9 +360,9 @@ class RXeRxSarQuery {
   public:
     SessionId   sessionID;
     RxSeqNum    rcvd;
-    FlagBool    ooo;
     RxSeqNum    oooHead;
     RxSeqNum    oooTail;
+    FlagBool    ooo;
     RdWrBit     write;
     CmdBit      init;
     RXeRxSarQuery() {}
