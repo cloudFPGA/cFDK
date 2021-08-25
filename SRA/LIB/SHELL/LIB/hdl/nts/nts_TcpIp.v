@@ -433,13 +433,13 @@ module NetworkTransportStack_TcpIp (
   wire          ssTOE_CAM_UpdReq_tvalid;
   wire          ssTOE_CAM_UpdReq_tready;
   //-- TOE ==>[ARS13]==> MMIO / SessRelCnt
-  wire  [15:0]  ssTOE_ARS13_SessRelCnt_tdata;
-  wire          ssTOE_ARS13_SessRelCnt_tvalid;
-  wire          ssTOE_ARS13_SessRelCnt_tready;
+  wire  [15:0]  ssTOE_ARS13_SssRelCnt_tdata;
+  wire          ssTOE_ARS13_SssRelCnt_tvalid;
+  wire          ssTOE_ARS13_SssRelCnt_tready;
   //-- TOE ==>[ARS14]==> MMIO / SessRegCnt
-  wire  [15:0]  ssTOE_ARS14_SessRegCnt_tdata;
-  wire          ssTOE_ARS14_SessRegCnt_tvalid;
-  wire          ssTOE_ARS14_SessRegCnt_tready;
+  wire  [15:0]  ssTOE_ARS14_SssRegCnt_tdata;
+  wire          ssTOE_ARS14_SssRegCnt_tvalid;
+  wire          ssTOE_ARS14_SssRegCnt_tready;
  
   //------------------------------------------------------------------
   //-- CAM = CONTENT ADDRESSABLE MEMORY
