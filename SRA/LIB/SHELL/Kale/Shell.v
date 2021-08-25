@@ -620,8 +620,14 @@ module Shell_Kale # (
   wire          sMMIO_ETH0_MacLoopbackEn;
   wire          sMMIO_ETH0_MacAddrSwapEn;  
   //------ [DIAG_CTRL_2] ---------------
-  //------ [DIAG_URDC] -----------------
-  wire  [15:0]  sNTS0_MMIO_UdpRxDropCnt;
+  //------ [DIAG_URDDC] ----------------
+  wire  [15:0]  sNTS0_MMIO_UdpRxDataDropCnt;
+  //------ [DIAG_TRNDC] ----------------
+  wire  [ 7:0]  sNTS0_MMIO_TcpRxNotifDropCnt;
+  //------ [DIAG_TRMDC] ----------------
+  wire  [ 7:0]  sNTS0_MMIO_TcpRxMetaDropCnt;
+  //------ [DIAG_TRDDC] ----------------
+  wire  [15:0]  sNTS0_MMIO_TcpRxDataDropCnt;
   
   //-- END OF SIGNAL DECLARATIONS ----------------------------------------------
 
@@ -673,7 +679,10 @@ module Shell_Kale # (
     //----------------------------------------------
     .piNTS0_CamReady                (sNTS0_MMIO_CamReady),
     .piNTS0_NtsReady                (sNTS0_MMIO_NtsReady),
-    .piNTS0_UdpRxDropCnt            (sNTS0_MMIO_UdpRxDropCnt),
+    .piNTS0_UdpRxDataDropCnt        (sNTS0_MMIO_UdpRxDataDropCnt),
+    .piNTS0_TcpRxNotifDropCnt       (sNTS0_MMIO_TcpRxNotifDropCnt),
+    .piNTS0_TcpRxMetaDropCnt        (sNTS0_MMIO_TcpRxMetaDropCnt),
+    .piNTS0_TcpRxDataDropCnt        (sNTS0_MMIO_TcpRxDataDropCnt),
     //--
     .poNTS0_MacAddress              (sMMIO_NTS0_MacAddress),
     .poNTS0_Ip4Address              (sMMIO_NTS0_Ip4Address),
@@ -1140,7 +1149,10 @@ module Shell_Kale # (
     //--
     .poMMIO_CamReady                  (sNTS0_MMIO_CamReady),      // [TODO-Merge this signal with NtsReady]
     .poMMIO_NtsReady                  (sNTS0_MMIO_NtsReady),
-    .poMMIO_UdpRxDropCnt              (sNTS0_MMIO_UdpRxDropCnt)
+    .poMMIO_TcpRxNotifDropCnt         (sNTS0_MMIO_TcpRxNotifDropCnt),
+    .poMMIO_TcpRxMetaDropCnt          (sNTS0_MMIO_TcpRxMetaDropCnt),
+    .poMMIO_TcpRxDataDropCnt          (sNTS0_MMIO_TcpRxDataDropCnt),
+    .poMMIO_UdpRxDataDropCnt          (sNTS0_MMIO_UdpRxDataDropCnt)
   );  // End of NTS0
 
 

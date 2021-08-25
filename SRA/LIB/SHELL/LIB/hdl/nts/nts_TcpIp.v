@@ -271,7 +271,10 @@ module NetworkTransportStack_TcpIp (
   input  [ 31:0] piMMIO_GatewayAddr,
   output         poMMIO_CamReady,
   output         poMMIO_NtsReady,
-  output [ 15:0] poMMIO_UdpRxDropCnt
+  output [  7:0] poMMIO_TcpRxNotifDropCnt,
+  output [  7:0] poMMIO_TcpRxMetaDropCnt,
+  output [ 15:0] poMMIO_TcpRxDataDropCnt,
+  output [ 15:0] poMMIO_UdpRxDataDropCnt
   
 ); // End of PortList
 
@@ -380,12 +383,11 @@ module NetworkTransportStack_TcpIp (
   wire          ssUOE_ICMP_Data_tlast;
   wire          ssUOE_ICMP_Data_tvalid;
   wire          ssUOE_ICMP_Data_tready;
-  //-- UOE ==>[ARS9]==>
-  //---- UOE ==>[ARS9]
+  //-- UOE ==>[ARS9]==> MMIO / UdpPxDropCnt
   wire  [15:0]  ssUOE_ARS9_DropCnt_tdata;
   wire          ssUOE_ARS9_DropCnt_tvalid;
   wire          ssUOE_ARS9_DropCnt_tready;  
-  //-- ARS6 ==> RLB / ReadyLogicBarrier
+  //-- ARS9 ==> RLB / ReadyLogicBarrier
   wire  [15:0]  ssARS9_MMIO_DropCnt_tdata;
   wire          ssARS9_MMIO_DropCnt_tvalid;
   wire          ssARS9_MMIO_DropCnt_tready;
@@ -410,6 +412,18 @@ module NetworkTransportStack_TcpIp (
   wire          ssARS4_L3MUX_Data_tlast;
   wire          ssARS4_L3MUX_Data_tvalid;
   wire          ssARS4_L3MUX_Data_tready;
+  //-- TOE ==>[ARS10]==> MMIO / NotifDropCounter
+  wire  [ 7:0]  ssTOE_ARS10_NotifDropCnt_tdata;
+  wire          ssTOE_ARS10_NotifDropCnt_tvalid;
+  wire          ssTOE_ARS10_NotifDropCnt_tready;  
+  //-- TOE ==>[ARS11]==> MMIO / MetaDropCounter
+  wire  [ 7:0]  ssTOE_ARS11_MetaDropCnt_tdata;
+  wire          ssTOE_ARS11_MetaDropCnt_tvalid;
+  wire          ssTOE_ARS11_MetaDropCnt_tready;
+  //-- TOE ==>[ARS12]==> MMIO / DataDropCounter
+  wire  [15:0]  ssTOE_ARS12_DataDropCnt_tdata;
+  wire          ssTOE_ARS12_DataDropCnt_tvalid;
+  wire          ssTOE_ARS12_DataDropCnt_tready;  
   //-- TOE ==> CAM / LookupRequest
   wire [103:0]  ssTOE_CAM_LkpReq_tdata;  //( 1 + 96) - 1 = 96  but HLS aligns to the next 8-bit boundary 
   wire          ssTOE_CAM_LkpReq_tvalid;
@@ -418,6 +432,14 @@ module NetworkTransportStack_TcpIp (
   wire  [111:0] ssTOE_CAM_UpdReq_tdata;  //( 1 + 1 + 14 + 96) - 1 = 111
   wire          ssTOE_CAM_UpdReq_tvalid;
   wire          ssTOE_CAM_UpdReq_tready;
+  //-- TOE ==>[ARS13]==> MMIO / SessRelCnt
+  wire  [15:0]  ssTOE_ARS13_SessRelCnt_tdata;
+  wire          ssTOE_ARS13_SessRelCnt_tvalid;
+  wire          ssTOE_ARS13_SessRelCnt_tready;
+  //-- TOE ==>[ARS14]==> MMIO / SessRegCnt
+  wire  [15:0]  ssTOE_ARS14_SessRegCnt_tdata;
+  wire          ssTOE_ARS14_SessRegCnt_tvalid;
+  wire          ssTOE_ARS14_SessRegCnt_tready;
  
   //------------------------------------------------------------------
   //-- CAM = CONTENT ADDRESSABLE MEMORY
@@ -739,12 +761,25 @@ module NetworkTransportStack_TcpIp (
   //============================================================================
   `ifdef USE_DEPRECATED_DIRECTIVES
   TcpOffloadEngine TOE (  
-    .aclk                      (piShlClk),
-    .aresetn                   (~piMMIO_Layer4Rst),
+    .aclk                       (piShlClk),
+    .aresetn                    (~piMMIO_Layer4Rst),
     //------------------------------------------------------
     //-- MMIO Interfaces
     //------------------------------------------------------    
-    .piMMIO_IpAddr_V           (piMMIO_Ip4Address),
+    .piMMIO_IpAddr_V            (piMMIO_Ip4Address),
+    //-- Notification Drop Counter
+    .soMMIO_NotifDropCnt_TDATA  (ssTOE_ARS10_NotifDropCnt_tdata),
+    .soMMIO_NotifDropCnt_TVALID (ssTOE_ARS10_NotifDropCnt_tvalid),
+    .soMMIO_NotifDropCnt_TREADY (ssTOE_ARS10_NotifDropCnt_tready),
+    //-- Metadata Drop Counter
+    .soMMIO_MetaDropCnt_TDATA   (ssTOE_ARS11_MetaDropCnt_tdata),
+    .soMMIO_MetaDropCnt_TVALID  (ssTOE_ARS11_MetaDropCnt_tvalid),
+    .soMMIO_MetaDropCnt_TREADY  (ssTOE_ARS11_MetaDropCnt_tready),
+    //-- Data Drop Counter
+    .soMMIO_DataDropCnt_TDATA   (ssTOE_ARS12_DataDropCnt_tdata),
+    .soMMIO_DataDropCnt_TVALID  (ssTOE_ARS12_DataDropCnt_tvalid),
+    .soMMIO_DataDropCnt_TREADY  (ssTOE_ARS12_DataDropCnt_tready),
+    //--    
     .poNTS_Ready_V             (),     // [FIXME-ssTOE_RLB_Ready_tdata]
     //------------------------------------------------------
     //-- IPRX / IP Rx Data Interface
@@ -924,7 +959,19 @@ module NetworkTransportStack_TcpIp (
     //------------------------------------------------------
     //-- MMIO Interfaces
     //------------------------------------------------------    
-    .piMMIO_IpAddr_V           (piMMIO_Ip4Address),
+    .piMMIO_IpAddr_V                (piMMIO_Ip4Address),       
+    //-- Notification Drop Counter                               
+    .soMMIO_NotifDropCnt_V_V_TDATA  (ssTOE_ARS10_NotifDropCnt_tdata),
+    .soMMIO_NotifDropCnt_V_V_TVALID (ssTOE_ARS10_NotifDropCnt_tvalid),
+    .soMMIO_NotifDropCnt_V_V_TREADY (ssTOE_ARS10_NotifDropCnt_tready),
+    //-- Metadata Drop Counter                                   
+    .soMMIO_MetaDropCnt_V_V_TDATA   (ssTOE_ARS11_MetaDropCnt_tdata), 
+    .soMMIO_MetaDropCnt_V_V_TVALID  (ssTOE_ARS11_MetaDropCnt_tvalid),
+    .soMMIO_MetaDropCnt_V_V_TREADY  (ssTOE_ARS11_MetaDropCnt_tready),
+    //-- Data Drop Counter                                       
+    .soMMIO_DataDropCnt_V_V_TDATA   (ssTOE_ARS12_DataDropCnt_tdata), 
+    .soMMIO_DataDropCnt_V_V_TVALID  (ssTOE_ARS12_DataDropCnt_tvalid),
+    .soMMIO_DataDropCnt_V_V_TREADY  (ssTOE_ARS12_DataDropCnt_tready),
     //------------------------------------------------------
     //-- Ready Logic Interface
     //------------------------------------------------------    
@@ -1096,12 +1143,98 @@ module NetworkTransportStack_TcpIp (
     //------------------------------------------------------
     //-- DEBUG / Not Used
     //------------------------------------------------------
-    .poDBG_SssRelCnt_V         (),
-    .poDBG_SssRegCnt_V         ()
+    .soDBG_SssRelCnt_V_V_TDATA  (ssTOE_ARS13_SssRelCnt_tdata),
+    .soDBG_SssRelCnt_V_V_TVALID (ssTOE_ARS13_SssRelCnt_tvalid),
+    .soDBG_SssRelCnt_V_V_TREADY (ssTOE_ARS13_SssRelCnt_tready),
+    //--
+    .soDBG_SssRegCnt_V_V_TDATA  (ssTOE_ARS14_SssRegCnt_tdata),
+    .soDBG_SssRegCnt_V_V_TVALID (ssTOE_ARS14_SssRegCnt_tvalid),
+    .soDBG_SssRegCnt_V_V_TREADY (ssTOE_ARS14_SssRegCnt_tready)
     // NOT-USED .poSimCycCount_V ()
   );  // End of TOE 
   `endif  // End of HLS_VERSION
   
+  //============================================================================
+  //  INST: AXI4-STREAM-REGISTER-SLICE (TOE ==>[ARS10]==> MMIO)
+  //============================================================================
+  AxisRegisterSlice_8 ARS10 (
+    .aclk           (piShlClk),
+    .aresetn        (~piMMIO_Layer3Rst),
+    //-- From TOE / Notif --------------
+    .s_axis_tdata   (ssTOE_ARS10_NotifDropCnt_tdata),
+    .s_axis_tvalid  (ssTOE_ARS10_NotifDropCnt_tvalid),
+    .s_axis_tready  (ssTOE_ARS10_NotifDropCnt_tready),
+    //-- To   TOE / Notif --------------
+    .m_axis_tdata   (poMMIO_TcpRxNotifDropCnt),
+    .m_axis_tvalid  (),
+    .m_axis_tready  (sHIGH_1b1)
+  );
+  
+  //============================================================================
+  //  INST: AXI4-STREAM-REGISTER-SLICE (TOE ==>[ARS11]==> MMIO)
+  //============================================================================
+  AxisRegisterSlice_8 ARS11 (
+    .aclk           (piShlClk),
+    .aresetn        (~piMMIO_Layer3Rst),
+    //-- From TOE / Notif --------------
+    .s_axis_tdata   (ssTOE_ARS11_MetaDropCnt_tdata),
+    .s_axis_tvalid  (ssTOE_ARS11_MetaDropCnt_tvalid),
+    .s_axis_tready  (ssTOE_ARS11_MetaDropCnt_tready),
+    //-- To   TOE / Notif --------------
+    .m_axis_tdata   (poMMIO_TcpRxMetaDropCnt),
+    .m_axis_tvalid  (),
+    .m_axis_tready  (sHIGH_1b1)
+  ); 
+  
+  //============================================================================
+  //  INST: AXI4-STREAM-REGISTER-SLICE (TOE ==>[ARS12]==> MMIO)
+  //============================================================================
+  AxisRegisterSlice_16 ARS12 (
+    .aclk           (piShlClk),
+    .aresetn        (~piMMIO_Layer3Rst),
+    //-- From TOE / Notif --------------
+    .s_axis_tdata   (ssTOE_ARS12_DataDropCnt_tdata),
+    .s_axis_tvalid  (ssTOE_ARS12_DataDropCnt_tvalid),
+    .s_axis_tready  (ssTOE_ARS12_DataDropCnt_tready),
+    //-- To   TOE / Notif --------------
+    .m_axis_tdata   (poMMIO_TcpRxDataDropCnt),
+    .m_axis_tvalid  (),
+    .m_axis_tready  (sHIGH_1b1)
+  );  
+   
+  //============================================================================
+  //  INST: AXI4-STREAM-REGISTER-SLICE (TOE ==>[ARS13]==> MMIO)
+  //============================================================================
+  AxisRegisterSlice_16 ARS13 (
+    .aclk           (piShlClk),
+    .aresetn        (~piMMIO_Layer3Rst),
+    //-- From TOE / Notif --------------
+    .s_axis_tdata   (ssTOE_ARS13_SssRelCnt_tdata),
+    .s_axis_tvalid  (ssTOE_ARS13_SssRelCnt_tvalid),
+    .s_axis_tready  (ssTOE_ARS13_SssRelCnt_tready),
+    //-- To   TOE / Notif --------------
+    .m_axis_tdata   (),
+    .m_axis_tvalid  (),
+    .m_axis_tready  (sHIGH_1b1)
+  );
+  
+  //============================================================================
+  //  INST: AXI4-STREAM-REGISTER-SLICE (TOE ==>[ARS14]==> MMIO)
+  //============================================================================
+  AxisRegisterSlice_16 ARS14 (
+    .aclk           (piShlClk),
+    .aresetn        (~piMMIO_Layer3Rst),
+    //-- From TOE / Notif --------------
+    .s_axis_tdata   (ssTOE_ARS14_SssRegCnt_tdata),
+    .s_axis_tvalid  (ssTOE_ARS14_SssRegCnt_tvalid),
+    .s_axis_tready  (ssTOE_ARS14_SssRegCnt_tready),
+    //-- To   TOE / Notif --------------
+    .m_axis_tdata   (),
+    .m_axis_tvalid  (),
+    .m_axis_tready  (sHIGH_1b1)
+  ); 
+ 
+ 
   //============================================================================
   //  INST: CONTENT-ADDRESSABLE-MEMORY
   //============================================================================  
@@ -1434,8 +1567,8 @@ module NetworkTransportStack_TcpIp (
     .s_axis_tdata   (ssUOE_ARS9_DropCnt_tdata),
     .s_axis_tvalid  (ssUOE_ARS9_DropCnt_tvalid),
     .s_axis_tready  (ssUOE_ARS9_DropCnt_tready),
-    //-- To   UOE / Data ---------------
-    .m_axis_tdata   (poMMIO_UdpRxDropCnt),
+    //-- To   MMIO / Data ---------------
+    .m_axis_tdata   (poMMIO_UdpRxDataDropCnt),
     .m_axis_tvalid  (),
     .m_axis_tready  (sHIGH_1b1)
   );

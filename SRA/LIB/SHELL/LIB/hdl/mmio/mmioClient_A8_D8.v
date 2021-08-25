@@ -98,7 +98,10 @@ module MmioClient_A8_D8 #(
   //----------------------------------------------
   input           piNTS0_CamReady,
   input           piNTS0_NtsReady,
-  input   [15:0]  piNTS0_UdpRxDropCnt,
+  input   [15:0]  piNTS0_UdpRxDataDropCnt,
+  input   [ 7:0]  piNTS0_TcpRxNotifDropCnt,
+  input   [ 7:0]  piNTS0_TcpRxMetaDropCnt,
+  input   [15:0]  piNTS0_TcpRxDataDropCnt,
   //--
   output  [47:0]  poNTS0_MacAddress,
   output  [31:0]  poNTS0_Ip4Address,
@@ -295,9 +298,16 @@ module MmioClient_A8_D8 #(
   localparam DIAG_CTRL_1   = DIAG_REG_BASE +  4;
   localparam DIAG_STAT_1   = DIAG_REG_BASE +  5;
   localparam DIAG_CTRL_2   = DIAG_REG_BASE +  6;
-  // UDP Rx Drop Counter
-  localparam DIAG_URDC0    = DIAG_REG_BASE +  7;
-  localparam DIAG_URDC1    = DIAG_REG_BASE +  8;
+  // UDP Rx Data Drop Counter
+  localparam DIAG_URDDC0   = DIAG_REG_BASE +  7;
+  localparam DIAG_URDDC1   = DIAG_REG_BASE +  8;
+  // TCP Rx Notif Drop Counter
+  localparam DIAG_TRNDC0   = DIAG_REG_BASE +  9;
+  // TCP Rx Meta Drop Counter
+  localparam DIAG_TRMDC0   = DIAG_REG_BASE + 10;
+   // TCP Rx Data Drop Counter
+  localparam DIAG_TRDDC0   = DIAG_REG_BASE + 11;
+  localparam DIAG_TRDDC1   = DIAG_REG_BASE + 12;
   
   //-- PAGE_REG ----------------------------------------------------------------
   // Extended Page Select Register 
@@ -435,11 +445,11 @@ module MmioClient_A8_D8 #(
   localparam cDefReg74 = 8'h00;  // DIAG_CTRL_1
   localparam cDefReg75 = 8'h00;  // DIAG_STAT_1
   localparam cDefReg76 = 8'h00;  // DIAG_CTRL_2
-  localparam cDefReg77 = 8'h00;  // DIAG_URDC0
-  localparam cDefReg78 = 8'h00;  // DIAG_URDC1  
-  localparam cDefReg79 = 8'h00;
-  localparam cDefReg7A = 8'h00;
-  localparam cDefReg7B = 8'h00;
+  localparam cDefReg77 = 8'h00;  // DIAG_URDDC0
+  localparam cDefReg78 = 8'h00;  // DIAG_URDDC1  
+  localparam cDefReg79 = 8'h00;  // DIAG_TRNDC
+  localparam cDefReg7A = 8'h00;  // DIAG_TRMDC
+  localparam cDefReg7B = 8'h00;  // DIAG_TRDDC
   localparam cDefReg7C = 8'h00;
   localparam cDefReg7D = 8'h00;
   localparam cDefReg7E = 8'h00;
@@ -722,9 +732,16 @@ module MmioClient_A8_D8 #(
       assign sStatusVec[cEDW*DIAG_CTRL_2+id]  = sEMIF_Ctrl[cEDW*DIAG_CTRL_2+id]; // RW   
     end
   endgenerate
-  //---- DIAG_URDC[0:1] ----------------
-  assign sStatusVec[cEDW*DIAG_URDC0+7:cEDW*DIAG_URDC0+0] = piNTS0_UdpRxDropCnt[15: 8]; // RO
-  assign sStatusVec[cEDW*DIAG_URDC1+7:cEDW*DIAG_URDC1+0] = piNTS0_UdpRxDropCnt[ 7: 0]; // RO
+  //---- DIAG_URDDC[0:1] ---------------
+  assign sStatusVec[cEDW*DIAG_URDDC0+7:cEDW*DIAG_URDDC0+0] = piNTS0_UdpRxDataDropCnt[15: 8]; // RO
+  assign sStatusVec[cEDW*DIAG_URDDC1+7:cEDW*DIAG_URDDC1+0] = piNTS0_UdpRxDataDropCnt[ 7: 0]; // RO
+  //---- DIAG_TRNDC[0] -----------------
+  assign sStatusVec[cEDW*DIAG_TRNDC0+7:cEDW*DIAG_TRNDC0+0] = piNTS0_TcpRxNotifDropCnt[ 7: 0]; // RO
+  //---- DIAG_TRMDC[0] -----------------
+  assign sStatusVec[cEDW*DIAG_TRMDC0+7:cEDW*DIAG_TRMDC0+0] = piNTS0_TcpRxMetaDropCnt[ 7: 0]; // RO
+  //---- DIAG_TRDDC[0:1] ---------------
+  assign sStatusVec[cEDW*DIAG_TRDDC0+7:cEDW*DIAG_TRDDC0+0] = piNTS0_TcpRxDataDropCnt[15: 8]; // RO
+  assign sStatusVec[cEDW*DIAG_TRDDC1+7:cEDW*DIAG_TRDDC1+0] = piNTS0_TcpRxDataDropCnt[ 7: 0]; // RO
   
   //-------------------------------------------------------- 
   //-- PAGE REGISTER
