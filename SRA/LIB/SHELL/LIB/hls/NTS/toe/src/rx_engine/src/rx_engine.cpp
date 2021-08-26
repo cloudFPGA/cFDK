@@ -1327,7 +1327,7 @@ void pFiniteStateMachine(
             soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId, QUERY_RD));
             if (fsm_Meta.meta.ack) {
                 // Only request the txSar when (ACK+ANYTHING); not for SYN
-                soTSt_TxSarQry.write(RXeTxSarQuery(fsm_Meta.sessionId));
+                soTSt_TxSarQry.write(RXeTxSarQuery(fsm_Meta.sessionId, QUERY_RD));
                 fsm_txSarRequest = true;
             }
             fsm_fsmState = FSM_TRANSITION;
@@ -1443,6 +1443,9 @@ void pFiniteStateMachine(
                     // Always, compute free space to ensure that 'appd' pointer is not overtaken
                     RxBufPtr free_space = ((rxSar.appd - rxSar.oooHead(TOE_WINDOW_BITS-1, 0)) - 1);
                     //OBSOLETE_20180801 free_space = ((rxSar.appd - rxSar.rcvd(TOE_WINDOW_BITS-1, 0)) - 1);
+
+                    printf(">>>[RXe] - cong_window=%6d - free_space=%6d - slowstart_threshold=%6d\n",
+                           txSar.cong_window.to_uint(), free_space.to_uint(), txSar.slowstart_threshold.to_uint());
 
                     // If packet contains payload
                     //  We must handle Out-Of-Order delivered segments
@@ -1620,11 +1623,13 @@ void pFiniteStateMachine(
                 siSTt_StateRep.read(tcpState);
                 siRSt_RxSarRep.read(rxSar);
                 if (tcpState == CLOSED or tcpState == SYN_SENT) {
-                    // Initialize RxSar entry
+                    // Initialize RxSar with received SeqNum
                     soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId, fsm_Meta.meta.seqNumb+1,
                                                        QUERY_WR, QUERY_INIT));
-                    // Initialize the size of the remote receiver window (their congestion window)
-                    soTSt_TxSarQry.write((RXeTxSarQuery(fsm_Meta.sessionId, 0, fsm_Meta.meta.winSize, txSar.cong_window, 0, false)));
+                    // Initialize TxSar with received WindowSize
+                    //  All other parameters are zero or false; they will be initialized by [TXe]
+                    soTSt_TxSarQry.write((RXeTxSarQuery(fsm_Meta.sessionId, 0, fsm_Meta.meta.winSize,
+                                                        0, 0, false)));
                     // Post a SYN_ACK event request
                     soEVe_Event.write(Event(SYN_ACK_EVENT, fsm_Meta.sessionId));
                     if (DEBUG_LEVEL & TRACE_FSM) printInfo(myName, "Requesting [TXe] to send a [SYN,ACK] for SessId %d.\n", fsm_Meta.sessionId.to_uint());
@@ -1665,10 +1670,11 @@ void pFiniteStateMachine(
                 siTSt_TxSarRep.read(txSar);
                 TimerCmd timerCmd = (fsm_Meta.meta.ackNumb == txSar.prevUnak) ? STOP_TIMER : LOAD_TIMER;
                 soTIm_ReTxTimerCmd.write(RXeReTransTimerCmd(fsm_Meta.sessionId, timerCmd));
-                if ( (tcpState == SYN_SENT) && (fsm_Meta.meta.ackNumb == txSar.prevUnak) ) { // && !mh_lup.created)
-                    // Initialize RxSar entry
+                if ( (tcpState == SYN_SENT) and (fsm_Meta.meta.ackNumb == txSar.prevUnak) ) { // && !mh_lup.created)
+                    // Initialize RxSar with received SeqNum
                     soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId, fsm_Meta.meta.seqNumb+1,
                                                        QUERY_WR, QUERY_INIT));
+                    // Update TxSar with received AckNum and WindowSize
                     soTSt_TxSarQry.write(RXeTxSarQuery(fsm_Meta.sessionId,
                                                        fsm_Meta.meta.ackNumb,
                                                        fsm_Meta.meta.winSize,
