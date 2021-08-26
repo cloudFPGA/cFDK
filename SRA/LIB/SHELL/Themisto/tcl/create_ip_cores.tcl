@@ -47,7 +47,11 @@ cd $savedDir
 source ./decouple_ip_type.tcl 
 
 set ipModName "Decoupler"
-set ipName    "pr_decoupler"
+if { [format "%.1f" ${VIVADO_VERSION}] >= 2020.1 } {
+    set ipName "dfx_decoupler"
+} else {
+    set ipName "pr_decoupler"
+}
 set ipVendor  "xilinx.com"
 set ipLibrary "ip"
 set ipVersion "1.0"
