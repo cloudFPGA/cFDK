@@ -492,7 +492,7 @@ void pMetaDataLoader(
 
                 // Construct SYN_ACK message
                 mdl_txeMeta.ackNumb = mdl_rxSar.rcvd;
-                mdl_txeMeta.winSize = 0xFFFF;
+                mdl_txeMeta.winSize = MY_MSS * 12;
                 mdl_txeMeta.length  = 4; // FYI - MSS adds 4 option bytes
                 mdl_txeMeta.ack     = 1;
                 mdl_txeMeta.rst     = 0;
