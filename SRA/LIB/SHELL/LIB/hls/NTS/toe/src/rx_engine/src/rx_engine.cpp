@@ -1055,7 +1055,7 @@ void pRxAppNotifier(
         // The segment was splitted and notification will only go out now
         if(!siMEM_WrSts.empty()) {
             siMEM_WrSts.read(ran_dmStatus2);
-            if (ran_dmStatus1.okay && ran_dmStatus2.okay) {
+            if (ran_dmStatus1.okay and ran_dmStatus2.okay) {
                 soRAi_RxNotif.write(ran_appNotification);
                 if (DEBUG_LEVEL & TRACE_RAN) {
                     printInfo(myName, "Sending APP notification to [RAi]. This was a double access.\n");
@@ -1444,8 +1444,8 @@ void pFiniteStateMachine(
                     RxBufPtr free_space = ((rxSar.appd - rxSar.oooHead(TOE_WINDOW_BITS-1, 0)) - 1);
                     //OBSOLETE_20180801 free_space = ((rxSar.appd - rxSar.rcvd(TOE_WINDOW_BITS-1, 0)) - 1);
 
-                    printf(">>>[RXe] - cong_window=%6d - free_space=%6d - slowstart_threshold=%6d\n",
-                           txSar.cong_window.to_uint(), free_space.to_uint(), txSar.slowstart_threshold.to_uint());
+                    //OBSOLETE-DEBUG printf(">>>[RXe] - rxSar.appd=0x%8x - rxSar.oooHead=0x%8x - cong_window=%6d - free_space=%6d - slowstart_threshold=%6d\n",
+                    //OBSOLETE-DEBUG        rxSar.appd.to_uint(), rxSar.oooHead.to_uint(), txSar.cong_window.to_uint(), free_space.to_uint(), txSar.slowstart_threshold.to_uint());
 
                     // If packet contains payload
                     //  We must handle Out-Of-Order delivered segments
@@ -1470,6 +1470,7 @@ void pFiniteStateMachine(
                             // Update RxSar pointers
                             soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId, newRcvd, QUERY_WR));
                             // Send memory write command
+                            assessSize(myName, soMwr_WrCmd, "soMwr_WrCmd", cDepth_FsmToMwr_WrCmd);
                             soMwr_WrCmd.write(DmCmd(memSegAddr, fsm_Meta.meta.length));
                             // Send Rx data notify to [APP]
                             soRan_RxNotif.write(TcpAppNotif(fsm_Meta.sessionId,  fsm_Meta.meta.length,
@@ -1987,7 +1988,7 @@ void rx_engine(
     #pragma HLS stream     variable=ssFsmToTsd_DropCmd      depth=2
 
     static stream<TcpAppNotif>      ssFsmToRan_Notif        ("ssFsmToRan_Notif");
-    #pragma HLS stream     variable=ssFsmToRan_Notif        depth=8  // This depends on the memory delay
+    #pragma HLS stream     variable=ssFsmToRan_Notif        depth=cDepth_FsmToRan_Notif
     #pragma HLS DATA_PACK  variable=ssFsmToRan_Notif
 
     static stream<Event>            ssFsmToEvm_Event        ("ssFsmToEvm_Event");
@@ -1995,12 +1996,12 @@ void rx_engine(
     #pragma HLS DATA_PACK  variable=ssFsmToEvm_Event
 
     static stream<DmCmd>            ssFsmToMwr_WrCmd        ("ssFsmToMwr_WrCmd");
-    #pragma HLS stream     variable=ssFsmToMwr_WrCmd        depth=8
+    #pragma HLS stream     variable=ssFsmToMwr_WrCmd        depth=cDepth_FsmToMwr_WrCmd
     #pragma HLS DATA_PACK  variable=ssFsmToMwr_WrCmd
 
     //-- Memory Writer (Mwr) --------------------------------------------------
     static stream<FlagBool>         ssMwrToRan_SplitSeg     ("ssMwrToRan_SplitSeg");
-    #pragma HLS stream     variable=ssMwrToRan_SplitSeg     depth=8
+    #pragma HLS stream     variable=ssMwrToRan_SplitSeg     depth=cDepth_MwrToRan_SplitSeg
 
     //-------------------------------------------------------------------------
     //-- PROCESS FUNCTIONS
