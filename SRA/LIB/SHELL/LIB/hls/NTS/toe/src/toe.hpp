@@ -105,6 +105,10 @@ extern unsigned int  gSimCycCnt;     // [FIXME] Remove
   static const ap_uint<32> TIME_256us     = (((ap_uint<32>)(TIME_1s/  62500) > 1) ? (ap_uint<32>)(TIME_1s/  62500) : (ap_uint<32>)1);
   static const ap_uint<32> TIME_512us     = (((ap_uint<32>)(TIME_1s/ 125000) > 1) ? (ap_uint<32>)(TIME_1s/ 125000) : (ap_uint<32>)1);
 
+  static const ap_uint<32> ACKD_1us       = (  1.0/0.0064/TOE_MAX_SESSIONS/10) + 1;
+  static const ap_uint<32> ACKD_2us       = (  2.0/0.0064/TOE_MAX_SESSIONS/10) + 1;
+  static const ap_uint<32> ACKD_4us       = (  4.0/0.0064/TOE_MAX_SESSIONS/10) + 1;
+  static const ap_uint<32> ACKD_8us       = (  8.0/0.0064/TOE_MAX_SESSIONS/10) + 1;
   static const ap_uint<32> ACKD_16us      = ( 16.0/0.0064/TOE_MAX_SESSIONS/10) + 1;
   static const ap_uint<32> ACKD_32us      = ( 32.0/0.0064/TOE_MAX_SESSIONS/10) + 1;
   static const ap_uint<32> ACKD_64us      = ( 64.0/0.0064/TOE_MAX_SESSIONS/10) + 1;
@@ -128,7 +132,10 @@ extern unsigned int  gSimCycCnt;     // [FIXME] Remove
   static const ap_uint<32> TIME_60s       = ( 60*TIME_1s);
   static const ap_uint<32> TIME_120s      = (120*TIME_1s);
 #else
-  static const ap_uint<32> TIME_1us       = (  1.0/0.0064/TOE_MAX_SESSIONS) + 1;
+  static const ap_uint<32> ACKD_1us       = (  1.0/0.0064/TOE_MAX_SESSIONS) + 1;
+  static const ap_uint<32> ACKD_2us       = (  2.0/0.0064/TOE_MAX_SESSIONS) + 1;
+  static const ap_uint<32> ACKD_4us       = (  4.0/0.0064/TOE_MAX_SESSIONS) + 1;
+  static const ap_uint<32> ACKD_8us       = (  8.0/0.0064/TOE_MAX_SESSIONS) + 1;
   static const ap_uint<32> ACKD_16us      = ( 16.0/0.0064/TOE_MAX_SESSIONS) + 1;
   static const ap_uint<32> ACKD_32us      = ( 32.0/0.0064/TOE_MAX_SESSIONS) + 1;
   static const ap_uint<32> ACKD_64us      = ( 64.0/0.0064/TOE_MAX_SESSIONS) + 1;

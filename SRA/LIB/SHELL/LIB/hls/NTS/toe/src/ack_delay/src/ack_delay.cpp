@@ -38,7 +38,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *******************************************************************************/
 
 #include "ack_delay.hpp"
-#include "../toe_utils.hpp"
+#include "../../toe_utils.hpp"
 
 using namespace hls;
 
@@ -56,7 +56,7 @@ using namespace hls;
 #define TRACE_AKD 1 <<  1
 #define TRACE_ALL  0xFFFF
 
-#define DEBUG_LEVEL (TRACE_OFF)
+#define DEBUG_LEVEL (TRACE_ALL)
 
 
 /*******************************************************************************
@@ -89,7 +89,6 @@ void ack_delay(
     static AckEntry                 ACK_TABLE[TOE_MAX_SESSIONS];
     #pragma HLS RESOURCE   variable=ACK_TABLE core=RAM_T2P_BRAM
     #pragma HLS DEPENDENCE variable=ACK_TABLE inter false
-    //OBSOLETE_20210901 #pragma HLS RESET      variable=ACK_TABLE
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     // [TODO - The type of 'akd_Ptr' could be configured as a functions of 'MAX_SESSIONS']
@@ -108,6 +107,7 @@ void ack_delay(
         soEVe_RxEventSig.write(1);
 
         if (ev.type == ACK_EVENT) {
+            /*************************
             switch (ACK_TABLE[ev.sessionID].count) {
             case 0: // There is no delayed ACK pending --> Schedule a new one
                 ACK_TABLE[ev.sessionID] = AckEntry(ACKD_64us, 1);
@@ -153,10 +153,62 @@ void ack_delay(
                 ACK_TABLE[ev.sessionID].count = 8;
                 break;
             } // End of: switch
+            ***************************/
 
+            if (ACK_TABLE[ev.sessionID].delay == 0) {
+            	// There is no delayed ACK pending --> Schedule a new one
+                ACK_TABLE[ev.sessionID] = AckEntry(ACKD_64us, 1);
+            }
+            else if (ACK_TABLE[ev.sessionID].count == 1) {
+            	// Received a second ACK  --> Decrease the delay
+                if (ACK_TABLE[ev.sessionID].delay > ACKD_32us) {
+                    ACK_TABLE[ev.sessionID].delay = ACKD_32us;
+                }
+                ACK_TABLE[ev.sessionID].count++;
+            }
+            else if (ACK_TABLE[ev.sessionID].count == 2) {
+            	// Received a third ACK   --> Decrease the delay
+                if (ACK_TABLE[ev.sessionID].delay > ACKD_16us) {
+                    ACK_TABLE[ev.sessionID].delay = ACKD_16us;
+                }
+                ACK_TABLE[ev.sessionID].count++;
+            }
+            else if (ACK_TABLE[ev.sessionID].count == 3) {
+            	// Received a fourth ACK  --> Decrease the delay
+                if (ACK_TABLE[ev.sessionID].delay > ACKD_8us) {
+                    ACK_TABLE[ev.sessionID].delay = ACKD_8us;
+                }
+                ACK_TABLE[ev.sessionID].count++;
+            }
+            else if (ACK_TABLE[ev.sessionID].count == 4) {
+            	// Received a fifth ACK   --> Decrease the delay
+                if (ACK_TABLE[ev.sessionID].delay > ACKD_4us) {
+                    ACK_TABLE[ev.sessionID].delay = ACKD_4us;
+                }
+                ACK_TABLE[ev.sessionID].count++;
+            }
+            else if (ACK_TABLE[ev.sessionID].count == 5) {
+            	// Received a sixth ACK   --> Decrease the delay
+                if (ACK_TABLE[ev.sessionID].delay > ACKD_2us) {
+                    ACK_TABLE[ev.sessionID].delay = ACKD_2us;
+                }
+                ACK_TABLE[ev.sessionID].count++;
+            }
+            else if (ACK_TABLE[ev.sessionID].count == 6) {
+            	// Received a seventh ACK --> Decrease the delay
+                if (ACK_TABLE[ev.sessionID].delay > ACKD_1us) {
+                    ACK_TABLE[ev.sessionID].delay = ACKD_1us;
+                }
+                ACK_TABLE[ev.sessionID].count++;
+            }
+            else if (ACK_TABLE[ev.sessionID].count == 7) {
+            	// Received a eight+ ACK --> Set delay to ONE
+                ACK_TABLE[ev.sessionID].delay = 1;
+                ACK_TABLE[ev.sessionID].count = 8;
+            }
             // Debug trace
             if (DEBUG_LEVEL & TRACE_AKD) {
-                printInfo(myName, "S%d - Received \'%s\' - Setting ACK_TABLE[%d]={%d,%d}\n",
+                printInfo(myName, "S%d - Received \'%s\' - Setting  ACK_TABLE[%d]={D=%4.4d,C=%2.2d}\n",
                           ev.sessionID.to_int(), getEventName(ev.type),
                           ev.sessionID.to_uint(),
                           ACK_TABLE[ev.sessionID].delay.to_uint(),
@@ -174,7 +226,7 @@ void ack_delay(
             soEVe_TxEventSig.write(1);
             // Debug trace
             if (DEBUG_LEVEL & TRACE_AKD) {
-                printInfo(myName, "S%d - Received '%s' - Clearing ACK_TABLE[%d]={%d,%d}\n",
+                printInfo(myName, "S%d - Received '%s' - Clearing ACK_TABLE[%d]={D=%4.4d,C=%2.2d}\n",
                                   ev.sessionID.to_int(), getEventName(ev.type),
                                   ev.sessionID.to_uint(),
                                   ACK_TABLE[ev.sessionID].delay.to_uint(),
@@ -189,11 +241,12 @@ void ack_delay(
                 // Tell the EventEngine that we just forwarded an event to TXe
                 assessSize(myName, soEVe_TxEventSig, "soEVe_TxEventSig", cDepth_AKdToEVe_Event);
                 soEVe_TxEventSig.write(1);
-                // Clear received ACK counter
-                ACK_TABLE[akd_Ptr].count = 0;
-                if (DEBUG_LEVEL & TRACE_AKD) {
-                    printInfo(myName, "S%d - It's ACK Time - Requesting [TXe] to generate an new ACK\n",
-                              akd_Ptr.to_int());
+                // Do not clear the received ACK counter here. It will anyhow be
+                //  cleared whenever a new event comes in. Until then, it gives
+                //  us a good indication of its usage in the trace.
+                 if (DEBUG_LEVEL & TRACE_AKD) {
+                    printInfo(myName, "S%d - It's ACK Time (count=%d) - Requesting [TXe] to generate an new ACK\n",
+                              akd_Ptr.to_int(), ACK_TABLE[akd_Ptr].count.to_uint());
                 }
             }
             ACK_TABLE[akd_Ptr].delay -= 1;

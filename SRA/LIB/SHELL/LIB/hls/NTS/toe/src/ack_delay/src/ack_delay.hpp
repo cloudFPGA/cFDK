@@ -40,8 +40,8 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _TOE_AKD_H_
 #define _TOE_AKD_H_
 
-#include "../../../../NTS/nts_utils.hpp"
-#include "../../../../NTS/toe/src/toe.hpp"
+#include "../../../../../NTS/nts_utils.hpp"
+#include "../../../../../NTS/toe/src/toe.hpp"
 
 using namespace hls;
 
@@ -57,11 +57,11 @@ using namespace hls;
 class AckEntry {
   public:
     ap_uint<12> delay;  // Keeps track of the elapsed time
-    ap_uint<3>  count;  // Counts the number of received ACKs
+    ap_uint<4>  count;  // Counts the number of received ACKs
 
     AckEntry() :
         delay(0), count(0) {}
-    AckEntry(ap_uint<12> delay, ap_uint<3> count) :
+    AckEntry(ap_uint<12> delay, ap_uint<4> count) :
         delay(delay), count(count) {}
 
 };
