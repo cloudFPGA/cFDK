@@ -76,7 +76,7 @@ add_files     ${currDir}/../../../../NTS/SimNtsUtils.cpp
 #-------------------------------------------------
 add_files -tb ${currDir}/../../../toe/src/toe.cpp -cflags "-DHLS_VERSION=${HLS_VERSION} -fstack-check"
 add_files -tb ${currDir}/../../../toe/src/toe_utils.cpp
-add_files -tb ${currDir}/../../../toe/src/ack_delay/ack_delay.cpp
+add_files -tb ${currDir}/../../../toe/src/ack_delay/src/ack_delay.cpp
 add_files -tb ${currDir}/../../../toe/src/event_engine/event_engine.cpp
 add_files -tb ${currDir}/../../../toe/src/port_table/port_table.cpp
 add_files -tb ${currDir}/../../../toe/src/rx_app_interface/rx_app_interface.cpp
