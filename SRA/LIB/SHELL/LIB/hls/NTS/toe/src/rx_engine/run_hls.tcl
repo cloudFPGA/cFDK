@@ -62,11 +62,22 @@ set testDir      ${currDir}/test
 set implDir      ${currDir}/${projectName}_prj/${solutionName}/impl/ip 
 set repoDir      ${currDir}/../../ip
 
+
+puts "#############################################################"
+puts "####                                                     ####"
+puts "####               START OF HLS PROCESSING               ####"
+puts "####                                                     ####"
+set line "####  IP Name = ${ipDisplayName} "; while { [ string length $line ] <= 55 } { append line " " }; puts "${line} ####"
+set line "####  IP Vers = ${ipVersion}     "; while { [ string length $line ] <= 55 } { append line " " }; puts "${line} ####"
+puts "####                                                     ####"
+puts "#############################################################"
+
+
 # Open and Setup Project
 #-------------------------------------------------
 open_project  ${projectName}_prj
 
-# Add source files
+# Add files
 #-------------------------------------------------
 add_files     ${currDir}/src/${projectName}.cpp
 add_files     ${currDir}/../../../../NTS/nts_utils.cpp
@@ -76,7 +87,7 @@ add_files     ${currDir}/../../../../NTS/SimNtsUtils.cpp
 #-------------------------------------------------
 add_files -tb ${currDir}/../../../toe/src/toe.cpp -cflags "-DHLS_VERSION=${HLS_VERSION} -fstack-check"
 add_files -tb ${currDir}/../../../toe/src/toe_utils.cpp
-add_files -tb ${currDir}/../../../toe/src/ack_delay/ack_delay.cpp
+add_files -tb ${currDir}/../../../toe/src/ack_delay/src/ack_delay.cpp
 add_files -tb ${currDir}/../../../toe/src/event_engine/event_engine.cpp
 add_files -tb ${currDir}/../../../toe/src/port_table/port_table.cpp
 add_files -tb ${currDir}/../../../toe/src/rx_app_interface/rx_app_interface.cpp
