@@ -66,7 +66,7 @@ using namespace hls;
 #define TRACE_IPS 1 << 9
 #define TRACE_ALL 0xFFFF
 
-#define DEBUG_LEVEL (TRACE_OFF)
+#define DEBUG_LEVEL (TRACE_MDL)
 
 
 /*******************************************************************************
@@ -169,23 +169,23 @@ void pMetaDataLoader(
             case FIN_EVENT:
             case ACK_EVENT:
             case ACK_NODELAY_EVENT:
-                assessSize(myName, soRSt_RxSarReq, "soRSt_RxSarReq", 2); // [FIXME-Use constant for the length]
+                assessSize(myName, soRSt_RxSarReq, "soRSt_RxSarReq", cDepth_TXeToRSt_Req);
                 soRSt_RxSarReq.write(mdl_curEvent.sessionID);
-                assessSize(myName, soTSt_TxSarQry, "soTSt_TxSarQry", 2); // [FIXME-Use constant for the length]
-                soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID));
+                assessSize(myName, soTSt_TxSarQry, "soTSt_TxSarQry", cDepth_TXeToTSt_Qry);
+                soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID, QUERY_RD));
                 break;
             case RST_EVENT:
                 // Get txSar for SEQ numb
                 resetEvent = mdl_curEvent;
                 if (resetEvent.hasSessionID()) {
-                    assessSize(myName, soTSt_TxSarQry, "soTSt_TxSarQry", 2); // [FIXME-Use constant for the length]
-                    soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID));
+                    assessSize(myName, soTSt_TxSarQry, "soTSt_TxSarQry", cDepth_TXeToTSt_Qry);
+                    soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID, QUERY_RD));
                 }
                 break;
             case SYN_EVENT:
                 if (mdl_curEvent.rt_count != 0) {
-                    assessSize(myName, soTSt_TxSarQry, "soTSt_TxSarQry", 2); // [FIXME-Use constant for the length]
-                    soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID));
+                    assessSize(myName, soTSt_TxSarQry, "soTSt_TxSarQry", cDepth_TXeToTSt_Qry);
+                    soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID, QUERY_RD));
                 }
                 break;
             default:
@@ -306,7 +306,7 @@ void pMetaDataLoader(
                             mdl_txeMeta.length  = currDatLen;
                             mdl_fsmState = MDL_WAIT_EVENT;
                         }
-                        // Update the 'mdl_txSar.not_ackd' pointer
+                        // Write back 'txSar.not_ackd' pointer
                         soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID,
                                                            mdl_txSar.not_ackd, QUERY_WR));
                     }
@@ -455,7 +455,7 @@ void pMetaDataLoader(
             break;
         case SYN_EVENT:
             if (DEBUG_LEVEL & TRACE_MDL) { printInfo(myName, "Entering the 'SYN' processing.\n"); }
-            if (((mdl_curEvent.rt_count != 0) && !siTSt_TxSarRep.empty()) || (mdl_curEvent.rt_count == 0)) {
+            if (((mdl_curEvent.rt_count != 0) and !siTSt_TxSarRep.empty()) or (mdl_curEvent.rt_count == 0)) {
                 if (mdl_curEvent.rt_count != 0) {
                     siTSt_TxSarRep.read(mdl_txSar);
                     mdl_txeMeta.seqNumb = mdl_txSar.ackd;
@@ -463,6 +463,7 @@ void pMetaDataLoader(
                 else {
                     mdl_txSar.not_ackd = mdl_randomValue; // [FIXME - Use a register from EMIF]
                     mdl_randomValue = (mdl_randomValue* 8) xor mdl_randomValue;
+                    // Initialize TxSar with the UnAcked byte pointer
                     mdl_txeMeta.seqNumb = mdl_txSar.not_ackd;
                     soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID, mdl_txSar.not_ackd+1, QUERY_WR, QUERY_INIT));
                 }
@@ -485,13 +486,13 @@ void pMetaDataLoader(
             break;
         case SYN_ACK_EVENT:
             if (DEBUG_LEVEL & TRACE_MDL) { printInfo(myName, "Entering the 'SYN_ACK' processing.\n"); }
-            if (!siRSt_RxSarRep.empty() && !siTSt_TxSarRep.empty()) {
+            if (!siRSt_RxSarRep.empty() and !siTSt_TxSarRep.empty()) {
                 siRSt_RxSarRep.read(mdl_rxSar);
                 siTSt_TxSarRep.read(mdl_txSar);
 
                 // Construct SYN_ACK message
                 mdl_txeMeta.ackNumb = mdl_rxSar.rcvd;
-                mdl_txeMeta.winSize = 0xFFFF;
+                mdl_txeMeta.winSize = MY_MSS * 12;
                 mdl_txeMeta.length  = 4; // FYI - MSS adds 4 option bytes
                 mdl_txeMeta.ack     = 1;
                 mdl_txeMeta.rst     = 0;
@@ -503,6 +504,7 @@ void pMetaDataLoader(
                 else {
                     mdl_txSar.not_ackd = mdl_randomValue; // FIXME better rand();
                     mdl_randomValue = (mdl_randomValue* 8) xor mdl_randomValue;
+                    // Initialize TxSar with the UnAcked byte pointer
                     mdl_txeMeta.seqNumb = mdl_txSar.not_ackd;
                     soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID,
                                          mdl_txSar.not_ackd+1, QUERY_WR, QUERY_INIT));
@@ -908,7 +910,6 @@ void pPseudoHeaderConstructor(
 
 } // End of: pPseudoHeaderConstructor (Phc)
 
-
 /*******************************************************************************
  * TCP Segment Stitcher (Tss)
  *
@@ -941,9 +942,9 @@ void pTcpSegStitcher(
     const char *myName  = concat3(THIS_NAME, "/", "Tss");
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static enum FsmState {TSS_PSD_HDR=0, TSS_PSD_OPT, TSS_DATA,
-                          TSS_FWD_1ST_BUF, TSS_FWD_2ND_BUF,
-                          TSS_JOIN_2ND_BUF, TSS_RESIDUE } \
+    static enum FsmState { TSS_PSD_HDR=0,    TSS_PSD_OPT,     TSS_DATA,
+                           TSS_FWD_1ST_BUF,  TSS_FWD_2ND_BUF,
+                           TSS_JOIN_2ND_BUF, TSS_RESIDUE } \
                                tss_fsmState=TSS_PSD_HDR;
     #pragma HLS RESET variable=tss_fsmState
     static ap_uint<3>          tss_psdHdrChunkCount = 0;
@@ -1178,7 +1179,6 @@ void pTcpSegStitcher(
     } // End of: switch
 
 } // End of: pTcpSegStitcher
-
 
 /*******************************************************************************
  * @brief Sub-Checksum Accumulator (Sca)

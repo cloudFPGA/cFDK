@@ -268,11 +268,12 @@ set_max_delay -from [get_pins SHELL/sLed_HeartBeat_reg*/C] -to [get_ports poLED_
 #=====================================================================
 # Other Timing Exceptions
 #=====================================================================
-set_false_path -from [get_pins SHELL/SW_RESET_LY3/DOUT] -to [get_pins SHELL/NTS0/ARP/CAM/sUpdateStatic_reg/D]
+#OBSOLETE_20210825 set_false_path -from [get_pins SHELL/SW_RESET_LY3/DOUT] -to [get_pins SHELL/NTS0/ARP/CAM/sUpdateStatic_reg/D]
 
 #=====================================================================
 # Here are the Constraints added by the Timing Constraint Wizard
 #=====================================================================
+
 
 
 

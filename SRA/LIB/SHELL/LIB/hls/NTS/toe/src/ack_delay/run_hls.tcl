@@ -16,8 +16,9 @@
 
 # ******************************************************************************
 # * 
-# * Description : A Tcl script to simulate, synthesize and package the current
-# *                HLS core as an IP.
+# * Description : A Tcl script for the HLS batch compilation, simulation,
+# *   synthesis of the ACK Delayer (AKd) of the TCP offload engine used by the
+# *   shell of the cloudFPGA module.
 # * 
 # * Synopsis : vivado_hls -f <this_file>
 # *
@@ -28,13 +29,13 @@
 
 # User defined settings
 #-------------------------------------------------
-set projectName    "toe"
+set projectName    "ack_delay"
 set solutionName   "solution1"
 set xilPartName    "xcku060-ffva1156-2-i"
 
 set ipName         ${projectName}
-set ipDisplayName  "TCP Offload Engine for cloudFPGA (TOE)"
-set ipDescription  "Handles TCP packets."
+set ipDisplayName  "ACK Delayer (AKd) of the TCP Offload Engine (TOE)"
+set ipDescription  "WARNING: This project is *ONLY* used for simulation and bring-up"
 set ipVendor       "IBM"
 set ipLibrary      "hls"
 set ipVersion      "1.0"
@@ -61,47 +62,24 @@ set testDir      ${currDir}/test
 set implDir      ${currDir}/${projectName}_prj/${solutionName}/impl/ip 
 set repoDir      ${currDir}/../../ip
 
-
-puts "#############################################################"
-puts "####                                                     ####"
-puts "####               START OF HLS PROCESSING               ####"
-puts "####                                                     ####"
-set line "####  IP Name = ${ipDisplayName} "; while { [ string length $line ] <= 55 } { append line " " }; puts "${line} ####"
-set line "####  IP Vers = ${ipVersion}     "; while { [ string length $line ] <= 55 } { append line " " }; puts "${line} ####"
-puts "####                                                     ####"
-puts "#############################################################"
-
-
 # Open and Setup Project
 #-------------------------------------------------
 open_project  ${projectName}_prj
 
-# Add files
+# Add source files
 #-------------------------------------------------
-add_files     ${srcDir}/${projectName}.cpp -cflags "-DHLS_VERSION=${HLS_VERSION}"
-add_files     ${srcDir}/toe_utils.cpp
-add_files     ${currDir}/../../NTS/nts_utils.cpp
-#
-add_files     ${srcDir}/ack_delay/src/ack_delay.cpp
-add_files     ${srcDir}/event_engine/event_engine.cpp
-add_files     ${srcDir}/port_table/port_table.cpp
-add_files     ${srcDir}/rx_app_interface/rx_app_interface.cpp
-add_files     ${srcDir}/rx_engine/src/rx_engine.cpp
-add_files     ${srcDir}/rx_sar_table/rx_sar_table.cpp
-add_files     ${srcDir}/session_lookup_controller/session_lookup_controller.cpp
-add_files     ${srcDir}/state_table/state_table.cpp
-add_files     ${srcDir}/timers/timers.cpp
-add_files     ${srcDir}/tx_app_interface/tx_app_interface.cpp
-add_files     ${srcDir}/tx_engine/src/tx_engine.cpp
-add_files     ${srcDir}/tx_sar_table/tx_sar_table.cpp
+add_files     ${currDir}/src/${projectName}.cpp
+add_files     ${currDir}/../../../../NTS/toe/src/toe_utils.cpp
+add_files     ${currDir}/../../../../NTS/nts_utils.cpp
 
-add_files -tb ${testDir}/test_${projectName}.cpp -cflags "-DHLS_VERSION=${HLS_VERSION} -fstack-check"
-add_files -tb ${currDir}/../../NTS/SimNtsUtils.cpp
-add_files -tb ${currDir}/test/dummy_memory/dummy_memory.cpp
+# Add test bench files
+#-------------------------------------------------
+add_files -tb ${currDir}/test/test_${projectName}.cpp -cflags "-DHLS_VERSION=${HLS_VERSION} -fstack-check"
+add_files -tb ${currDir}/../../../../NTS/SimNtsUtils.cpp
 
 # Set toplevel
 #-------------------------------------------------
-set_top       ${projectName}_top
+set_top       ${projectName}
 
 # Create a solution
 #-------------------------------------------------
@@ -170,52 +148,7 @@ if { $hlsCSim} {
     puts "####          SUCCESSFUL END OF COMPILATION              ####"
     puts "####                                                     ####"
     puts "#############################################################"
-    csim_design -argv "0 ../../../../test/testVectors/siIPRX_OneSynPkt.dat"
-    csim_design -argv "0 ../../../../test/testVectors/siIPRX_OneSynMssPkt.dat"
-    csim_design -argv "0 ../../../../test/testVectors/siIPRX_OnePkt.dat"
-    csim_design -argv "0 ../../../../test/testVectors/siIPRX_OnePkt160.dat"
-    csim_design -argv "0 ../../../../test/testVectors/siIPRX_OnePkt159.dat"
-    csim_design -argv "0 ../../../../test/testVectors/siIPRX_OnePkt158.dat"
-    csim_design -argv "0 ../../../../test/testVectors/siIPRX_OnePkt157.dat"
-    csim_design -argv "0 ../../../../test/testVectors/siIPRX_OnePkt156.dat"
-    csim_design -argv "0 ../../../../test/testVectors/siIPRX_OnePkt155.dat"
-    csim_design -argv "0 ../../../../test/testVectors/siIPRX_OnePkt154.dat"
-    csim_design -argv "0 ../../../../test/testVectors/siIPRX_OnePkt153.dat"
-    csim_design -argv "0 ../../../../test/testVectors/siIPRX_OnePkt1024.dat"
-    csim_design -argv "0 ../../../../test/testVectors/siIPRX_TwoPkt.dat"
-    csim_design -argv "0 ../../../../test/testVectors/siIPRX_ThreePkt.dat"
-    csim_design -argv "0 ../../../../test/testVectors/siIPRX_FourPkt.dat"
-    csim_design -argv "0 ../../../../test/testVectors/siIPRX_FivePkt.dat"
-    csim_design -argv "0 ../../../../test/testVectors/siIPRX_Ramp64.dat"
-    csim_design -argv "0 ../../../../test/testVectors/siIPRX_TwentyPkt.dat"
-    csim_design -argv "0 ../../../../test/testVectors/siIPRX_ThousandPkt.dat"
-    csim_design -argv "0 ../../../../test/testVectors/siIPRX_SynAckPkt.dat"
-    csim_design -argv "0 ../../../../test/testVectors/siIPRX_TcpDuplicate.dat"
-    csim_design -argv "0 ../../../../test/testVectors/siIPRX_TcpOutOfOrder1.dat"
-    csim_design -argv "0 ../../../../test/testVectors/siIPRX_TcpOutOfOrder2.dat"
-
-    csim_design -argv "1 ../../../../test/testVectors/siTAIF_OneSeg.dat"
-    csim_design -argv "1 ../../../../test/testVectors/siTAIF_OneLongSeg.dat"
-    csim_design -argv "1 ../../../../test/testVectors/siTAIF_TwoSeg.dat"
-    csim_design -argv "1 ../../../../test/testVectors/siTAIF_ThreeSeg.dat"
-#    csim_design -argv "1 ../../../../test/testVectors/siTAIF_4SegIn2Sess.dat"
-    csim_design -argv "1 ../../../../test/testVectors/siTAIF_FourLongSeg.dat"
-    csim_design -argv "1 ../../../../test/testVectors/siTAIF_8SegIn8Sess.dat"
-    csim_design -argv "1 ../../../../test/testVectors/siTAIF_SixtyFourSeg.dat"
-    csim_design -argv "1 ../../../../test/testVectors/siTAIF_Ramp.dat"
-   
-    csim_design -argv "3 ../../../../test/testVectors/siIPRX_OneSynPkt.dat"
-    csim_design -argv "3 ../../../../test/testVectors/siIPRX_OneSynMssPkt.dat"
-    csim_design -argv "3 ../../../../test/testVectors/siIPRX_OnePkt.dat"
-    csim_design -argv "3 ../../../../test/testVectors/siIPRX_OnePkt160.dat"
-    csim_design -argv "3 ../../../../test/testVectors/siIPRX_OnePkt1024.dat"
-    csim_design -argv "3 ../../../../test/testVectors/siIPRX_TwoPkt.dat"
-    csim_design -argv "3 ../../../../test/testVectors/siIPRX_ThreePkt.dat"
-    csim_design -argv "3 ../../../../test/testVectors/siIPRX_FourPkt.dat"
-    csim_design -argv "3 ../../../../test/testVectors/siIPRX_FivePkt.dat"
-    csim_design -argv "3 ../../../../test/testVectors/siIPRX_Ramp64.dat"
-    csim_design -argv "3 ../../../../test/testVectors/siIPRX_TwentyPkt.dat"
-
+    csim_design
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF C SIMULATION             ####"
@@ -239,37 +172,7 @@ if { $hlsCSynth} {
 # Run C/RTL CoSimulation (refer to UG902)
 #-------------------------------------------------
 if { $hlsCoSim } {
-    # Warning: As long as we comment out the 'cosim_design' commands, we need at least one
-    #   other HLS command here that can be invoked by vivado_hls and avoid it to fail.
-    #   Therefore, we will use 'csim_design -setup' which creates the C simulation binary
-    #   in the csim directory of the active solution but does not execute the simulation.
-    csim_design -setup -compiler gcc   
-    puts "FIXME - The CoSimulation of TOE is currently skipped because the C/RTL co-simulation halts unexpectedly."
-    puts "FIXME - Instead, check the CoSimulation of the rx_engine and the tx_engine."
-
-    # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_OneSynPkt.dat"
-    # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_OnePkt.dat"
-    # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_OnePkt160.dat"
-    # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_TwoPkt.dat"
-    # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_ThreePkt.dat"
-    # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_FourPkt.dat"
-    # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_FivePkt.dat"
-    # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_TwentyPkt.dat"
-    # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "0 ../../../../test/testVectors/siIPRX_ThousandPkt.dat"
-
-    # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/siTAIF_OneSeg.dat"
-    # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/siTAIF_TwoSeg.dat"
-    # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/siTAIF_ThreeSeg.dat"
-    # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/siTAIF_FourLongSeg.dat"
-    # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "1 ../../../../test/testVectors/siTAIF_8SegIn8Sess.dat"
-
-    # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../test/testVectors/siIPRX_OnePkt.dat"
-    # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../test/testVectors/siIPRX_OnePkt160.dat"
-    # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../test/testVectors/siIPRX_TwoPkt.dat"
-    # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../test/testVectors/siIPRX_ThreePkt.dat"
-    # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../test/testVectors/siIPRX_FourPkt.dat"
-    # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../test/testVectors/siIPRX_FivePkt.dat"
-    # [TODO] cosim_design -tool xsim -rtl verilog -trace_level none -argv "3 ../../../../test/testVectors/siIPRX_TwentyPkt.dat"
+    cosim_design -tool xsim -rtl verilog -trace_level none 
     puts "#############################################################"
     puts "####                                                     ####"
     puts "####          SUCCESSFUL END OF CO-SIMULATION            ####"

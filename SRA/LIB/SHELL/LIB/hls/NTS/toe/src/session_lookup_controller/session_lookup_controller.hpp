@@ -99,8 +99,8 @@ void session_lookup_controller(
         stream<CamSessionLookupReply>      &siCAM_SessLookupRep,
         stream<CamSessionUpdateRequest>    &soCAM_SessUpdateReq,
         stream<CamSessionUpdateReply>      &siCAM_SessUpdateRep,
-        ap_uint<16>                        &poSssRelCnt,
-        ap_uint<16>                        &poSssRegCnt
+        stream<ap_uint<16> >               &soSssRelCnt,
+        stream<ap_uint<16> >               &soSssRegCnt
 );
 
 #endif

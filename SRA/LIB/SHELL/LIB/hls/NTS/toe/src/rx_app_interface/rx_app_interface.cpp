@@ -66,9 +66,10 @@ using namespace hls;
 /*******************************************************************************
  * @brief Rx Notification Multiplexer (Nmx)
  *
- *  @param[in]  siRXe_Notif   Notification from RxEngine (RXe).
- *  @param[in]  siTIm_Notif   Notification from Timers (TIm).
- *  @param[out] soTAIF_Notif  Notification to TcpAppInterface (TAIF).
+ *  @param[in]  siRXe_Notif    Notification from RxEngine (RXe).
+ *  @param[in]  siTIm_Notif    Notification from Timers (TIm).
+ *  @param[out] soTAIF_Notif   Notification to TcpAppInterface (TAIF).
+ *  @param[out] soMMIO_NotifDropCnt The value of the notification drop counter.
  *
  * @details
  *  This 2-to-1 stream multiplexer behaves like an arbiter. It takes two streams
@@ -80,18 +81,25 @@ using namespace hls;
  *  To avoid any blocking of [RAi], the current notification to be sent on the
  *  outgoing stream will be dropped if that stream is full. As a results, the
  *  application process must provision enough buffering to store all incoming
- *  notifications, or the application must drain the stream as fast it fills up.
+ *  notifications, or the application must drain the stream as fast as it fills
+ *  up. An 8-bit notification drop counter register is provided in MMIO to help
+ *  diagnose such issues.
  *******************************************************************************/
 void pNotificationMux(
         stream<TcpAppNotif>     &siRXe_Notif,
         stream<TcpAppNotif>     &siTIm_Notif,
-        stream<TcpAppNotif>     &soTAIF_Notif)
+        stream<TcpAppNotif>     &soTAIF_Notif,
+        stream<ap_uint<8> >     &soMMIO_NotifDropCnt)
 {
    //-- DIRECTIVES FOR THIS PROCESS --------------------------------------------
     #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     const char *myName = concat3(THIS_NAME, "/", "Nmx");
+
+    //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
+    static ap_uint<8 >            nmx_notifDropCounter=0;
+    #pragma HLS reset    variable=nmx_notifDropCounter
 
     TcpAppNotif  currNotif;
 
@@ -101,7 +109,8 @@ void pNotificationMux(
             soTAIF_Notif.write(currNotif);
         }
         else {
-            // Drop this notification
+            // Drop this notification and increment the Notif Drop Counter
+            nmx_notifDropCounter++;
             printFatal(myName, "Cannot write 'soTAIF_Notif()'. Stream is full!");
         }
     }
@@ -115,6 +124,14 @@ void pNotificationMux(
             printFatal(myName, "Cannot write 'soTAIF_Notif()'. Stream is full!");
         }
     }
+
+    //-- ALWAYS
+    if (!soMMIO_NotifDropCnt.full()) {
+        soMMIO_NotifDropCnt.write(nmx_notifDropCounter);
+    }
+    else {
+        printFatal(myName, "Cannot write soMMIO_NotifDropCnt stream...");
+    }
 }
 
 /*******************************************************************************
@@ -125,6 +142,7 @@ void pNotificationMux(
  * @param[out] soRSt_RxSarQry  Query to RxSarTable (RSt).
  * @param[in]  siRSt_RxSarRep  Reply from [RSt].
  * @param[out] soMrd_MemRdCmd  Rx memory read command to Rx MemoryReader (Mrd).
+ * @param[out] soMMIO_MetaDropCnt The value of the metadata drop counter.
  *
  * @detail
  *  This process waits for a valid data read request from the TcpAppInterface
@@ -139,14 +157,16 @@ void pNotificationMux(
  *  outgoing stream 'soTAIF_Meta' will be dropped if that stream is full. This
  *  implies that the application process must provision enough buffering to
  *  store the metadata returned by this process upon a granted request to be
- *  read from the TCP Rx buffer.
+ *  read from the TCP Rx buffer. An 8-bit metadata drop counter register is
+ *  provided in MMIO to help diagnose such issues.
  *******************************************************************************/
 void pRxAppStream(
     stream<TcpAppRdReq>         &siTAIF_DataReq,
     stream<TcpAppMeta>          &soTAIF_Meta,
     stream<RAiRxSarQuery>       &soRSt_RxSarQry,
     stream<RAiRxSarReply>       &siRSt_RxSarRep,
-    stream<DmCmd>               &soMrd_MemRdCmd)
+    stream<DmCmd>               &soMrd_MemRdCmd,
+    stream<ap_uint<8> >         &soMMIO_MetaDropCnt)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1 enable_flush
@@ -158,6 +178,8 @@ void pRxAppStream(
     static enum FsmStates { S0=0, S1 } \
                                  ras_fsmState=S0;
     #pragma HLS RESET   variable=ras_fsmState
+    static ap_uint<8 >           ras_metaDropCounter=0;
+    #pragma HLS reset   variable=ras_metaDropCounter
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static TcpSegLen    ras_readLength;
@@ -172,19 +194,30 @@ void pRxAppStream(
                 ras_readLength = appReadRequest.length;
                 ras_fsmState = S1;
             }
+            else {
+                // Do nothing but return the metadata to avoid blocking the APP
+                if (!soTAIF_Meta.full()) {
+                    soTAIF_Meta.write(appReadRequest.sessionID);
+                }
+                else {
+                    // Drop this metadata and increment the Meta Drop Counter
+                    ras_metaDropCounter++;
+                    printFatal(myName, "Cannot write 'soTAIF_Meta()'. Stream is full!");
+                }
+            }
         }
         break;
     case S1:
         if (!siRSt_RxSarRep.empty() and
             !soMrd_MemRdCmd.full() and !soRSt_RxSarQry.full()) {
             RAiRxSarReply rxSarRep = siRSt_RxSarRep.read();
-            // Signal that the data request has been processed by sending
-            // the SessId back to [TAIF]
+            // Signal that the data request has been processed by sending the SessId back to [TAIF]
             if (!soTAIF_Meta.full()) {
                 soTAIF_Meta.write(rxSarRep.sessionID);
             }
             else {
-                // Drop this metadata
+                // Drop this metadata and increment the Meta Drop Counter
+                ras_metaDropCounter++;
                 printFatal(myName, "Cannot write 'soTAIF_Meta()'. Stream is full!");
             }
             // Generate a memory buffer read command
@@ -197,6 +230,14 @@ void pRxAppStream(
             ras_fsmState = S0;
         }
         break;
+    }
+
+    //-- ALWAYS
+    if (!soMMIO_MetaDropCnt.full()) {
+        soMMIO_MetaDropCnt.write(ras_metaDropCounter);
+    }
+    else {
+        printFatal(myName, "Cannot write soMMIO_MetaDropCnt stream...");
     }
 }
 
@@ -293,6 +334,7 @@ void pRxMemoryReader(
  * @param[in]  siMEM_RxP_Data  Rx data segment from [MEM].
  * @param[out] soTAIF_Data     Rx data stream to TcpAppInterface (TAIF).
  * @param[in]  siMrd_SplitSeg  Split segment from Rx MemoryReader (MRd).
+ * @param[out] soMMIO_DataDropCnt The value of the data drop counter.
  *
  * @details
  *  This process is the data read front-end of the memory sub-system (MEM). It
@@ -308,12 +350,14 @@ void pRxMemoryReader(
  *  This implies that the application process must provision enough buffering to
  *  store all the bytes that were requested to be read from the TCP Rx buffer,
  *  or the application must read them as fast as they come in i.e., as fast as
- *  one chunk per clock cycle.
+ *  one chunk per clock cycle. A 16-bit data drop counter register is provided
+ *  in MMIO to help diagnose such issues.
  *******************************************************************************/
 void pAppSegmentStitcher(
-        stream<AxisApp>     &siMEM_RxP_Data,
-        stream<TcpAppData>  &soTAIF_Data,
-        stream<FlagBool>    &siMrd_SplitSegFlag)
+        stream<AxisApp>      &siMEM_RxP_Data,
+        stream<TcpAppData>   &soTAIF_Data,
+        stream<FlagBool>     &siMrd_SplitSegFlag,
+        stream<ap_uint<16> > &soMMIO_DataDropCnt)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1 enable_flush
@@ -322,13 +366,15 @@ void pAppSegmentStitcher(
     const char *myName = concat3(THIS_NAME, "/", "Ass");
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static enum FsmState {ASS_IDLE,
-                          ASS_FWD_1ST_BUF,  ASS_FWD_2ND_BUF,
-                          ASS_JOIN_2ND_BUF, ASS_RESIDUE } \
+    static enum FsmState { ASS_IDLE,
+                           ASS_FWD_1ST_BUF,  ASS_FWD_2ND_BUF,
+                           ASS_JOIN_2ND_BUF, ASS_RESIDUE } \
                                ass_fsmState=ASS_IDLE;
     #pragma HLS RESET variable=ass_fsmState
     static ap_uint<3>          ass_psdHdrChunkCount = 0;
     #pragma HLS RESET variable=ass_psdHdrChunkCount
+    static ap_uint<16>         ass_dataDropCounter=0;
+    #pragma HLS reset variable=ass_dataDropCounter
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static AxisApp      ass_prevChunk;
@@ -351,7 +397,8 @@ void pAppSegmentStitcher(
                         if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
                     }
                     else {
-                        // Drop this chunk
+                        // Drop this data and increment the Data Drop Counter
+                        ass_dataDropCounter++;
                         printFatal(myName, "Cannot write 'soTAIF_Data()'. Stream is full!");
                     }
                     ass_fsmState = ASS_IDLE;
@@ -375,7 +422,8 @@ void pAppSegmentStitcher(
                             if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
                         }
                         else {
-                            // Drop this chunk
+                            // Drop this data and increment the Data Drop Counter
+                            ass_dataDropCounter++;
                             printFatal(myName, "Cannot write 'soTAIF_Data()'. Stream is full!");
                         }
                         ass_fsmState = ASS_FWD_2ND_BUF;
@@ -389,7 +437,8 @@ void pAppSegmentStitcher(
                    if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
                }
                else {
-                   // Drop this chunk
+                   // Drop this data and increment the Data Drop Counter
+                   ass_dataDropCounter++;
                    printFatal(myName, "Cannot write 'soTAIF_Data()'. Stream is full!");
                }
                ass_fsmState = ASS_FWD_1ST_BUF;
@@ -437,7 +486,8 @@ void pAppSegmentStitcher(
                            if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
                         }
                         else {
-                            // Drop this chunk
+                            // Drop this data and increment the Data Drop Counter
+                            ass_dataDropCounter++;
                             printFatal(myName, "Cannot write 'soTAIF_Data()'. Stream is full!");
                         }
                         ass_fsmState = ASS_FWD_2ND_BUF;
@@ -451,6 +501,8 @@ void pAppSegmentStitcher(
                     if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
                 }
                 else {
+                    // Drop this data and increment the Data Drop Counter
+                    ass_dataDropCounter++;
                     printFatal(myName, "Cannot write 'soTAIF_Data()'. Stream is full!");
                 }
             }
@@ -465,6 +517,8 @@ void pAppSegmentStitcher(
                 if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", currAppChunk); }
             }
             else {
+                // Drop this data and increment the Data Drop Counter
+                ass_dataDropCounter++;
                 printFatal(myName, "Cannot write 'soTAIF_Data()'. Stream is full!");
             }
             if (currAppChunk.getTLast()) {
@@ -511,6 +565,8 @@ void pAppSegmentStitcher(
                 if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", joinedChunk); }
             }
             else {
+                // Drop this data and increment the Data Drop Counter
+                ass_dataDropCounter++;
                 printFatal(myName, "Cannot write 'soTAIF_Data()'. Stream is full!");
             }
 
@@ -534,12 +590,23 @@ void pAppSegmentStitcher(
             if (DEBUG_LEVEL & TRACE_ASS) { printAxisRaw(myName, "soTAIF_Data =", lastChunk); }
         }
         else {
+            // Drop this data and increment the Data Drop Counter
+            ass_dataDropCounter++;
             printFatal(myName, "Cannot write 'soTAIF_Data()'. Stream is full!");
         }
         ass_fsmState = ASS_IDLE;
         break;
+    } // End-of: switch
+
+    //-- ALWAYS
+    if (!soMMIO_DataDropCnt.full()) {
+        soMMIO_DataDropCnt.write(ass_dataDropCounter);
     }
-}
+    else {
+        printFatal(myName, "Cannot write soMMIO_DataDropCnt stream...");
+    }
+
+}  // End-of: pAppSegmentStitcher
 
 /*******************************************************************************
  * @brief Listen Application Interface (Lai)
@@ -624,6 +691,9 @@ void pLsnAppInterface(
  * @param[in]  siRSt_RxSarRep  Rx SAR reply from [RSt].
  * @param[out] soMEM_RxP_RdCmd Rx memory read command to Memory sub-system (MEM).
  * @param[in]  siMEM_RxP_Data  Rx memory data stream from [MEM].
+ * @param[out] soMMIO_NotifDropCnt The value of the notification drop counter.
+ * @param[out] soMMIO_MetaDropCnt  The value of the metadata drop counter.
+ * @param[out] soMMIO_DataDropCnt  The value of the data drop counter.
  *
  * @details
  *  The Rx Application Interface (Rai) retrieves the data of an established
@@ -663,7 +733,11 @@ void rx_app_interface(
         stream<RAiRxSarReply>       &siRSt_RxSarRep,
         //-- MEM / DDR4 Memory Interface
         stream<DmCmd>               &soMEM_RxP_RdCmd,
-        stream<AxisApp>             &siMEM_RxP_Data)
+        stream<AxisApp>             &siMEM_RxP_Data,
+        //-- MMIO Interfaces
+        stream<ap_uint<8> >         &soMMIO_NotifDropCnt,
+        stream<ap_uint<8> >         &soMMIO_MetaDropCnt,
+        stream<ap_uint<16> >        &soMMIO_DataDropCnt)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE
@@ -685,7 +759,8 @@ void rx_app_interface(
             soTAIF_Meta,
             soRSt_RxSarReq,
             siRSt_RxSarRep,
-            ssRasToMrd_MemRdCmd);
+            ssRasToMrd_MemRdCmd,
+            soMMIO_MetaDropCnt);
 
     pRxMemoryReader(
             ssRasToMrd_MemRdCmd,
@@ -695,7 +770,8 @@ void rx_app_interface(
     pAppSegmentStitcher(
             siMEM_RxP_Data,
             soTAIF_Data,
-            ssMrdToAss_SplitSeg);
+            ssMrdToAss_SplitSeg,
+            soMMIO_DataDropCnt);
 
     pLsnAppInterface(
             siTAIF_LsnReq,
@@ -706,7 +782,8 @@ void rx_app_interface(
     pNotificationMux(
             siRXe_Notif,
             siTIm_Notif,
-            soTAIF_Notif);
+            soTAIF_Notif,
+            soMMIO_NotifDropCnt);
 
 }
 

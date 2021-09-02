@@ -90,6 +90,32 @@ const char *myCamAccessToString(int initiator) {
     return camAccessorStrings[initiator];
 }
 
+/*****************************************************************************
+ * @brief Empty a DropCounter stream and throw it away.
+ *
+ * @param[in/out] ss        A ref to the stream to drain.
+ * @param[in]     ssName    The name of the stream to drain.
+ *
+ * @return NTS_OK if successful,  otherwise NTS_KO.
+ ******************************************************************************/
+template<typename T> bool drainMmioDropCounter(stream<T> &ss, string ssName) {
+    int          nr=0;
+    const char  *myName  = concat3(THIS_NAME, "/", "DMDC");
+    T  currDropCount;
+    T  prevDropCount=0;
+
+    //-- READ FROM STREAM
+    while (!(ss.empty())) {
+        ss.read(currDropCount);
+        if (currDropCount != prevDropCount) {
+            printWarn(myName, "Detected a drop event on stream '%s' (currDropCounter=%d). \n",
+                      ssName.c_str(), currDropCount.to_ushort());
+        }
+        prevDropCount = currDropCount;
+    }
+    return(NTS_OK);
+}
+
 /*******************************************************************************
  * @brief Emulate the behavior of the Content Addressable Memory (TOECAM).
  *
@@ -542,9 +568,12 @@ bool setGlobalParameters(const char *callerName, unsigned int startupDelay, ifst
                     // The test vector file is specifying a minimum number of simulation cycles.
                     int noSimCycles = atoi(stringVector[3].c_str());
                     noSimCycles += startupDelay;
-                    if (noSimCycles > gMaxSimCycles)
+                    if (noSimCycles > gMaxSimCycles) {
                         gMaxSimCycles = noSimCycles;
-                    printInfo(myName, "Requesting the simulation to last for %d cycles. \n", gMaxSimCycles);
+                    }
+                    if ((DEBUG_LEVEL & TRACE_IPRX) or (DEBUG_LEVEL & TRACE_TAIF)) {
+                        printInfo(myName, "Requesting the simulation to last for %d cycles. \n", gMaxSimCycles);
+                    }
                 }
                 else if (stringVector[2] == "FpgaIp4Addr") {
                     char * ptr;
@@ -628,7 +657,9 @@ bool setGlobalParameters(const char *callerName, unsigned int startupDelay, ifst
         }
     } while(!inputFile.eof());
 
-    printInfo(myName, "Done with the parsing of the input test file.\n");
+    if ((DEBUG_LEVEL & TRACE_IPRX) or (DEBUG_LEVEL & TRACE_TAIF)) {
+        printInfo(myName, "Done with the parsing of the input test file.\n");
+    }
 
     // Seek back to the start of stream
     inputFile.clear();
@@ -757,92 +788,92 @@ void cmdTestCommandParser(const char *callerName, vector<string> stringVector) {
     if (stringVector[2] == "RcvdIp4Packet") {
         if (stringVector[3] == "false") {
             gTest_RcvdIp4Packet = false;
-            printInfo(callerName, "Disabling receive IPv4 checker.\n");
+            printWarn(callerName, "Disabling receive IPv4 checker.\n");
         }
         else {
             gTest_RcvdIp4Packet = true;
-            printInfo(callerName, "Enabling  receive IPv4 checker.\n");
+            printWarn(callerName, "Enabling  receive IPv4 checker.\n");
         }
     }
     else if (stringVector[2] == "RcvdIp4TotLen") {
         if (stringVector[3] == "false") {
             gTest_RcvdIp4TotLen = false;
-            printInfo(callerName, "Disabling receive IPv4-Total-Length checker.\n");
+            printWarn(callerName, "Disabling receive IPv4-Total-Length checker.\n");
         }
         else {
             gTest_RcvdIp4HdrCsum = true;
-            printInfo(callerName, "Enabling  receive IPv4-Total_Length checker.\n");
+            printWarn(callerName, "Enabling  receive IPv4-Total_Length checker.\n");
         }
     }
     else if (stringVector[2] == "RcvdIp4HdrCsum") {
         if (stringVector[3] == "false") {
             gTest_RcvdIp4HdrCsum = false;
-            printInfo(callerName, "Disabling receive IPv4-Header-Checksum checker.\n");
+            printWarn(callerName, "Disabling receive IPv4-Header-Checksum checker.\n");
         }
         else {
             gTest_RcvdIp4HdrCsum = true;
-            printInfo(callerName, "Enabling  receive IPv4-Header-Checksum checker.\n");
+            printWarn(callerName, "Enabling  receive IPv4-Header-Checksum checker.\n");
         }
     }
     else if (stringVector[2] == "RcvdUdpLen") {
         if (stringVector[3] == "false") {
             gTest_RcvdUdpLen = false;
-            printInfo(callerName, "Disabling receive UDP-Length Checker.\n");
+            printWarn(callerName, "Disabling receive UDP-Length Checker.\n");
         }
         else {
             gTest_RcvdUdpLen = true;
-            printInfo(callerName, "Enabling  receive IPv4-Header-Checksum checker.\n");
+            printWarn(callerName, "Enabling  receive IPv4-Header-Checksum checker.\n");
         }
     }
     else if (stringVector[2] == "RcvdLy4Csum") {
         if (stringVector[3] == "false") {
             gTest_RcvdLy4Csum = false;
-            printInfo(callerName, "Disabling receive TCP|UDP-Checksum checker.\n");
+            printWarn(callerName, "Disabling receive TCP|UDP-Checksum checker.\n");
         }
         else {
             gTest_RcvdUdpLen = true;
-            printInfo(callerName, "Enabling  receive TCP|UDP-Checksum checker.\n");
+            printWarn(callerName, "Enabling  receive TCP|UDP-Checksum checker.\n");
         }
     }
     //-- SEND CHECKERS ----------------
     if (stringVector[2] == "SentIp4TotLen") {
         if (stringVector[3] == "false") {
             gTest_SentIp4TotLen = false;
-            printInfo(callerName, "Disabling send IPv4-Total-Length checker.\n");
+            printWarn(callerName, "Disabling send IPv4-Total-Length checker.\n");
         }
         else {
             gTest_SentIp4HdrCsum = true;
-            printInfo(callerName, "Enabling  send IPv4-Total_Length checker.\n");
+            printWarn(callerName, "Enabling  send IPv4-Total_Length checker.\n");
         }
     }
     else if (stringVector[2] == "SentIp4HdrCsum") {
         if (stringVector[3] == "false") {
             gTest_SentIp4HdrCsum = false;
-            printInfo(callerName, "Disabling send IPv4-Header-Checksum checker.\n");
+            printWarn(callerName, "Disabling send IPv4-Header-Checksum checker.\n");
         }
         else {
             gTest_SentIp4HdrCsum = true;
-            printInfo(callerName, "Enabling  send IPv4-Header-Checksum checker.\n");
+            printWarn(callerName, "Enabling  send IPv4-Header-Checksum checker.\n");
         }
     }
     else if (stringVector[2] == "SentUdpLen") {
         if (stringVector[3] == "false") {
             gTest_SentUdpLen = false;
-            printInfo(callerName, "Disabling send UDP-Length Checker.\n");
+            printWarn(callerName, "Disabling send UDP-Length Checker.\n");
         }
         else {
             gTest_SentUdpLen = true;
-            printInfo(callerName, "Enabling  send IPv4-Header-Checksum checker.\n");
+            printWarn(callerName, "Enabling  send IPv4-Header-Checksum checker.\n");
         }
     }
     else if (stringVector[2] == "SentLy4Csum") {
         if (stringVector[3] == "false") {
             gTest_SentLy4Csum = false;
-            printInfo(callerName, "Disabling send TCP|UDP-Checksum checker.\n");
+            printWarn(callerName, "Disabling send TCP|UDP-Checksum checker.\n");
         }
         else {
             gTest_SentUdpLen = true;
-            printInfo(callerName, "Enabling  send TCP|UDP-Checksum checker.\n");
+            printWarn(callerName, "Enabling  send TCP|UDP-Checksum checker.\n");
         }
     }
     return;
@@ -890,8 +921,10 @@ int pIPRX_InjectAckNumber(
             else {
                 // Create a new entry (with TcpAckNum=0) in the session table
                 sessAckList[newSockPair] = 0;
-                printInfo(myName, "Successfully opened a new session for connection:\n");
-                printSockPair(myName, newSockPair);
+                if (DEBUG_LEVEL & TRACE_IPRX) {
+                    printInfo(myName, "Successfully opened a new session for connection:\n");
+                    printSockPair(myName, newSockPair);
+                }
                 return 0;
             }
         }
@@ -1412,6 +1445,8 @@ void pIPTX(
     //-- STATIC VARIABLES ------------------------------------------------------
     static SimIp4Packet iptx_ipPacket;
     static int          iptx_rttSim = RTT_LINK;
+    // [TODO] static ap_shift_reg<SimIp4Packet, RTT_LINK> rttPktBuffer; // A shift reg. holding RTT packets
+
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     AxisIp4     ipTxChunk;  // An IP4 chunk
@@ -1528,8 +1563,10 @@ bool pTcpAppListen(
             if (rc) {
                 // Add the current port # to the set of opened ports
                 openedPorts.insert(tal_portNum);
-                printInfo(myName, "TOE is now listening on port %d (0x%4.4X).\n",
-                          tal_portNum.to_uint(), tal_portNum.to_uint());
+                if (DEBUG_LEVEL & TRACE_Tal) {
+                    printInfo(myName, "TOE is now listening on port %d (0x%4.4X).\n",
+                              tal_portNum.to_uint(), tal_portNum.to_uint());
+                }
             }
             else {
                 printWarn(myName, "TOE denied listening on port %d (0x%4.4X).\n",
@@ -2168,7 +2205,7 @@ void pTAIF_Send(
                             gHostLsnPort = tcpPort;
 
                             SockAddr newHostServerSocket(gHostIp4Addr, gHostLsnPort);
-                            printInfo(myName, "Setting current host server socket to be: ");
+                            printInfo(myName, "Setting current host server socket to be: \n");
                             printSockAddr(myName, newHostServerSocket);
                             return;
                         }
@@ -2349,6 +2386,9 @@ void pTAIF(
  * @brief A wrapper for the Toplevel of the TCP Offload Engine (TOE).
  *
  * @param[in]  piMMIO_IpAddr    IP4 Address from [MMIO].
+ * @param[out] soMMIO_NotifDrop The value of the notification drop counter.
+ * @param[out] soMMIO_MetaDrop  The value of the metadata drop counter.
+ * @param[out] soMMIO_DataDrop  The value of the data drop counter.
  * @param[out] poNTS_Ready      Ready signal of TOE.
  * @param[in]  siIPRX_Data      IP4 data stream from [IPRX].
  * @param[out] soIPTX_Data      IP4 data stream to [IPTX].
@@ -2381,8 +2421,8 @@ void pTAIF(
  * @param[in]  siCAM_SssLkpRep  Session lookup reply from [CAM].
  * @param[out] soCAM_SssUpdReq  Session update request to [CAM].
  * @param[in]  siCAM_SssUpdRep  Session update reply from [CAM].
- * @param[out] poDBG_SssRelCnt  Session release count (for DEBUG).
- * @param[out] poDBG_SssRegCnt  Session register count (foe DEBUG).
+ * @param[out] soDBG_SssRelCnt  Session release count (for DEBUG).
+ * @param[out] soDBG_SssRegCnt  Session register count (foe DEBUG).
  *
  * @details
  *  This process is a wrapper for the 'toe_top' entity. It instantiates such an
@@ -2392,6 +2432,9 @@ void pTAIF(
   void toe_top_wrap(
         //-- MMIO Interfaces
         Ip4Addr                                  piMMIO_IpAddr,
+        stream<ap_uint<8> >                     &soMMIO_NotifDropCnt,
+        stream<ap_uint<8> >                     &soMMIO_MetaDropCnt,
+        stream<ap_uint<16> >                    &soMMIO_DataDropCnt,
         //-- NTS Interfaces
         StsBit                                  &poNTS_Ready,
         //-- IPRX / IP Rx / Data Interface
@@ -2437,11 +2480,11 @@ void pTAIF(
         stream<CamSessionUpdateReply>           &siCAM_SssUpdRep,
         //-- DEBUG / Interfaces
         //-- DEBUG / Session Statistics Interfaces
-        ap_uint<16>                             &poDBG_SssRelCnt,
-        ap_uint<16>                             &poDBG_SssRegCnt
+        stream<ap_uint<16> >                    &soDBG_SssRelCnt,
+        stream<ap_uint<16> >                    &soDBG_SssRegCnt
         #if TOE_FEATURE_USED_FOR_DEBUGGING
         //-- DEBUG / SimCycCounter
-        ap_uint<32>                        &poSimCycCount
+        ap_uint<32>                             &poSimCycCount
         #endif
   )
 {
@@ -2456,6 +2499,9 @@ void pTAIF(
     toe_top(
       //-- MMIO Interfaces
       piMMIO_IpAddr,
+      soMMIO_NotifDropCnt,
+      soMMIO_MetaDropCnt,
+      soMMIO_DataDropCnt,
       //-- NTS Interfaces
       poNTS_Ready,
       //-- IPv4 / Rx & Tx Data Interfaces
@@ -2497,8 +2543,8 @@ void pTAIF(
       soCAM_SssUpdReq,
       siCAM_SssUpdRep,
       //-- DEBUG / Session Statistics Interfaces
-      poDBG_SssRelCnt,
-      poDBG_SssRegCnt
+      soDBG_SssRelCnt,
+      soDBG_SssRegCnt
       #if TOE_FEATURE_USED_FOR_DEBUGGING
       ,
       sTOE_TB_SimCycCnt
@@ -2585,6 +2631,13 @@ int main(int argc, char *argv[]) {
     stream<CamSessionUpdateRequest> ssTOE_CAM_SssUpdReq  ("ssTOE_CAM_SssUpdReq");
     stream<CamSessionUpdateReply>   ssCAM_TOE_SssUpdRep  ("ssCAM_TOE_SssUpdRep");
 
+    stream<ap_uint<8> >             ssTOE_MMIO_NotifDropCnt ("ssTOE_MMIO_NotifDropCnt");
+    stream<ap_uint<8> >             ssTOE_MMIO_MetaDropCnt  ("ssTOE_MMIO_MetaDropCnt");
+    stream<ap_uint<16> >            ssTOE_MMIO_DataDropCnt  ("ssTOE_MMIO_DataDropCnt");
+
+    stream<ap_uint<16> >            ssTOE_OpnSessCount   ("ssTOE_OpnSessCount");
+    stream<ap_uint<16> >            ssTOE_ClsSessCount   ("ssTOE_ClsSessCount");
+
     //------------------------------------------------------
     //-- TB SIGNALS
     //------------------------------------------------------
@@ -2600,8 +2653,8 @@ int main(int argc, char *argv[]) {
     AxisIp4         ipRxData;    // An IP4 chunk
     AxisApp         tcpTxData;   // A  TCP chunk
 
-    ap_uint<16>     opnSessionCount;
-    ap_uint<16>     clsSessionCount;
+    ap_uint<16>     nrOpenedSessions;
+    ap_uint<16>     nrClosedSessions;
 
     DummyMemory     rxMemory;
     DummyMemory     txMemory;
@@ -2786,6 +2839,9 @@ int main(int argc, char *argv[]) {
         #endif
             //-- MMIO Interfaces
             gFpgaIp4Addr,
+            ssTOE_MMIO_NotifDropCnt,
+            ssTOE_MMIO_MetaDropCnt,
+            ssTOE_MMIO_DataDropCnt,
             //-- NTS Interfaces
             sTOE_Ready,
             //-- IPv4 / Rx & Tx Data Interfaces
@@ -2827,13 +2883,40 @@ int main(int argc, char *argv[]) {
             ssTOE_CAM_SssUpdReq,
             ssCAM_TOE_SssUpdRep,
             //-- DEBUG / Session Statistics Interfaces
-            clsSessionCount,
-            opnSessionCount
+            ssTOE_ClsSessCount,
+            ssTOE_OpnSessCount
             #if TOE_FEATURE_USED_FOR_DEBUGGING
             ,
             sTOE_TB_SimCycCnt
             #endif
           );
+
+        //------------------------------------------------------
+        //-- STEP-2.1 : Drain TOE's Debug Streams
+        //------------------------------------------------------
+        if (!ssTOE_ClsSessCount.empty()) {
+            nrClosedSessions = ssTOE_ClsSessCount.read();
+        }
+        if (!ssTOE_OpnSessCount.empty()) {
+            nrOpenedSessions = ssTOE_OpnSessCount.read();
+        }
+
+        //------------------------------------------------------
+        //-- STEP-2.2 : GENERATE THE 'ReadyDly' SIGNAL
+        //------------------------------------------------------
+        if (sTOE_Ready == 1) {
+            if (startUpDelay > 0) {
+                startUpDelay--;
+                if (DEBUG_LEVEL & TRACE_MAIN) {
+                    if (startUpDelay == 0) {
+                        printInfo(THIS_NAME, "TOE and TB are ready.\n");
+                    }
+                }
+            }
+            else {
+                sTOE_ReadyDly = sTOE_Ready;
+            }
+        }
 
         //-------------------------------------------------
         //-- STEP-3 : Emulate DRAM & CAM Interfaces
@@ -2898,23 +2981,7 @@ int main(int argc, char *argv[]) {
             ssTOE_TAIF_SndRep,
             ssTAIF_TOE_ClsReq);
 
-        //------------------------------------------------------
-        //-- STEP-6 : GENERATE THE 'ReadyDly' SIGNAL
-        //------------------------------------------------------
-        if (sTOE_Ready == 1) {
-            if (startUpDelay > 0) {
-                startUpDelay--;
-                if (DEBUG_LEVEL & TRACE_MAIN) {
-                    if (startUpDelay == 0) {
-                        printInfo(THIS_NAME, "TOE and TB are ready.\n");
-                    }
-                }
-            }
-            else {
-                sTOE_ReadyDly = sTOE_Ready;
-            }
-        }
-
+        
         //------------------------------------------------------
         //-- STEP-7 : INCREMENT SIMULATION COUNTER
         //------------------------------------------------------
@@ -2935,6 +3002,28 @@ int main(int argc, char *argv[]) {
 
     } while ( (gSimCycCnt < gMaxSimCycles) and (not gFatalError) and (nrErr < 10) );
 
+
+    printInfo(THIS_NAME, "############################################################################\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'test_toe' ENDS HERE                                          ##\n");
+    printInfo(THIS_NAME, "############################################################################\n");
+    stepSim();
+
+    //---------------------------------------------
+    //-- DRAIN TOE-->MMIO DROP COUNTER STREAMS
+    //---------------------------------------------
+    if (not drainMmioDropCounter(ssTOE_MMIO_NotifDropCnt, "ssTOE_MMIO_NotifDropCnt")) {
+        printError(THIS_NAME, "Failed to drain TOE-to-MMIO notification drop counter from DUT. \n");
+        nrErr++;
+    }
+    if (not drainMmioDropCounter(ssTOE_MMIO_MetaDropCnt, "ssTOE_MMIO_MetaDropCnt")) {
+        printError(THIS_NAME, "Failed to drain TOE-to-MMIO metadata drop counter from DUT. \n");
+        nrErr++;
+    }
+    if (not drainMmioDropCounter(ssTOE_MMIO_DataDropCnt, "ssTOE_MMIO_DataDropCnt")) {
+        printError(THIS_NAME, "Failed to drain TOE-to-MMIO data drop counter from DUT. \n");
+        nrErr++;
+    }
+
     //---------------------------------
     //-- CLOSING OPEN FILES
     //---------------------------------
@@ -2953,16 +3042,11 @@ int main(int argc, char *argv[]) {
         ofIPTX_Gold2 << endl; ofIPTX_Gold2.close();
     }
 
-    printInfo(THIS_NAME, "############################################################################\n");
-    printInfo(THIS_NAME, "## TESTBENCH 'test_toe' ENDS HERE                                          ##\n");
-    printInfo(THIS_NAME, "############################################################################\n");
-    stepSim();
-
     //---------------------------------------------------------------
     //-- PRINT AN OVERALL TESTBENCH STATUS
     //---------------------------------------------------------------
-    printInfo(THIS_NAME, "Number of sessions opened by TOE     : %6d \n", opnSessionCount.to_uint());
-    printInfo(THIS_NAME, "Number of sessions closed by TOE     : %6d \n", clsSessionCount.to_uint());
+    printInfo(THIS_NAME, "Number of sessions opened by TOE       : %6d \n", nrOpenedSessions.to_uint());
+    printInfo(THIS_NAME, "Number of sessions closed by TOE       : %6d \n", nrClosedSessions.to_uint());
 
     printInfo(THIS_NAME, "Number of IP  Packets from IPRX-to-TOE : %6d \n", pktCounter_IPRX_TOE);
     printInfo(THIS_NAME, "Number of IP  Packets from TOE-to-IPTX : %6d \n", pktCounter_TOE_IPTX);
@@ -3012,7 +3096,7 @@ int main(int argc, char *argv[]) {
                 }
             }
         }
-        if ((opnSessionCount == 0) and (pktCounter_IPRX_TOE > 0)) {
+        if ((nrOpenedSessions == 0) and (pktCounter_IPRX_TOE > 0)) {
             printWarn(THIS_NAME, "No session was opened by the TOE during this run. Please double check!!!\n");
             nrErr++;
         }

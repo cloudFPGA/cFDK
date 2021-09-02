@@ -90,6 +90,32 @@ const char *myCamAccessToString(int initiator) {
     return camAccessorStrings[initiator];
 }
 
+/*****************************************************************************
+ * @brief Empty a DropCounter stream and throw it away.
+ *
+ * @param[in/out] ss        A ref to the stream to drain.
+ * @param[in]     ssName    The name of the stream to drain.
+ *
+ * @return NTS_OK if successful,  otherwise NTS_KO.
+ ******************************************************************************/
+template<typename T> bool drainMmioDropCounter(stream<T> &ss, string ssName) {
+    int          nr=0;
+    const char  *myName  = concat3(THIS_NAME, "/", "DMDC");
+    T  currDropCount;
+    T  prevDropCount=0;
+
+    //-- READ FROM STREAM
+    while (!(ss.empty())) {
+        ss.read(currDropCount);
+        if (currDropCount != prevDropCount) {
+            printWarn(myName, "Detected a drop event on stream '%s' (currDropCounter=%d). \n",
+                      ssName.c_str(), currDropCount.to_ushort());
+        }
+        prevDropCount = currDropCount;
+    }
+    return(NTS_OK);
+}
+
 /*******************************************************************************
  * @brief Emulate the behavior of the Content Addressable Memory (TOECAM).
  *
@@ -2360,6 +2386,9 @@ void pTAIF(
  * @brief A wrapper for the Toplevel of the TCP Offload Engine (TOE).
  *
  * @param[in]  piMMIO_IpAddr    IP4 Address from [MMIO].
+ * @param[out] soMMIO_NotifDrop The value of the notification drop counter.
+ * @param[out] soMMIO_MetaDrop  The value of the metadata drop counter.
+ * @param[out] soMMIO_DataDrop  The value of the data drop counter.
  * @param[out] poNTS_Ready      Ready signal of TOE.
  * @param[in]  siIPRX_Data      IP4 data stream from [IPRX].
  * @param[out] soIPTX_Data      IP4 data stream to [IPTX].
@@ -2392,8 +2421,8 @@ void pTAIF(
  * @param[in]  siCAM_SssLkpRep  Session lookup reply from [CAM].
  * @param[out] soCAM_SssUpdReq  Session update request to [CAM].
  * @param[in]  siCAM_SssUpdRep  Session update reply from [CAM].
- * @param[out] poDBG_SssRelCnt  Session release count (for DEBUG).
- * @param[out] poDBG_SssRegCnt  Session register count (foe DEBUG).
+ * @param[out] soDBG_SssRelCnt  Session release count (for DEBUG).
+ * @param[out] soDBG_SssRegCnt  Session register count (foe DEBUG).
  *
  * @details
  *  This process is a wrapper for the 'toe_top' entity. It instantiates such an
@@ -2403,6 +2432,9 @@ void pTAIF(
   void toe_top_wrap(
         //-- MMIO Interfaces
         Ip4Addr                                  piMMIO_IpAddr,
+        stream<ap_uint<8> >                     &soMMIO_NotifDropCnt,
+        stream<ap_uint<8> >                     &soMMIO_MetaDropCnt,
+        stream<ap_uint<16> >                    &soMMIO_DataDropCnt,
         //-- NTS Interfaces
         StsBit                                  &poNTS_Ready,
         //-- IPRX / IP Rx / Data Interface
@@ -2448,11 +2480,11 @@ void pTAIF(
         stream<CamSessionUpdateReply>           &siCAM_SssUpdRep,
         //-- DEBUG / Interfaces
         //-- DEBUG / Session Statistics Interfaces
-        ap_uint<16>                             &poDBG_SssRelCnt,
-        ap_uint<16>                             &poDBG_SssRegCnt
+        stream<ap_uint<16> >                    &soDBG_SssRelCnt,
+        stream<ap_uint<16> >                    &soDBG_SssRegCnt
         #if TOE_FEATURE_USED_FOR_DEBUGGING
         //-- DEBUG / SimCycCounter
-        ap_uint<32>                        &poSimCycCount
+        ap_uint<32>                             &poSimCycCount
         #endif
   )
 {
@@ -2467,6 +2499,9 @@ void pTAIF(
     toe_top(
       //-- MMIO Interfaces
       piMMIO_IpAddr,
+      soMMIO_NotifDropCnt,
+      soMMIO_MetaDropCnt,
+      soMMIO_DataDropCnt,
       //-- NTS Interfaces
       poNTS_Ready,
       //-- IPv4 / Rx & Tx Data Interfaces
@@ -2508,8 +2543,8 @@ void pTAIF(
       soCAM_SssUpdReq,
       siCAM_SssUpdRep,
       //-- DEBUG / Session Statistics Interfaces
-      poDBG_SssRelCnt,
-      poDBG_SssRegCnt
+      soDBG_SssRelCnt,
+      soDBG_SssRegCnt
       #if TOE_FEATURE_USED_FOR_DEBUGGING
       ,
       sTOE_TB_SimCycCnt
@@ -2596,6 +2631,13 @@ int main(int argc, char *argv[]) {
     stream<CamSessionUpdateRequest> ssTOE_CAM_SssUpdReq  ("ssTOE_CAM_SssUpdReq");
     stream<CamSessionUpdateReply>   ssCAM_TOE_SssUpdRep  ("ssCAM_TOE_SssUpdRep");
 
+    stream<ap_uint<8> >             ssTOE_MMIO_NotifDropCnt ("ssTOE_MMIO_NotifDropCnt");
+    stream<ap_uint<8> >             ssTOE_MMIO_MetaDropCnt  ("ssTOE_MMIO_MetaDropCnt");
+    stream<ap_uint<16> >            ssTOE_MMIO_DataDropCnt  ("ssTOE_MMIO_DataDropCnt");
+
+    stream<ap_uint<16> >            ssTOE_OpnSessCount   ("ssTOE_OpnSessCount");
+    stream<ap_uint<16> >            ssTOE_ClsSessCount   ("ssTOE_ClsSessCount");
+
     //------------------------------------------------------
     //-- TB SIGNALS
     //------------------------------------------------------
@@ -2611,8 +2653,8 @@ int main(int argc, char *argv[]) {
     AxisIp4         ipRxData;    // An IP4 chunk
     AxisApp         tcpTxData;   // A  TCP chunk
 
-    ap_uint<16>     opnSessionCount;
-    ap_uint<16>     clsSessionCount;
+    ap_uint<16>     nrOpenedSessions;
+    ap_uint<16>     nrClosedSessions;
 
     DummyMemory     rxMemory;
     DummyMemory     txMemory;
@@ -2797,6 +2839,9 @@ int main(int argc, char *argv[]) {
         #endif
             //-- MMIO Interfaces
             gFpgaIp4Addr,
+            ssTOE_MMIO_NotifDropCnt,
+            ssTOE_MMIO_MetaDropCnt,
+            ssTOE_MMIO_DataDropCnt,
             //-- NTS Interfaces
             sTOE_Ready,
             //-- IPv4 / Rx & Tx Data Interfaces
@@ -2838,13 +2883,40 @@ int main(int argc, char *argv[]) {
             ssTOE_CAM_SssUpdReq,
             ssCAM_TOE_SssUpdRep,
             //-- DEBUG / Session Statistics Interfaces
-            clsSessionCount,
-            opnSessionCount
+            ssTOE_ClsSessCount,
+            ssTOE_OpnSessCount
             #if TOE_FEATURE_USED_FOR_DEBUGGING
             ,
             sTOE_TB_SimCycCnt
             #endif
           );
+
+        //------------------------------------------------------
+        //-- STEP-2.1 : Drain TOE's Debug Streams
+        //------------------------------------------------------
+        if (!ssTOE_ClsSessCount.empty()) {
+            nrClosedSessions = ssTOE_ClsSessCount.read();
+        }
+        if (!ssTOE_OpnSessCount.empty()) {
+            nrOpenedSessions = ssTOE_OpnSessCount.read();
+        }
+
+        //------------------------------------------------------
+        //-- STEP-2.2 : GENERATE THE 'ReadyDly' SIGNAL
+        //------------------------------------------------------
+        if (sTOE_Ready == 1) {
+            if (startUpDelay > 0) {
+                startUpDelay--;
+                if (DEBUG_LEVEL & TRACE_MAIN) {
+                    if (startUpDelay == 0) {
+                        printInfo(THIS_NAME, "TOE and TB are ready.\n");
+                    }
+                }
+            }
+            else {
+                sTOE_ReadyDly = sTOE_Ready;
+            }
+        }
 
         //-------------------------------------------------
         //-- STEP-3 : Emulate DRAM & CAM Interfaces
@@ -2909,23 +2981,7 @@ int main(int argc, char *argv[]) {
             ssTOE_TAIF_SndRep,
             ssTAIF_TOE_ClsReq);
 
-        //------------------------------------------------------
-        //-- STEP-6 : GENERATE THE 'ReadyDly' SIGNAL
-        //------------------------------------------------------
-        if (sTOE_Ready == 1) {
-            if (startUpDelay > 0) {
-                startUpDelay--;
-                if (DEBUG_LEVEL & TRACE_MAIN) {
-                    if (startUpDelay == 0) {
-                        printInfo(THIS_NAME, "TOE and TB are ready.\n");
-                    }
-                }
-            }
-            else {
-                sTOE_ReadyDly = sTOE_Ready;
-            }
-        }
-
+        
         //------------------------------------------------------
         //-- STEP-7 : INCREMENT SIMULATION COUNTER
         //------------------------------------------------------
@@ -2946,6 +3002,28 @@ int main(int argc, char *argv[]) {
 
     } while ( (gSimCycCnt < gMaxSimCycles) and (not gFatalError) and (nrErr < 10) );
 
+
+    printInfo(THIS_NAME, "############################################################################\n");
+    printInfo(THIS_NAME, "## TESTBENCH 'test_toe' ENDS HERE                                          ##\n");
+    printInfo(THIS_NAME, "############################################################################\n");
+    stepSim();
+
+    //---------------------------------------------
+    //-- DRAIN TOE-->MMIO DROP COUNTER STREAMS
+    //---------------------------------------------
+    if (not drainMmioDropCounter(ssTOE_MMIO_NotifDropCnt, "ssTOE_MMIO_NotifDropCnt")) {
+        printError(THIS_NAME, "Failed to drain TOE-to-MMIO notification drop counter from DUT. \n");
+        nrErr++;
+    }
+    if (not drainMmioDropCounter(ssTOE_MMIO_MetaDropCnt, "ssTOE_MMIO_MetaDropCnt")) {
+        printError(THIS_NAME, "Failed to drain TOE-to-MMIO metadata drop counter from DUT. \n");
+        nrErr++;
+    }
+    if (not drainMmioDropCounter(ssTOE_MMIO_DataDropCnt, "ssTOE_MMIO_DataDropCnt")) {
+        printError(THIS_NAME, "Failed to drain TOE-to-MMIO data drop counter from DUT. \n");
+        nrErr++;
+    }
+
     //---------------------------------
     //-- CLOSING OPEN FILES
     //---------------------------------
@@ -2964,16 +3042,11 @@ int main(int argc, char *argv[]) {
         ofIPTX_Gold2 << endl; ofIPTX_Gold2.close();
     }
 
-    printInfo(THIS_NAME, "############################################################################\n");
-    printInfo(THIS_NAME, "## TESTBENCH 'test_toe' ENDS HERE                                          ##\n");
-    printInfo(THIS_NAME, "############################################################################\n");
-    stepSim();
-
     //---------------------------------------------------------------
     //-- PRINT AN OVERALL TESTBENCH STATUS
     //---------------------------------------------------------------
-    printInfo(THIS_NAME, "Number of sessions opened by TOE       : %6d \n", opnSessionCount.to_uint());
-    printInfo(THIS_NAME, "Number of sessions closed by TOE       : %6d \n", clsSessionCount.to_uint());
+    printInfo(THIS_NAME, "Number of sessions opened by TOE       : %6d \n", nrOpenedSessions.to_uint());
+    printInfo(THIS_NAME, "Number of sessions closed by TOE       : %6d \n", nrClosedSessions.to_uint());
 
     printInfo(THIS_NAME, "Number of IP  Packets from IPRX-to-TOE : %6d \n", pktCounter_IPRX_TOE);
     printInfo(THIS_NAME, "Number of IP  Packets from TOE-to-IPTX : %6d \n", pktCounter_TOE_IPTX);
@@ -3023,7 +3096,7 @@ int main(int argc, char *argv[]) {
                 }
             }
         }
-        if ((opnSessionCount == 0) and (pktCounter_IPRX_TOE > 0)) {
+        if ((nrOpenedSessions == 0) and (pktCounter_IPRX_TOE > 0)) {
             printWarn(THIS_NAME, "No session was opened by the TOE during this run. Please double check!!!\n");
             nrErr++;
         }

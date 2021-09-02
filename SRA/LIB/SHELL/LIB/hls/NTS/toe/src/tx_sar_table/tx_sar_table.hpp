@@ -41,9 +41,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define _TOE_TST_H_
 
 #include "../toe.hpp"
-//#include "../../../../NTS/nts.hpp"
-//#include "../../../../NTS/nts_utils.hpp"
-//#include "../../../../NTS/SimNtsUtils.hpp"
 
 using namespace hls;
 
@@ -74,8 +71,8 @@ class TxSarEntry {
     TxBufPtr        appw;        // Points to last written byte by APP
     TxAckNum        unak;        // Bytes TX'ed but not ACK'ed
     TxAckNum        ackd;        // Bytes TX'ed and ACK'ed
-    RcvWinSize      recv_window; // Remote receiver's buffer size (their)
-    SndWinSize      cong_window; // Local receiver's buffer size  (mine)
+    RemotWinSize    recv_window; // Remote receiver's buffer size (their)
+    LocalWinSize    cong_window; // Local  receiver's buffer size (mine)
     TcpWindow       slowstart_threshold;
     ap_uint<2>      count;
     bool            fastRetransmitted;

@@ -168,7 +168,7 @@ void tx_sar_table(
         //-- Rd/Wr Query from RX Engine
         //---------------------------------------
         siRXe_TxSarQry.read(sRXeQry);
-        if (sRXeQry.write) {
+        if (sRXeQry.write == QUERY_WR) {
             TX_SAR_TABLE[sRXeQry.sessionID].ackd        = sRXeQry.ackd;
             TX_SAR_TABLE[sRXeQry.sessionID].recv_window = sRXeQry.recv_window;
             TX_SAR_TABLE[sRXeQry.sessionID].cong_window = sRXeQry.cong_window;

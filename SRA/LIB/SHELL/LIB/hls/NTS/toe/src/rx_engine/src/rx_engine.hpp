@@ -84,6 +84,14 @@ class RXeFsmMeta {
 };
 
 /*******************************************************************************
+ * CONSTANTS FOR THE INTERNAL STREAM DEPTHS
+ *******************************************************************************/
+const int cDepth_FsmToMwr_WrCmd    = 16;
+const int cDepth_FsmToRan_Notif    = 16;  // This depends on the memory delay
+
+const int cDepth_MwrToRan_SplitSeg = 16;
+
+/*******************************************************************************
  *
  * @brief ENTITY - Rx Engine (RXe)
  *

@@ -40,10 +40,31 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _TOE_AKD_H_
 #define _TOE_AKD_H_
 
-#include "../../../../NTS/nts_utils.hpp"
-#include "../../../../NTS/toe/src/toe.hpp"
+#include "../../../../../NTS/nts_utils.hpp"
+#include "../../../../../NTS/toe/src/toe.hpp"
 
 using namespace hls;
+
+/*******************************************************************************
+ * ACK Table (RSt)
+ *  Structure to manage the transmission rate of the ACKs.
+ *
+ * [TODO - The type of 'AckEntry.delay' can be configured as a functions of 'TIME_XXX' and 'MAX_SESSIONS']
+ *   [ E.g. - TIME_64us  = ( 64.000/0.0064/32) + 1 =  313 = 0x139 ( 9-bits)
+ *   [ E.g. - TIME_64us  = ( 64.000/0.0064/ 8) + 1 = 1251 = 0x4E3 (11-bits)
+ *   [ E.g. - TIME_128us = (128.000/0.0064/32) + 1 =  626 = 0x271 (10-bits)
+ *******************************************************************************/
+class AckEntry {
+  public:
+    ap_uint<12> delay;  // Keeps track of the elapsed time
+    ap_uint<4>  count;  // Counts the number of received ACKs
+
+    AckEntry() :
+        delay(0), count(0) {}
+    AckEntry(ap_uint<12> delay, ap_uint<4> count) :
+        delay(delay), count(count) {}
+
+};
 
 /*******************************************************************************
  *

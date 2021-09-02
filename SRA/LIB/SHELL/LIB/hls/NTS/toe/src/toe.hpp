@@ -105,6 +105,10 @@ extern unsigned int  gSimCycCnt;     // [FIXME] Remove
   static const ap_uint<32> TIME_256us     = (((ap_uint<32>)(TIME_1s/  62500) > 1) ? (ap_uint<32>)(TIME_1s/  62500) : (ap_uint<32>)1);
   static const ap_uint<32> TIME_512us     = (((ap_uint<32>)(TIME_1s/ 125000) > 1) ? (ap_uint<32>)(TIME_1s/ 125000) : (ap_uint<32>)1);
 
+  static const ap_uint<32> ACKD_1us       = (  1.0/0.0064/TOE_MAX_SESSIONS/10) + 1;
+  static const ap_uint<32> ACKD_2us       = (  2.0/0.0064/TOE_MAX_SESSIONS/10) + 1;
+  static const ap_uint<32> ACKD_4us       = (  4.0/0.0064/TOE_MAX_SESSIONS/10) + 1;
+  static const ap_uint<32> ACKD_8us       = (  8.0/0.0064/TOE_MAX_SESSIONS/10) + 1;
   static const ap_uint<32> ACKD_16us      = ( 16.0/0.0064/TOE_MAX_SESSIONS/10) + 1;
   static const ap_uint<32> ACKD_32us      = ( 32.0/0.0064/TOE_MAX_SESSIONS/10) + 1;
   static const ap_uint<32> ACKD_64us      = ( 64.0/0.0064/TOE_MAX_SESSIONS/10) + 1;
@@ -128,7 +132,10 @@ extern unsigned int  gSimCycCnt;     // [FIXME] Remove
   static const ap_uint<32> TIME_60s       = ( 60*TIME_1s);
   static const ap_uint<32> TIME_120s      = (120*TIME_1s);
 #else
-  static const ap_uint<32> TIME_1us       = (  1.0/0.0064/TOE_MAX_SESSIONS) + 1;
+  static const ap_uint<32> ACKD_1us       = (  1.0/0.0064/TOE_MAX_SESSIONS) + 1;
+  static const ap_uint<32> ACKD_2us       = (  2.0/0.0064/TOE_MAX_SESSIONS) + 1;
+  static const ap_uint<32> ACKD_4us       = (  4.0/0.0064/TOE_MAX_SESSIONS) + 1;
+  static const ap_uint<32> ACKD_8us       = (  8.0/0.0064/TOE_MAX_SESSIONS) + 1;
   static const ap_uint<32> ACKD_16us      = ( 16.0/0.0064/TOE_MAX_SESSIONS) + 1;
   static const ap_uint<32> ACKD_32us      = ( 32.0/0.0064/TOE_MAX_SESSIONS) + 1;
   static const ap_uint<32> ACKD_64us      = ( 64.0/0.0064/TOE_MAX_SESSIONS) + 1;
@@ -264,10 +271,10 @@ typedef ap_uint<15> TcpDynPort;  // TCP Dynamic Port [0x8000..0xFFFF]
 //---------------------------------------------------------
 //-- TOE - Some Rx & Tx SAR Types
 //---------------------------------------------------------
-typedef TcpSeqNum   RxSeqNum;   // A sequence number received from the network layer
-typedef TcpAckNum   TxAckNum;   // An acknowledge number transmitted to the network layer
-typedef TcpWindow   RcvWinSize; // A received window size
-typedef TcpWindow   SndWinSize; // A sending  window size
+typedef TcpSeqNum   RxSeqNum;     // A sequence number received from the network layer
+typedef TcpAckNum   TxAckNum;     // An acknowledge number transmitted to the network layer
+typedef TcpWindow   RemotWinSize; // A remote window size
+typedef TcpWindow   LocalWinSize; // A local  window size
 
 typedef ap_uint<32>              RxMemPtr;  // A pointer to RxMemBuff ( 4GB)  [FIXME <33>]
 typedef ap_uint<32>              TxMemPtr;  // A pointer to TxMemBuff ( 4GB)  [FIXME <33>]
@@ -327,7 +334,8 @@ class StateQuery {
     SessionId       sessionID;
     TcpState        state;
     RdWrBit         write;
-    StateQuery() {}
+    StateQuery() :
+        state(CLOSED) {}
     // Read queries
     StateQuery(SessionId id) :
         sessionID(id), state(CLOSED), write(QUERY_RD) {}
@@ -344,10 +352,10 @@ class StateQuery {
 class RxSarReply {
   public:
     RxBufPtr    appd;
-    RxSeqNum    rcvd;
-    FlagBool    ooo;
+    RxSeqNum    rcvd;    // Last received SeqNum
     RxSeqNum    oooHead;
     RxSeqNum    oooTail;
+    FlagBool    ooo;
     RxSarReply() {}
     RxSarReply(RxBufPtr appd, RxSeqNum rcvd, StsBool ooo, RxSeqNum oooHead, RxSeqNum oooTail) :
         appd(appd), rcvd(rcvd), ooo(ooo), oooHead(oooHead), oooTail(oooTail) {}
@@ -359,13 +367,14 @@ class RxSarReply {
 class RXeRxSarQuery {
   public:
     SessionId   sessionID;
-    RxSeqNum    rcvd;
-    FlagBool    ooo;
+    RxSeqNum    rcvd;      // Last received SeqNum
     RxSeqNum    oooHead;
     RxSeqNum    oooTail;
+    FlagBool    ooo;
     RdWrBit     write;
     CmdBit      init;
-    RXeRxSarQuery() {}
+    RXeRxSarQuery() :
+        ooo(false) {}
     // Read queries
     RXeRxSarQuery(SessionId id) :
         sessionID(id), rcvd(0),    ooo(false), oooHead(0), oooTail(0), write(QUERY_RD), init(0) {}
@@ -421,16 +430,20 @@ class RXeTxSarQuery {
   public:
     SessionId       sessionID;
     TxAckNum        ackd;         // TX'ed and ACK'ed
-    RcvWinSize      recv_window;  // Remote receiver's buffer size (their)
-    SndWinSize      cong_window;  // Local receiver's buffer size  (my)
+    RemotWinSize    recv_window;  // Remote receiver's buffer size (their)
+    LocalWinSize    cong_window;  // Local receiver's buffer size  (my)
     ap_uint<2>      count;
     CmdBool         fastRetransmitted;
     RdWrBit         write;
-    RXeTxSarQuery () {}
-    RXeTxSarQuery(SessionId id) : // Read Query
-        sessionID(id), ackd(0), recv_window(0), count(0), fastRetransmitted(false), write(0) {}
-    RXeTxSarQuery(SessionId id, TxAckNum ackd, RcvWinSize recv_win, SndWinSize cong_win, ap_uint<2> count, CmdBool fastRetransmitted) : // Write Query
-        sessionID(id), ackd(ackd), recv_window(recv_win), cong_window(cong_win), count(count), fastRetransmitted(fastRetransmitted), write(1) {}
+
+    RXeTxSarQuery () :
+        fastRetransmitted(false) {}
+    // Read Query
+    RXeTxSarQuery(SessionId id, RdWrBit wrBit) :
+        sessionID(id), fastRetransmitted(false), write(QUERY_RD) {}
+    // Write Query
+    RXeTxSarQuery(SessionId id, TxAckNum ackd, RemotWinSize recv_win, LocalWinSize cong_win, ap_uint<2> count, CmdBool fastRetransmitted) :
+        sessionID(id), ackd(ackd), recv_window(recv_win), cong_window(cong_win), count(count), fastRetransmitted(fastRetransmitted), write(QUERY_WR) {}
 };
 
 //=========================================================
@@ -461,17 +474,21 @@ class TXeTxSarQuery {
     bool            finReady;
     bool            finSent;
     bool            isRtQuery;
-    TXeTxSarQuery() {}
-    TXeTxSarQuery(SessionId id) :
-        sessionID(id), not_ackd(0), write(0), init(0), finReady(false), finSent(false), isRtQuery(false) {}
+
+    TXeTxSarQuery() :
+        finReady(false), finSent(false), isRtQuery(false) {}
+    // Read Query
+    TXeTxSarQuery(SessionId id, RdWrBit wrBit) :
+        sessionID(id), write(QUERY_RD), finReady(false), finSent(false), isRtQuery(false) {}
+    // Write Queries
     TXeTxSarQuery(SessionId id, TxAckNum not_ackd, RdWrBit write) :
-        sessionID(id), not_ackd(not_ackd), write(write), init(0), finReady(false), finSent(false), isRtQuery(false) {}
+        sessionID(id), not_ackd(not_ackd), write(QUERY_WR), init(0), finReady(false), finSent(false), isRtQuery(false) {}
     TXeTxSarQuery(SessionId id, TxAckNum not_ackd, RdWrBit write, CmdBit init) :
-        sessionID(id), not_ackd(not_ackd), write(write), init(init), finReady(false), finSent(false), isRtQuery(false) {}
+        sessionID(id), not_ackd(not_ackd), write(QUERY_WR), init(init), finReady(false), finSent(false), isRtQuery(false) {}
     TXeTxSarQuery(SessionId id, TxAckNum not_ackd, RdWrBit write, CmdBit init, bool finReady, bool finSent) :
-        sessionID(id), not_ackd(not_ackd), write(write), init(init), finReady(finReady), finSent(finSent), isRtQuery(false) {}
+        sessionID(id), not_ackd(not_ackd), write(QUERY_WR), init(init), finReady(finReady), finSent(finSent), isRtQuery(false) {}
     TXeTxSarQuery(SessionId id, TxAckNum not_ackd, RdWrBit write, CmdBit init, bool finReady, bool finSent, bool isRt) :
-        sessionID(id), not_ackd(not_ackd), write(write), init(init), finReady(finReady), finSent(finSent), isRtQuery(isRt) {}
+        sessionID(id), not_ackd(not_ackd), write(QUERY_WR), init(init), finReady(finReady), finSent(finSent), isRtQuery(isRt) {}
 };
 
 //=========================================================
@@ -499,7 +516,7 @@ class TXeTxSarRtQuery : public TXeTxSarQuery
     TXeTxSarRtQuery() {}
     TXeTxSarRtQuery(const TXeTxSarQuery& q) :
         TXeTxSarQuery(q.sessionID, q.not_ackd, q.write, q.init, q.finReady, q.finSent, q.isRtQuery) {}
-    TXeTxSarRtQuery(SessionId id, ap_uint<16> ssthresh) :
+    TXeTxSarRtQuery(SessionId id, ap_uint<TOE_WINDOW_BITS> ssthresh) :
         TXeTxSarQuery(id, ssthresh, 1, 0, false, false, true) {}
     ap_uint<TOE_WINDOW_BITS> getThreshold() {
         return not_ackd(TOE_WINDOW_BITS-1, 0);
@@ -714,6 +731,9 @@ template<typename T> void pStreamMux(
         //-- MMIO Interfaces
         //------------------------------------------------------
         Ip4Addr                                  piMMIO_IpAddr,
+        stream<ap_uint<8> >                     &soMMIO_NotifDropCnt,
+        stream<ap_uint<8> >                     &soMMIO_MetaDropCnt,
+        stream<ap_uint<16> >                    &soMMIO_DataDropCnt,
 
         //------------------------------------------------------
         //-- NTS Interfaces
@@ -795,8 +815,8 @@ template<typename T> void pStreamMux(
         //-- DEBUG / Interfaces
         //------------------------------------------------------
         //-- DEBUG / Session Statistics Interfaces
-        ap_uint<16>                             &poDBG_SssRelCnt,
-        ap_uint<16>                             &poDBG_SssRegCnt
+        stream<ap_uint<16> >                    &soDBG_SssRelCnt,
+        stream<ap_uint<16> >                    &soDBG_SssRegCnt
         #if TOE_FEATURE_USED_FOR_DEBUGGING
         //-- DEBUG / SimCycCounter
         ap_uint<32>                        &poSimCycCount
@@ -810,6 +830,9 @@ template<typename T> void pStreamMux(
         //-- MMIO Interfaces
         //------------------------------------------------------
         Ip4Addr                                  piMMIO_IpAddr,
+        stream<ap_uint<8> >                     &soMMIO_NotifDropCnt,
+        stream<ap_uint<8> >                     &soMMIO_MetaDropCnt,
+        stream<ap_uint<16> >                    &soMMIO_DataDropCnt,
 
         //------------------------------------------------------
         //-- NTS Interfaces
@@ -891,8 +914,8 @@ template<typename T> void pStreamMux(
         //-- DEBUG / Interfaces
         //------------------------------------------------------
         //-- DEBUG / Session Statistics Interfaces
-        ap_uint<16>                             &poDBG_SssRelCnt,
-        ap_uint<16>                             &poDBG_SssRegCnt
+        stream<ap_uint<16> >                    &soDBG_SssRelCnt,
+        stream<ap_uint<16> >                    &soDBG_SssRegCnt
         #if TOE_FEATURE_USED_FOR_DEBUGGING
         //-- DEBUG / SimCycCounter
         ap_uint<32>                             &poSimCycCount
