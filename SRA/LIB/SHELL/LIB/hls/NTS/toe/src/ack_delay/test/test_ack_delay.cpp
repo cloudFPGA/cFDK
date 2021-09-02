@@ -75,7 +75,13 @@ int main(int argc, char* argv[])
     //------------------------------------------------------
     //-- TESTBENCH LOCAL VARIABLES
     //------------------------------------------------------
-    int         nrErr  = 0;     // Tb error counter.
+    int          nrErr = 0;     // Tb error counter.
+    unsigned int rxEventSig=0;
+    unsigned int txEventSig=0;
+    int          nrInpSyn = 0;
+    int          nrInpAck = 0;
+    int          nrOutSyn = 0;
+    int          nrOutAck = 0;
 
     //------------------------------------------------------
     //-- DUT STREAM INTERFACES and RELATED VARIABLEs
@@ -90,21 +96,11 @@ int main(int argc, char* argv[])
     SessionId      sessId = TOE_MAX_SESSIONS-1;
     ExtendedEvent  outEvent;
 
-    unsigned int   rxEventSig=0;
-    unsigned int   txEventSig=0;
-    int            nrInpAck = 0;
-    int            nrOutAck = 0;
-
 
 
     printInfo(THIS_NAME, "############################################################################\n");
     printInfo(THIS_NAME, "## TESTBENCH 'test_iprx' STARTS HERE                                      ##\n");
     printInfo(THIS_NAME, "############################################################################\n");
-    printInfo(THIS_NAME, "This testbench will be executed with the following parameters: \n");
-    for (int i=1; i<argc; i++) {
-        printInfo(THIS_NAME, "\t==> Param[%d] = %s\n", (i-1), argv[i]);
-    }
-    printf("\n\n");
 
     int tbRun = 1000;
     int loop  = 0;
@@ -114,32 +110,33 @@ int main(int argc, char* argv[])
         //------------------------------------------------------
         //-- CREATE DUT INPUT TRAFFIC AS STREAMS
         //------------------------------------------------------
-		if (loop == 5) {
-			// Create a SYN event
-			ssEVeToAKd_Event.write(Event(SYN_EVENT, sessId));
-		}
-		else if (loop >= 10 and loop <  25) {
-			// Create a burst of 10 ACKs every second clock cycle
-			if (loop % 2 == 0) {
-				ssEVeToAKd_Event.write(Event(ACK_EVENT, sessId));
-				nrInpAck++;
-			}
-		}
-		else if (loop > 100 and loop < 150) {
-			// Create a burst of 10 ACKs every fourth loop
-			if (loop % 4 == 0) {
-				ssEVeToAKd_Event.write(Event(ACK_EVENT, sessId));
-				nrInpAck++;
-			}
-		}
-		else if (loop > 200 and loop < 300) {
-			// Create a burst of ACKs every 10th loop
-			if (loop % 10 == 0) {
-				ssEVeToAKd_Event.write(Event(ACK_EVENT, sessId));
-				nrInpAck++;
-			}
-		}
-		loop++;
+        if (loop == 5) {
+            // Create a SYN event
+            ssEVeToAKd_Event.write(Event(SYN_EVENT, sessId));
+            nrInpSyn++;
+        }
+        else if (loop >= 10 and loop <  25) {
+            // Create a burst of 10 ACKs every second clock cycle
+            if (loop % 2 == 0) {
+                ssEVeToAKd_Event.write(Event(ACK_EVENT, sessId));
+                nrInpAck++;
+            }
+        }
+        else if (loop > 100 and loop < 150) {
+            // Create a burst of 10 ACKs every fourth loop
+            if (loop % 4 == 0) {
+                ssEVeToAKd_Event.write(Event(ACK_EVENT, sessId));
+                nrInpAck++;
+            }
+        }
+        else if (loop > 200 and loop < 300) {
+            // Create a burst of ACKs every 10th loop
+            if (loop % 10 == 0) {
+                ssEVeToAKd_Event.write(Event(ACK_EVENT, sessId));
+                nrInpAck++;
+            }
+        }
+        loop++;
 
         //------------------------------------------------------
         //-- RUN DUT
@@ -148,9 +145,9 @@ int main(int argc, char* argv[])
             //-- Event Engine Interfaces
             ssEVeToAKd_Event,
             ssAKdToEVe_RxEventSig,
-			ssAKdToEVe_TxEventSig,
+            ssAKdToEVe_TxEventSig,
             //-- Tx Engine Interface
-			ssAKdToTXe_Event);
+            ssAKdToTXe_Event);
         tbRun--;
         stepSim();
 
@@ -160,22 +157,27 @@ int main(int argc, char* argv[])
         if (!ssAKdToTXe_Event.empty()) {
             ssAKdToTXe_Event.read(outEvent);
             if (outEvent.type == ACK_EVENT) {
-        	    nrOutAck++;
+                nrOutAck++;
             }
-	    }
+            else if (outEvent.type == SYN_EVENT) {
+                nrOutSyn++;
+            }
+        }
         if (!ssAKdToEVe_RxEventSig.empty()) {
-        	ssAKdToEVe_RxEventSig.read();
-        	rxEventSig++;
+            ssAKdToEVe_RxEventSig.read();
+            rxEventSig++;
         }
         if (!ssAKdToEVe_TxEventSig.empty()) {
-        	ssAKdToEVe_TxEventSig.read();
-        	txEventSig++;
+            ssAKdToEVe_TxEventSig.read();
+            txEventSig++;
         }
     }
 
     //---------------------------------------------------------------
     //-- PRINT OVERALL TESTBENCH STATUS
     //---------------------------------------------------------------
+    printInfo(THIS_NAME, "Number of received  SYNs   : %5d \n", nrInpSyn);
+    printInfo(THIS_NAME, "Number of forwarded SYNs   : %5d \n", nrOutSyn);
     printInfo(THIS_NAME, "Number of received  ACKs   : %5d \n", nrInpAck);
     printInfo(THIS_NAME, "Number of forwarded ACKs   : %5d \n", nrOutAck);
     printInfo(THIS_NAME, "Number of Rx event signals : %5d \n", rxEventSig);
@@ -184,7 +186,14 @@ int main(int argc, char* argv[])
     //---------------------------------------------------------------
     //-- ASSESS TESTBENCH RESULTS
     //---------------------------------------------------------------
-    nrErr = 0;
+    if (nrInpSyn != nrOutSyn)
+        nrErr++;
+    if (nrInpAck < nrOutAck)
+        nrErr++;
+    if ((nrInpSyn + nrInpAck) != rxEventSig)
+        nrErr++;
+    if ((nrOutSyn + nrOutAck) != txEventSig)
+        nrErr++;
 
     if (nrErr) {
         printError(THIS_NAME, "###########################################################\n");

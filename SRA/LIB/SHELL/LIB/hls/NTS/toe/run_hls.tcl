@@ -82,7 +82,7 @@ add_files     ${srcDir}/${projectName}.cpp -cflags "-DHLS_VERSION=${HLS_VERSION}
 add_files     ${srcDir}/toe_utils.cpp
 add_files     ${currDir}/../../NTS/nts_utils.cpp
 #
-add_files     ${srcDir}/ack_delay/ack_delay.cpp
+add_files     ${srcDir}/ack_delay/src/ack_delay.cpp
 add_files     ${srcDir}/event_engine/event_engine.cpp
 add_files     ${srcDir}/port_table/port_table.cpp
 add_files     ${srcDir}/rx_app_interface/rx_app_interface.cpp

@@ -73,6 +73,8 @@ using namespace hls;
  *   initialized to (64us/MAX_SESSIONS). Next, this counter is decremented
  *   every (MAX_SESSIONS) until it reaches zero. At that time, a request to
  *   generate an ACK for that session is forwarded to the TxEngine (Txe).
+ *  If the pace of incoming segments increases, the rate of returned ACKs is
+ *   also increased.
  *******************************************************************************/
 void ack_delay(
         stream<ExtendedEvent>   &siEVe_Event,
