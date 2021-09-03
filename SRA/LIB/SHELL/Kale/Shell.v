@@ -627,7 +627,13 @@ module Shell_Kale # (
   //------ [DIAG_TRMDC] ----------------
   wire  [ 7:0]  sNTS0_MMIO_TcpRxMetaDropCnt;
   //------ [DIAG_TRDDC] ----------------
-  wire  [15:0]  sNTS0_MMIO_TcpRxDataDropCnt;
+  wire  [ 7:0]  sNTS0_MMIO_TcpRxDataDropCnt;
+  //------ [DIAG_TRCDC] ----------------
+  wire  [ 7:0]  sNTS0_MMIO_TcpRxCrcDropCnt;
+    //------ [DIAG_TRSDC] ----------------
+  wire  [ 7:0]  sNTS0_MMIO_TcpRxSessDropCnt;
+    //------ [DIAG_TRODC] ----------------
+  wire  [ 7:0]  sNTS0_MMIO_TcpRxOooDropCnt;
   
   //-- END OF SIGNAL DECLARATIONS ----------------------------------------------
 
@@ -683,6 +689,9 @@ module Shell_Kale # (
     .piNTS0_TcpRxNotifDropCnt       (sNTS0_MMIO_TcpRxNotifDropCnt),
     .piNTS0_TcpRxMetaDropCnt        (sNTS0_MMIO_TcpRxMetaDropCnt),
     .piNTS0_TcpRxDataDropCnt        (sNTS0_MMIO_TcpRxDataDropCnt),
+    .piNTS0_TcpRxCrcDropCnt         (sNTS0_MMIO_TcpRxCrcDropCnt),
+    .piNTS0_TcpRxSessDropCnt        (sNTS0_MMIO_TcpRxSessDropCnt),
+    .piNTS0_TcpRxOooDropCnt         (sNTS0_MMIO_TcpRxOooDropCnt),
     //--
     .poNTS0_MacAddress              (sMMIO_NTS0_MacAddress),
     .poNTS0_Ip4Address              (sMMIO_NTS0_Ip4Address),
@@ -1152,6 +1161,9 @@ module Shell_Kale # (
     .poMMIO_TcpRxNotifDropCnt         (sNTS0_MMIO_TcpRxNotifDropCnt),
     .poMMIO_TcpRxMetaDropCnt          (sNTS0_MMIO_TcpRxMetaDropCnt),
     .poMMIO_TcpRxDataDropCnt          (sNTS0_MMIO_TcpRxDataDropCnt),
+    .poMMIO_TcpRxCrcDropCnt           (sNTS0_MMIO_TcpRxCrcDropCnt),
+    .poMMIO_TcpRxSessDropCnt          (sNTS0_MMIO_TcpRxSessDropCnt),
+    .poMMIO_TcpRxOooDropCnt           (sNTS0_MMIO_TcpRxOooDropCnt),
     .poMMIO_UdpRxDataDropCnt          (sNTS0_MMIO_UdpRxDataDropCnt)
   );  // End of NTS0
 

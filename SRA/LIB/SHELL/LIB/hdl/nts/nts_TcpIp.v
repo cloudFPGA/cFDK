@@ -273,7 +273,10 @@ module NetworkTransportStack_TcpIp (
   output         poMMIO_NtsReady,
   output [  7:0] poMMIO_TcpRxNotifDropCnt,
   output [  7:0] poMMIO_TcpRxMetaDropCnt,
-  output [ 15:0] poMMIO_TcpRxDataDropCnt,
+  output [  7:0] poMMIO_TcpRxDataDropCnt,
+  output [  7:0] poMMIO_TcpRxCrcDropCnt,
+  output [  7:0] poMMIO_TcpRxSessDropCnt,
+  output [  7:0] poMMIO_TcpRxOooDropCnt,
   output [ 15:0] poMMIO_UdpRxDataDropCnt
   
 ); // End of PortList
@@ -421,7 +424,7 @@ module NetworkTransportStack_TcpIp (
   wire          ssTOE_ARS11_MetaDropCnt_tvalid;
   wire          ssTOE_ARS11_MetaDropCnt_tready;
   //-- TOE ==>[ARS12]==> MMIO / DataDropCounter
-  wire  [15:0]  ssTOE_ARS12_DataDropCnt_tdata;
+  wire  [ 7:0]  ssTOE_ARS12_DataDropCnt_tdata;
   wire          ssTOE_ARS12_DataDropCnt_tvalid;
   wire          ssTOE_ARS12_DataDropCnt_tready;  
   //-- TOE ==> CAM / LookupRequest
@@ -972,6 +975,18 @@ module NetworkTransportStack_TcpIp (
     .soMMIO_DataDropCnt_V_V_TDATA   (ssTOE_ARS12_DataDropCnt_tdata), 
     .soMMIO_DataDropCnt_V_V_TVALID  (ssTOE_ARS12_DataDropCnt_tvalid),
     .soMMIO_DataDropCnt_V_V_TREADY  (ssTOE_ARS12_DataDropCnt_tready),
+       //-- CRC Drop Counter
+    .soMMIO_CrcDropCnt_V_V_TDATA    (poMMIO_TcpRxCrcDropCnt),
+    .soMMIO_CrcDropCnt_V_V_TVALID   (),
+    .soMMIO_CrcDropCnt_V_V_TREADY   (sHIGH_1b1),
+    //-- Session Drop Counter
+    .soMMIO_SessDropCnt_V_V_TDATA   (poMMIO_TcpRxSessDropCnt),
+    .soMMIO_SessDropCnt_V_V_TVALID  (),
+    .soMMIO_SessDropCnt_V_V_TREADY  (sHIGH_1b1),
+    //-- Out-Of-Order Drop Counter
+    .soMMIO_OooDropCnt_V_V_TDATA    (poMMIO_TcpRxOooDropCnt),
+    .soMMIO_OooDropCnt_V_V_TVALID   (),
+    .soMMIO_OooDropCnt_V_V_TREADY   (sHIGH_1b1),
     //------------------------------------------------------
     //-- Ready Logic Interface
     //------------------------------------------------------    
@@ -1189,7 +1204,7 @@ module NetworkTransportStack_TcpIp (
   //============================================================================
   //  INST: AXI4-STREAM-REGISTER-SLICE (TOE ==>[ARS12]==> MMIO)
   //============================================================================
-  AxisRegisterSlice_16 ARS12 (
+  AxisRegisterSlice_8 ARS12 (
     .aclk           (piShlClk),
     .aresetn        (~piMMIO_Layer3Rst),
     //-- From TOE / Notif --------------

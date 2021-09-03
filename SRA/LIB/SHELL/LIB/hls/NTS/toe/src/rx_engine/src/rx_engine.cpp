@@ -669,6 +669,7 @@ void pCheckSumAccumulator(
  * @param[in]  siCsa_Data    TCP data stream from CheckSumAccumulator (Csa).
  * @param[in]  siCsa_DataVal TCP data segment valid.
  * @param[out] soTsd_Data    TCP data stream to TcpSegmentDropper (Tsd).
+ * @param[out] soMMIO_CrcDropCnt The value of the CRC drop counter.
  *
  * @details
  *  This process drops the incoming TCP segment when it is flagged with an
@@ -678,7 +679,8 @@ void pCheckSumAccumulator(
 void pTcpInvalidDropper(
         stream<AxisApp>     &siCsa_Data,
         stream<ValBit>      &siCsa_DataVal,
-        stream<AxisApp>     &soTsd_Data)
+        stream<AxisApp>     &soTsd_Data,
+        stream<ap_uint<8> > &soMMIO_CrcDropCnt)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1 enable_flush
@@ -690,6 +692,9 @@ void pTcpInvalidDropper(
     static enum FsmStates { TSD_IDLE=0, TSD_FWD, TSD_DROP } \
                                tid_fsmState=TSD_IDLE;
     #pragma HLS RESET variable=tid_fsmState
+    static ap_uint<8 >         tid_crcDropCounter=0;
+    #pragma HLS reset variable=tid_crcDropCounter
+
 
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     AxisApp     currChunk;
@@ -704,6 +709,7 @@ void pTcpInvalidDropper(
             }
             else {
                 tid_fsmState = TSD_DROP;
+                tid_crcDropCounter++;
                 printWarn(myName, "Bad checksum: Dropping payload for this packet!\n");
             }
         }
@@ -727,6 +733,14 @@ void pTcpInvalidDropper(
         }
         break;
     } // End of: switch
+
+    //-- ALWAYS
+    if (!soMMIO_CrcDropCnt.full()) {
+        soMMIO_CrcDropCnt.write(tid_crcDropCounter);
+    }
+    else {
+        printFatal(myName, "Cannot write soMMIO_CrcDropCnt stream...");
+    }
 
 } // End of: pTcpInvalidDropper
 
@@ -1121,6 +1135,7 @@ void pRxAppNotifier(
  * @param[out] soEVe_Event      Event to EventEngine (EVe).
  * @param[out] soTsd_DropCmd    Drop command to Tcp Segment Dropper (Tsd).
  * @param[out] soFsm_Meta       Metadata to RXe's Finite State Machine (Fsm).
+ * @param[out] soMMIO_SessDrop  The value of the session drop counter.
  *
  * @details
  *  This process waits until it gets a response from the PortTable (PRt).
@@ -1141,7 +1156,8 @@ void pMetaDataHandler(
         stream<StsBit>              &siPRt_PortSts,
         stream<ExtendedEvent>       &soEVe_Event,
         stream<CmdBit>              &soTsd_DropCmd,
-        stream<RXeFsmMeta>          &soFsm_Meta)
+        stream<RXeFsmMeta>          &soFsm_Meta,
+        stream<ap_uint<8> >         &soMMIO_SessDropCnt)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1 enable_flush
@@ -1150,8 +1166,11 @@ void pMetaDataHandler(
     const char *myName = concat3(THIS_NAME, "/", "Mdh");
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static enum FsmStates { MDH_META=0, MDH_LOOKUP } mdh_fsmState;
-    #pragma HLS RESET                       variable=mdh_fsmState
+    static enum FsmStates { MDH_META=0, \
+                            MDH_LOOKUP } mdh_fsmState;
+    #pragma HLS RESET           variable=mdh_fsmState
+    static ap_uint<8 >                   mdh_SessDropCounter=0;
+    #pragma HLS reset           variable=mdh_SessDropCounter
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static RXeMeta              mdh_meta;
@@ -1203,6 +1222,7 @@ void pMetaDataHandler(
                     }
                     if (mdh_meta.length != 0) {
                         soTsd_DropCmd.write(CMD_DROP);
+                        mdh_SessDropCounter++;
                     }
                 }
                 else {
@@ -1245,12 +1265,22 @@ void pMetaDataHandler(
             }
             if (mdh_meta.length != 0) {
                 soTsd_DropCmd.write(!mdh_sessLookupReply.hit);
+                if (!mdh_sessLookupReply.hit) {
+                    mdh_SessDropCounter++;
+                }
             }
             mdh_fsmState = MDH_META;
         }
         break;
     } // End of: switch
 
+    //-- ALWAYS
+    if (!soMMIO_SessDropCnt.full()) {
+        soMMIO_SessDropCnt.write(mdh_SessDropCounter);
+    }
+    else {
+        printFatal(myName, "Cannot write soMMIO_SessDropCnt stream...");
+    }
 } // End of: pMetaDataHandler
 
 /*******************************************************************************
@@ -1271,6 +1301,7 @@ void pMetaDataHandler(
  * @param[out] soTsd_DropCmd     Drop command to TcpSegmentDropper (Tsd).
  * @param[out] soMwr_WrCmd       Memory write command to MemoryWriter (Mwr).
  * @param[out] soRan_RxNotif     Rx data notification to RxAppNotifier (Ran).
+ * @param[out] soMMIO_OooDropCnt The value of the out-of-order drop counter.
  *
  * @details
  *  This process implements the typical TCP state and metadata management. It
@@ -1293,7 +1324,8 @@ void pFiniteStateMachine(
         stream<Event>               &soEVe_Event,
         stream<CmdBit>              &soTsd_DropCmd,
         stream<DmCmd>               &soMwr_WrCmd,
-        stream<TcpAppNotif>         &soRan_RxNotif)
+        stream<TcpAppNotif>         &soRan_RxNotif,
+        stream<ap_uint<8> >         &soMMIO_OooDropCnt)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1 enable_flush
@@ -1306,7 +1338,9 @@ void pFiniteStateMachine(
                                  fsm_fsmState=FSM_LOAD;
     #pragma HLS RESET   variable=fsm_fsmState
     static bool                  fsm_txSarRequest=false;
-    #pragma HLS RESET    variable=fsm_txSarRequest
+    #pragma HLS RESET   variable=fsm_txSarRequest
+    static ap_uint<8 >           fsm_oooDropCounter=0;
+    #pragma HLS reset   variable=fsm_oooDropCounter
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static RXeFsmMeta   fsm_Meta;
@@ -1553,6 +1587,7 @@ void pFiniteStateMachine(
                         //-- OOO-DROP  : Always drop segment in all other cases
                         else {
                             soTsd_DropCmd.write(CMD_DROP);
+                            fsm_oooDropCounter++;
                             if ( (!rxSar.ooo and (fsm_Meta.meta.seqNumb == rxSar.rcvd) and (free_space <  fsm_Meta.meta.length)) or
                                  (!rxSar.ooo and (fsm_Meta.meta.seqNumb >  rxSar.rcvd) and (free_space > (fsm_Meta.meta.seqNumb+fsm_Meta.meta.length-rxSar.oooHead(TOE_WINDOW_BITS-1, 0))))) {
                                 printInfo(myName, "Dropping Rx segment - Not enough space left in the Rx ring buffer.\n");
@@ -1609,6 +1644,7 @@ void pFiniteStateMachine(
                     // if data is in the pipe it needs to be droppped
                     if (fsm_Meta.meta.length != 0) {
                         soTsd_DropCmd.write(CMD_DROP);
+                        fsm_oooDropCounter++;
                     }
                     soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, tcpState, QUERY_WR));
                 }
@@ -1763,6 +1799,7 @@ void pFiniteStateMachine(
                     // If there is payload we need to drop it
                     if (fsm_Meta.meta.length != 0) {
                         soTsd_DropCmd.write(CMD_DROP);
+                        fsm_oooDropCounter++;
                     }
                 }
             }
@@ -1824,6 +1861,14 @@ void pFiniteStateMachine(
         break;
     } // End of: switch state
 
+    //-- ALWAYS
+    if (!soMMIO_OooDropCnt.full()) {
+        soMMIO_OooDropCnt.write(fsm_oooDropCounter);
+    }
+    else {
+        printFatal(myName, "Cannot write soMMIO_OooDropCnt stream...");
+    }
+
 } // End of: pFiniteStateMachine(
 
 /*******************************************************************************
@@ -1881,6 +1926,9 @@ void pEventMultiplexer(
  * @param[out] soMEM_WrCmd         Memory write command to MemorySubSystem (MEM).
  * @param[out] soMEM_WrData        Memory data write stream to [MEM].
  * @param[in]  siMEM_WrSts         Memory write status from [MEM].
+ * @param[out] soMMIO_CrcDropCnt   The value of the CRC drop counter.
+ * @param[out] soMMIO_SessDropCnt  The value of the session drop counter.
+ * @param[out] soMMIO_OooDropCnt   The value of the out-of-order drop counter.
  *
  * @details
  *  The RxEngine (RXe) processes the TCP/IP packets received from the IpRxHandler
@@ -1922,7 +1970,11 @@ void rx_engine(
         //-- MEM / Rx Write Path Interface
         stream<DmCmd>                   &soMEM_WrCmd,
         stream<AxisApp>                 &soMEM_WrData,
-        stream<DmSts>                   &siMEM_WrSts)
+        stream<DmSts>                   &siMEM_WrSts,
+        //--MMIO Interfaces
+        stream<ap_uint<8> >             &soMMIO_CrcDropCnt,
+        stream<ap_uint<8> >             &soMMIO_SessDropCnt,
+        stream<ap_uint<8> >             &soMMIO_OooDropCnt)
 {
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
     #pragma HLS DATAFLOW
@@ -2028,7 +2080,8 @@ void rx_engine(
     pTcpInvalidDropper(
             ssCsaToTid_Data,
             ssCsaToTid_DataValid,
-            ssTidToTsd_Data);
+            ssTidToTsd_Data,
+            soMMIO_CrcDropCnt);
 
     pMetaDataHandler(
             ssCsaToMdh_Meta,
@@ -2038,7 +2091,8 @@ void rx_engine(
             siPRt_PortStateRep,
             ssMdhToEvm_Event,
             ssMdhToTsd_DropCmd,
-            ssMdhToFsm_Meta);
+            ssMdhToFsm_Meta,
+            soMMIO_SessDropCnt);
 
     pFiniteStateMachine(
             ssMdhToFsm_Meta,
@@ -2055,7 +2109,8 @@ void rx_engine(
             ssFsmToEvm_Event,
             ssFsmToTsd_DropCmd,
             ssFsmToMwr_WrCmd,
-            ssFsmToRan_Notif);
+            ssFsmToRan_Notif,
+            soMMIO_OooDropCnt);
 
     pTcpSegmentDropper(
             ssTidToTsd_Data,

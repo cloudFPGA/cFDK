@@ -75,7 +75,7 @@ void rx_app_interface(
         //-- MMIO Interface
         stream<ap_uint<8> >         &soMMIO_NotifDropCnt,
         stream<ap_uint<8> >         &soMMIO_MetaDropCnt,
-        stream<ap_uint<16> >        &soMMIO_DataDropCnt
+        stream<ap_uint<8> >         &soMMIO_DataDropCnt
 );
 
 #endif

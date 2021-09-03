@@ -357,7 +357,7 @@ void pAppSegmentStitcher(
         stream<AxisApp>      &siMEM_RxP_Data,
         stream<TcpAppData>   &soTAIF_Data,
         stream<FlagBool>     &siMrd_SplitSegFlag,
-        stream<ap_uint<16> > &soMMIO_DataDropCnt)
+        stream<ap_uint<8> >  &soMMIO_DataDropCnt)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1 enable_flush
@@ -737,7 +737,7 @@ void rx_app_interface(
         //-- MMIO Interfaces
         stream<ap_uint<8> >         &soMMIO_NotifDropCnt,
         stream<ap_uint<8> >         &soMMIO_MetaDropCnt,
-        stream<ap_uint<16> >        &soMMIO_DataDropCnt)
+        stream<ap_uint<8> >         &soMMIO_DataDropCnt)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS INLINE

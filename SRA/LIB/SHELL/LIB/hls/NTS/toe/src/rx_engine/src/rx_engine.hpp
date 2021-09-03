@@ -127,7 +127,11 @@ void rx_engine(
         //-- MEM / Rx Write Path Interface
         stream<DmCmd>                   &soMEM_WrCmd,
         stream<AxisApp>                 &soMEM_WrData,
-        stream<DmSts>                   &siMEM_WrSts
+        stream<DmSts>                   &siMEM_WrSts,
+        //--MMIO Interfaces
+        stream<ap_uint<8> >             &soMMIO_CrcDropCnt,
+        stream<ap_uint<8> >             &soMMIO_SessDropCnt,
+        stream<ap_uint<8> >             &soMMIO_OooDropCnt
 );
 
 #endif

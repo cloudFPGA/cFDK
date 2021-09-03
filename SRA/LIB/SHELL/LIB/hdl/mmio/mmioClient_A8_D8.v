@@ -101,7 +101,10 @@ module MmioClient_A8_D8 #(
   input   [15:0]  piNTS0_UdpRxDataDropCnt,
   input   [ 7:0]  piNTS0_TcpRxNotifDropCnt,
   input   [ 7:0]  piNTS0_TcpRxMetaDropCnt,
-  input   [15:0]  piNTS0_TcpRxDataDropCnt,
+  input   [ 7:0]  piNTS0_TcpRxDataDropCnt,
+  input   [ 7:0]  piNTS0_TcpRxCrcDropCnt,
+  input   [ 7:0]  piNTS0_TcpRxSessDropCnt,
+  input   [ 7:0]  piNTS0_TcpRxOooDropCnt,
   //--
   output  [47:0]  poNTS0_MacAddress,
   output  [31:0]  poNTS0_Ip4Address,
@@ -305,9 +308,14 @@ module MmioClient_A8_D8 #(
   localparam DIAG_TRNDC0   = DIAG_REG_BASE +  9;
   // TCP Rx Meta Drop Counter
   localparam DIAG_TRMDC0   = DIAG_REG_BASE + 10;
-   // TCP Rx Data Drop Counter
+  // TCP Rx Data Drop Counter
   localparam DIAG_TRDDC0   = DIAG_REG_BASE + 11;
-  localparam DIAG_TRDDC1   = DIAG_REG_BASE + 12;
+  // TCP Rx CRC Drop Counter
+  localparam DIAG_TRCDC0   = DIAG_REG_BASE + 12;
+   // TCP Rx Sess Drop Counter
+  localparam DIAG_TRSDC0   = DIAG_REG_BASE + 13;
+   // TCP Rx Out-of-Order Drop Counter
+  localparam DIAG_TRODC0   = DIAG_REG_BASE + 14;
   
   //-- PAGE_REG ----------------------------------------------------------------
   // Extended Page Select Register 
@@ -739,10 +747,15 @@ module MmioClient_A8_D8 #(
   assign sStatusVec[cEDW*DIAG_TRNDC0+7:cEDW*DIAG_TRNDC0+0] = piNTS0_TcpRxNotifDropCnt[ 7: 0]; // RO
   //---- DIAG_TRMDC[0] -----------------
   assign sStatusVec[cEDW*DIAG_TRMDC0+7:cEDW*DIAG_TRMDC0+0] = piNTS0_TcpRxMetaDropCnt[ 7: 0]; // RO
-  //---- DIAG_TRDDC[0:1] ---------------
-  assign sStatusVec[cEDW*DIAG_TRDDC0+7:cEDW*DIAG_TRDDC0+0] = piNTS0_TcpRxDataDropCnt[15: 8]; // RO
-  assign sStatusVec[cEDW*DIAG_TRDDC1+7:cEDW*DIAG_TRDDC1+0] = piNTS0_TcpRxDataDropCnt[ 7: 0]; // RO
-  
+  //---- DIAG_TRDDC[0] ---------------
+  assign sStatusVec[cEDW*DIAG_TRDDC0+7:cEDW*DIAG_TRDDC0+0] = piNTS0_TcpRxDataDropCnt[ 7: 0]; // RO
+  //---- DIAG_TRCDC[0] -----------------
+  assign sStatusVec[cEDW*DIAG_TRCDC0+7:cEDW*DIAG_TRCDC0+0] = piNTS0_TcpRxCrcDropCnt[ 7: 0];  // RO
+    //---- DIAG_TRSDC[0] -----------------
+  assign sStatusVec[cEDW*DIAG_TRSDC0+7:cEDW*DIAG_TRSDC0+0] = piNTS0_TcpRxSessDropCnt[ 7: 0]; // RO
+    //---- DIAG_TRODC[0] -----------------
+  assign sStatusVec[cEDW*DIAG_TRODC0+7:cEDW*DIAG_TRODC0+0] = piNTS0_TcpRxOooDropCnt[ 7: 0];  // RO
+   
   //-------------------------------------------------------- 
   //-- PAGE REGISTER
   //--------------------------------------------------------
