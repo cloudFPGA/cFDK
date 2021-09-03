@@ -782,6 +782,18 @@ module NetworkTransportStack_TcpIp (
     .soMMIO_DataDropCnt_TDATA   (ssTOE_ARS12_DataDropCnt_tdata),
     .soMMIO_DataDropCnt_TVALID  (ssTOE_ARS12_DataDropCnt_tvalid),
     .soMMIO_DataDropCnt_TREADY  (ssTOE_ARS12_DataDropCnt_tready),
+    //-- CRC Drop Counter
+    .soMMIO_CrcDropCnt_TDATA    (poMMIO_TcpRxCrcDropCnt),
+    .soMMIO_CrcDropCnt_TVALID   (),
+    .soMMIO_CrcDropCnt_TREADY   (sHIGH_1b1),
+    //-- Session Drop Counter
+    .soMMIO_SessDropCnt_TDATA   (poMMIO_TcpRxSessDropCnt),
+    .soMMIO_SessDropCnt_TVALID  (),
+    .soMMIO_SessDropCnt_TREADY  (sHIGH_1b1),
+    //-- Out-Of-Order Drop Counter
+    .soMMIO_OooDropCnt_TDATA    (poMMIO_TcpRxOooDropCnt),
+    .soMMIO_OooDropCnt_TVALID   (),
+    .soMMIO_OooDropCnt_TREADY   (sHIGH_1b1),
     //--    
     .poNTS_Ready_V             (),     // [FIXME-ssTOE_RLB_Ready_tdata]
     //------------------------------------------------------
@@ -951,8 +963,13 @@ module NetworkTransportStack_TcpIp (
     //------------------------------------------------------
     //-- DEBUG / Not Used
     //------------------------------------------------------
-    .poDBG_SssRelCnt_V         (),
-    .poDBG_SssRegCnt_V         ()
+    .soDBG_SssRelCnt_TDATA  (ssTOE_ARS13_SssRelCnt_tdata),
+    .soDBG_SssRelCnt_TVALID (ssTOE_ARS13_SssRelCnt_tvalid),
+    .soDBG_SssRelCnt_TREADY (ssTOE_ARS13_SssRelCnt_tready),
+    //--
+    .soDBG_SssRegCnt_TDATA  (ssTOE_ARS14_SssRegCnt_tdata),
+    .soDBG_SssRegCnt_TVALID (ssTOE_ARS14_SssRegCnt_tvalid),
+    .soDBG_SssRegCnt_TREADY (ssTOE_ARS14_SssRegCnt_tready)
     // .poSimCycCount_V        ()
   );  // End of TOE
   `else
