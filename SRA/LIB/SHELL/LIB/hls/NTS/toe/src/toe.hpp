@@ -733,7 +733,7 @@ template<typename T> void pStreamMux(
         Ip4Addr                                  piMMIO_IpAddr,
         stream<ap_uint<8> >                     &soMMIO_NotifDropCnt,
         stream<ap_uint<8> >                     &soMMIO_MetaDropCnt,
-        stream<ap_uint<16> >                    &soMMIO_DataDropCnt,
+        stream<ap_uint<8> >                     &soMMIO_DataDropCnt,
         stream<ap_uint<8> >                     &soMMIO_CrcDropCnt,
         stream<ap_uint<8> >                     &soMMIO_SessDropCnt,
         stream<ap_uint<8> >                     &soMMIO_OooDropCnt,
