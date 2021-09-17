@@ -304,7 +304,9 @@ void toe(
         //-- DEBUG Interfaces
         //------------------------------------------------------
         stream<ap_uint<16> >                &soDBG_SssRelCnt,
-        stream<ap_uint<16> >                &soDBG_SssRegCnt
+        stream<ap_uint<16> >                &soDBG_SssRegCnt,
+        stream<RxBufPtr>                    &soDBG_RxFreeSpace,
+        stream<ap_uint<32> >                &soDBG_TcpIpRxByteCnt
         #if TOE_FEATURE_USED_FOR_DEBUGGING
         ap_uint<32>                         &poSimCycCount
         #endif
@@ -652,7 +654,9 @@ void toe(
             siMEM_RxP_WrSts,
             soMMIO_CrcDropCnt,
             soMMIO_SessDropCnt,
-            soMMIO_OooDropCnt);
+            soMMIO_OooDropCnt,
+            soDBG_RxFreeSpace,
+            soDBG_TcpIpRxByteCnt);
 
     //-- TX Engine (TXe) --------------------------------------------------
     tx_engine(
@@ -864,7 +868,9 @@ void toe(
         //-- DEBUG Interfaces
         //------------------------------------------------------
         stream<ap_uint<16> >                &soDBG_SssRelCnt,
-        stream<ap_uint<16> >                &soDBG_SssRegCnt
+        stream<ap_uint<16> >                &soDBG_SssRegCnt,
+        stream<RxBufPtr>                    &soDBG_RxFreeSpace,
+        stream<ap_uint<32> >                &soDBG_TcpIpRxByteCnt
         #if TOE_FEATURE_USED_FOR_DEBUGGING
         ap_uint<32>                         &poSimCycCount
         #endif
@@ -943,6 +949,9 @@ void toe(
     //-- DEBUG / Session Statistics Interfaces
     #pragma HLS RESOURCE core=AXI4Stream variable=soDBG_SssRelCnt metadata="-bus_bundle soDBG_SssRelCnt"
     #pragma HLS RESOURCE core=AXI4Stream variable=soDBG_SssRegCnt metadata="-bus_bundle soDBG_SssRegCnt"
+    //-- DEBUG / Internal Counters
+    #pragma HLS RESOURCE core=AXI4Stream variable=soDBG_RxFreeSpace    metedata="-bus_bundle soDBG_RxFreeSpace"
+    #pragma HLS RESOURCE core=AXI4Stream variable=soDBG_TcpIpRxByteCnt metadata="-bus_bundle soDBG_TcpIpRxByteCnt"
     //-- DEBUG / Simulation Counter Interfaces
    #if TOE_FEATURE_USED_FOR_DEBUGGING
     #pragma HLS INTERFACE ap_none register port=poSimCycCount
@@ -1006,7 +1015,9 @@ void toe(
         siCAM_SssUpdRep,
         //-- DEBUG Interfaces
         soDBG_SssRelCnt,
-        soDBG_SssRegCnt
+        soDBG_SssRegCnt,
+        soDBG_RxFreeSpace,
+        soDBG_TcpIpRxByteCnt
         #if TOE_FEATURE_USED_FOR_DEBUGGING
         poSimCycCount
         #endif
@@ -1094,7 +1105,9 @@ void toe(
         //-- DEBUG Interfaces
         //------------------------------------------------------
         stream<ap_uint<16> >                &soDBG_SssRelCnt,
-        stream<ap_uint<16> >                &soDBG_SssRegCnt
+        stream<ap_uint<16> >                &soDBG_SssRegCnt,
+        stream<RxBufPtr>                    &soDBG_RxFreeSpace,
+        stream<ap_uint<32> >                &soDBG_TcpIpRxByteCnt
         #if TOE_FEATURE_USED_FOR_DEBUGGING
         ap_uint<32>                         &poSimCycCount
         #endif
@@ -1168,8 +1181,11 @@ void toe(
     #pragma HLS INTERFACE axis off              port=siCAM_SssUpdRep name=siCAM_SssUpdRep
     #pragma HLS DATA_PACK                   variable=siCAM_SssUpdRep
     //-- DEBUG / Session Statistics Interfaces
-    #pragma HLS INTERFACE axis register both    port=soDBG_SssRelCnt name=soDBG_SssRelCnt
-    #pragma HLS INTERFACE axis register both    port=soDBG_SssRegCnt name=soDBG_SssRegCnt
+    #pragma HLS INTERFACE axis register both    port=soDBG_SssRelCnt   name=soDBG_SssRelCnt
+    #pragma HLS INTERFACE axis register both    port=soDBG_SssRegCnt   name=soDBG_SssRegCnt
+    //-- DEBUG / Session Statistics Interfaces
+    #pragma HLS INTERFACE axis register both    port=soDBG_RxFreeSpace    name=soDBG_RxFreeSpace
+    #pragma HLS INTERFACE axis register both    port=soDBG_TcpIpRxByteCnt name=soDBG_TcpIpRxByteCnt
     //-- DEBUG / Simulation Counter Interfaces
   #if TOE_FEATURE_USED_FOR_DEBUGGING
     #pragma HLS INTERFACE ap_ovld register   port=poSimCycCount   name=poSimCycCount
@@ -1240,7 +1256,9 @@ void toe(
         siCAM_SssUpdRep,
         //-- DEBUG Interfaces
         soDBG_SssRelCnt,
-        soDBG_SssRegCnt
+        soDBG_SssRegCnt,
+        soDBG_RxFreeSpace,
+        soDBG_TcpIpRxByteCnt
         #if TOE_FEATURE_USED_FOR_DEBUGGING
         poSimCycCount
         #endif

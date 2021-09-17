@@ -131,7 +131,10 @@ void rx_engine(
         //--MMIO Interfaces
         stream<ap_uint<8> >             &soMMIO_CrcDropCnt,
         stream<ap_uint<8> >             &soMMIO_SessDropCnt,
-        stream<ap_uint<8> >             &soMMIO_OooDropCnt
+        stream<ap_uint<8> >             &soMMIO_OooDropCnt,
+        //-- DEBUG Interfaces
+        stream<RxBufPtr>                &soDBG_RxFreeSpace,
+        stream<ap_uint<32> >            &soDBG_TcpIpRxByteCnt
 );
 
 #endif

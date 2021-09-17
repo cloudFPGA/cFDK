@@ -518,6 +518,13 @@ module NetworkTransportStack_TcpIp (
   wire          ssL3MUX_IPTX_Data_tvalid;
   wire          ssL3MUX_IPTX_Data_tready;
   
+  //------------------------------------------------------------------
+  //-- TOE - DEBUG SIGNALS
+  //--   Set 'keep' to "true' if you need/want to trace these signals
+  //------------------------------------------------------------------ 
+  (* keep = "true" *) wire  [15: 0] sTOE_RxFreeSpace;
+  (* keep = "true" *) wire  [31: 0] sTOE_TcpIpRxByteCnt;
+  
   //-- End of signal declarations ----------------------------------------------
  
   //============================================================================
@@ -969,7 +976,15 @@ module NetworkTransportStack_TcpIp (
     //--
     .soDBG_SssRegCnt_TDATA  (ssTOE_ARS14_SssRegCnt_tdata),
     .soDBG_SssRegCnt_TVALID (ssTOE_ARS14_SssRegCnt_tvalid),
-    .soDBG_SssRegCnt_TREADY (ssTOE_ARS14_SssRegCnt_tready)
+    .soDBG_SssRegCnt_TREADY (ssTOE_ARS14_SssRegCnt_tready),
+     //--
+    .soDBG_RxFreeSpace_TDATA (sTOE_RxFreeSpace),
+    .soDBG_RxFreeSpace_TVALID(),
+    .soDBG_RxFreeSpace_TREADY(sHIGH_1b1),
+    //--
+    .soDBG_TcpIpRxByteCnt_TDATA (sTOE_TcpIpRxByteCnt),
+    .soDBG_TcpIpRxByteCnt_TVALID(),
+    .soDBG_TcpIpRxByteCnt_TREADY(sHIGH_1b1)
     // .poSimCycCount_V        ()
   );  // End of TOE
   `else
@@ -1181,7 +1196,15 @@ module NetworkTransportStack_TcpIp (
     //--
     .soDBG_SssRegCnt_V_V_TDATA  (ssTOE_ARS14_SssRegCnt_tdata),
     .soDBG_SssRegCnt_V_V_TVALID (ssTOE_ARS14_SssRegCnt_tvalid),
-    .soDBG_SssRegCnt_V_V_TREADY (ssTOE_ARS14_SssRegCnt_tready)
+    .soDBG_SssRegCnt_V_V_TREADY (ssTOE_ARS14_SssRegCnt_tready),
+    //--
+    .soDBG_RxFreeSpace_V_V_TDATA (sTOE_RxFreeSpace),
+    .soDBG_RxFreeSpace_V_V_TVALID(),
+    .soDBG_RxFreeSpace_V_V_TREADY(sHIGH_1b1),
+    //--
+    .soDBG_TcpIpRxByteCnt_V_V_TDATA (sTOE_TcpIpRxByteCnt),
+    .soDBG_TcpIpRxByteCnt_V_V_TVALID(),
+    .soDBG_TcpIpRxByteCnt_V_V_TREADY(sHIGH_1b1)
     // NOT-USED .poSimCycCount_V ()
   );  // End of TOE 
   `endif  // End of HLS_VERSION

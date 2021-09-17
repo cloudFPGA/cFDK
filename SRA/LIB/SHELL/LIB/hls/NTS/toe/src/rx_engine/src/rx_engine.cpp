@@ -69,7 +69,7 @@ using namespace hls;
 
 
 /*******************************************************************************
- * @brief TCP length extraction (Tle)
+ * @brief TCP Length Extraction (Tle)
  *
  * @param[in]  siIPRX_Data     IP4 packet stream from IpRxHandler (IPRX).
  * @param[out] soIph_Data      A custom-made pseudo packet to InsertPseudoHeader (Iph).
@@ -127,10 +127,10 @@ using namespace hls;
  *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *
  *******************************************************************************/
-void pTcpLengthExtract(
-        stream<AxisIp4>     &siIPRX_Data,
-        stream<AxisRaw>     &soIph_Data,
-        stream<TcpSegLen>   &soIph_TcpSegLen)
+void pTcpLengthExtractor(
+        stream<AxisIp4>      &siIPRX_Data,
+        stream<AxisRaw>      &soIph_Data,
+        stream<TcpSegLen>    &soIph_TcpSegLen)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1 enable_flush
@@ -139,10 +139,10 @@ void pTcpLengthExtract(
     const char *myName = concat3(THIS_NAME, "/", "Tle");
 
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
-    static ap_uint<4>          tle_chunkCount=0;
-    #pragma HLS RESET variable=tle_chunkCount
-    static bool                tle_residue=false;
-    #pragma HLS RESET variable=tle_residue
+    static ap_uint<4>           tle_chunkCount=0;
+    #pragma HLS RESET  variable=tle_chunkCount
+    static bool                 tle_residue=false;
+    #pragma HLS RESET  variable=tle_residue
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static bool         tle_shift;   // Keeps track of the chunk alignment
@@ -154,6 +154,7 @@ void pTcpLengthExtract(
     //-- DYNAMIC VARIABLES -----------------------------------------------------
     AxisRaw             sendChunk;
 
+    //-- MAIN PROCESS
     if (!siIPRX_Data.empty() and !soIph_Data.full() and !tle_residue) {
         AxisIp4 currChunk = siIPRX_Data.read();
         switch (tle_chunkCount) {
@@ -1325,7 +1326,9 @@ void pFiniteStateMachine(
         stream<CmdBit>              &soTsd_DropCmd,
         stream<DmCmd>               &soMwr_WrCmd,
         stream<TcpAppNotif>         &soRan_RxNotif,
-        stream<ap_uint<8> >         &soMMIO_OooDropCnt)
+        stream<ap_uint<8> >         &soMMIO_OooDropCnt,
+        stream<RxBufPtr>            &soDBG_RxFreeSpace,
+        stream<ap_uint<32> >        &soDBG_TcpIpRxByteCnt)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1 enable_flush
@@ -1340,7 +1343,11 @@ void pFiniteStateMachine(
     static bool                  fsm_txSarRequest=false;
     #pragma HLS RESET   variable=fsm_txSarRequest
     static ap_uint<8 >           fsm_oooDropCounter=0;
-    #pragma HLS reset   variable=fsm_oooDropCounter
+    #pragma HLS RESET   variable=fsm_oooDropCounter
+    static RxBufPtr              fsm_freeSpace=0;
+    #pragma HLS RESET   variable=fsm_freeSpace
+    static ap_uint<32>           fsm_rxByteCounter;
+    #pragma HLS RESET   variable=fsm_rxByteCounter
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static RXeFsmMeta   fsm_Meta;
@@ -1475,8 +1482,10 @@ void pFiniteStateMachine(
 
 #if !(RX_DDR_BYPASS)
                     // Always, compute free space to ensure that 'appd' pointer is not overtaken
-                    RxBufPtr free_space = ((rxSar.appd - rxSar.oooHead(TOE_WINDOW_BITS-1, 0)) - 1);
+                    fsm_freeSpace = ((rxSar.appd - rxSar.oooHead(TOE_WINDOW_BITS-1, 0)) - 1);
+                    //OBSOLETE_20210913 RxBufPtr free_space = ((rxSar.appd - rxSar.oooHead(TOE_WINDOW_BITS-1, 0)) - 1);
                     //OBSOLETE_20180801 free_space = ((rxSar.appd - rxSar.rcvd(TOE_WINDOW_BITS-1, 0)) - 1);
+                    soDBG_RxFreeSpace.write(fsm_freeSpace);
 
                     //OBSOLETE-DEBUG printf(">>>[RXe] - rxSar.appd=0x%8x - rxSar.oooHead=0x%8x - cong_window=%6d - free_space=%6d - slowstart_threshold=%6d\n",
                     //OBSOLETE-DEBUG        rxSar.appd.to_uint(), rxSar.oooHead.to_uint(), txSar.cong_window.to_uint(), free_space.to_uint(), txSar.slowstart_threshold.to_uint());
@@ -1491,13 +1500,16 @@ void pFiniteStateMachine(
                         memSegAddr(29, TOE_WINDOW_BITS) = fsm_Meta.sessionId(13, 0);
                         memSegAddr(TOE_WINDOW_BITS-1, 0) = fsm_Meta.meta.seqNumb.range(TOE_WINDOW_BITS-1, 0);
 
+                        // Increment the Rx byte counter
+                        fsm_rxByteCounter += fsm_Meta.meta.length;
+
                         RxSeqNum    newRcvd    = 0;
                         RxSeqNum    newOooHead = 0;
                         RxSeqNum    newOooTail = 0;
 
                         //-- DEFAULT : No OOO and Rx segment is in expected sequence order
                         if (!rxSar.ooo and (fsm_Meta.meta.seqNumb == rxSar.rcvd) and
-                                           (free_space > fsm_Meta.meta.length)) {
+                                           (fsm_freeSpace > fsm_Meta.meta.length)) {
                             if (DEBUG_LEVEL & TRACE_FSM) { printInfo(myName, "OOO-DEFAULT : Rx segment is in-order.\n"); }
                             // Generate new received pointer
                             newRcvd = fsm_Meta.meta.seqNumb + fsm_Meta.meta.length;
@@ -1515,7 +1527,7 @@ void pFiniteStateMachine(
                         }
                         //-- START   : No OOO but Rx segment arrived out-of-order
                         else if (!rxSar.ooo and (fsm_Meta.meta.seqNumb > rxSar.rcvd) and
-                                                (free_space > (fsm_Meta.meta.seqNumb+fsm_Meta.meta.length-rxSar.oooHead(TOE_WINDOW_BITS-1, 0)))) {
+                                                (fsm_freeSpace > (fsm_Meta.meta.seqNumb+fsm_Meta.meta.length-rxSar.oooHead(TOE_WINDOW_BITS-1, 0)))) {
                             if (DEBUG_LEVEL & TRACE_FSM) { printInfo(myName, "OOO-START   : Rx segment is out-of-order.\n"); }
                             // Generate new oooHead and oooTail pointers
                             newOooHead = fsm_Meta.meta.seqNumb + fsm_Meta.meta.length;
@@ -1533,7 +1545,7 @@ void pFiniteStateMachine(
                         }
                         //-- CONTINUE: OOO exists and Rx segment is in-order with respect to 'oooHead' pointer
                         else if (rxSar.ooo and (fsm_Meta.meta.seqNumb == rxSar.oooHead) and
-                                               (free_space > fsm_Meta.meta.length)) {
+                                               (fsm_freeSpace > fsm_Meta.meta.length)) {
                             if (DEBUG_LEVEL & TRACE_FSM) { printInfo(myName, "OOO-CONTINUE: Rx segment is in-order with respect to 'oooHead'.\n"); }
                             // Generate new oooHead pointer
                             newOooHead = fsm_Meta.meta.seqNumb + fsm_Meta.meta.length;
@@ -1588,8 +1600,11 @@ void pFiniteStateMachine(
                         else {
                             soTsd_DropCmd.write(CMD_DROP);
                             fsm_oooDropCounter++;
-                            if ( (!rxSar.ooo and (fsm_Meta.meta.seqNumb == rxSar.rcvd) and (free_space <  fsm_Meta.meta.length)) or
-                                 (!rxSar.ooo and (fsm_Meta.meta.seqNumb >  rxSar.rcvd) and (free_space > (fsm_Meta.meta.seqNumb+fsm_Meta.meta.length-rxSar.oooHead(TOE_WINDOW_BITS-1, 0))))) {
+                            // Decrement the Rx byte counter
+                            fsm_rxByteCounter -= fsm_Meta.meta.length;
+
+                            if ( (!rxSar.ooo and (fsm_Meta.meta.seqNumb == rxSar.rcvd) and (fsm_freeSpace <  fsm_Meta.meta.length)) or
+                                 (!rxSar.ooo and (fsm_Meta.meta.seqNumb >  rxSar.rcvd) and (fsm_freeSpace > (fsm_Meta.meta.seqNumb+fsm_Meta.meta.length-rxSar.oooHead(TOE_WINDOW_BITS-1, 0))))) {
                                 printInfo(myName, "Dropping Rx segment - Not enough space left in the Rx ring buffer.\n");
                             }
                             else if (fsm_Meta.meta.seqNumb+fsm_Meta.meta.length == rxSar.rcvd) {
@@ -1648,8 +1663,7 @@ void pFiniteStateMachine(
                     }
                     soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, tcpState, QUERY_WR));
                 }
-
-            } // End of: if (fsmState == FSM_LOAD) {
+            } // End of: ACK processing
             break;
         case 2:
             //--------------------------------------
@@ -1861,12 +1875,18 @@ void pFiniteStateMachine(
         break;
     } // End of: switch state
 
-    //-- ALWAYS
+    //-- ALWAYS -------------------------------------------
     if (!soMMIO_OooDropCnt.full()) {
         soMMIO_OooDropCnt.write(fsm_oooDropCounter);
     }
     else {
         printFatal(myName, "Cannot write soMMIO_OooDropCnt stream...");
+    }
+    if (!soDBG_TcpIpRxByteCnt.full()) {
+        soDBG_TcpIpRxByteCnt.write(fsm_rxByteCounter);
+    }
+    else {
+        printFatal(myName, "Cannot write soDBG_TcpIpRxByteCnt stream...");
     }
 
 } // End of: pFiniteStateMachine(
@@ -1974,7 +1994,10 @@ void rx_engine(
         //--MMIO Interfaces
         stream<ap_uint<8> >             &soMMIO_CrcDropCnt,
         stream<ap_uint<8> >             &soMMIO_SessDropCnt,
-        stream<ap_uint<8> >             &soMMIO_OooDropCnt)
+        stream<ap_uint<8> >             &soMMIO_OooDropCnt,
+        //-- DEBUG Interfaces
+        stream<RxBufPtr>                &soDBG_RxFreeSpace,
+        stream<ap_uint<32> >            &soDBG_TcpIpRxByteCnt)
 {
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
     #pragma HLS DATAFLOW
@@ -2059,10 +2082,11 @@ void rx_engine(
     //-- PROCESS FUNCTIONS
     //-------------------------------------------------------------------------
 
-    pTcpLengthExtract(
+    pTcpLengthExtractor(
             siIPRX_Data,
             ssTleToIph_Data,
             ssTleToIph_TcpSegLen);
+
 
     pInsertPseudoHeader(
             ssTleToIph_Data,
@@ -2110,7 +2134,9 @@ void rx_engine(
             ssFsmToTsd_DropCmd,
             ssFsmToMwr_WrCmd,
             ssFsmToRan_Notif,
-            soMMIO_OooDropCnt);
+            soMMIO_OooDropCnt,
+            soDBG_RxFreeSpace,
+            soDBG_TcpIpRxByteCnt);
 
     pTcpSegmentDropper(
             ssTidToTsd_Data,

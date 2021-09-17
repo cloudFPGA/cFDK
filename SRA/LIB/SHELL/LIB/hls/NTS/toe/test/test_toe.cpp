@@ -2484,10 +2484,12 @@ void pTAIF(
         stream<CamSessionLookupReply>           &siCAM_SssLkpRep,
         stream<CamSessionUpdateRequest>         &soCAM_SssUpdReq,
         stream<CamSessionUpdateReply>           &siCAM_SssUpdRep,
-        //-- DEBUG / Interfaces
         //-- DEBUG / Session Statistics Interfaces
         stream<ap_uint<16> >                    &soDBG_SssRelCnt,
-        stream<ap_uint<16> >                    &soDBG_SssRegCnt
+        stream<ap_uint<16> >                    &soDBG_SssRegCnt,
+        //-- DEBUG / Internal Counters Interfaces
+        stream<RxBufPtr>                        &soDBG_RxFreeSpace,
+        stream<ap_uint<32> >                    &soDBG_TcpIpRxByteCnt
         #if TOE_FEATURE_USED_FOR_DEBUGGING
         //-- DEBUG / SimCycCounter
         ap_uint<32>                             &poSimCycCount
@@ -2553,7 +2555,10 @@ void pTAIF(
       siCAM_SssUpdRep,
       //-- DEBUG / Session Statistics Interfaces
       soDBG_SssRelCnt,
-      soDBG_SssRegCnt
+      soDBG_SssRegCnt,
+      //-- DEBUG / Internal Counter Interfaces
+      soDBG_RxFreeSpace,
+      soDBG_TcpIpRxByteCnt
       #if TOE_FEATURE_USED_FOR_DEBUGGING
       ,
       sTOE_TB_SimCycCnt
@@ -2649,7 +2654,8 @@ int main(int argc, char *argv[]) {
 
     stream<ap_uint<16> >            ssTOE_OpnSessCount   ("ssTOE_OpnSessCount");
     stream<ap_uint<16> >            ssTOE_ClsSessCount   ("ssTOE_ClsSessCount");
-
+    stream<RxBufPtr>                ssTOE_RxFreeSpace    ("ssTOE_RxFreeSpace");
+    stream<ap_uint<32> >            ssTOE_TcpIprxByteCnt ("ssTOE_TcpIprxByteCnt");
     //------------------------------------------------------
     //-- TB SIGNALS
     //------------------------------------------------------
@@ -2667,6 +2673,7 @@ int main(int argc, char *argv[]) {
 
     ap_uint<16>     nrOpenedSessions;
     ap_uint<16>     nrClosedSessions;
+    ap_uint<32>     nrTcpIprxBytes;
 
     DummyMemory     rxMemory;
     DummyMemory     txMemory;
@@ -2899,7 +2906,9 @@ int main(int argc, char *argv[]) {
             ssCAM_TOE_SssUpdRep,
             //-- DEBUG / Session Statistics Interfaces
             ssTOE_ClsSessCount,
-            ssTOE_OpnSessCount
+            ssTOE_OpnSessCount,
+            ssTOE_RxFreeSpace,
+            ssTOE_TcpIprxByteCnt
             #if TOE_FEATURE_USED_FOR_DEBUGGING
             ,
             sTOE_TB_SimCycCnt
@@ -2914,6 +2923,12 @@ int main(int argc, char *argv[]) {
         }
         if (!ssTOE_OpnSessCount.empty()) {
             nrOpenedSessions = ssTOE_OpnSessCount.read();
+        }
+        if (!ssTOE_RxFreeSpace.empty()) {
+            nrOpenedSessions = ssTOE_RxFreeSpace.read();
+        }
+        if (!ssTOE_TcpIprxByteCnt.empty()) {
+            nrTcpIprxBytes = ssTOE_TcpIprxByteCnt.read();
         }
 
         //------------------------------------------------------
@@ -3085,6 +3100,14 @@ int main(int argc, char *argv[]) {
     printInfo(THIS_NAME, "Number of TCP Bytes   from TOE-to-IPTX : %6d \n", tcpBytCntr_TOE_IPTX);
 
     printf("\n");
+    //---------------------------------------------------------------
+    //-- COMPARE TOE's EMBEDDED COUNTERS WITH TESTBENCH COUNTERS
+    //---------------------------------------------------------------
+    if (tcpBytCntr_IPRX_TOE != nrTcpIprxBytes.to_uint()) {
+        printError(THIS_NAME, "The number of TCP bytes received by TOE on its IP interface (%d) does not match the internal TCP bytes counter of TOE (%d). \n", tcpBytCntr_IPRX_TOE, nrTcpIprxBytes.to_uint());
+        nrErr++;
+    }
+
     //---------------------------------------------------------------
     //-- COMPARE THE RESULTS FILES WITH GOLDEN FILES
     //---------------------------------------------------------------
