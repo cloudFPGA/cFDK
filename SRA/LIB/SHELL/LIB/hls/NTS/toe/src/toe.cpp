@@ -872,9 +872,11 @@ void toe(
         stream<ap_uint<16> >                &soDBG_SssRelCnt,
         stream<ap_uint<16> >                &soDBG_SssRegCnt,
         stream<RxBufPtr>                    &soDBG_RxFreeSpace,
-        stream<ap_uint<32> >                &soDBG_TcpIpRxByteCnt
+        stream<ap_uint<32> >                &soDBG_TcpIpRxByteCnt,
+		stream<ap_uint< 8> >                &soDBG_OooDebug
         #if TOE_FEATURE_USED_FOR_DEBUGGING
-        ap_uint<32>                         &poSimCycCount
+        ,
+		ap_uint<32>                         &poSimCycCount
         #endif
     )
 {
@@ -1019,7 +1021,8 @@ void toe(
         soDBG_SssRelCnt,
         soDBG_SssRegCnt,
         soDBG_RxFreeSpace,
-        soDBG_TcpIpRxByteCnt
+        soDBG_TcpIpRxByteCnt,
+		soDBG_OooDebug
         #if TOE_FEATURE_USED_FOR_DEBUGGING
         poSimCycCount
         #endif
