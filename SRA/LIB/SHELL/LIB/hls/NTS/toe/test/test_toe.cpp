@@ -2484,6 +2484,7 @@ void pTAIF(
         stream<CamSessionLookupReply>           &siCAM_SssLkpRep,
         stream<CamSessionUpdateRequest>         &soCAM_SssUpdReq,
         stream<CamSessionUpdateReply>           &siCAM_SssUpdRep,
+        //-- DEBUG / Interfaces
         //-- DEBUG / Session Statistics Interfaces
         stream<ap_uint<16> >                    &soDBG_SssRelCnt,
         stream<ap_uint<16> >                    &soDBG_SssRegCnt,
