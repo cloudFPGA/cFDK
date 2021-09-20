@@ -65,7 +65,7 @@ using namespace hls;
 #define TRACE_RAN 1 << 10
 #define TRACE_ALL  0xFFFF
 
-#define DEBUG_LEVEL (TRACE_OFF)
+#define DEBUG_LEVEL (TRACE_FSM)
 
 
 /*******************************************************************************
@@ -1328,7 +1328,8 @@ void pFiniteStateMachine(
         stream<TcpAppNotif>         &soRan_RxNotif,
         stream<ap_uint<8> >         &soMMIO_OooDropCnt,
         stream<RxBufPtr>            &soDBG_RxFreeSpace,
-        stream<ap_uint<32> >        &soDBG_TcpIpRxByteCnt)
+        stream<ap_uint<32> >        &soDBG_TcpIpRxByteCnt,
+        stream<ap_uint<8> >         &soDBG_OooDebug)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1 enable_flush
@@ -1348,6 +1349,8 @@ void pFiniteStateMachine(
     #pragma HLS RESET   variable=fsm_freeSpace
     static ap_uint<32>           fsm_rxByteCounter;
     #pragma HLS RESET   variable=fsm_rxByteCounter
+    static ap_uint<8 >           fsm_oooDebugState=0;
+    #pragma HLS RESET   variable=fsm_oooDebugState
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static RXeFsmMeta   fsm_Meta;
@@ -1480,7 +1483,6 @@ void pFiniteStateMachine(
                     }
 *** OBSOLETE_20200108 *********************************/
 
-#if !(RX_DDR_BYPASS)
                     // Always, compute free space to ensure that 'appd' pointer is not overtaken
                     fsm_freeSpace = ((rxSar.appd - rxSar.oooHead(TOE_WINDOW_BITS-1, 0)) - 1);
                     //OBSOLETE_20210913 RxBufPtr free_space = ((rxSar.appd - rxSar.oooHead(TOE_WINDOW_BITS-1, 0)) - 1);
@@ -1507,6 +1509,8 @@ void pFiniteStateMachine(
                         RxSeqNum    newOooHead = 0;
                         RxSeqNum    newOooTail = 0;
 
+                        fsm_oooDebugState = 0;
+
                         //-- DEFAULT : No OOO and Rx segment is in expected sequence order
                         if (!rxSar.ooo and (fsm_Meta.meta.seqNumb == rxSar.rcvd) and
                                            (fsm_freeSpace > fsm_Meta.meta.length)) {
@@ -1524,6 +1528,7 @@ void pFiniteStateMachine(
                                                             fsm_Meta.tcpDstPort));
                             // Send keep command
                             soTsd_DropCmd.write(CMD_KEEP);
+                            fsm_oooDebugState = 1;
                         }
                         //-- START   : No OOO but Rx segment arrived out-of-order
                         else if (!rxSar.ooo and (fsm_Meta.meta.seqNumb > rxSar.rcvd) and
@@ -1542,6 +1547,7 @@ void pFiniteStateMachine(
                                                             fsm_Meta.tcpDstPort));
                             // Send keep command
                             soTsd_DropCmd.write(CMD_KEEP);
+                            fsm_oooDebugState = 2;
                         }
                         //-- CONTINUE: OOO exists and Rx segment is in-order with respect to 'oooHead' pointer
                         else if (rxSar.ooo and (fsm_Meta.meta.seqNumb == rxSar.oooHead) and
@@ -1559,7 +1565,7 @@ void pFiniteStateMachine(
                                                             fsm_Meta.tcpDstPort));
                             // Send keep command
                             soTsd_DropCmd.write(CMD_KEEP);
-
+                            fsm_oooDebugState = 3;
                         }
                         //-- CONTINUE: OOO exists, Rx segment is in-order with respect to 'rcvd' pointer but it does not fill the gap
                         else if (rxSar.ooo and (fsm_Meta.meta.seqNumb == rxSar.rcvd) and
@@ -1577,6 +1583,7 @@ void pFiniteStateMachine(
                                                             fsm_Meta.tcpDstPort));
                             // Send keep command
                             soTsd_DropCmd.write(CMD_KEEP);
+                            fsm_oooDebugState = 4;
                         }
                         //-- END       : OOO exists, Rx segment is in-order with respect to 'rcvd' pointer and it fills the gap
                         else if (rxSar.ooo and (fsm_Meta.meta.seqNumb == rxSar.rcvd) and
@@ -1595,29 +1602,34 @@ void pFiniteStateMachine(
                                                             fsm_Meta.tcpDstPort));
                             // Send keep command
                             soTsd_DropCmd.write(CMD_KEEP);
+                            fsm_oooDebugState = 5;
                         }
                         //-- OOO-DROP  : Always drop segment in all other cases
                         else {
                             soTsd_DropCmd.write(CMD_DROP);
                             fsm_oooDropCounter++;
-                            // Decrement the Rx byte counter
-                            fsm_rxByteCounter -= fsm_Meta.meta.length;
 
-                            if ( (!rxSar.ooo and (fsm_Meta.meta.seqNumb == rxSar.rcvd) and (fsm_freeSpace <  fsm_Meta.meta.length)) or
+                            if ( (fsm_Meta.meta.seqNumb < rxSar.rcvd)) {
+                                printInfo(myName, "OOO-Dropping Rx segment (Frame is a retransmission because of a lost or delayed ACK). \n");
+                                fsm_oooDebugState = 6;
+                            }
+                            else if ( (!rxSar.ooo and (fsm_Meta.meta.seqNumb == rxSar.rcvd) and (fsm_freeSpace <  fsm_Meta.meta.length)) or
                                  (!rxSar.ooo and (fsm_Meta.meta.seqNumb >  rxSar.rcvd) and (fsm_freeSpace > (fsm_Meta.meta.seqNumb+fsm_Meta.meta.length-rxSar.oooHead(TOE_WINDOW_BITS-1, 0))))) {
-                                printInfo(myName, "Dropping Rx segment - Not enough space left in the Rx ring buffer.\n");
+                                printInfo(myName, "OOO-Dropping Rx segment (Not enough space left in the Rx ring buffer).\n");
+                                fsm_oooDebugState = 7;
                             }
                             else if (fsm_Meta.meta.seqNumb+fsm_Meta.meta.length == rxSar.rcvd) {
-                                printInfo(myName, "Dropping Rx segment - Segment is a duplicate.\n");
+                                printInfo(myName, "OOO-Dropping Rx segment (Segment is a duplicate).\n");
+                                fsm_oooDebugState = 8;
                             }
                             else {
-                                printFatal(myName, "Dropping Rx segment - Reason is unknown.\n");
+                                printFatal(myName, "OOO-Dropping Rx segment (Reason is unknown).\n");
+                                fsm_oooDebugState = 99;
                             }
                         }
                     }
-#endif
 
-
+                   //-- Generate ACK Event -------------------------------------
 # if FAST_RETRANSMIT
                     if (txSar.count == 3 && !txSar.fastRetransmitted) {  // [FIXME - Use a constant here]
                         soEVe_Event.write(event(RT, fsm_Meta.sessionId));
@@ -1626,9 +1638,20 @@ void pFiniteStateMachine(
 #else
                     if (fsm_Meta.meta.length != 0) {
 #endif
-                        soEVe_Event.write(Event(ACK_EVENT, fsm_Meta.sessionId));
+                        if (!rxSar.ooo and (fsm_Meta.meta.seqNumb == rxSar.rcvd) and
+                                           (fsm_freeSpace > fsm_Meta.meta.length)) {
+                            // No OOO and Rx segment is in expected sequence order
+                            soEVe_Event.write(Event(ACK_EVENT, fsm_Meta.sessionId));
+                        }
+                        // OBSOLETE else if (fsm_Meta.meta.seqNumb <= rxSar.rcvd) {
+                        else {
+                            // TCP retransmission frame
+                            soEVe_Event.write(Event(ACK_NODELAY_EVENT, fsm_Meta.sessionId));
+                            fsm_oooDebugState += 100;
+                        }
                     }
-                    // Reset Retransmit Timer
+
+                    //-- Reset Retransmit Timer --------------------------------
                     if (fsm_Meta.meta.ackNumb == txSar.prevUnak) {
                         switch (tcpState) {
                         case SYN_RECEIVED:
@@ -1659,7 +1682,6 @@ void pFiniteStateMachine(
                     // if data is in the pipe it needs to be droppped
                     if (fsm_Meta.meta.length != 0) {
                         soTsd_DropCmd.write(CMD_DROP);
-                        fsm_oooDropCounter++;
                     }
                     soSTt_StateQry.write(StateQuery(fsm_Meta.sessionId, tcpState, QUERY_WR));
                 }
@@ -1813,7 +1835,6 @@ void pFiniteStateMachine(
                     // If there is payload we need to drop it
                     if (fsm_Meta.meta.length != 0) {
                         soTsd_DropCmd.write(CMD_DROP);
-                        fsm_oooDropCounter++;
                     }
                 }
             }
@@ -1888,6 +1909,12 @@ void pFiniteStateMachine(
     else {
         printFatal(myName, "Cannot write soDBG_TcpIpRxByteCnt stream...");
     }
+    if (!soDBG_OooDebug.full()) {
+        soDBG_OooDebug.write(fsm_oooDebugState);
+     }
+     else {
+         printFatal(myName, "Cannot write soDBG_OooDebug stream...");
+     }
 
 } // End of: pFiniteStateMachine(
 
@@ -1997,7 +2024,8 @@ void rx_engine(
         stream<ap_uint<8> >             &soMMIO_OooDropCnt,
         //-- DEBUG Interfaces
         stream<RxBufPtr>                &soDBG_RxFreeSpace,
-        stream<ap_uint<32> >            &soDBG_TcpIpRxByteCnt)
+        stream<ap_uint<32> >            &soDBG_TcpIpRxByteCnt,
+        stream<ap_uint<8> >             &soDBG_OooDebug)
 {
     //-- DIRECTIVES FOR THE INTERFACES ----------------------------------------
     #pragma HLS DATAFLOW
@@ -2136,7 +2164,8 @@ void rx_engine(
             ssFsmToRan_Notif,
             soMMIO_OooDropCnt,
             soDBG_RxFreeSpace,
-            soDBG_TcpIpRxByteCnt);
+            soDBG_TcpIpRxByteCnt,
+            soDBG_OooDebug);
 
     pTcpSegmentDropper(
             ssTidToTsd_Data,

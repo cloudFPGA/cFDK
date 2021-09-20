@@ -2489,7 +2489,8 @@ void pTAIF(
         stream<ap_uint<16> >                    &soDBG_SssRegCnt,
         //-- DEBUG / Internal Counters Interfaces
         stream<RxBufPtr>                        &soDBG_RxFreeSpace,
-        stream<ap_uint<32> >                    &soDBG_TcpIpRxByteCnt
+        stream<ap_uint<32> >                    &soDBG_TcpIpRxByteCnt,
+        stream<ap_uint< 8> >                    &soDBG_OooDebug
         #if TOE_FEATURE_USED_FOR_DEBUGGING
         //-- DEBUG / SimCycCounter
         ap_uint<32>                             &poSimCycCount
@@ -2558,7 +2559,8 @@ void pTAIF(
       soDBG_SssRegCnt,
       //-- DEBUG / Internal Counter Interfaces
       soDBG_RxFreeSpace,
-      soDBG_TcpIpRxByteCnt
+      soDBG_TcpIpRxByteCnt,
+      soDBG_OooDebug
       #if TOE_FEATURE_USED_FOR_DEBUGGING
       ,
       sTOE_TB_SimCycCnt
@@ -2656,6 +2658,7 @@ int main(int argc, char *argv[]) {
     stream<ap_uint<16> >            ssTOE_ClsSessCount   ("ssTOE_ClsSessCount");
     stream<RxBufPtr>                ssTOE_RxFreeSpace    ("ssTOE_RxFreeSpace");
     stream<ap_uint<32> >            ssTOE_TcpIprxByteCnt ("ssTOE_TcpIprxByteCnt");
+    stream<ap_uint< 8> >            ssTOE_OooDebugState  ("ssTOE_OooDebugState");
     //------------------------------------------------------
     //-- TB SIGNALS
     //------------------------------------------------------
@@ -2908,7 +2911,8 @@ int main(int argc, char *argv[]) {
             ssTOE_ClsSessCount,
             ssTOE_OpnSessCount,
             ssTOE_RxFreeSpace,
-            ssTOE_TcpIprxByteCnt
+            ssTOE_TcpIprxByteCnt,
+            ssTOE_OooDebugState
             #if TOE_FEATURE_USED_FOR_DEBUGGING
             ,
             sTOE_TB_SimCycCnt
@@ -2929,6 +2933,9 @@ int main(int argc, char *argv[]) {
         }
         if (!ssTOE_TcpIprxByteCnt.empty()) {
             nrTcpIprxBytes = ssTOE_TcpIprxByteCnt.read();
+        }
+        if (!ssTOE_OooDebugState.empty()) {
+            ssTOE_OooDebugState.read();
         }
 
         //------------------------------------------------------

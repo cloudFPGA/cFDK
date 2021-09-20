@@ -306,7 +306,8 @@ void toe(
         stream<ap_uint<16> >                &soDBG_SssRelCnt,
         stream<ap_uint<16> >                &soDBG_SssRegCnt,
         stream<RxBufPtr>                    &soDBG_RxFreeSpace,
-        stream<ap_uint<32> >                &soDBG_TcpIpRxByteCnt
+        stream<ap_uint<32> >                &soDBG_TcpIpRxByteCnt,
+        stream<ap_uint< 8> >                &soDBG_OooDebug
         #if TOE_FEATURE_USED_FOR_DEBUGGING
         ap_uint<32>                         &poSimCycCount
         #endif
@@ -656,7 +657,8 @@ void toe(
             soMMIO_SessDropCnt,
             soMMIO_OooDropCnt,
             soDBG_RxFreeSpace,
-            soDBG_TcpIpRxByteCnt);
+            soDBG_TcpIpRxByteCnt,
+            soDBG_OooDebug);
 
     //-- TX Engine (TXe) --------------------------------------------------
     tx_engine(
@@ -1107,7 +1109,8 @@ void toe(
         stream<ap_uint<16> >                &soDBG_SssRelCnt,
         stream<ap_uint<16> >                &soDBG_SssRegCnt,
         stream<RxBufPtr>                    &soDBG_RxFreeSpace,
-        stream<ap_uint<32> >                &soDBG_TcpIpRxByteCnt
+        stream<ap_uint<32> >                &soDBG_TcpIpRxByteCnt,
+        stream<ap_uint< 8> >                &soDBG_OooDebug
         #if TOE_FEATURE_USED_FOR_DEBUGGING
         ap_uint<32>                         &poSimCycCount
         #endif
@@ -1186,6 +1189,7 @@ void toe(
     //-- DEBUG / Session Statistics Interfaces
     #pragma HLS INTERFACE axis register both    port=soDBG_RxFreeSpace    name=soDBG_RxFreeSpace
     #pragma HLS INTERFACE axis register both    port=soDBG_TcpIpRxByteCnt name=soDBG_TcpIpRxByteCnt
+    #pragma HLS INTERFACE axis register both    port=soDBG_OooDebug       name=soDBG_OooDebug
     //-- DEBUG / Simulation Counter Interfaces
   #if TOE_FEATURE_USED_FOR_DEBUGGING
     #pragma HLS INTERFACE ap_ovld register   port=poSimCycCount   name=poSimCycCount
@@ -1258,7 +1262,8 @@ void toe(
         soDBG_SssRelCnt,
         soDBG_SssRegCnt,
         soDBG_RxFreeSpace,
-        soDBG_TcpIpRxByteCnt
+        soDBG_TcpIpRxByteCnt,
+        soDBG_OooDebug
         #if TOE_FEATURE_USED_FOR_DEBUGGING
         poSimCycCount
         #endif

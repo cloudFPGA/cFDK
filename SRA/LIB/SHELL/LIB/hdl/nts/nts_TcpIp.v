@@ -524,6 +524,7 @@ module NetworkTransportStack_TcpIp (
   //------------------------------------------------------------------ 
   (* keep = "true" *) wire  [15: 0] sTOE_RxFreeSpace;
   (* keep = "true" *) wire  [31: 0] sTOE_TcpIpRxByteCnt;
+  (* keep = "true" *) wire  [ 7: 0] sTOE_OooDebugState;
   
   //-- End of signal declarations ----------------------------------------------
  
@@ -984,7 +985,11 @@ module NetworkTransportStack_TcpIp (
     //--
     .soDBG_TcpIpRxByteCnt_TDATA (sTOE_TcpIpRxByteCnt),
     .soDBG_TcpIpRxByteCnt_TVALID(),
-    .soDBG_TcpIpRxByteCnt_TREADY(sHIGH_1b1)
+    .soDBG_TcpIpRxByteCnt_TREADY(sHIGH_1b1),
+    //--
+    .soDBG_OooDebug_TDATA (sTOE_OooDebugState),
+    .soDBG_OooDebug_TVALID(),
+    .soDBG_OooDebug_TREADY(sHIGH_1b1),
     // .poSimCycCount_V        ()
   );  // End of TOE
   `else
@@ -1015,6 +1020,7 @@ module NetworkTransportStack_TcpIp (
     .soMMIO_SessDropCnt_V_V_TDATA   (poMMIO_TcpRxSessDropCnt),
     .soMMIO_SessDropCnt_V_V_TVALID  (),
     .soMMIO_SessDropCnt_V_V_TREADY  (sHIGH_1b1),
+    //-- Out-Of-Order Drop Counter
     //-- Out-Of-Order Drop Counter
     .soMMIO_OooDropCnt_V_V_TDATA    (poMMIO_TcpRxOooDropCnt),
     .soMMIO_OooDropCnt_V_V_TVALID   (),
@@ -1204,7 +1210,11 @@ module NetworkTransportStack_TcpIp (
     //--
     .soDBG_TcpIpRxByteCnt_V_V_TDATA (sTOE_TcpIpRxByteCnt),
     .soDBG_TcpIpRxByteCnt_V_V_TVALID(),
-    .soDBG_TcpIpRxByteCnt_V_V_TREADY(sHIGH_1b1)
+    .soDBG_TcpIpRxByteCnt_V_V_TREADY(sHIGH_1b1),
+    //--
+    .soDBG_OooDebug_V_V_TDATA (sTOE_OooDebugState),
+    .soDBG_OooDebug_V_V_TVALID(),
+    .soDBG_OooDebug_V_V_TREADY(sHIGH_1b1)
     // NOT-USED .poSimCycCount_V ()
   );  // End of TOE 
   `endif  // End of HLS_VERSION

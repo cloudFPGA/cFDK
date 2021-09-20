@@ -134,7 +134,8 @@ void rx_engine(
         stream<ap_uint<8> >             &soMMIO_OooDropCnt,
         //-- DEBUG Interfaces
         stream<RxBufPtr>                &soDBG_RxFreeSpace,
-        stream<ap_uint<32> >            &soDBG_TcpIpRxByteCnt
+        stream<ap_uint<32> >            &soDBG_TcpIpRxByteCnt,
+        stream<ap_uint<8> >             &soDBG_oooDebug
 );
 
 #endif
