@@ -954,7 +954,7 @@ void toe(
     #pragma HLS RESOURCE core=AXI4Stream variable=soDBG_SssRelCnt metadata="-bus_bundle soDBG_SssRelCnt"
     #pragma HLS RESOURCE core=AXI4Stream variable=soDBG_SssRegCnt metadata="-bus_bundle soDBG_SssRegCnt"
     //-- DEBUG / Internal Counters
-    #pragma HLS RESOURCE core=AXI4Stream variable=soDBG_RxFreeSpace    metedata="-bus_bundle soDBG_RxFreeSpace"
+    #pragma HLS RESOURCE core=AXI4Stream variable=soDBG_RxFreeSpace    metadata="-bus_bundle soDBG_RxFreeSpace"
     #pragma HLS RESOURCE core=AXI4Stream variable=soDBG_TcpIpRxByteCnt metadata="-bus_bundle soDBG_TcpIpRxByteCnt"
     //-- DEBUG / Simulation Counter Interfaces
    #if TOE_FEATURE_USED_FOR_DEBUGGING
