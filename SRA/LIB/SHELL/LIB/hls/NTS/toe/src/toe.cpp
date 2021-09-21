@@ -950,12 +950,12 @@ void toe(
     #pragma HLS DATA_PACK                variable=soCAM_SssLkpReq
     #pragma HLS RESOURCE core=AXI4Stream variable=soCAM_SssUpdReq metadata="-bus_bundle soCAM_SssUpdReq"
     #pragma HLS DATA_PACK                variable=soCAM_SssUpdReq
-    //-- DEBUG / Session Statistics Interfaces
-    #pragma HLS RESOURCE core=AXI4Stream variable=soDBG_SssRelCnt metadata="-bus_bundle soDBG_SssRelCnt"
-    #pragma HLS RESOURCE core=AXI4Stream variable=soDBG_SssRegCnt metadata="-bus_bundle soDBG_SssRegCnt"
-    //-- DEBUG / Internal Counters
+    //-- DEBUG Interfaces
+    #pragma HLS RESOURCE core=AXI4Stream variable=soDBG_SssRelCnt      metadata="-bus_bundle soDBG_SssRelCnt"
+    #pragma HLS RESOURCE core=AXI4Stream variable=soDBG_SssRegCnt      metadata="-bus_bundle soDBG_SssRegCnt"
     #pragma HLS RESOURCE core=AXI4Stream variable=soDBG_RxFreeSpace    metadata="-bus_bundle soDBG_RxFreeSpace"
     #pragma HLS RESOURCE core=AXI4Stream variable=soDBG_TcpIpRxByteCnt metadata="-bus_bundle soDBG_TcpIpRxByteCnt"
+    #pragma HLS RESOURCE core=AXI4Stream variable=soDBG_OooDebug       metadata="-bus_bundle soDBG_OooDebug"
     //-- DEBUG / Simulation Counter Interfaces
    #if TOE_FEATURE_USED_FOR_DEBUGGING
     #pragma HLS INTERFACE ap_none register port=poSimCycCount
@@ -1186,10 +1186,9 @@ void toe(
     #pragma HLS DATA_PACK                   variable=soCAM_SssUpdReq
     #pragma HLS INTERFACE axis off              port=siCAM_SssUpdRep name=siCAM_SssUpdRep
     #pragma HLS DATA_PACK                   variable=siCAM_SssUpdRep
-    //-- DEBUG / Session Statistics Interfaces
-    #pragma HLS INTERFACE axis register both    port=soDBG_SssRelCnt   name=soDBG_SssRelCnt
-    #pragma HLS INTERFACE axis register both    port=soDBG_SssRegCnt   name=soDBG_SssRegCnt
-    //-- DEBUG / Session Statistics Interfaces
+    //-- DEBUG Interfaces
+    #pragma HLS INTERFACE axis register both    port=soDBG_SssRelCnt      name=soDBG_SssRelCnt
+    #pragma HLS INTERFACE axis register both    port=soDBG_SssRegCnt      name=soDBG_SssRegCnt
     #pragma HLS INTERFACE axis register both    port=soDBG_RxFreeSpace    name=soDBG_RxFreeSpace
     #pragma HLS INTERFACE axis register both    port=soDBG_TcpIpRxByteCnt name=soDBG_TcpIpRxByteCnt
     #pragma HLS INTERFACE axis register both    port=soDBG_OooDebug       name=soDBG_OooDebug
