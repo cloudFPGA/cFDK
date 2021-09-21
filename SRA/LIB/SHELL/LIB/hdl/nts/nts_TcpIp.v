@@ -989,7 +989,7 @@ module NetworkTransportStack_TcpIp (
     //--
     .soDBG_OooDebug_TDATA (sTOE_OooDebugState),
     .soDBG_OooDebug_TVALID(),
-    .soDBG_OooDebug_TREADY(sHIGH_1b1),
+    .soDBG_OooDebug_TREADY(sHIGH_1b1)
     // .poSimCycCount_V        ()
   );  // End of TOE
   `else
