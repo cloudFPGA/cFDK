@@ -271,6 +271,7 @@ module NetworkTransportStack_TcpIp (
   input  [ 31:0] piMMIO_GatewayAddr,
   output         poMMIO_CamReady,
   output         poMMIO_NtsReady,
+  output         poMMIO_Mc0RxWrErr,
   output [  7:0] poMMIO_TcpRxNotifDropCnt,
   output [  7:0] poMMIO_TcpRxMetaDropCnt,
   output [  7:0] poMMIO_TcpRxDataDropCnt,
@@ -778,6 +779,10 @@ module NetworkTransportStack_TcpIp (
     //-- MMIO Interfaces
     //------------------------------------------------------    
     .piMMIO_IpAddr_V            (piMMIO_Ip4Address),
+    //-- Memory Channel #0 Read and Write Errors
+    .soMMIO_RxMemWrErr_TDATA    (poMMIO_Mc0RxWrErr),
+    .soMMIO_RxMemWrErr_TVALID   (),
+    .soMMIO_RxMemWrErr_TREADY   (sHIGH_1b1), 
     //-- Notification Drop Counter
     .soMMIO_NotifDropCnt_TDATA  (ssTOE_ARS10_NotifDropCnt_tdata),
     .soMMIO_NotifDropCnt_TVALID (ssTOE_ARS10_NotifDropCnt_tvalid),
@@ -999,7 +1004,11 @@ module NetworkTransportStack_TcpIp (
     //------------------------------------------------------
     //-- MMIO Interfaces
     //------------------------------------------------------    
-    .piMMIO_IpAddr_V                (piMMIO_Ip4Address),       
+    .piMMIO_IpAddr_V                (piMMIO_Ip4Address),
+        //-- Memory Channel #0 Read and Write Errors
+    .soMMIO_RxMemWrErr_V_V_TDATA    (poMMIO_Mc0RxWrErr),
+    .soMMIO_RxMemWrErr_V_V_TVALID   (),
+    .soMMIO_RxMemWrErr_V_V_TREADY   (sHIGH_1b1),    
     //-- Notification Drop Counter                               
     .soMMIO_NotifDropCnt_V_V_TDATA  (ssTOE_ARS10_NotifDropCnt_tdata),
     .soMMIO_NotifDropCnt_V_V_TVALID (ssTOE_ARS10_NotifDropCnt_tvalid),

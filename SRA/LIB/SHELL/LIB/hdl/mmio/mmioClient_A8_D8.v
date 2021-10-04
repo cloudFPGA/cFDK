@@ -98,6 +98,7 @@ module MmioClient_A8_D8 #(
   //----------------------------------------------
   input           piNTS0_CamReady,
   input           piNTS0_NtsReady,
+  input           piNTS0_Mc0RxWrErr,
   input   [15:0]  piNTS0_UdpRxDataDropCnt,
   input   [ 7:0]  piNTS0_TcpRxNotifDropCnt,
   input   [ 7:0]  piNTS0_TcpRxMetaDropCnt,
@@ -726,7 +727,7 @@ module MmioClient_A8_D8 #(
   endgenerate
   ////---- DIAG_STAT_1 -------------------
   assign sStatusVec[cEDW*DIAG_STAT_1+0] = 1'b0;                      // RO
-  assign sStatusVec[cEDW*DIAG_STAT_1+1] = 1'b0;                      // RO
+  assign sStatusVec[cEDW*DIAG_STAT_1+1] = piNTS0_Mc0RxWrErr;         // RO                      // RO
   assign sStatusVec[cEDW*DIAG_STAT_1+2] = 1'b0;                      // RO
   assign sStatusVec[cEDW*DIAG_STAT_1+3] = 1'b0;                      // RO
   assign sStatusVec[cEDW*DIAG_STAT_1+4] = 1'b0;                      // RO

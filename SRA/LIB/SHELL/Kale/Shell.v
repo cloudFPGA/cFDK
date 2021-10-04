@@ -618,7 +618,9 @@ module Shell_Kale # (
   //------ [DIAG_CTRL_1] ---------------
   wire          sMMIO_ETH0_PcsLoopbackEn;
   wire          sMMIO_ETH0_MacLoopbackEn;
-  wire          sMMIO_ETH0_MacAddrSwapEn;  
+  wire          sMMIO_ETH0_MacAddrSwapEn;
+  //------ [DIAG_STAT_1] ---------------
+  wire          sNTS0_MMIO_Mc0RxWrErr;
   //------ [DIAG_CTRL_2] ---------------
   //------ [DIAG_URDDC] ----------------
   wire  [15:0]  sNTS0_MMIO_UdpRxDataDropCnt;
@@ -685,6 +687,10 @@ module Shell_Kale # (
     //----------------------------------------------
     .piNTS0_CamReady                (sNTS0_MMIO_CamReady),
     .piNTS0_NtsReady                (sNTS0_MMIO_NtsReady),
+    //.piNTS0_Mc0RxRdErr              (sNTS0_MMIO_Mc0RxRdErr),  // [FIXME]
+    .piNTS0_Mc0RxWrErr              (sNTS0_MMIO_Mc0RxWrErr),
+    //.piNTS0_Mc0TxRdErr              (sNTS0_MMIO_Mc0TxRdErr),  // [FIXME]
+    //.piNTS0_Mc0TxWrErr              (sNTS0_MMIO_Mc0TxWrErr),  // [FIXME]
     .piNTS0_UdpRxDataDropCnt        (sNTS0_MMIO_UdpRxDataDropCnt),
     .piNTS0_TcpRxNotifDropCnt       (sNTS0_MMIO_TcpRxNotifDropCnt),
     .piNTS0_TcpRxMetaDropCnt        (sNTS0_MMIO_TcpRxMetaDropCnt),
@@ -1158,6 +1164,7 @@ module Shell_Kale # (
     //--
     .poMMIO_CamReady                  (sNTS0_MMIO_CamReady),      // [TODO-Merge this signal with NtsReady]
     .poMMIO_NtsReady                  (sNTS0_MMIO_NtsReady),
+    .poMMIO_Mc0RxWrErr                (sNTS0_MMIO_Mc0RxWrErr),
     .poMMIO_TcpRxNotifDropCnt         (sNTS0_MMIO_TcpRxNotifDropCnt),
     .poMMIO_TcpRxMetaDropCnt          (sNTS0_MMIO_TcpRxMetaDropCnt),
     .poMMIO_TcpRxDataDropCnt          (sNTS0_MMIO_TcpRxDataDropCnt),
