@@ -81,6 +81,8 @@ using namespace hls;
 #define STS_KO      0
 #define STS_OPENED  1
 #define STS_CLOSED  0
+#define STS_ERROR   1
+#define STS_NO_ERR  0
 
 #define ACK_ON      1
 #define NO_ACK      0
@@ -105,6 +107,7 @@ using namespace hls;
 //========================================================
 typedef ap_uint<1> AckBit;  // Acknowledge: Always has to go back to the source of the stimulus (e.g. OpenReq/OpenAck).
 typedef ap_uint<1> CmdBit;  // Command    : A verb indicating an order (e.g. DropCmd). Does not expect a return from recipient.
+typedef ap_uint<1> ErrBit;  // Error      : Noun or verb indicating an error (e.g. writeError). Does not expect a return from recipient.
 typedef ap_uint<1> FlagBit; // Flag       : Noon or a verb indicating a toggling state (e.g. on/off). Does not expect a return from recipient.
 typedef ap_uint<1> RdWrBit; // Access mode: Read(0) or Write(1)
 typedef ap_uint<1> ReqBit;  // Request    : Verb indicating a demand. Always expects a reply or an acknowledgment (e.g. GetReq/GetRep).
