@@ -30,6 +30,7 @@
 #ifndef _TEST_RX_ENGINE_H_
 #define _TEST_RX_ENGINE_H_
 
+#include <ap_shift_reg.h>
 #include <cstdio>
 #include <iostream>
 #include <fstream>
