@@ -223,7 +223,7 @@ void ack_delay(
             // Forward event to TxEngine
             assessSize(myName, soTXe_Event, "soTXe_Event", cDepth_AKdToTXe_Event);
             soTXe_Event.write(ev);
-            // Tell the EventEngine that we just forwarded an mone-ACK event to TXe
+            // Tell the EventEngine that we just forwarded an none-ACK event to TXe
             assessSize(myName, soEVe_TxEventSig, "soEVe_TxEventSig", cDepth_AKdToEVe_Event);
             soEVe_TxEventSig.write(1);
             // Debug trace

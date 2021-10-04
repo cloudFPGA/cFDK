@@ -86,8 +86,13 @@ class RXeFsmMeta {
 /*******************************************************************************
  * CONSTANTS FOR THE INTERNAL STREAM DEPTHS
  *******************************************************************************/
+const int cDepth_FsmToEve_Event    =  4;
 const int cDepth_FsmToMwr_WrCmd    = 16;
 const int cDepth_FsmToRan_Notif    = 16;  // This depends on the memory delay
+const int cDepth_FsmToTsd_DropCmd  = 16;
+
+const int cDepth_MdhToEvm_Event    =  4;
+const int cDepth_MdhToTsd_DropCmd  = 16;
 
 const int cDepth_MwrToRan_SplitSeg = 16;
 
@@ -129,6 +134,7 @@ void rx_engine(
         stream<AxisApp>                 &soMEM_WrData,
         stream<DmSts>                   &siMEM_WrSts,
         //--MMIO Interfaces
+        stream<StsBit>                  &soMMIO_RxMemWrErr,
         stream<ap_uint<8> >             &soMMIO_CrcDropCnt,
         stream<ap_uint<8> >             &soMMIO_SessDropCnt,
         stream<ap_uint<8> >             &soMMIO_OooDropCnt,

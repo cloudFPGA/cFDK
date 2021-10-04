@@ -157,59 +157,60 @@ void pTbSimCount(
  * @brief   Main process of the TCP Offload Engine (TOE0.
  *
  * -- MMIO Interfaces
- * @param[in]  piMMIO_IpAddr    IP4 Address from [MMIO].
- * @param[out] soMMIO_NotifDrop The value of the notification drop counter.
- * @param[out] soMMIO_MetaDrop  The value of the metadata drop counter.
- * @param[out] soMMIO_DataDrop  The value of the data drop counter.
- * @param[out] soMMIO_CrcDrop   The value of the CRC drop counter.
- * @param[out] soMMIO_SessDrop  The value of the session drop counter.
- * @param[out] soMMIO_OooDrop   The value of the out-of-order drop counter.
+ * @param[in]  piMMIO_IpAddr     IP4 Address from [MMIO].
+ * @param[out] soMMIO_RxMemWrErr Reports a Rx memory write error.
+ * @param[out] soMMIO_NotifDrop  The value of the notification drop counter.
+ * @param[out] soMMIO_MetaDrop   The value of the metadata drop counter.
+ * @param[out] soMMIO_DataDrop   The value of the data drop counter.
+ * @param[out] soMMIO_CrcDrop    The value of the CRC drop counter.
+ * @param[out] soMMIO_SessDrop   The value of the session drop counter.
+ * @param[out] soMMIO_OooDrop    The value of the out-of-order drop counter.
  * -- NTS Interfaces
- * @param[out] poNTS_Ready      Ready signal of TOE.
+ * @param[out] poNTS_Ready       Ready signal of TOE.
  * -- IPRX / IP Rx / Data Interface
- * @param[in]  siIPRX_Data      IP4 data stream from [IPRX].
+ * @param[in]  siIPRX_Data       IP4 data stream from [IPRX].
  * -- IPTX / IP Tx / Data Interface
- * @param[out] soIPTX_Data      IP4 data stream to [IPTX].
+ * @param[out] soIPTX_Data       IP4 data stream to [IPTX].
  * -- TAIF / Rx Data Interfaces
- * @param[out] soTAIF_Notif     APP data notification to [TAIF].
- * @param[in]  siTAIF_DReq      APP data request from [TAIF].
- * @param[out] soTAIF_Data      APP data stream to [TAIF].
- * @param[out] soTAIF_Meta      APP metadata stream to [TAIF].
+ * @param[out] soTAIF_Notif      APP data notification to [TAIF].
+ * @param[in]  siTAIF_DReq       APP data request from [TAIF].
+ * @param[out] soTAIF_Data       APP data stream to [TAIF].
+ * @param[out] soTAIF_Meta       APP metadata stream to [TAIF].
  * -- TAIF / Listen Port Interfaces
- * @param[in]  siTAIF_LsnReq    APP listen port request from [TAIF].
- * @param[out] soTAIF_LsnRep    APP listen port reply to [TAIF].
+ * @param[in]  siTAIF_LsnReq     APP listen port request from [TAIF].
+ * @param[out] soTAIF_LsnRep     APP listen port reply to [TAIF].
  * -- TAIF / Tx Data Interfaces
- * @param[in]  siTAIF_Data      APP data stream from [TAIF].
- * @param[in]  siTAIF_SndReq    APP request to send from [TAIF].
- * @param[out] soTAIF_SndRep    APP send reply to [TAIF].
+ * @param[in]  siTAIF_Data       APP data stream from [TAIF].
+ * @param[in]  siTAIF_SndReq     APP request to send from [TAIF].
+ * @param[out] soTAIF_SndRep     APP send reply to [TAIF].
  * -- TAIF / Open Interfaces
- * @param[in]  siTAIF_OpnReq    APP open port request from [TAIF].
- * @param[out] soTAIF_OpnRep    APP open port reply to [TAIF].
+ * @param[in]  siTAIF_OpnReq     APP open port request from [TAIF].
+ * @param[out] soTAIF_OpnRep     APP open port reply to [TAIF].
  * -- TAIF / Close Interfaces
- * @param[in]  siTAIF_ClsReq    APP close connection request from [TAIF].
- * @warning:   Not-Used         APP close connection status to [TAIF].
+ * @param[in]  siTAIF_ClsReq     APP close connection request from [TAIF].
+ * @warning:   Not-Used          APP close connection status to [TAIF].
  * -- MEM / Rx PATH / S2MM Interface
- * @warning:   Not-Used         Rx memory read status from [MEM].
- * @param[out] soMEM_RxP_RdCmd  Rx memory read command to [MEM].
- * @param[in]  siMEM_RxP_Data   Rx memory data from [MEM].
- * @param[in]  siMEM_RxP_WrSts  Rx memory write status from [MEM].
- * @param[out] soMEM_RxP_WrCmd  Rx memory write command to [MEM].
- * @param[out] soMEM_RxP_Data   Rx memory data to [MEM].
+ * @warning:   Not-Used          Rx memory read status from [MEM].
+ * @param[out] soMEM_RxP_RdCmd   Rx memory read command to [MEM].
+ * @param[in]  siMEM_RxP_Data    Rx memory data from [MEM].
+ * @param[in]  siMEM_RxP_WrSts   Rx memory write status from [MEM].
+ * @param[out] soMEM_RxP_WrCmd   Rx memory write command to [MEM].
+ * @param[out] soMEM_RxP_Data    Rx memory data to [MEM].
  * -- MEM / Tx PATH / S2MM Interface
- * @warning:   Not-Used         Tx memory read status from [MEM].
- * @param[out] soMEM_TxP_RdCmd  Tx memory read command to [MEM].
- * @param[in]  siMEM_TxP_Data   Tx memory data from [MEM].
- * @param[in]  siMEM_TxP_WrSts  Tx memory write status from [MEM].
- * @param[out] soMEM_TxP_WrCmd  Tx memory write command to [MEM].
- * @param[out] soMEM_TxP_Data   Tx memory data to [MEM].
+ * @warning:   Not-Used          Tx memory read status from [MEM].
+ * @param[out] soMEM_TxP_RdCmd   Tx memory read command to [MEM].
+ * @param[in]  siMEM_TxP_Data    Tx memory data from [MEM].
+ * @param[in]  siMEM_TxP_WrSts   Tx memory write status from [MEM].
+ * @param[out] soMEM_TxP_WrCmd   Tx memory write command to [MEM].
+ * @param[out] soMEM_TxP_Data    Tx memory data to [MEM].
  * -- CAM / Session Lookup & Update Interfaces
- * @param[in]  siCAM_SssLkpRep  Session lookup reply from [CAM].
- * @param[in]  siCAM_SssUpdRep  Session update reply from [CAM].
- * @param[out] soCAM_SssLkpReq  Session lookup request to [CAM].
- * @param[out] soCAM_SssUpdReq  Session update request to [CAM].
+ * @param[in]  siCAM_SssLkpRep   Session lookup reply from [CAM].
+ * @param[in]  siCAM_SssUpdRep   Session update reply from [CAM].
+ * @param[out] soCAM_SssLkpReq   Session lookup request to [CAM].
+ * @param[out] soCAM_SssUpdReq   Session update request to [CAM].
  * -- DEBUG / Session Statistics Interfaces
- * @param[out] soDBG_SssRelCnt  Session release count to DEBUG.
- * @param[out] soDBG_SssRegCnt  Session register count to DEBUG.
+ * @param[out] soDBG_SssRelCnt   Session release count to DEBUG.
+ * @param[out] soDBG_SssRegCnt   Session register count to DEBUG.
  *******************************************************************************/
 void toe(
 
@@ -217,6 +218,7 @@ void toe(
         //-- MMIO Interfaces
         //------------------------------------------------------
         Ip4Addr                              piMMIO_IpAddr,
+        stream<StsBit>                      &soMMIO_RxMemWrErr,
         stream<ap_uint<8> >                 &soMMIO_NotifDropCnt,
         stream<ap_uint<8> >                 &soMMIO_MetaDropCnt,
         stream<ap_uint<8> >                 &soMMIO_DataDropCnt,
@@ -653,6 +655,7 @@ void toe(
             soMEM_RxP_WrCmd,
             soMEM_RxP_Data,
             siMEM_RxP_WrSts,
+            soMMIO_RxMemWrErr,
             soMMIO_CrcDropCnt,
             soMMIO_SessDropCnt,
             soMMIO_OooDropCnt,
@@ -747,47 +750,48 @@ void toe(
 /*******************************************************************************
  * @brief  Top of TCP Offload Engine (TOE)
  *
- * @param[in]  piMMIO_IpAddr    IP4 Address from [MMIO].
- * @param[out] soMMIO_NotifDrop The value of the notification drop counter.
- * @param[out] soMMIO_MetaDrop  The value of the metadata drop counter.
- * @param[out] soMMIO_DataDrop  The value of the data drop counter.
- * @param[out] soMMIO_CrcDrop   The value of the CRC drop counter.
- * @param[out] soMMIO_SessDrop  The value of the session drop counter.
- * @param[out] soMMIO_OooDrop   The value of the out-of-order drop counter.
- * @param[out] poNTS_Ready      Ready signal of TOE.
- * @param[in]  siIPRX_Data      IP4 data stream from [IPRX].
- * @param[out] soIPTX_Data      IP4 data stream to [IPTX].
- * @param[out] soTAIF_Notif     APP data notification to [TAIF].
- * @param[in]  siTAIF_DReq      APP data request from [TAIF].
- * @param[out] soTAIF_Data      APP data stream to [TAIF].
- * @param[out] soTAIF_Meta      APP metadata stream to [TAIF].
- * @param[in]  siTAIF_LsnReq    APP listen port request from [TAIF].
- * @param[out] soTAIF_LsnRep    APP listen port reply to [TAIF].
- * @param[in]  siTAIF_Data      APP data stream from [TAIF].
- * @param[in]  siTAIF_SndReq    APP request to send from [TAIF].
- * @param[out] soTAIF_SndRep    APP send reply to [TAIF].
- * @param[in]  siTAIF_OpnReq    APP open port request from [TAIF].
- * @param[out] soTAIF_OpnRep    APP open port reply to [TAIF].
- * @param[in]  siTAIF_ClsReq    APP close connection request from [TAIF].
- * @warning:   Not-Used         APP close connection status to [TAIF].
- * @warning:   Not-Used         Rx memory read status from [MEM].
- * @param[out] soMEM_RxP_RdCmd  Rx memory read command to [MEM].
- * @param[in]  siMEM_RxP_Data   Rx memory data from [MEM].
- * @param[in]  siMEM_RxP_WrSts  Rx memory write status from [MEM].
- * @param[out] soMEM_RxP_WrCmd  Rx memory write command to [MEM].
- * @param[out] soMEM_RxP_Data   Rx memory data to [MEM].
- * @warning:   Not-Used         Tx memory read status from [MEM].
- * @param[out] soMEM_TxP_RdCmd  Tx memory read command to [MEM].
- * @param[in]  siMEM_TxP_Data   Tx memory data from [MEM].
- * @param[in]  siMEM_TxP_WrSts  Tx memory write status from [MEM].
- * @param[out] soMEM_TxP_WrCmd  Tx memory write command to [MEM].
- * @param[out] soMEM_TxP_Data   Tx memory data to [MEM].
- * @param[out] soCAM_SssLkpReq  Session lookup request to [CAM].
- * @param[in]  siCAM_SssLkpRep  Session lookup reply from [CAM].
- * @param[out] soCAM_SssUpdReq  Session update request to [CAM].
- * @param[in]  siCAM_SssUpdRep  Session update reply from [CAM].
- * @param[out] soDBG_SssRelCnt  Session release count (for DEBUG).
- * @param[out] soDBG_SssRegCnt  Session register count (foe DEBUG).
+ * @param[in]  piMMIO_IpAddr     IP4 Address from [MMIO].
+ * @param[out] soMMIO_RxMemWrErr Reports a Rx memory write error.
+ * @param[out] soMMIO_NotifDrop  The value of the notification drop counter.
+ * @param[out] soMMIO_MetaDrop   The value of the metadata drop counter.
+ * @param[out] soMMIO_DataDrop   The value of the data drop counter.
+ * @param[out] soMMIO_CrcDrop    The value of the CRC drop counter.
+ * @param[out] soMMIO_SessDrop   The value of the session drop counter.
+ * @param[out] soMMIO_OooDrop    The value of the out-of-order drop counter.
+ * @param[out] poNTS_Ready       Ready signal of TOE.
+ * @param[in]  siIPRX_Data       IP4 data stream from [IPRX].
+ * @param[out] soIPTX_Data       IP4 data stream to [IPTX].
+ * @param[out] soTAIF_Notif      APP data notification to [TAIF].
+ * @param[in]  siTAIF_DReq       APP data request from [TAIF].
+ * @param[out] soTAIF_Data       APP data stream to [TAIF].
+ * @param[out] soTAIF_Meta       APP metadata stream to [TAIF].
+ * @param[in]  siTAIF_LsnReq     APP listen port request from [TAIF].
+ * @param[out] soTAIF_LsnRep     APP listen port reply to [TAIF].
+ * @param[in]  siTAIF_Data       APP data stream from [TAIF].
+ * @param[in]  siTAIF_SndReq     APP request to send from [TAIF].
+ * @param[out] soTAIF_SndRep     APP send reply to [TAIF].
+ * @param[in]  siTAIF_OpnReq     APP open port request from [TAIF].
+ * @param[out] soTAIF_OpnRep     APP open port reply to [TAIF].
+ * @param[in]  siTAIF_ClsReq     APP close connection request from [TAIF].
+ * @warning:   Not-Used          APP close connection status to [TAIF].
+ * @warning:   Not-Used          Rx memory read status from [MEM].
+ * @param[out] soMEM_RxP_RdCmd   Rx memory read command to [MEM].
+ * @param[in]  siMEM_RxP_Data    Rx memory data from [MEM].
+ * @param[in]  siMEM_RxP_WrSts   Rx memory write status from [MEM].
+ * @param[out] soMEM_RxP_WrCmd   Rx memory write command to [MEM].
+ * @param[out] soMEM_RxP_Data    Rx memory data to [MEM].
+ * @warning:   Not-Used          Tx memory read status from [MEM].
+ * @param[out] soMEM_TxP_RdCmd   Tx memory read command to [MEM].
+ * @param[in]  siMEM_TxP_Data    Tx memory data from [MEM].
+ * @param[in]  siMEM_TxP_WrSts   Tx memory write status from [MEM].
+ * @param[out] soMEM_TxP_WrCmd   Tx memory write command to [MEM].
+ * @param[out] soMEM_TxP_Data    Tx memory data to [MEM].
+ * @param[out] soCAM_SssLkpReq   Session lookup request to [CAM].
+ * @param[in]  siCAM_SssLkpRep   Session lookup reply from [CAM].
+ * @param[out] soCAM_SssUpdReq   Session update request to [CAM].
+ * @param[in]  siCAM_SssUpdRep   Session update reply from [CAM].
+ * @param[out] soDBG_SssRelCnt   Session release count (for DEBUG).
+ * @param[out] soDBG_SssRegCnt   Session register count (foe DEBUG).
  *******************************************************************************/
 #if HLS_VERSION == 2017
     void toe_top(
@@ -795,6 +799,7 @@ void toe(
         //-- MMIO Interfaces
         //------------------------------------------------------
         Ip4Addr                              piMMIO_IpAddr,
+        stream<StsBit>                      &soMMIO_RxMemWrErr,
         stream<ap_uint<8> >                 &soMMIO_NotifDropCnt,
         stream<ap_uint<8> >                 &soMMIO_MetaDropCnt,
         stream<ap_uint<8> >                 &soMMIO_DataDropCnt,
@@ -873,7 +878,7 @@ void toe(
         stream<ap_uint<16> >                &soDBG_SssRegCnt,
         stream<RxBufPtr>                    &soDBG_RxFreeSpace,
         stream<ap_uint<32> >                &soDBG_TcpIpRxByteCnt,
-		stream<ap_uint< 8> >                &soDBG_OooDebug
+        stream<ap_uint< 8> >                &soDBG_OooDebug
         #if TOE_FEATURE_USED_FOR_DEBUGGING
         ,
 		ap_uint<32>                         &poSimCycCount
@@ -889,6 +894,7 @@ void toe(
     /*********************************************************************/
     //-- MMIO Interfaces
     #pragma HLS INTERFACE ap_stable          port=piMMIO_IpAddr
+    #pragma HLS RESOURCE core=AXI4Stream variable=soMMIO_RxMemWrErr   metadata="-bus_bundle soMMIO_RxMemWrErr"
     #pragma HLS RESOURCE core=AXI4Stream variable=soMMIO_NotifDropCnt metadata="-bus_bundle soMMIO_NotifDropCnt"
     #pragma HLS RESOURCE core=AXI4Stream variable=soMMIO_MetaDropCnt  metadata="-bus_bundle soMMIO_MetaDropCnt"
     #pragma HLS RESOURCE core=AXI4Stream variable=soMMIO_DataDropCnt  metadata="-bus_bundle soMMIO_DataDropCnt"
@@ -968,6 +974,7 @@ void toe(
     toe(
         //-- MMIO Interfaces
         piMMIO_IpAddr,
+        soMMIO_RxMemWrErr,
         soMMIO_NotifDropCnt,
         soMMIO_MetaDropCnt,
         soMMIO_DataDropCnt,
@@ -1035,6 +1042,7 @@ void toe(
         //-- MMIO Interfaces
         //------------------------------------------------------
         Ip4Addr                              piMMIO_IpAddr,
+        stream<StsBit>                      &soMMIO_RxMemWrErr,
         stream<ap_uint<8> >                 &soMMIO_NotifDropCnt,
         stream<ap_uint<8> >                 &soMMIO_MetaDropCnt,
         stream<ap_uint<8> >                 &soMMIO_DataDropCnt,
@@ -1125,6 +1133,7 @@ void toe(
 
     //-- MMIO Interfaces
     #pragma HLS INTERFACE ap_stable          port=piMMIO_IpAddr       name=piMMIO_IpAddr
+    #pragma HLS INTERFACE axis register both port=soMMIO_RxMemWrErr   name=soMMIO_RxMemWrErr
     #pragma HLS INTERFACE axis register both port=soMMIO_NotifDropCnt name=soMMIO_NotifDropCnt
     #pragma HLS INTERFACE axis register both port=soMMIO_MetaDropCnt  name=soMMIO_MetaDropCnt
     #pragma HLS INTERFACE axis register both port=soMMIO_DataDropCnt  name=soMMIO_DataDropCnt
@@ -1211,6 +1220,7 @@ void toe(
     toe(
         //-- MMIO Interfaces
         piMMIO_IpAddr,
+        soMMIO_RxMemWrErr,
         soMMIO_NotifDropCnt,
         soMMIO_MetaDropCnt,
         soMMIO_DataDropCnt,

@@ -731,6 +731,7 @@ template<typename T> void pStreamMux(
         //-- MMIO Interfaces
         //------------------------------------------------------
         Ip4Addr                                  piMMIO_IpAddr,
+        stream<StsBit>                          &soMMIO_RxMemWrErr,
         stream<ap_uint<8> >                     &soMMIO_NotifDropCnt,
         stream<ap_uint<8> >                     &soMMIO_MetaDropCnt,
         stream<ap_uint<8> >                     &soMMIO_DataDropCnt,
@@ -835,6 +836,7 @@ template<typename T> void pStreamMux(
         //-- MMIO Interfaces
         //------------------------------------------------------
         Ip4Addr                                  piMMIO_IpAddr,
+        stream<StsBit>                          &soMMIO_RxMemWrErr,
         stream<ap_uint<8> >                     &soMMIO_NotifDropCnt,
         stream<ap_uint<8> >                     &soMMIO_MetaDropCnt,
         stream<ap_uint<8> >                     &soMMIO_DataDropCnt,

@@ -65,7 +65,7 @@ using namespace hls;
 #define TRACE_RAN 1 << 10
 #define TRACE_ALL  0xFFFF
 
-#define DEBUG_LEVEL (TRACE_FSM)
+#define DEBUG_LEVEL (TRACE_OFF)
 
 
 /*******************************************************************************
@@ -871,32 +871,32 @@ void pRxMemoryWriter(
     static RxBufPtr    mwr_firstAccLen;
     static TcpSegLen   mwr_nrBytesToWr;
     static ap_uint<4>  mwr_splitOffset;
-    static uint16_t    mwr_debugCounter=1;
+    static uint16_t    mwr_debugCounter=3; // To align with # in the DAT file
 
     switch (mwr_fsmState) {
     case MWR_IDLE:
         if (!siFsm_MemWrCmd.empty() and !soRan_SplitSeg.full() and !soMEM_WrCmd.full()) {
             siFsm_MemWrCmd.read(mwr_memWrCmd);
-
             if ((mwr_memWrCmd.saddr.range(TOE_WINDOW_BITS-1, 0) + mwr_memWrCmd.bbt) > TOE_RX_BUFFER_SIZE) {
-                // Break this segment in two memory accesses because TCP Rx memory buffer wraps around
+                //-- Break this segment in two memory accesses because TCP Rx memory buffer wraps around
                 soRan_SplitSeg.write(true);
+
                 if (DEBUG_LEVEL & TRACE_MWR) {
                     printInfo(myName, "TCP Rx memory buffer wraps around: This segment will be broken in two memory buffers.\n");
                 }
                 mwr_fsmState = MWR_SPLIT_1ST_CMD;
             }
             else {
+                //-- Don't split and issue the write command
                 soRan_SplitSeg.write(false);
                 soMEM_WrCmd.write(mwr_memWrCmd);
-                mwr_firstAccLen = mwr_memWrCmd.bbt;
-                mwr_nrBytesToWr = mwr_firstAccLen;
-                mwr_fsmState = MWR_FWD_ALIGNED;
+
                 if (DEBUG_LEVEL & TRACE_MWR) {
                     printInfo(myName, "Issuing memory write command #%d - SADDR=0x%9.9x - BBT=%d\n",
                               mwr_debugCounter, mwr_memWrCmd.saddr.to_uint(), mwr_memWrCmd.bbt.to_uint());
                     mwr_debugCounter++;
                 }
+                mwr_fsmState = MWR_FWD_ALIGNED;
             }
         }
         break;
@@ -905,6 +905,7 @@ void pRxMemoryWriter(
             mwr_firstAccLen   = TOE_RX_BUFFER_SIZE - mwr_memWrCmd.saddr;
             mwr_nrBytesToWr   = mwr_firstAccLen;
             soMEM_WrCmd.write(DmCmd(mwr_memWrCmd.saddr, mwr_firstAccLen));
+
             if (DEBUG_LEVEL & TRACE_MWR) {
                 printInfo(myName, "Issuing 1st memory write command #%d - SADDR=0x%9.9x - BBT=%d\n",
                     mwr_debugCounter, mwr_memWrCmd.saddr.to_uint(), mwr_firstAccLen.to_uint());
@@ -915,31 +916,34 @@ void pRxMemoryWriter(
     case MWR_FWD_ALIGNED:
         if (!siTsd_Data.empty() and !soMEM_WrData.full()) {
             //-- Default streaming state used to forward segments or splitted buffers
-            //-- that are aligned with to the Axis raw width
+            //-- that are aligned with the Axis raw width
             AxisApp memChunk = siTsd_Data.read();
             soMEM_WrData.write(memChunk);
             if (memChunk.getTLast()) {
                  mwr_fsmState = MWR_IDLE;
             }
-            if (DEBUG_LEVEL & TRACE_MWR) { printAxisRaw(myName, "soMEM_WrData =", memChunk); }
+
+            if (DEBUG_LEVEL & TRACE_MWR) { printAxisRaw(myName, "FWD_ALIGNED: soMEM_WrData =", memChunk); }
          }
         break;
     case MWR_FWD_1ST_BUF:
         if (!siTsd_Data.empty() and !soMEM_WrData.full()) {
             //-- Create 1st splitted data buffer and stream it to memory
             siTsd_Data.read(mwr_currChunk);
-
             AxisApp memChunk = mwr_currChunk;
             if (mwr_nrBytesToWr > (ARW/8)) {
                 mwr_nrBytesToWr -= (ARW/8);
             }
             else if (!soMEM_WrCmd.full()) {
                 if (mwr_nrBytesToWr == (ARW/8)) {
+                    //-- End of 1st segment and begin of 2nd segment are aligned
                     memChunk.setLE_TLast(TLAST);
 
+                    //-- Prepare and issue 2nd command
                     mwr_memWrCmd.saddr(TOE_WINDOW_BITS-1, 0) = 0;
                     mwr_memWrCmd.bbt -= mwr_firstAccLen;
                     soMEM_WrCmd.write(mwr_memWrCmd);
+
                     if (DEBUG_LEVEL & TRACE_MWR) {
                         printInfo(myName, "Issuing 2nd memory write command #%d - SADDR=0x%9.9x - BBT=%d\n",
                                   mwr_debugCounter, mwr_memWrCmd.saddr.to_uint(), mwr_memWrCmd.bbt.to_uint());
@@ -948,26 +952,35 @@ void pRxMemoryWriter(
                     mwr_fsmState = MWR_FWD_ALIGNED;
                 }
                 else {
+                    //-- End of 1st segment and begin of 2nd segment not aligned
                     memChunk.setLE_TLast(TLAST);
                     memChunk.setLE_TKeep(lenToLE_tKeep(mwr_nrBytesToWr));
                     #ifndef __SYNTHESIS__
                     memChunk.setLE_TData(0, (ARW-1), ((int)mwr_nrBytesToWr*8));
                     #endif
 
+                    //-- Prepare and issue 2nd command
                     mwr_memWrCmd.saddr(TOE_WINDOW_BITS-1, 0) = 0;
                     mwr_memWrCmd.bbt -= mwr_firstAccLen;
                     soMEM_WrCmd.write(mwr_memWrCmd);
+
                     if (DEBUG_LEVEL & TRACE_MWR) {
                         printInfo(myName, "Issuing 2nd memory write command #%d - SADDR=0x%9.9x - BBT=%d\n",
                                   mwr_debugCounter, mwr_memWrCmd.saddr.to_uint(), mwr_memWrCmd.bbt.to_uint());
                         mwr_debugCounter++;
                     }
                     mwr_splitOffset = (ARW/8) - mwr_nrBytesToWr;
-                    mwr_fsmState = MWR_FWD_2ND_BUF;
+                    if (mwr_currChunk.getLE_TLast()) {
+                        mwr_fsmState = MWR_RESIDUE;
+                    }
+                    else {
+                        mwr_fsmState = MWR_FWD_2ND_BUF;
+                    }
                 }
             }
+
             soMEM_WrData.write(memChunk);
-            if (DEBUG_LEVEL & TRACE_MWR) { printAxisRaw(myName, "soMEM_WrData =", memChunk); }
+            if (DEBUG_LEVEL & TRACE_MWR) { printAxisRaw(myName, "FWD_1ST_BUF: soMEM_WrData =", memChunk); }
         }
         break;
     case MWR_FWD_2ND_BUF:
@@ -1002,7 +1015,7 @@ void pRxMemoryWriter(
                 }
             }
             soMEM_WrData.write(joinedChunk);
-            if (DEBUG_LEVEL & TRACE_MWR) { printAxisRaw(myName, "soMEM_WrData =", joinedChunk); }
+            if (DEBUG_LEVEL & TRACE_MWR) { printAxisRaw(myName, "FWD_2ND_BUF: soMEM_WrData =", joinedChunk); }
         }
         break;
     case MWR_RESIDUE:
@@ -1018,7 +1031,8 @@ void pRxMemoryWriter(
                                                                             ((int)mwr_splitOffset  )-1, 0);
             lastChunk.setLE_TLast(TLAST);
             soMEM_WrData.write(lastChunk);
-            if (DEBUG_LEVEL & TRACE_MWR) { printAxisRaw(myName, "soMEM_WrData =", lastChunk); }
+
+            if (DEBUG_LEVEL & TRACE_MWR) { printAxisRaw(myName, "RESIDUE    : soMEM_WrData =", lastChunk); }
             mwr_fsmState = MWR_IDLE;
         }
         break;
@@ -1028,23 +1042,27 @@ void pRxMemoryWriter(
 /*******************************************************************************
  * @brief Rx Application Notifier (Ran)
  *
- * @param[in]  siMEM_WrSts    The memory write status from memory data mover [MEM].
- * @param[in]  siFsm_Notif    Rx data notification from FiniteStateMachine (Fsm).
- * @param[out] soRAi_RxNotif  Rx data notification to RxApplicationInterface (RAi).
- * @param[in]  siMwr_SplitSeg Split segment flag from MemoryWriter (Mwr).
+ * @param[in]  siMEM_WrSts     The memory write status from the AXI data mover [MEM].
+ * @param[in]  siFsm_Notif     Rx data notification from FiniteStateMachine (Fsm).
+ * @param[out] soRAi_RxNotif   Rx data notification to RxApplicationInterface (RAi).
+ * @param[in]  siMwr_SplitSeg  Split segment flag from MemoryWriter (Mwr).
+ * @param[out] soMMIO_MemWrErr Reports a memory write error to MMIO.
  *
  * @details
- *  Delays the notifications to the application until the TCP segment is actually
- *   written into the physical DRAM memory.
+ *  Delays the notifications to the application until the TCP segment is
+ *   actually written into the physical DRAM memory.
  *  If the segment was split in two memory accesses, the current process will
  *   wait until both segments are written into memory before issuing the
  *   notification to the application.
+ *  Any error reported by the AXI data mover (MEM) is forwarded to MIMO and
+ *   remains set until [TOE] is reset.
  *******************************************************************************/
 void pRxAppNotifier(
         stream<DmSts>         &siMEM_WrSts,
         stream<TcpAppNotif>   &siFsm_Notif,
         stream<TcpAppNotif>   &soRAi_RxNotif,
-        stream<FlagBool>      &siMwr_SplitSeg)
+        stream<FlagBool>      &siMwr_SplitSeg,
+        stream<StsBit>        &soMMIO_MemWrErr)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1 enable_flush
@@ -1060,6 +1078,8 @@ void pRxAppNotifier(
     //-- STATIC CONTROL VARIABLES (with RESET) ---------------------------------
     static FlagBool            ran_doubleAccessFlag=FLAG_OFF;
     #pragma HLS RESET variable=ran_doubleAccessFlag
+    static StsBit              ran_dataMoverError=STS_NO_ERR;
+    #pragma HLS RESET variable=ran_dataMoverError
 
     //-- STATIC DATAFLOW VARIABLES ---------------------------------------------
     static DmSts        ran_dmStatus1;
@@ -1077,6 +1097,8 @@ void pRxAppNotifier(
                 }
             }
             else {
+                ran_dataMoverError = ran_dmStatus1.slverr | ran_dmStatus1.decerr | ran_dmStatus1.interr | \
+                                     ran_dmStatus2.slverr | ran_dmStatus2.decerr | ran_dmStatus2.interr;;
                 if (DEBUG_LEVEL & TRACE_RAN) {
                     printError(myName, "The previous splitted mem-write command failed (OKAY=0).\n");
                 }
@@ -1086,7 +1108,7 @@ void pRxAppNotifier(
     }
     else {
         //-- We don't know yet about a possible double memory access
-        if(!siMEM_WrSts.empty() and !siMwr_SplitSeg.empty() and !ssRxNotifFifo.empty()) {
+        if (!siMEM_WrSts.empty() and !siMwr_SplitSeg.empty() and !ssRxNotifFifo.empty()) {
             siMEM_WrSts.read(ran_dmStatus1);
             siMwr_SplitSeg.read(ran_doubleAccessFlag);
             ssRxNotifFifo.read(ran_appNotification);
@@ -1100,6 +1122,7 @@ void pRxAppNotifier(
                     }
                 }
                 else {
+                    ran_dataMoverError = ran_dmStatus1.slverr | ran_dmStatus1.decerr | ran_dmStatus1.interr;
                     if (DEBUG_LEVEL & TRACE_RAN) {
                         printError(myName, "The previous memory write command failed (OKAY=0).\n");
                     }
@@ -1122,6 +1145,14 @@ void pRxAppNotifier(
                 //OBSOLETE_20210112 soRAi_RxNotif.write(ran_appNotification);
             }
         }
+    }
+
+    //-- ALWAYS
+    if (!soMMIO_MemWrErr.full()) {
+        soMMIO_MemWrErr.write(ran_dataMoverError);
+    }
+    else {
+        printFatal(myName, "Cannot write soMMIO_MemWrerr stream...");
     }
 }
 
@@ -1332,7 +1363,7 @@ void pFiniteStateMachine(
         stream<ap_uint<8> >         &soDBG_OooDebug)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1 enable_flush
+    #pragma HLS PIPELINE II=1
     #pragma HLS INLINE off
 
     const char *myName = concat3(THIS_NAME, "/", "Fsm");
@@ -1361,6 +1392,8 @@ void pFiniteStateMachine(
     RxSarReply          rxSar;
     RXeTxSarReply       txSar;
 
+    fsm_oooDebugState = 0;
+
     switch(fsm_fsmState) {
     case FSM_LOAD:
         if (!siMdh_FsmMeta.empty()) {
@@ -1375,6 +1408,7 @@ void pFiniteStateMachine(
                 fsm_txSarRequest = true;
             }
             fsm_fsmState = FSM_TRANSITION;
+            fsm_oooDebugState = 1;
         }
         break;
     case FSM_TRANSITION:
@@ -1393,12 +1427,28 @@ void pFiniteStateMachine(
             //--------------------------------------
             //-- ACK
             //--------------------------------------
-            if (DEBUG_LEVEL & TRACE_FSM) { printInfo(myName, "Entering 'ACK' processing.\n"); }
             if (fsm_fsmState == FSM_LOAD) {
                 siSTt_StateRep.read(tcpState);
                 siRSt_RxSarRep.read(rxSar);
                 siTSt_TxSarRep.read(txSar);
-                //OBSOLETE_20210817 TimerCmd timerCmd = (fsm_Meta.meta.ackNumb == txSar.prevUnak) ? STOP_TIMER : LOAD_TIMER;
+
+                //-- ALWAYS - Compute free space to ensure that 'appd' pointer is not overtaken
+                fsm_freeSpace = ((rxSar.appd - rxSar.oooHead(TOE_WINDOW_BITS-1, 0)) - 1);
+                soDBG_RxFreeSpace.write(fsm_freeSpace);
+
+                if (DEBUG_LEVEL & TRACE_FSM) {
+                    printInfo(myName, "Entering 'ACK' processing.\n \
+                              \t\t Meta.seqNum  =0x%8.8x \n \
+                              \t\t RxSar.appd   =0x%8.8x \n \
+                              \t\t RxSar.oooHead=0x%8.8x \n \
+                              \t\t RxSar.oooTail=0x%8.8x \n \
+                              \t\t FreeSpace    =  %8d\n",
+                              fsm_Meta.meta.seqNumb.to_uint(),
+                              rxSar.oooHead.to_uint(),
+                              rxSar.oooTail.to_uint(),
+                              fsm_freeSpace.to_uint());
+                }
+
                 TimerCmd timerCmd;
                 if (fsm_Meta.meta.ackNumb == txSar.prevUnak) {
                     timerCmd = STOP_TIMER;
@@ -1483,15 +1533,6 @@ void pFiniteStateMachine(
                     }
 *** OBSOLETE_20200108 *********************************/
 
-                    // Always, compute free space to ensure that 'appd' pointer is not overtaken
-                    fsm_freeSpace = ((rxSar.appd - rxSar.oooHead(TOE_WINDOW_BITS-1, 0)) - 1);
-                    //OBSOLETE_20210913 RxBufPtr free_space = ((rxSar.appd - rxSar.oooHead(TOE_WINDOW_BITS-1, 0)) - 1);
-                    //OBSOLETE_20180801 free_space = ((rxSar.appd - rxSar.rcvd(TOE_WINDOW_BITS-1, 0)) - 1);
-                    soDBG_RxFreeSpace.write(fsm_freeSpace);
-
-                    //OBSOLETE-DEBUG printf(">>>[RXe] - rxSar.appd=0x%8x - rxSar.oooHead=0x%8x - cong_window=%6d - free_space=%6d - slowstart_threshold=%6d\n",
-                    //OBSOLETE-DEBUG        rxSar.appd.to_uint(), rxSar.oooHead.to_uint(), txSar.cong_window.to_uint(), free_space.to_uint(), txSar.slowstart_threshold.to_uint());
-
                     // If packet contains payload
                     //  We must handle Out-Of-Order delivered segments
                     if (fsm_Meta.meta.length != 0) {
@@ -1508,8 +1549,6 @@ void pFiniteStateMachine(
                         RxSeqNum    newRcvd    = 0;
                         RxSeqNum    newOooHead = 0;
                         RxSeqNum    newOooTail = 0;
-
-                        fsm_oooDebugState = 0;
 
                         //-- DEFAULT : No OOO and Rx segment is in expected sequence order
                         if (!rxSar.ooo and (fsm_Meta.meta.seqNumb == rxSar.rcvd) and
@@ -1528,11 +1567,11 @@ void pFiniteStateMachine(
                                                             fsm_Meta.tcpDstPort));
                             // Send keep command
                             soTsd_DropCmd.write(CMD_KEEP);
-                            fsm_oooDebugState = 1;
+                            fsm_oooDebugState = 2;
                         }
                         //-- START   : No OOO but Rx segment arrived out-of-order
                         else if (!rxSar.ooo and (fsm_Meta.meta.seqNumb > rxSar.rcvd) and
-                                                (fsm_freeSpace > (fsm_Meta.meta.seqNumb+fsm_Meta.meta.length-rxSar.oooHead(TOE_WINDOW_BITS-1, 0)))) {
+                                                (fsm_freeSpace > (fsm_Meta.meta.seqNumb+fsm_Meta.meta.length-rxSar.oooHead)(TOE_WINDOW_BITS-1, 0))) {
                             if (DEBUG_LEVEL & TRACE_FSM) { printInfo(myName, "OOO-START   : Rx segment is out-of-order.\n"); }
                             // Generate new oooHead and oooTail pointers
                             newOooHead = fsm_Meta.meta.seqNumb + fsm_Meta.meta.length;
@@ -1547,7 +1586,7 @@ void pFiniteStateMachine(
                                                             fsm_Meta.tcpDstPort));
                             // Send keep command
                             soTsd_DropCmd.write(CMD_KEEP);
-                            fsm_oooDebugState = 2;
+                            fsm_oooDebugState = 3;
                         }
                         //-- CONTINUE: OOO exists and Rx segment is in-order with respect to 'oooHead' pointer
                         else if (rxSar.ooo and (fsm_Meta.meta.seqNumb == rxSar.oooHead) and
@@ -1565,7 +1604,7 @@ void pFiniteStateMachine(
                                                             fsm_Meta.tcpDstPort));
                             // Send keep command
                             soTsd_DropCmd.write(CMD_KEEP);
-                            fsm_oooDebugState = 3;
+                            fsm_oooDebugState = 4;
                         }
                         //-- CONTINUE: OOO exists, Rx segment is in-order with respect to 'rcvd' pointer but it does not fill the gap
                         else if (rxSar.ooo and (fsm_Meta.meta.seqNumb == rxSar.rcvd) and
@@ -1583,7 +1622,7 @@ void pFiniteStateMachine(
                                                             fsm_Meta.tcpDstPort));
                             // Send keep command
                             soTsd_DropCmd.write(CMD_KEEP);
-                            fsm_oooDebugState = 4;
+                            fsm_oooDebugState = 5;
                         }
                         //-- END       : OOO exists, Rx segment is in-order with respect to 'rcvd' pointer and it fills the gap
                         else if (rxSar.ooo and (fsm_Meta.meta.seqNumb == rxSar.rcvd) and
@@ -1602,29 +1641,29 @@ void pFiniteStateMachine(
                                                             fsm_Meta.tcpDstPort));
                             // Send keep command
                             soTsd_DropCmd.write(CMD_KEEP);
-                            fsm_oooDebugState = 5;
+                            fsm_oooDebugState = 6;
                         }
                         //-- OOO-DROP  : Always drop segment in all other cases
                         else {
                             soTsd_DropCmd.write(CMD_DROP);
                             fsm_oooDropCounter++;
-
+                            fsm_oooDebugState = 10;
                             if ( (fsm_Meta.meta.seqNumb < rxSar.rcvd)) {
                                 printInfo(myName, "OOO-Dropping Rx segment (Frame is a retransmission because of a lost or delayed ACK). \n");
-                                fsm_oooDebugState = 6;
+                                fsm_oooDebugState = 11;
                             }
                             else if ( (!rxSar.ooo and (fsm_Meta.meta.seqNumb == rxSar.rcvd) and (fsm_freeSpace <  fsm_Meta.meta.length)) or
-                                 (!rxSar.ooo and (fsm_Meta.meta.seqNumb >  rxSar.rcvd) and (fsm_freeSpace > (fsm_Meta.meta.seqNumb+fsm_Meta.meta.length-rxSar.oooHead(TOE_WINDOW_BITS-1, 0))))) {
+                                      (!rxSar.ooo and (fsm_Meta.meta.seqNumb >  rxSar.rcvd) and (fsm_freeSpace > (fsm_Meta.meta.seqNumb+fsm_Meta.meta.length-rxSar.rcvd)(TOE_WINDOW_BITS-1, 0))) ) {
                                 printInfo(myName, "OOO-Dropping Rx segment (Not enough space left in the Rx ring buffer).\n");
-                                fsm_oooDebugState = 7;
+                                fsm_oooDebugState = 12;
                             }
                             else if (fsm_Meta.meta.seqNumb+fsm_Meta.meta.length == rxSar.rcvd) {
                                 printInfo(myName, "OOO-Dropping Rx segment (Segment is a duplicate).\n");
-                                fsm_oooDebugState = 8;
+                                fsm_oooDebugState = 13;
                             }
                             else {
                                 printFatal(myName, "OOO-Dropping Rx segment (Reason is unknown).\n");
-                                fsm_oooDebugState = 99;
+                                fsm_oooDebugState = 14;
                             }
                         }
                     }
@@ -1643,7 +1682,6 @@ void pFiniteStateMachine(
                             // No OOO and Rx segment is in expected sequence order
                             soEVe_Event.write(Event(ACK_EVENT, fsm_Meta.sessionId));
                         }
-                        // OBSOLETE else if (fsm_Meta.meta.seqNumb <= rxSar.rcvd) {
                         else {
                             // TCP retransmission frame
                             soEVe_Event.write(Event(ACK_NODELAY_EVENT, fsm_Meta.sessionId));
@@ -1936,8 +1974,8 @@ void pEventMultiplexer(
         stream<ExtendedEvent>    &soEVe_Event)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1 enable_flush
-    #pragma HLS INLINE off
+    #pragma HLS PIPELINE II=1
+    #pragma HLS INLINE
 
     const char *myName = concat3(THIS_NAME, "/", "Evm");
 
@@ -1973,6 +2011,7 @@ void pEventMultiplexer(
  * @param[out] soMEM_WrCmd         Memory write command to MemorySubSystem (MEM).
  * @param[out] soMEM_WrData        Memory data write stream to [MEM].
  * @param[in]  siMEM_WrSts         Memory write status from [MEM].
+ * @param[out] soMMIO_RxMemWrErr   Reports an Rx memory write error.
  * @param[out] soMMIO_CrcDropCnt   The value of the CRC drop counter.
  * @param[out] soMMIO_SessDropCnt  The value of the session drop counter.
  * @param[out] soMMIO_OooDropCnt   The value of the out-of-order drop counter.
@@ -2019,6 +2058,7 @@ void rx_engine(
         stream<AxisApp>                 &soMEM_WrData,
         stream<DmSts>                   &siMEM_WrSts,
         //--MMIO Interfaces
+        stream<StsBit>                  &soMMIO_RxMemWrErr,
         stream<ap_uint<8> >             &soMMIO_CrcDropCnt,
         stream<ap_uint<8> >             &soMMIO_SessDropCnt,
         stream<ap_uint<8> >             &soMMIO_OooDropCnt,
@@ -2076,11 +2116,11 @@ void rx_engine(
 
     //-- MetaData Handler (Mdh) -----------------------------------------------
     static stream<ExtendedEvent>    ssMdhToEvm_Event        ("ssMdhToEvm_Event");
-    #pragma HLS stream     variable=ssMdhToEvm_Event        depth=2
+    #pragma HLS stream     variable=ssMdhToEvm_Event        depth=cDepth_MdhToEvm_Event
     #pragma HLS DATA_PACK  variable=ssMdhToEvm_Event
 
     static stream<CmdBit>           ssMdhToTsd_DropCmd      ("ssMdhToTsd_DropCmd");
-    #pragma HLS stream     variable=ssMdhToTsd_DropCmd      depth=2
+    #pragma HLS stream     variable=ssMdhToTsd_DropCmd      depth=cDepth_MdhToTsd_DropCmd
 
     static stream<RXeFsmMeta>       ssMdhToFsm_Meta         ("ssMdhToFsm_Meta");
     #pragma HLS stream     variable=ssMdhToFsm_Meta         depth=2
@@ -2088,14 +2128,14 @@ void rx_engine(
 
     //-- Finite State Machine (Fsm) -------------------------------------------
     static stream<CmdBit>           ssFsmToTsd_DropCmd      ("ssFsmToTsd_DropCmd");
-    #pragma HLS stream     variable=ssFsmToTsd_DropCmd      depth=2
+    #pragma HLS stream     variable=ssFsmToTsd_DropCmd      depth=cDepth_FsmToTsd_DropCmd
 
     static stream<TcpAppNotif>      ssFsmToRan_Notif        ("ssFsmToRan_Notif");
     #pragma HLS stream     variable=ssFsmToRan_Notif        depth=cDepth_FsmToRan_Notif
     #pragma HLS DATA_PACK  variable=ssFsmToRan_Notif
 
     static stream<Event>            ssFsmToEvm_Event        ("ssFsmToEvm_Event");
-    #pragma HLS stream     variable=ssFsmToEvm_Event        depth=2
+    #pragma HLS stream     variable=ssFsmToEvm_Event        depth=cDepth_FsmToEve_Event
     #pragma HLS DATA_PACK  variable=ssFsmToEvm_Event
 
     static stream<DmCmd>            ssFsmToMwr_WrCmd        ("ssFsmToMwr_WrCmd");
@@ -2184,7 +2224,8 @@ void rx_engine(
             siMEM_WrSts,
             ssFsmToRan_Notif,
             soRAi_RxNotif,
-            ssMwrToRan_SplitSeg);
+            ssMwrToRan_SplitSeg,
+            soMMIO_RxMemWrErr);
 
     pEventMultiplexer(
             ssMdhToEvm_Event,
