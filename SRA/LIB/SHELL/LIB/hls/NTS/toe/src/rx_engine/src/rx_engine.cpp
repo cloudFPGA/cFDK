@@ -1363,7 +1363,7 @@ void pFiniteStateMachine(
         stream<ap_uint<8> >         &soDBG_OooDebug)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     const char *myName = concat3(THIS_NAME, "/", "Fsm");
@@ -1974,7 +1974,7 @@ void pEventMultiplexer(
         stream<ExtendedEvent>    &soEVe_Event)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE
 
     const char *myName = concat3(THIS_NAME, "/", "Evm");

@@ -106,7 +106,7 @@ void pIcmpChecksumChecker(
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
     #pragma HLS INLINE off
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush 
 
     const char *myName  = concat3(THIS_NAME, "/", "ICc");
 

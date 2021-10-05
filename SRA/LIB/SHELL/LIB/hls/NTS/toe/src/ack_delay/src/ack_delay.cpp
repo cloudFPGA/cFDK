@@ -83,7 +83,7 @@ void ack_delay(
         stream<ExtendedEvent>   &soTXe_Event)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName = THIS_NAME;
 
@@ -268,7 +268,7 @@ void ack_delay_OBSOLETE_20210901 (
         stream<ExtendedEvent>   &soTXe_Event)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1 //OBSOLETE_20210819 enable_flush
+    #pragma HLS PIPELINE II=1 enable_flush
 
     const char *myName = THIS_NAME;
 

@@ -66,7 +66,7 @@ void pOpnComm(
         stream<SigOpn>          &soFsm_Signal)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     //-- LOCAL VARIABLES ------------------------------------------------------
@@ -114,7 +114,7 @@ void pRcvMessage(
         ap_uint<48>              piMMIO_MacAddr)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     //-- LOCAL STREAMS --------------------------------------------------------
@@ -215,7 +215,7 @@ void pSndMessage(
         ap_uint<48>          piMMIO_MacAddr)
 {
     //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     //-- LOCAL VARIABLES ------------------------------------------------------
@@ -345,7 +345,7 @@ void pFsmCtrl(
 
 {
      //-- DIRECTIVES FOR THIS PROCESS ------------------------------------------
-    #pragma HLS PIPELINE II=1
+    #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 
     //-- LOCAL VARIABLES ------------------------------------------------------

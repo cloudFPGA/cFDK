@@ -148,7 +148,7 @@ void pTxAppConnect(
         Ip4Address                   piMMIO_IpAddr)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS pipeline II=1
+    #pragma HLS pipeline II=1 enable_flush
     #pragma HLS INLINE off
 
     const char *myName  = concat3(THIS_NAME, "/", "Tac");
@@ -451,7 +451,7 @@ void pStreamMetaLoader(
         stream<Event>               &soEmx_Event)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS pipeline II=1
+    #pragma HLS pipeline II=1 enable_flush
 
     const char *myName  = concat3(THIS_NAME, "/", "Mdl");
 
