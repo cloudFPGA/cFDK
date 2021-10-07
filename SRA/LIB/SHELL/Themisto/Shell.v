@@ -460,7 +460,7 @@ module Shell_Themisto # (
   //---- Diagnostic Registers Interface ----------
   //------ [DIAG_CTRL_2] ---------------
   //------ [DIAG_URDC] -----------------
-  wire  [15:0]  sNTS0_MMIO_UdpRxDropCnt;
+  wire  [15:0]  sNTS0_MMIO_UdpRxDataDropCnt;
   //------ [DIAG_TRNDC] ----------------
   wire  [ 7:0]  sNTS0_MMIO_TcpRxNotifDropCnt;
   //------ [DIAG_TRMDC] ----------------
@@ -1918,7 +1918,7 @@ module Shell_Themisto # (
     .piTime_hours_V_ap_vld    (1),
     .piRole_mmio_V            (piDCP_ROL_Mmio_RdReg),
     .piRole_mmio_V_ap_vld     (1),
-    .piUOE_drop_cnt_V         (sNTS0_MMIO_UdpRxDropCnt),
+    .piUOE_drop_cnt_V         (sNTS0_MMIO_UdpRxDataDropCnt),
     .piUOE_drop_cnt_V_ap_vld  (1),
     .m_axi_boHWICAP_AWADDR   (ssFMC_HWICAP_Axi_awaddr),
     .m_axi_boHWICAP_AWVALID  (ssFMC_HWICAP_Axi_awvalid),
