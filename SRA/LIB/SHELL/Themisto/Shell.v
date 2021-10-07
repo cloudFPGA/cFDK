@@ -461,6 +461,18 @@ module Shell_Themisto # (
   //------ [DIAG_CTRL_2] ---------------
   //------ [DIAG_URDC] -----------------
   wire  [15:0]  sNTS0_MMIO_UdpRxDropCnt;
+  //------ [DIAG_TRNDC] ----------------
+  wire  [ 7:0]  sNTS0_MMIO_TcpRxNotifDropCnt;
+  //------ [DIAG_TRMDC] ----------------
+  wire  [ 7:0]  sNTS0_MMIO_TcpRxMetaDropCnt;
+  //------ [DIAG_TRDDC] ----------------
+  wire  [ 7:0]  sNTS0_MMIO_TcpRxDataDropCnt;
+  //------ [DIAG_TRCDC] ----------------
+  wire  [ 7:0]  sNTS0_MMIO_TcpRxCrcDropCnt;
+    //------ [DIAG_TRSDC] ----------------
+  wire  [ 7:0]  sNTS0_MMIO_TcpRxSessDropCnt;
+    //------ [DIAG_TRODC] ----------------
+  wire  [ 7:0]  sNTS0_MMIO_TcpRxOooDropCnt;
   
   
   //--------------------------------------------------------
@@ -998,7 +1010,17 @@ module Shell_Themisto # (
     //----------------------------------------------
     .piNTS0_CamReady                (sNTS0_MMIO_CamReady),
     .piNTS0_NtsReady                (sNTS0_MMIO_NtsReady),
-    .piNTS0_UdpRxDropCnt            (sNTS0_MMIO_UdpRxDropCnt),
+    //.piNTS0_Mc0RxRdErr              (sNTS0_MMIO_Mc0RxRdErr),  // [FIXME]
+    .piNTS0_Mc0RxWrErr              (sNTS0_MMIO_Mc0RxWrErr),
+    //.piNTS0_Mc0TxRdErr              (sNTS0_MMIO_Mc0TxRdErr),  // [FIXME]
+    //.piNTS0_Mc0TxWrErr              (sNTS0_MMIO_Mc0TxWrErr),  // [FIXME]
+    .piNTS0_UdpRxDataDropCnt        (sNTS0_MMIO_UdpRxDataDropCnt),
+    .piNTS0_TcpRxNotifDropCnt       (sNTS0_MMIO_TcpRxNotifDropCnt),
+    .piNTS0_TcpRxMetaDropCnt        (sNTS0_MMIO_TcpRxMetaDropCnt),
+    .piNTS0_TcpRxDataDropCnt        (sNTS0_MMIO_TcpRxDataDropCnt),
+    .piNTS0_TcpRxCrcDropCnt         (sNTS0_MMIO_TcpRxCrcDropCnt),
+    .piNTS0_TcpRxSessDropCnt        (sNTS0_MMIO_TcpRxSessDropCnt),
+    .piNTS0_TcpRxOooDropCnt         (sNTS0_MMIO_TcpRxOooDropCnt),
     //--
     .poNTS0_MacAddress              (sMMIO_NTS0_MacAddress),
     .poNTS0_Ip4Address              (sMMIO_NTS0_Ip4Address),
@@ -1415,9 +1437,17 @@ module Shell_Themisto # (
     .piMMIO_Ip4Address                 (sMMIO_NTS0_Ip4Address),
     .piMMIO_SubNetMask                (sMMIO_NTS0_SubNetMask),
     .piMMIO_GatewayAddr               (sMMIO_NTS0_GatewayAddr),
+    //--
     .poMMIO_CamReady                  (sNTS0_MMIO_CamReady),      // [TODO-Merge this signal with NtsReady]
     .poMMIO_NtsReady                  (sNTS0_MMIO_NtsReady),
-    .poMMIO_UdpRxDropCnt              (sNTS0_MMIO_UdpRxDropCnt)
+    .poMMIO_Mc0RxWrErr                (sNTS0_MMIO_Mc0RxWrErr),
+    .poMMIO_TcpRxNotifDropCnt         (sNTS0_MMIO_TcpRxNotifDropCnt),
+    .poMMIO_TcpRxMetaDropCnt          (sNTS0_MMIO_TcpRxMetaDropCnt),
+    .poMMIO_TcpRxDataDropCnt          (sNTS0_MMIO_TcpRxDataDropCnt),
+    .poMMIO_TcpRxCrcDropCnt           (sNTS0_MMIO_TcpRxCrcDropCnt),
+    .poMMIO_TcpRxSessDropCnt          (sNTS0_MMIO_TcpRxSessDropCnt),
+    .poMMIO_TcpRxOooDropCnt           (sNTS0_MMIO_TcpRxOooDropCnt),
+    .poMMIO_UdpRxDataDropCnt          (sNTS0_MMIO_UdpRxDataDropCnt)
 
   );  // End of NTS0
 
