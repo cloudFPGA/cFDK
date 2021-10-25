@@ -33,7 +33,7 @@
 void DummyMemory::setReadCmd(DmCmd cmd) {
     this->readAddr = cmd.saddr(15,  0); // Start address
     this->readId   = cmd.saddr(31, 16); // Buffer address
-    uint16_t tempLen = (uint16_t) cmd.bbt(15, 0); // Byte to Transfer
+    uint16_t tempLen = (uint16_t) cmd.btt(15, 0); // Byte to Transfer
     this->readLen    = (int) tempLen;
 }
 

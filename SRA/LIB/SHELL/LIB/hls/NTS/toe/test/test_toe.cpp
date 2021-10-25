@@ -275,11 +275,11 @@ void pEmulateRxBufMem(
             // Memory Write Command
             siTOE_RxP_WrCmd.read(rxmem_dmCmd);
             if (DEBUG_LEVEL & TRACE_RXMEM) {
-                printInfo(myName, "Received memory write command from TOE: (addr=0x%llx, bbt=%d).\n",
-                          rxmem_dmCmd.saddr.to_uint64(), rxmem_dmCmd.bbt.to_uint());
+                printInfo(myName, "Received memory write command from TOE: (addr=0x%llx, btt=%d).\n",
+                          rxmem_dmCmd.saddr.to_uint64(), rxmem_dmCmd.btt.to_uint());
             }
             memory->setWriteCmd(rxmem_dmCmd);
-            rxmem_noBytesToWrite = rxmem_dmCmd.bbt.to_int();
+            rxmem_noBytesToWrite = rxmem_dmCmd.btt.to_int();
             rxmem_wrCounter = 0;
             rxmem_wrIdleCnt   = MEM_WR_CMD_LATENCY;
             rxmem_WrState     = MWR_DATA;
@@ -338,11 +338,11 @@ void pEmulateRxBufMem(
             // Memory Read Command
             siTOE_RxP_RdCmd.read(rxmem_dmCmd);
             if (DEBUG_LEVEL & TRACE_RXMEM) {
-                 printInfo(myName, "Received memory read command from TOE: (addr=0x%llx, bbt=%d).\n",
-                           rxmem_dmCmd.saddr.to_uint64(), rxmem_dmCmd.bbt.to_uint());
+                 printInfo(myName, "Received memory read command from TOE: (addr=0x%llx, btt=%d).\n",
+                           rxmem_dmCmd.saddr.to_uint64(), rxmem_dmCmd.btt.to_uint());
             }
             memory->setReadCmd(rxmem_dmCmd);
-            rxmem_noBytesToRead = rxmem_dmCmd.bbt.to_int();
+            rxmem_noBytesToRead = rxmem_dmCmd.btt.to_int();
             rxmem_rdCounter = 0;
             rxmem_rdIdleCnt = MEM_RD_CMD_LATENCY;
             rxmem_RdState   = MRD_DATA;
@@ -426,11 +426,11 @@ void pEmulateTxBufMem(
             // Memory Write Command -----------------------
             siTOE_TxP_WrCmd.read(txmem_dmCmd);
             if (DEBUG_LEVEL & TRACE_TXMEM) {
-                printInfo(myName, "Received memory write command from TOE: (addr=0x%llx, bbt=%d).\n",
-                          txmem_dmCmd.saddr.to_uint64(), txmem_dmCmd.bbt.to_uint());
+                printInfo(myName, "Received memory write command from TOE: (addr=0x%llx, btt=%d).\n",
+                          txmem_dmCmd.saddr.to_uint64(), txmem_dmCmd.btt.to_uint());
             }
             memory->setWriteCmd(txmem_dmCmd);
-            txmem_noBytesToWrite = txmem_dmCmd.bbt.to_int();
+            txmem_noBytesToWrite = txmem_dmCmd.btt.to_int();
             txmem_wrCounter = 0;
             txmem_wrIdleCnt = MEM_WR_CMD_LATENCY;
             txmem_WrState   = MWR_DATA;
@@ -488,11 +488,11 @@ void pEmulateTxBufMem(
             // Memory Read Command
             siTOE_TxP_RdCmd.read(txmem_dmCmd);
             if (DEBUG_LEVEL & TRACE_TXMEM) {
-                 printInfo(myName, "Received memory read command from TOE: (addr=0x%llx, bbt=%d).\n",
-                           txmem_dmCmd.saddr.to_uint64(), txmem_dmCmd.bbt.to_uint());
+                 printInfo(myName, "Received memory read command from TOE: (addr=0x%llx, btt=%d).\n",
+                           txmem_dmCmd.saddr.to_uint64(), txmem_dmCmd.btt.to_uint());
             }
             memory->setReadCmd(txmem_dmCmd);
-            txmem_noBytesToRead = txmem_dmCmd.bbt.to_int();
+            txmem_noBytesToRead = txmem_dmCmd.btt.to_int();
             txmem_rdCounter = 0;
             txmem_rdIdleCnt = MEM_RD_CMD_LATENCY;
             txmem_RdState   = MRD_DATA;

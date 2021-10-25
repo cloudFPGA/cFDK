@@ -877,7 +877,7 @@ void pRxMemoryWriter(
     case MWR_IDLE:
         if (!siFsm_MemWrCmd.empty() and !soRan_SplitSeg.full() and !soMEM_WrCmd.full()) {
             siFsm_MemWrCmd.read(mwr_memWrCmd);
-            if ((mwr_memWrCmd.saddr.range(TOE_WINDOW_BITS-1, 0) + mwr_memWrCmd.bbt) > TOE_RX_BUFFER_SIZE) {
+            if ((mwr_memWrCmd.saddr.range(TOE_WINDOW_BITS-1, 0) + mwr_memWrCmd.btt) > TOE_RX_BUFFER_SIZE) {
                 //-- Break this segment in two memory accesses because TCP Rx memory buffer wraps around
                 soRan_SplitSeg.write(true);
 
@@ -892,8 +892,8 @@ void pRxMemoryWriter(
                 soMEM_WrCmd.write(mwr_memWrCmd);
 
                 if (DEBUG_LEVEL & TRACE_MWR) {
-                    printInfo(myName, "Issuing memory write command #%d - SADDR=0x%9.9x - BBT=%d\n",
-                              mwr_debugCounter, mwr_memWrCmd.saddr.to_uint(), mwr_memWrCmd.bbt.to_uint());
+                    printInfo(myName, "Issuing memory write command #%d - SADDR=0x%9.9x - BTT=%d\n",
+                              mwr_debugCounter, mwr_memWrCmd.saddr.to_uint(), mwr_memWrCmd.btt.to_uint());
                     mwr_debugCounter++;
                 }
                 mwr_fsmState = MWR_FWD_ALIGNED;
@@ -907,7 +907,7 @@ void pRxMemoryWriter(
             soMEM_WrCmd.write(DmCmd(mwr_memWrCmd.saddr, mwr_firstAccLen));
 
             if (DEBUG_LEVEL & TRACE_MWR) {
-                printInfo(myName, "Issuing 1st memory write command #%d - SADDR=0x%9.9x - BBT=%d\n",
+                printInfo(myName, "Issuing 1st memory write command #%d - SADDR=0x%9.9x - BTT=%d\n",
                     mwr_debugCounter, mwr_memWrCmd.saddr.to_uint(), mwr_firstAccLen.to_uint());
             }
             mwr_fsmState = MWR_FWD_1ST_BUF;
@@ -941,12 +941,12 @@ void pRxMemoryWriter(
 
                     //-- Prepare and issue 2nd command
                     mwr_memWrCmd.saddr(TOE_WINDOW_BITS-1, 0) = 0;
-                    mwr_memWrCmd.bbt -= mwr_firstAccLen;
+                    mwr_memWrCmd.btt -= mwr_firstAccLen;
                     soMEM_WrCmd.write(mwr_memWrCmd);
 
                     if (DEBUG_LEVEL & TRACE_MWR) {
-                        printInfo(myName, "Issuing 2nd memory write command #%d - SADDR=0x%9.9x - BBT=%d\n",
-                                  mwr_debugCounter, mwr_memWrCmd.saddr.to_uint(), mwr_memWrCmd.bbt.to_uint());
+                        printInfo(myName, "Issuing 2nd memory write command #%d - SADDR=0x%9.9x - BTT=%d\n",
+                                  mwr_debugCounter, mwr_memWrCmd.saddr.to_uint(), mwr_memWrCmd.btt.to_uint());
                         mwr_debugCounter++;
                     }
                     mwr_fsmState = MWR_FWD_ALIGNED;
@@ -961,12 +961,12 @@ void pRxMemoryWriter(
 
                     //-- Prepare and issue 2nd command
                     mwr_memWrCmd.saddr(TOE_WINDOW_BITS-1, 0) = 0;
-                    mwr_memWrCmd.bbt -= mwr_firstAccLen;
+                    mwr_memWrCmd.btt -= mwr_firstAccLen;
                     soMEM_WrCmd.write(mwr_memWrCmd);
 
                     if (DEBUG_LEVEL & TRACE_MWR) {
-                        printInfo(myName, "Issuing 2nd memory write command #%d - SADDR=0x%9.9x - BBT=%d\n",
-                                  mwr_debugCounter, mwr_memWrCmd.saddr.to_uint(), mwr_memWrCmd.bbt.to_uint());
+                        printInfo(myName, "Issuing 2nd memory write command #%d - SADDR=0x%9.9x - BTT=%d\n",
+                                  mwr_debugCounter, mwr_memWrCmd.saddr.to_uint(), mwr_memWrCmd.btt.to_uint());
                         mwr_debugCounter++;
                     }
                     mwr_splitOffset = (ARW/8) - mwr_nrBytesToWr;
