@@ -40,6 +40,7 @@ CLEAN_TYPES = *.log *.jou *.str *.time
 
 all: pr
 
+
 # assert ENVIRONMENT
 assert_env: 
 	./cFDK/SRA/LIB/bash/assert_envs.sh
@@ -107,6 +108,8 @@ pr2: ensureNotMonolithic ShellSrc MidlwPr Role2 | xpr ## Builds Shell (if necess
 pr_full: ensureNotMonolithic ShellSrc MidlwPr Role Role2 | xpr ## Builds Shell (if necessary) and both Roles using PR flow
 	$(MAKE) -C ./TOP/tcl/ full_src_pr_all
 
+pr_flash: ensureNotMonolithic ShellSrc MidlwPr Role  | xpr  ## Builds Shell (if necessary) and first Role using PR flow and generate flash file
+	$(MAKE) -C ./TOP/tcl/ full_src_pr_flash
 
 #pr_debug: ensureNotMonolithic ensureDebugNets ShellSrc Role  | xpr  # Builds Shell (if necessary) and first Role only using PR flow including debug probes for the Shell
 #	$(MAKE) -C ./TOP/tcl/ full_src_pr_debug
@@ -213,5 +216,3 @@ help: ## Shows this help message
 	@echo 'Targets:'
 	@cat ${MAKEFILE_LIST}  | egrep '^(.+)\:(.+)##\ (.+)' |  column -s ':#' |  sed 's/:.*#/||/' |  column -s '||' -t | sed -e 's/^/    /' 
 	@echo
-
-

@@ -103,6 +103,8 @@ full_src_pr_debug: basecmd $(cFpDcpDir)/4_$(TOP_NAME)_impl_$(roleName1)_pblock_R
 
 full_src_pr_all_debug: basecmd $(cFpDcpDir)/4_$(TOP_NAME)_impl_$(roleName1)_pblock_ROLE_partial.bit $(cFpDcpDir)/4_$(TOP_NAME)_impl_$(roleName2)_pblock_ROLE_partial.bit $(cFpDcpDir)/5_$(TOP_NAME)_impl_$(roleName1).ltx finalcmd | $(cFpDcpDir)
 
+full_src_pr_flash: basecmd $(cFpDcpDir)/6_$(TOP_NAME)_impl_$(roleName1)_flash.mcs finalcmd | $(cFpDcpDir)
+
 ###########################################
 # Monolithic
 ###########################################
@@ -205,5 +207,10 @@ $(cFpDcpDir)/4_$(TOP_NAME)_impl_grey_box.bit: $(cFpDcpDir)/3_$(TOP_NAME)_static_
 $(cFpDcpDir)/3_$(TOP_NAME)_static_with_grey_box.dcp: $(cFpDcpDir)/3_$(TOP_NAME)_STATIC.dcp
 	@/bin/echo "-implGrey  -pr \\" >> .vivado_basecmd.sh
 	rm -f $@
+
+$(cFpDcpDir)/6_$(TOP_NAME)_impl_$(roleName1)_flash.mcs: $(cFpDcpDir)/4_$(TOP_NAME)_impl_$(roleName1)_pblock_ROLE_partial.bit $(cFpDcpDir)/2_$(TOP_NAME)_impl_$(roleName1)_complete_pr.dcp
+	@/bin/echo -e "-generate_mcs \\" >> .vivado_basecmd.sh
+	rm -f $@
+
 
 
