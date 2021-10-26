@@ -36,6 +36,8 @@ architecture body.
   - Streaming mode using AXI data mover: **64** max burst length (data size 64Bytes)
   - Memory mapped mode (directly connected to Axi interconnect): also 64 (since data size is also 512)
   - config parameters `READ_ACCEPTANCE` and `WRITE_ACCEPTANCE`: means the number of outstanding transfers, which must be equal to `2^ID_WIDTH`. 
+  - **DRE** is enabled for user, ID width is changed to 8
+  - MC1 has a burst size of 64, also for the data mover
 
 - MC0 (connected to the Shell):
   - use `memChan_DualPort`
