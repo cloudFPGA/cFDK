@@ -68,116 +68,118 @@
 module MemoryChannel_DualPort_Hybrid #(
   parameter gSecurityPriviledges = "user",  // "user" or "super"
   parameter gBitstreamUsage      = "user",  // "user" or "flash"
-  parameter gUserDataChanWidth   = 512
+  parameter gUserDataChanWidth   = 512,
+  parameter gUserIdChanWidth     = 8
 ) (
   //-- Global Clock used by the entire SHELL ------
-  input           piShlClk,
+  input                   piShlClk,
   //-- Global Reset used by the entire SHELL ------
-  input           piSHL_Rst,
+  input                   piSHL_Rst,
   //-- DDR4 Reference Memory Clock ----------------
-  input           piCLKT_MemClk_n,
-  input           piCLKT_MemClk_p,
+  input                   piCLKT_MemClk_n,
+  input                   piCLKT_MemClk_p,
   //-- Control Inputs and Status Ouputs ----------
-  output          poMMIO_InitCalComplete,
+  output                  poMMIO_InitCalComplete,
   //----------------------------------------------
   //-- MP0 / Memory Port Interface #0
   //----------------------------------------------
   //---- Stream Read Command -----------------
-  input  [79:0]   siMP0_RdCmd_tdata,
-  input           siMP0_RdCmd_tvalid,
-  output          siMP0_RdCmd_tready,
+  input  [79:0]           siMP0_RdCmd_tdata,
+  input                   siMP0_RdCmd_tvalid,
+  output                  siMP0_RdCmd_tready,
   //---- Stream Read Status ------------------
-  output [7:0]    soMP0_RdSts_tdata,
-  output          soMP0_RdSts_tvalid,
-  input           soMP0_RdSts_tready,
+  output [7:0]            soMP0_RdSts_tdata,
+  output                  soMP0_RdSts_tvalid,
+  input                   soMP0_RdSts_tready,
   //---- Stream Data Output Channel ----------
   output [gUserDataChanWidth-1:0]
-                  soMP0_Read_tdata,
+                          soMP0_Read_tdata,
   output [(gUserDataChanWidth/8)-1:0]
-                  soMP0_Read_tkeep,
-  output          soMP0_Read_tlast,
-  output          soMP0_Read_tvalid,
-  input           soMP0_Read_tready,
+                          soMP0_Read_tkeep,
+  output                  soMP0_Read_tlast,
+  output                  soMP0_Read_tvalid,
+  input                   soMP0_Read_tready,
   //---- Stream Write Command ----------------
-  input  [79:0]   siMP0_WrCmd_tdata,
-  input           siMP0_WrCmd_tvalid,
-  output          siMP0_WrCmd_tready,
+  input  [79:0]           siMP0_WrCmd_tdata,
+  input                   siMP0_WrCmd_tvalid,
+  output                  siMP0_WrCmd_tready,
   //---- Stream Write Status -----------------
-  output          soMP0_WrSts_tvalid,
-  output [7:0]    soMP0_WrSts_tdata,
-  input           soMP0_WrSts_tready,
+  output                  soMP0_WrSts_tvalid,
+  output [7:0]            soMP0_WrSts_tdata,
+  input                   soMP0_WrSts_tready,
   //---- Stream Data Input Channel -----------
   input  [gUserDataChanWidth-1:0]
-                  siMP0_Write_tdata,
+                          siMP0_Write_tdata,
   input  [(gUserDataChanWidth/8)-1:0]
-                  siMP0_Write_tkeep,
-  input           siMP0_Write_tlast,
-  input           siMP0_Write_tvalid,
-  output          siMP0_Write_tready,
+                          siMP0_Write_tkeep,
+  input                   siMP0_Write_tlast,
+  input                   siMP0_Write_tvalid,
+  output                  siMP0_Write_tready,
   //----------------------------------------------
   //-- MP1 / Memory Port Interface #1
   //----------------------------------------------
-  //TODO: make generic?
   //---- Write Address Channel ---------------
-  input  [  3: 0]  miMP1_AWID   ,
-  input  [ 32: 0]  miMP1_AWADDR ,
-  input  [  7: 0]  miMP1_AWLEN  ,
-  input  [  2: 0]  miMP1_AWSIZE ,
-  input  [  1: 0]  miMP1_AWBURST,
-  input            miMP1_AWVALID,
-  output           miMP1_AWREADY,
+  input  [  7: 0]         miMP1_AWID,
+  input  [ 32: 0]         miMP1_AWADDR ,
+  input  [  7: 0]         miMP1_AWLEN  ,
+  input  [  2: 0]         miMP1_AWSIZE ,
+  input  [  1: 0]         miMP1_AWBURST,
+  input                   miMP1_AWVALID,
+  output                  miMP1_AWREADY,
   //---- Write Data Channel ------------------
-  input  [511: 0]  miMP1_WDATA  ,
-  input  [ 63: 0]  miMP1_WSTRB  ,
-  input            miMP1_WLAST  ,
-  input            miMP1_WVALID ,
-  output           miMP1_WREADY ,
+  input  [gUserDataChanWidth-1: 0]
+                          miMP1_WDATA  ,
+  input  [ 63: 0]         miMP1_WSTRB  ,
+  input                   miMP1_WLAST  ,
+  input                   miMP1_WVALID ,
+  output                  miMP1_WREADY ,
   //---- Write Response Channel --------------
-  output [  3: 0]  miMP1_BID    ,
-  output [  1: 0]  miMP1_BRESP  ,
-  output           miMP1_BVALID ,
-  input            miMP1_BREADY ,
+  output [  7: 0]         miMP1_BID    ,
+  output [  1: 0]         miMP1_BRESP  ,
+  output                  miMP1_BVALID ,
+  input                   miMP1_BREADY ,
   //---- Read Address Channel ----------------
-  input  [  3: 0]  miMP1_ARID   ,
-  input  [ 32: 0]  miMP1_ARADDR ,
-  input  [  7: 0]  miMP1_ARLEN  ,
-  input  [  2: 0]  miMP1_ARSIZE ,
-  input  [  1: 0]  miMP1_ARBURST,
-  input            miMP1_ARVALID,
-  output           miMP1_ARREADY,
+  input  [  7: 0]         miMP1_ARID   ,
+  input  [ 32: 0]         miMP1_ARADDR ,
+  input  [  7: 0]         miMP1_ARLEN  ,
+  input  [  2: 0]         miMP1_ARSIZE ,
+  input  [  1: 0]         miMP1_ARBURST,
+  input                   miMP1_ARVALID,
+  output                  miMP1_ARREADY,
   //---- Read Data Channel -------------------
-  output [  3: 0]  miMP1_RID    ,
-  output [511: 0]  miMP1_RDATA  ,
-  output [  1: 0]  miMP1_RRESP  ,
-  output           miMP1_RLAST  ,
-  output           miMP1_RVALID ,
-  input            miMP1_RREADY , 
+  output [  7: 0]         miMP1_RID    ,
+  output [gUserDataChanWidth-1: 0]
+                          miMP1_RDATA  ,
+  output [  1: 0]         miMP1_RRESP  ,
+  output                  miMP1_RLAST  ,
+  output                  miMP1_RVALID ,
+  input                   miMP1_RREADY , 
   //----------------------------------------------
   // -- DDR4 Physical Interface
   //----------------------------------------------
-  inout   [8:0]   pioDDR4_DmDbi_n,
-  inout  [71:0]   pioDDR4_Dq     ,
-  inout   [8:0]   pioDDR4_Dqs_n  ,
-  inout   [8:0]   pioDDR4_Dqs_p  ,  
-  output          poDDR4_Act_n   ,
-  output [16:0]   poDDR4_Adr     ,
-  output  [1:0]   poDDR4_Ba      ,
-  output  [1:0]   poDDR4_Bg      ,
-  output  [0:0]   poDDR4_Cke     ,
-  output  [0:0]   poDDR4_Odt     ,
-  output  [0:0]   poDDR4_Cs_n    ,
-  output  [0:0]   poDDR4_Ck_n    ,
-  output  [0:0]   poDDR4_Ck_p    ,
-  output          poDDR4_Reset_n
+  inout   [8:0]           pioDDR4_DmDbi_n,
+  inout  [71:0]           pioDDR4_Dq     ,
+  inout   [8:0]           pioDDR4_Dqs_n  ,
+  inout   [8:0]           pioDDR4_Dqs_p  ,  
+  output                  poDDR4_Act_n   ,
+  output [16:0]           poDDR4_Adr     ,
+  output  [1:0]           poDDR4_Ba      ,
+  output  [1:0]           poDDR4_Bg      ,
+  output  [0:0]           poDDR4_Cke     ,
+  output  [0:0]           poDDR4_Odt     ,
+  output  [0:0]           poDDR4_Cs_n    ,
+  output  [0:0]           poDDR4_Ck_n    ,
+  output  [0:0]           poDDR4_Ck_p    ,
+  output                  poDDR4_Reset_n
 );  // End of PortList
 
 
-// *****************************************************************************
-
-  // Local Parameters
-  localparam C_MCC_S_AXI_ADDR_WIDTH  = 33;
-  localparam C_MCC_S_AXI_DATA_WIDTH  = 512;
-  localparam cMCC_S_AXI_ID_WIDTH     = 8;
+  //============================================================================
+  //  LOCAL PARAMETERS
+  //============================================================================
+  localparam cDATA_WIDTH  = 512; // Internal data width
+  localparam cID_WIDTH    = gUserIdChanWidth; 
+  localparam cADDR_WIDTH  = 33;  // 8GB
    
   //============================================================================
   //  SIGNAL DECLARATIONS
@@ -186,90 +188,90 @@ module MemoryChannel_DualPort_Hybrid #(
   //--------------------------------------------------------  
   //-- DATA MOVER #0 : Signal Declarations
   //--------------------------------------------------------
-  //---- Master Read Address Channel -----------------------
-  wire [3:0]   sbDM0_ICT_RdAdd_Id;
-  wire [32:0]  sbDM0_ICT_RdAdd_Addr;
-  wire [7:0]   sbDM0_ICT_RdAdd_Len;
-  wire [2:0]   sbDM0_ICT_RdAdd_Size;
-  wire [1:0]   sbDM0_ICT_RdAdd_Burst;
-  wire         sbDM0_ICT_RdAdd_Valid;
-  wire         sbDM0_ICT_RdAdd_Ready;
+  //---- Master Read Address   Channel -----------------------
+  wire [cID_WIDTH-1:0]        sbDM0_ICT_RdAdd_Id;
+  wire [cADDR_WIDTH-1:0]      sbDM0_ICT_RdAdd_Addr;
+  wire [7:0]                  sbDM0_ICT_RdAdd_Len;
+  wire [2:0]                  sbDM0_ICT_RdAdd_Size;
+  wire [1:0]                  sbDM0_ICT_RdAdd_Burst;
+  wire                        sbDM0_ICT_RdAdd_Valid;
+  wire                        sbDM0_ICT_RdAdd_Ready;
   //---- Master Write Address Channel ----------------------
-  wire [3:0]   sbDM0_ICT_WrAdd_Id;
-  wire [32:0]  sbDM0_ICT_WrAdd_Addr;
-  wire [7:0]   sbDM0_ICT_WrAdd_Len;
-  wire [2:0]   sbDM0_ICT_WrAdd_Size;
-  wire [1:0]   sbDM0_ICT_WrAdd_Burst;
-  wire         sbDM0_ICT_WrAdd_Valid;
-  wire         sbDM0_ICT_WrAdd_Ready;
+  wire [cID_WIDTH-1:0]        sbDM0_ICT_WrAdd_Id;
+  wire [cADDR_WIDTH-1:0]      sbDM0_ICT_WrAdd_Addr;
+  wire [7:0]                  sbDM0_ICT_WrAdd_Len;
+  wire [2:0]                  sbDM0_ICT_WrAdd_Size;
+  wire [1:0]                  sbDM0_ICT_WrAdd_Burst;
+  wire                        sbDM0_ICT_WrAdd_Valid;
+  wire                        sbDM0_ICT_WrAdd_Ready;
   //---- Master Write Data Channel -------------------------
-  wire [511:0] sbDM0_ICT_Write_Data;
-  wire [63:0]  sbDM0_ICT_Write_Strb;
-  wire         sbDM0_ICT_Write_Last;
-  wire         sbDM0_ICT_Write_Valid; 
-  wire         sbDM0_ICT_Write_Ready;
-   
+  wire [cDATA_WIDTH-1:0]      sbDM0_ICT_Write_Data;
+  wire [cDATA_WIDTH/8-1:0]    sbDM0_ICT_Write_Strb;
+  wire                        sbDM0_ICT_Write_Last;
+  wire                        sbDM0_ICT_Write_Valid; 
+  wire                        sbDM0_ICT_Write_Ready;
+  
   //--------------------------------------------------------  
   //-- AXI INTERCONNECT : Signal Declarations
   //--------------------------------------------------------
   //---- Slave Read Data Channel #0 ------------------------
-  wire [3:0]   sbICT_DM0_Read_Id;
-  wire [511:0] sbICT_DM0_Read_Data;
-  wire [1:0]   sbICT_DM0_Read_Resp;
-  wire         sbICT_DM0_Read_Last;
-  wire         sbICT_DM0_Read_Valid;
-  wire         sbICT_DM0_Read_Ready;
+  wire [cID_WIDTH-1:0]        sbICT_DM0_Read_Id;
+  wire [cDATA_WIDTH-1:0]      sbICT_DM0_Read_Data;
+  wire [1:0]                  sbICT_DM0_Read_Resp;
+  wire                        sbICT_DM0_Read_Last;
+  wire                        sbICT_DM0_Read_Valid;
+  wire                        sbICT_DM0_Read_Ready;
   //-- Master Write Response Channel #0 --------------------
-  wire [3:0]   sbICT_DM0_WrRes_Id;
-  wire [1:0]   sbICT_DM0_WrRes_Resp;
-  wire         sbICT_DM0_WrRes_Valid;
-  wire         sbICT_DM0_WrRes_Ready;
+  wire [cID_WIDTH-1:0]        sbICT_DM0_WrRes_Id;
+  wire [1:0]                  sbICT_DM0_WrRes_Resp;
+  wire                        sbICT_DM0_WrRes_Valid;
+  wire                        sbICT_DM0_WrRes_Ready;
   //---- Master Write Address Channel ----------------------
-  wire [7:0]   sbICT_MCC_WrAdd_Wid;
-  wire [32:0]  sbICT_MCC_WrAdd_Addr;
-  wire [7:0]   sbICT_MCC_WrAdd_Len;
-  wire [2:0]   sbICT_MCC_WrAdd_Size;
-  wire [1:0]   sbICT_MCC_WrAdd_Burst;
-  wire         sbICT_MCC_WrAdd_Valid;
-  wire         sbICT_MCC_WrAdd_Ready;
+  wire [cID_WIDTH+3:0]        sbICT_MCC_WrAdd_Wid;
+  wire [cADDR_WIDTH-1:0]      sbICT_MCC_WrAdd_Addr;
+  wire [7:0]                  sbICT_MCC_WrAdd_Len;
+  wire [2:0]                  sbICT_MCC_WrAdd_Size;
+  wire [1:0]                  sbICT_MCC_WrAdd_Burst;
+  wire                        sbICT_MCC_WrAdd_Valid;
+  wire                        sbICT_MCC_WrAdd_Ready;
   //---- Master Write Data Channel ------------------------- 
-  wire [C_MCC_S_AXI_DATA_WIDTH-1:0]     sbICT_MCC_Write_Data;
-  wire [(C_MCC_S_AXI_DATA_WIDTH/8)-1:0] sbICT_MCC_Write_Strb;
-  wire                                  sbICT_MCC_Write_Last;
-  wire                                  sbICT_MCC_Write_Valid;
-  wire                                  sbICT_MCC_Write_Ready;
+  wire [cDATA_WIDTH-1:0]      sbICT_MCC_Write_Data;
+  wire [cDATA_WIDTH/8-1:0]    sbICT_MCC_Write_Strb;
+  wire                        sbICT_MCC_Write_Last;
+  wire                        sbICT_MCC_Write_Valid;
+  wire                        sbICT_MCC_Write_Ready;
   //---- Master Write Response Channel ---------------------
-  wire [cMCC_S_AXI_ID_WIDTH-1:0]        sbMCC_ICT_WrRes_Id;
-  wire [1:0]                            sbMCC_ICT_WrRes_Resp;
-  wire                                  sbMCC_ICT_WrRes_Valid;
-  wire                                  sbMCC_ICT_WrRes_Ready;
+  wire [cID_WIDTH+3:0]        sbMCC_ICT_WrRes_Id;
+  wire [1:0]                  sbMCC_ICT_WrRes_Resp;
+  wire                        sbMCC_ICT_WrRes_Valid;
+  wire                        sbMCC_ICT_WrRes_Ready;
   //-- Master Read Address Channel -------------------------
-  wire [7:0]   sbICT_MCC_RdAdd_Id;
-  wire [32:0]  sbICT_MCC_RdAdd_Addr;
-  wire [7:0]   sbICT_MCC_RdAdd_Len;
-  wire [2:0]   sbICT_MCC_RdAdd_Size;
-  wire [1:0]   sbICT_MCC_RdAdd_Burst;
-  wire         sbICT_MCC_RdAdd_Valid;
-  wire         sbICT_MCC_RdAdd_Ready;
+  wire [cID_WIDTH+3:0]        sbICT_MCC_RdAdd_Id;
+  wire [cADDR_WIDTH-1:0]      sbICT_MCC_RdAdd_Addr;
+  wire [7:0]                  sbICT_MCC_RdAdd_Len;
+  wire [2:0]                  sbICT_MCC_RdAdd_Size;
+  wire [1:0]                  sbICT_MCC_RdAdd_Burst;
+  wire                        sbICT_MCC_RdAdd_Valid;
+  wire                        sbICT_MCC_RdAdd_Ready;
   
   //--------------------------------------------------------  
   //-- MEMORY CHANNEL CONTROLLER : Signal Declarations
   //--------------------------------------------------------
   //---- User Interface ------------------------------------
-  wire                                  sMCC_Ui_clk;
-  wire                                  sMCC_Ui_SyncRst;
+  wire                        sMCC_Ui_clk;
+  wire                        sMCC_Ui_SyncRst;
   //---- Master Read Data Channel --------------------------
-  wire [7:0]                            sbMCC_ICT_Read_Id;
-  wire [C_MCC_S_AXI_DATA_WIDTH-1:0]     sbMCC_ICT_Read_Data;
-  wire [1:0]                            sbMCC_ICT_Read_Resp;
-  wire                                  sbMCC_ICT_Read_Last;
-  wire                                  sbMCC_ICT_Read_Valid;
-  wire                                  sbMCC_ICT_Read_Ready;
+  wire [cID_WIDTH+3:0]        sbMCC_ICT_Read_Id;
+  wire [cDATA_WIDTH-1:0]      sbMCC_ICT_Read_Data;
+  wire [1:0]                  sbMCC_ICT_Read_Resp;
+  wire                        sbMCC_ICT_Read_Last;
+  wire                        sbMCC_ICT_Read_Valid;
+  wire                        sbMCC_ICT_Read_Ready;
   
   //--------------------------------------------------------
   //-- LOCALY GERANERATED : Signal Declarations
   //--------------------------------------------------------
-  reg                                   sMCC_Ui_SyncRst_n;
+  reg                         sMCC_Ui_SyncRst_n;
     
       //========================================================================
       //  INST: DATA MOVER #0 (slave data width = 512)
