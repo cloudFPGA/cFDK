@@ -96,10 +96,10 @@ const char *myCamAccessToString(int initiator) {
  * @param[in/out] ss        A ref to the stream to drain.
  * @param[in]     ssName    The name of the stream to drain.
  *
- * @return NTS_OK if successful,  otherwise NTS_KO.
+ * @return the number of dropped ellements.
  ******************************************************************************/
-template<typename T> bool drainMmioDropCounter(stream<T> &ss, string ssName) {
-    int          nr=0;
+template<typename T> int drainMmioDropCounter(stream<T> &ss, string ssName) {
+    int          nrDrops=0;
     const char  *myName  = concat3(THIS_NAME, "/", "DMDC");
     T  currDropCount;
     T  prevDropCount=0;
@@ -110,10 +110,11 @@ template<typename T> bool drainMmioDropCounter(stream<T> &ss, string ssName) {
         if (currDropCount != prevDropCount) {
             printWarn(myName, "Detected a drop event on stream '%s' (currDropCounter=%d). \n",
                       ssName.c_str(), currDropCount.to_ushort());
+            nrDrops++;
         }
         prevDropCount = currDropCount;
     }
-    return(NTS_OK);
+    return(nrDrops);
 }
 
 /*******************************************************************************
@@ -274,11 +275,11 @@ void pEmulateRxBufMem(
             // Memory Write Command
             siTOE_RxP_WrCmd.read(rxmem_dmCmd);
             if (DEBUG_LEVEL & TRACE_RXMEM) {
-                printInfo(myName, "Received memory write command from TOE: (addr=0x%llx, bbt=%d).\n",
-                          rxmem_dmCmd.saddr.to_uint64(), rxmem_dmCmd.bbt.to_uint());
+                printInfo(myName, "Received memory write command from TOE: (addr=0x%llx, btt=%d).\n",
+                          rxmem_dmCmd.saddr.to_uint64(), rxmem_dmCmd.btt.to_uint());
             }
             memory->setWriteCmd(rxmem_dmCmd);
-            rxmem_noBytesToWrite = rxmem_dmCmd.bbt.to_int();
+            rxmem_noBytesToWrite = rxmem_dmCmd.btt.to_int();
             rxmem_wrCounter = 0;
             rxmem_wrIdleCnt   = MEM_WR_CMD_LATENCY;
             rxmem_WrState     = MWR_DATA;
@@ -337,11 +338,11 @@ void pEmulateRxBufMem(
             // Memory Read Command
             siTOE_RxP_RdCmd.read(rxmem_dmCmd);
             if (DEBUG_LEVEL & TRACE_RXMEM) {
-                 printInfo(myName, "Received memory read command from TOE: (addr=0x%llx, bbt=%d).\n",
-                           rxmem_dmCmd.saddr.to_uint64(), rxmem_dmCmd.bbt.to_uint());
+                 printInfo(myName, "Received memory read command from TOE: (addr=0x%llx, btt=%d).\n",
+                           rxmem_dmCmd.saddr.to_uint64(), rxmem_dmCmd.btt.to_uint());
             }
             memory->setReadCmd(rxmem_dmCmd);
-            rxmem_noBytesToRead = rxmem_dmCmd.bbt.to_int();
+            rxmem_noBytesToRead = rxmem_dmCmd.btt.to_int();
             rxmem_rdCounter = 0;
             rxmem_rdIdleCnt = MEM_RD_CMD_LATENCY;
             rxmem_RdState   = MRD_DATA;
@@ -425,11 +426,11 @@ void pEmulateTxBufMem(
             // Memory Write Command -----------------------
             siTOE_TxP_WrCmd.read(txmem_dmCmd);
             if (DEBUG_LEVEL & TRACE_TXMEM) {
-                printInfo(myName, "Received memory write command from TOE: (addr=0x%llx, bbt=%d).\n",
-                          txmem_dmCmd.saddr.to_uint64(), txmem_dmCmd.bbt.to_uint());
+                printInfo(myName, "Received memory write command from TOE: (addr=0x%llx, btt=%d).\n",
+                          txmem_dmCmd.saddr.to_uint64(), txmem_dmCmd.btt.to_uint());
             }
             memory->setWriteCmd(txmem_dmCmd);
-            txmem_noBytesToWrite = txmem_dmCmd.bbt.to_int();
+            txmem_noBytesToWrite = txmem_dmCmd.btt.to_int();
             txmem_wrCounter = 0;
             txmem_wrIdleCnt = MEM_WR_CMD_LATENCY;
             txmem_WrState   = MWR_DATA;
@@ -487,11 +488,11 @@ void pEmulateTxBufMem(
             // Memory Read Command
             siTOE_TxP_RdCmd.read(txmem_dmCmd);
             if (DEBUG_LEVEL & TRACE_TXMEM) {
-                 printInfo(myName, "Received memory read command from TOE: (addr=0x%llx, bbt=%d).\n",
-                           txmem_dmCmd.saddr.to_uint64(), txmem_dmCmd.bbt.to_uint());
+                 printInfo(myName, "Received memory read command from TOE: (addr=0x%llx, btt=%d).\n",
+                           txmem_dmCmd.saddr.to_uint64(), txmem_dmCmd.btt.to_uint());
             }
             memory->setReadCmd(txmem_dmCmd);
-            txmem_noBytesToRead = txmem_dmCmd.bbt.to_int();
+            txmem_noBytesToRead = txmem_dmCmd.btt.to_int();
             txmem_rdCounter = 0;
             txmem_rdIdleCnt = MEM_RD_CMD_LATENCY;
             txmem_RdState   = MRD_DATA;
@@ -2385,47 +2386,48 @@ void pTAIF(
 /*******************************************************************************
  * @brief A wrapper for the Toplevel of the TCP Offload Engine (TOE).
  *
- * @param[in]  piMMIO_IpAddr    IP4 Address from [MMIO].
- * @param[out] soMMIO_NotifDrop The value of the notification drop counter.
- * @param[out] soMMIO_MetaDrop  The value of the metadata drop counter.
- * @param[out] soMMIO_DataDrop  The value of the data drop counter.
- * @param[out] soMMIO_CrcDrop   The value of the CRC drop counter.
- * @param[out] soMMIO_SessDrop  The value of the session drop counter.
- * @param[out] soMMIO_OooDrop   The value of the out-of-order drop counter.
- * @param[out] poNTS_Ready      Ready signal of TOE.
- * @param[in]  siIPRX_Data      IP4 data stream from [IPRX].
- * @param[out] soIPTX_Data      IP4 data stream to [IPTX].
- * @param[out] soTAIF_Notif     APP data notification to [TAIF].
- * @param[in]  siTAIF_DReq      APP data request from [TAIF].
- * @param[out] soTAIF_Data      APP data stream to [TAIF].
- * @param[out] soTAIF_Meta      APP metadata stream to [TAIF].
- * @param[in]  siTAIF_LsnReq    APP listen port request from [TAIF].
- * @param[out] soTAIF_LsnRep    APP listen port reply to [TAIF].
- * @param[in]  siTAIF_Data      APP data stream from [TAIF].
- * @param[in]  siTAIF_SndReq    APP request to send from [TAIF].
- * @param[out] soTAIF_SndRep    APP send reply to [TAIF].
- * @param[in]  siTAIF_OpnReq    APP open port request from [TAIF].
- * @param[out] soTAIF_OpnRep    APP open port reply to [TAIF].
- * @param[in]  siTAIF_ClsReq    APP close connection request from [TAIF].
- * @warning:   Not-Used         APP close connection status to [TAIF].
- * @warning:   Not-Used         Rx memory read status from [MEM].
- * @param[out] soMEM_RxP_RdCmd  Rx memory read command to [MEM].
- * @param[in]  siMEM_RxP_Data   Rx memory data from [MEM].
- * @param[in]  siMEM_RxP_WrSts  Rx memory write status from [MEM].
- * @param[out] soMEM_RxP_WrCmd  Rx memory write command to [MEM].
- * @param[out] soMEM_RxP_Data   Rx memory data to [MEM].
- * @warning:   Not-Used         Tx memory read status from [MEM].
- * @param[out] soMEM_TxP_RdCmd  Tx memory read command to [MEM].
- * @param[in]  siMEM_TxP_Data   Tx memory data from [MEM].
- * @param[in]  siMEM_TxP_WrSts  Tx memory write status from [MEM].
- * @param[out] soMEM_TxP_WrCmd  Tx memory write command to [MEM].
- * @param[out] soMEM_TxP_Data   Tx memory data to [MEM].
- * @param[out] soCAM_SssLkpReq  Session lookup request to [CAM].
- * @param[in]  siCAM_SssLkpRep  Session lookup reply from [CAM].
- * @param[out] soCAM_SssUpdReq  Session update request to [CAM].
- * @param[in]  siCAM_SssUpdRep  Session update reply from [CAM].
- * @param[out] soDBG_SssRelCnt  Session release count (for DEBUG).
- * @param[out] soDBG_SssRegCnt  Session register count (foe DEBUG).
+ * @param[in]  piMMIO_IpAddr     IP4 Address from [MMIO].
+ * @param[out] soMMIO_RxMemWrErr Reports a Rx memory write error.
+ * @param[out] soMMIO_NotifDrop  The value of the notification drop counter.
+ * @param[out] soMMIO_MetaDrop   The value of the metadata drop counter.
+ * @param[out] soMMIO_DataDrop   The value of the data drop counter.
+ * @param[out] soMMIO_CrcDrop    The value of the CRC drop counter.
+ * @param[out] soMMIO_SessDrop   The value of the session drop counter.
+ * @param[out] soMMIO_OooDrop    The value of the out-of-order drop counter.
+ * @param[out] poNTS_Ready       Ready signal of TOE.
+ * @param[in]  siIPRX_Data       IP4 data stream from [IPRX].
+ * @param[out] soIPTX_Data       IP4 data stream to [IPTX].
+ * @param[out] soTAIF_Notif      APP data notification to [TAIF].
+ * @param[in]  siTAIF_DReq       APP data request from [TAIF].
+ * @param[out] soTAIF_Data       APP data stream to [TAIF].
+ * @param[out] soTAIF_Meta       APP metadata stream to [TAIF].
+ * @param[in]  siTAIF_LsnReq     APP listen port request from [TAIF].
+ * @param[out] soTAIF_LsnRep     APP listen port reply to [TAIF].
+ * @param[in]  siTAIF_Data       APP data stream from [TAIF].
+ * @param[in]  siTAIF_SndReq     APP request to send from [TAIF].
+ * @param[out] soTAIF_SndRep     APP send reply to [TAIF].
+ * @param[in]  siTAIF_OpnReq     APP open port request from [TAIF].
+ * @param[out] soTAIF_OpnRep     APP open port reply to [TAIF].
+ * @param[in]  siTAIF_ClsReq     APP close connection request from [TAIF].
+ * @warning:   Not-Used          APP close connection status to [TAIF].
+ * @warning:   Not-Used          Rx memory read status from [MEM].
+ * @param[out] soMEM_RxP_RdCmd   Rx memory read command to [MEM].
+ * @param[in]  siMEM_RxP_Data    Rx memory data from [MEM].
+ * @param[in]  siMEM_RxP_WrSts   Rx memory write status from [MEM].
+ * @param[out] soMEM_RxP_WrCmd   Rx memory write command to [MEM].
+ * @param[out] soMEM_RxP_Data    Rx memory data to [MEM].
+ * @warning:   Not-Used          Tx memory read status from [MEM].
+ * @param[out] soMEM_TxP_RdCmd   Tx memory read command to [MEM].
+ * @param[in]  siMEM_TxP_Data    Tx memory data from [MEM].
+ * @param[in]  siMEM_TxP_WrSts   Tx memory write status from [MEM].
+ * @param[out] soMEM_TxP_WrCmd   Tx memory write command to [MEM].
+ * @param[out] soMEM_TxP_Data    Tx memory data to [MEM].
+ * @param[out] soCAM_SssLkpReq   Session lookup request to [CAM].
+ * @param[in]  siCAM_SssLkpRep   Session lookup reply from [CAM].
+ * @param[out] soCAM_SssUpdReq   Session update request to [CAM].
+ * @param[in]  siCAM_SssUpdRep   Session update reply from [CAM].
+ * @param[out] soDBG_SssRelCnt   Session release count (for DEBUG).
+ * @param[out] soDBG_SssRegCnt   Session register count (foe DEBUG).
  *
  * @details
  *  This process is a wrapper for the 'toe_top' entity. It instantiates such an
@@ -2435,6 +2437,7 @@ void pTAIF(
   void toe_top_wrap(
         //-- MMIO Interfaces
         Ip4Addr                                  piMMIO_IpAddr,
+        stream<StsBit>                          &soMMIO_RxMemWrErr,
         stream<ap_uint<8> >                     &soMMIO_NotifDropCnt,
         stream<ap_uint<8> >                     &soMMIO_MetaDropCnt,
         stream<ap_uint<8> >                     &soMMIO_DataDropCnt,
@@ -2509,6 +2512,7 @@ void pTAIF(
     toe_top(
       //-- MMIO Interfaces
       piMMIO_IpAddr,
+      soMMIO_RxMemWrErr,
       soMMIO_NotifDropCnt,
       soMMIO_MetaDropCnt,
       soMMIO_DataDropCnt,
@@ -2648,6 +2652,7 @@ int main(int argc, char *argv[]) {
     stream<CamSessionUpdateRequest> ssTOE_CAM_SssUpdReq  ("ssTOE_CAM_SssUpdReq");
     stream<CamSessionUpdateReply>   ssCAM_TOE_SssUpdRep  ("ssCAM_TOE_SssUpdRep");
 
+    stream<StsBit>                  ssTOE_MMIO_RxMemWrErr   ("ssTOE_MMIO_RxMemWrErr");
     stream<ap_uint<8> >             ssTOE_MMIO_NotifDropCnt ("ssTOE_MMIO_NotifDropCnt");
     stream<ap_uint<8> >             ssTOE_MMIO_MetaDropCnt  ("ssTOE_MMIO_MetaDropCnt");
     stream<ap_uint<8> >             ssTOE_MMIO_DataDropCnt  ("ssTOE_MMIO_DataDropCnt");
@@ -2862,6 +2867,7 @@ int main(int argc, char *argv[]) {
         #endif
             //-- MMIO Interfaces
             gFpgaIp4Addr,
+            ssTOE_MMIO_RxMemWrErr,
             ssTOE_MMIO_NotifDropCnt,
             ssTOE_MMIO_MetaDropCnt,
             ssTOE_MMIO_DataDropCnt,
@@ -3049,30 +3055,13 @@ int main(int argc, char *argv[]) {
     //---------------------------------------------
     //-- DRAIN TOE-->MMIO DROP COUNTER STREAMS
     //---------------------------------------------
-    if (not drainMmioDropCounter(ssTOE_MMIO_NotifDropCnt, "ssTOE_MMIO_NotifDropCnt")) {
-        printError(THIS_NAME, "Failed to drain TOE-to-MMIO notification drop counter from DUT. \n");
-        nrErr++;
-    }
-    if (not drainMmioDropCounter(ssTOE_MMIO_MetaDropCnt, "ssTOE_MMIO_MetaDropCnt")) {
-        printError(THIS_NAME, "Failed to drain TOE-to-MMIO metadata drop counter from DUT. \n");
-        nrErr++;
-    }
-    if (not drainMmioDropCounter(ssTOE_MMIO_DataDropCnt, "ssTOE_MMIO_DataDropCnt")) {
-        printError(THIS_NAME, "Failed to drain TOE-to-MMIO data drop counter from DUT. \n");
-        nrErr++;
-    }
-    if (not drainMmioDropCounter(ssTOE_MMIO_CrcDropCnt, "ssTOE_MMIO_CrcDropCnt")) {
-        printError(THIS_NAME, "Failed to drain TOE-to-MMIO CRC error drop counter from DUT. \n");
-        nrErr++;
-    }
-    if (not drainMmioDropCounter(ssTOE_MMIO_SessDropCnt, "ssTOE_MMIO_SessDropCnt")) {
-        printError(THIS_NAME, "Failed to drain TOE-to-MMIO session error drop counter from DUT. \n");
-        nrErr++;
-    }
-    if (not drainMmioDropCounter(ssTOE_MMIO_OooDropCnt, "ssTOE_MMIO_OooDropCnt")) {
-        printError(THIS_NAME, "Failed to drain TOE-to-MMIO out-of-order error drop counter from DUT. \n");
-        nrErr++;
-    }
+    int nrRxMemWrErr = drainMmioDropCounter(ssTOE_MMIO_RxMemWrErr,   "drainMmioDropCounter");
+    int nrNotifDrops = drainMmioDropCounter(ssTOE_MMIO_NotifDropCnt, "ssTOE_MMIO_NotifDropCnt");
+    int nrMetaDrops  = drainMmioDropCounter(ssTOE_MMIO_MetaDropCnt,  "ssTOE_MMIO_MetaDropCnt");
+    int nrDataDrops  = drainMmioDropCounter(ssTOE_MMIO_DataDropCnt,  "ssTOE_MMIO_DataDropCnt");
+    int nrCrcDrops   = drainMmioDropCounter(ssTOE_MMIO_CrcDropCnt,   "ssTOE_MMIO_CrcDropCnt");
+    int nrSessDrops  = drainMmioDropCounter(ssTOE_MMIO_SessDropCnt,  "ssTOE_MMIO_SessDropCnt");
+    int nrOooDrops   = drainMmioDropCounter(ssTOE_MMIO_OooDropCnt,   "ssTOE_MMIO_OooDropCnt");
 
     //---------------------------------
     //-- CLOSING OPEN FILES
@@ -3135,10 +3124,15 @@ int main(int argc, char *argv[]) {
             string mergedTAIF_StrmName = std::string(ofTAIF_DataName) + ".merged";
             int mergeCmd1 = system(("paste -sd \"\" "+ std::string(sortedTAIF_GoldName) + " > " + mergedTAIF_GoldName + " ").c_str());
             int mergeCmd2 = system(("paste -sd \"\" "+ std::string(ofTAIF_DataName)     + " > " + mergedTAIF_StrmName + " ").c_str());
-            int ooo_TcpCompare = system(("diff --brief -w " + mergedTAIF_GoldName + " " + mergedTAIF_StrmName + " ").c_str());
-            if (ooo_TcpCompare != 0) {
-                printError(THIS_NAME, "File \"%s\" differs from file \"%s\" \n", mergedTAIF_StrmName.c_str(), mergedTAIF_GoldName.c_str());
-                nrErr++;
+            int ipRx_TcpDataCompare = system(("diff --brief -w " + mergedTAIF_GoldName + " " + mergedTAIF_StrmName + " ").c_str());
+            if (ipRx_TcpDataCompare != 0) {
+                if (nrOooDrops == 0) {
+                    printError(THIS_NAME, "File \"%s\" differs from file \"%s\" \n", mergedTAIF_StrmName.c_str(), mergedTAIF_GoldName.c_str());
+                    nrErr++;
+                }
+                else {
+                    printWarn(THIS_NAME, "Skipping TCP data comparison on the IP Rx side.\n");
+                }
             }
         }
         else {
@@ -3146,11 +3140,21 @@ int main(int argc, char *argv[]) {
             int appTxCompare = system(("diff --brief -w " + std::string(ofTAIF_DataName) + " "
                                                           + std::string(ofTAIF_GoldName) + " ").c_str());
             if (appTxCompare != 0) {
-                printError(THIS_NAME, "File \"%s\" differs from file \"%s\" \n", ofTAIF_DataName, ofTAIF_GoldName);
-                nrErr++;
-                if (tcpBytCntr_IPRX_TOE != tcpBytCnt_TOE_APP) {
-                    printError(THIS_NAME, "The number of TCP bytes received by TOE on its IP interface (%d) does not match the number TCP bytes forwarded by TOE to the application over its TAIF interface (%d). \n", tcpBytCntr_IPRX_TOE, tcpBytCnt_TOE_APP);
+                if (nrOooDrops == 0) {
+                    printError(THIS_NAME, "File \"%s\" differs from file \"%s\" \n", ofTAIF_DataName, ofTAIF_GoldName);
                     nrErr++;
+                }
+                else {
+                    printWarn(THIS_NAME, "Skipping comparison between file \"%s\" and file \"%s\" \n", ofTAIF_DataName, ofTAIF_GoldName);
+                }
+                if (tcpBytCntr_IPRX_TOE != tcpBytCnt_TOE_APP) {
+                    if (nrOooDrops == 0) {
+                        printError(THIS_NAME, "The number of TCP bytes received by TOE on its IP interface (%d) does not match the number TCP bytes forwarded by TOE to the application over its TAIF interface (%d). \n", tcpBytCntr_IPRX_TOE, tcpBytCnt_TOE_APP);
+                        nrErr++;
+                    }
+                    else {
+                        printWarn(THIS_NAME, "Skipping TCP IpRx vs TCP App byte count comparison.\n");
+                    }
                 }
             }
         }

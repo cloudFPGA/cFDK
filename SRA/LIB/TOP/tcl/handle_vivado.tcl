@@ -81,6 +81,7 @@ set use_incr       0
 set save_incr      0
 set only_pr_bitgen 0
 set insert_ila 0
+set generate_mcs 0
 
 
 #-------------------------------------------------------------------------------
@@ -117,6 +118,7 @@ if { $argc > 0 } {
         { save_incr "Save current implementation for use in incremental compile for non-BlackBox flow."}
         { only_pr_bitgen "Generate only the partial bitfiles for PR-Designs."}
         { insert_ila "Insert the debug nets according to xdc/debug.xdc"}
+        { generate_mcs "Generate the mcs file to write to the board flash (1st impl run)."}
     }
     set usage "\nIT IS STRONGLY RECOMMENDED TO CALL THIS SCRIPT ONLY THROUGH THE CORRESPONDING MAKEFILES\n\nUSAGE: Vivado -mode batch -source ${argv0} -notrace -tclargs \[OPTIONS] \nOPTIONS:"
     
@@ -215,6 +217,10 @@ if { $argc > 0 } {
               set insert_ila 1
               my_info_puts "The argument \'insert_ila\' is set."
             }
+            if { ${key} eq "generate_mcs" && ${value} eq 1 } {
+              set generate_mcs 1
+              my_info_puts "The argument \'generate_mcs\' is set."
+            }
         } 
     }
 }
@@ -224,6 +230,17 @@ my_info_puts "usedRole2 is set to $usedRole2"
 
 # -----------------------------------------------------
 # Assert valid combination of arguments 
+if {$only_pr_bitgen} {
+  # to deal with https://www.xilinx.com/support/answers/70708.html
+  set pr_verify 0
+  set generate_mcs 0
+}
+
+if {$generate_mcs} {
+  set bitGen1 1
+  set pr 1
+}
+
 if {$pr || $link} {
   set forceWithoutBB 0
 }
@@ -231,10 +248,7 @@ if {$pr || $link} {
 if {$pr && $impl1 && $synth} {
   set link 1
 }
-if {$only_pr_bitgen} {
-  # to deal with https://www.xilinx.com/support/answers/70708.html
-  set pr_verify 0
-}
+
 # -----------------------------------------------------
 
 if { ${create} } {
@@ -982,25 +996,34 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
       # --> moved to fix_things.tcl
 
       if { $pr } {
-        if { $bitGen1 } { 
-          open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete_pr.dcp 
+        if { $bitGen1 } {
+          open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete_pr.dcp
           
-          source ${tclTopDir}/fix_things.tcl 
-          #source ./fix_things.tcl 
+          source ${tclTopDir}/fix_things.tcl
+          #source ./fix_things.tcl
           if { $only_pr_bitgen } {
-            write_bitstream -bin_file -cell ROLE -force ${dcpDir}/4_${topName}_impl_${curImpl}_pblock_ROLE_partial 
+            write_bitstream -bin_file -cell ROLE -force ${dcpDir}/4_${topName}_impl_${curImpl}_pblock_ROLE_partial
             # no file extenstions .bit/.bin here!
           } else {
             write_bitstream -bin_file -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
           }
           #close_project
           # DEBUG probes
-          if { $insert_ila } { 
+          if { $insert_ila } {
             write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}.ltx
           }
-        } 
+          if { $generate_mcs } {
+            my_puts "################################################################################"
+            my_puts "## GENERATE MCS file for FMKU2595v2 "
+            my_puts "## only valid with PR flow "
+            my_puts "################################################################################"
+
+            set loadbit_cmd "up 0x00000000 ${dcpDir}/4_${topName}_impl_${curImpl}.bit "
+            write_cfgmem -format mcs -size 64 -interface BPIx16 -loadbit ${loadbit_cmd} -file ${dcpDir}/6_${topName}_impl_${curImpl}_flash.mcs
+          }
+        }
         # else: do nothing: only impl2 or grey_box will be generated (to save time)
-        
+
       } else {
         open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete.dcp 
         source ${tclTopDir}/fix_things.tcl 
@@ -1053,7 +1076,6 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
     #     write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}.ltx
     #   }
     # }
-
 
     my_puts "################################################################################"
     my_puts "##  DONE WITH BITSTREAM GENERATION RUN "

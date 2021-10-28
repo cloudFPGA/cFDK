@@ -226,7 +226,7 @@ module Shell_Themisto # (
   //------------------------------------------------------
   //-- ROLE / Mem / Mp1 Interface
   //------------------------------------------------------
-  input  [  3: 0]  miROL_Mem_Mp1_AWID,
+  input  [  7: 0]  miROL_Mem_Mp1_AWID,
   input  [ 32: 0]  miROL_Mem_Mp1_AWADDR,
   input  [  7: 0]  miROL_Mem_Mp1_AWLEN,
   input  [  2: 0]  miROL_Mem_Mp1_AWSIZE,
@@ -238,18 +238,18 @@ module Shell_Themisto # (
   input            miROL_Mem_Mp1_WLAST,
   input            miROL_Mem_Mp1_WVALID,
   output           miROL_Mem_Mp1_WREADY,
-  output [  3: 0]  miROL_Mem_Mp1_BID,
+  output [  7: 0]  miROL_Mem_Mp1_BID,
   output [  1: 0]  miROL_Mem_Mp1_BRESP,
   output           miROL_Mem_Mp1_BVALID,
   input            miROL_Mem_Mp1_BREADY,
-  input  [  3: 0]  miROL_Mem_Mp1_ARID,
+  input  [  7: 0]  miROL_Mem_Mp1_ARID,
   input  [ 32: 0]  miROL_Mem_Mp1_ARADDR,
   input  [  7: 0]  miROL_Mem_Mp1_ARLEN,
   input  [  2: 0]  miROL_Mem_Mp1_ARSIZE,
   input  [  1: 0]  miROL_Mem_Mp1_ARBURST,
   input            miROL_Mem_Mp1_ARVALID,
   output           miROL_Mem_Mp1_ARREADY,
-  output [  3: 0]  miROL_Mem_Mp1_RID,
+  output [  7: 0]  miROL_Mem_Mp1_RID,
   output [511: 0]  miROL_Mem_Mp1_RDATA,
   output [  1: 0]  miROL_Mem_Mp1_RRESP,
   output           miROL_Mem_Mp1_RLAST,
@@ -394,19 +394,19 @@ module Shell_Themisto # (
   //--------------------------------------------------------
   //-- SIGNAL DECLARATIONS : ROLE <--> NTS0
   //--------------------------------------------------------
-  //---- Udp Interface -------------------------------------  
-  //------ UDP Data (AXI4S) ------------
-  //wire [ 63:0]  sROL_Nts0_Udp_Axis_tdata;
-  //wire [  7:0]  sROL_Nts0_Udp_Axis_tkeep;
-  //wire          sROL_Nts0_Udp_Axis_tlast;
-  //wire          sROL_Nts0_Udp_Axis_tvalid;
-  //wire          sNTS0_Rol_Udp_Axis_tready;
-  ////------ UDP Data (AXI4S) ----------
-  //wire          sROL_Nts0_Udp_Axis_tready;
-  //wire [ 63:0]  sNTS0_Rol_Udp_Axis_tdata;
-  //wire [  7:0]  sNTS0_Rol_Udp_Axis_tkeep;
-  //wire          sNTS0_Rol_Udp_Axis_tlast;
-  //wire          sNTS0_Rol_Udp_Axis_tvalid;  
+  // OBSOLETE ---- Udp Interface -------------------------------------  
+  // OBSOLETE ------ UDP Data (AXI4S) ------------
+  // OBSOLETE wire [ 63:0]  sROL_Nts0_Udp_Axis_tdata;
+  // OBSOLETE wire [  7:0]  sROL_Nts0_Udp_Axis_tkeep;
+  // OBSOLETE wire          sROL_Nts0_Udp_Axis_tlast;
+  // OBSOLETE wire          sROL_Nts0_Udp_Axis_tvalid;
+  // OBSOLETE wire          sNTS0_Rol_Udp_Axis_tready;
+  // OBSOLETE //------ UDP Data (AXI4S) ----------
+  // OBSOLETE wire          sROL_Nts0_Udp_Axis_tready;
+  // OBSOLETE wire [ 63:0]  sNTS0_Rol_Udp_Axis_tdata;
+  // OBSOLETE wire [  7:0]  sNTS0_Rol_Udp_Axis_tkeep;
+  // OBSOLETE wire          sNTS0_Rol_Udp_Axis_tlast;
+  // OBSOLETE wire          sNTS0_Rol_Udp_Axis_tvalid;  
 
   //--------------------------------------------------------
   //-- SIGNAL DECLARATIONS : MMIO <--> ETH|NTS|MEM|ROL|FMC 
@@ -460,7 +460,19 @@ module Shell_Themisto # (
   //---- Diagnostic Registers Interface ----------
   //------ [DIAG_CTRL_2] ---------------
   //------ [DIAG_URDC] -----------------
-  wire  [15:0]  sNTS0_MMIO_UdpRxDropCnt;
+  wire  [15:0]  sNTS0_MMIO_UdpRxDataDropCnt;
+  //------ [DIAG_TRNDC] ----------------
+  wire  [ 7:0]  sNTS0_MMIO_TcpRxNotifDropCnt;
+  //------ [DIAG_TRMDC] ----------------
+  wire  [ 7:0]  sNTS0_MMIO_TcpRxMetaDropCnt;
+  //------ [DIAG_TRDDC] ----------------
+  wire  [ 7:0]  sNTS0_MMIO_TcpRxDataDropCnt;
+  //------ [DIAG_TRCDC] ----------------
+  wire  [ 7:0]  sNTS0_MMIO_TcpRxCrcDropCnt;
+    //------ [DIAG_TRSDC] ----------------
+  wire  [ 7:0]  sNTS0_MMIO_TcpRxSessDropCnt;
+    //------ [DIAG_TRODC] ----------------
+  wire  [ 7:0]  sNTS0_MMIO_TcpRxOooDropCnt;
   
   
   //--------------------------------------------------------
@@ -488,8 +500,8 @@ module Shell_Themisto # (
   //--------------------------------------------------------
   //-- SIGNAL DECLARATIONS : FPGA Management Core
   //--------------------------------------------------------
-  //wire [31:0] sFMC_MMIO_4B_Reg;
-  //wire [31:0] sMMIO_FMC_4B_Reg;
+  // OBSOLETE wire [31:0] sFMC_MMIO_4B_Reg;
+  // OBSOLETE wire [31:0] sMMIO_FMC_4B_Reg;
   wire        sDCP_FMC_status;
   wire        sFMC_DCP_activate;
   wire        sFMC_ROLE_soft_reset;
@@ -642,16 +654,16 @@ module Shell_Themisto # (
   wire          ssNTS0_NRC_Udp_ClsRep_tready;
   
   //-- NTS / TOE Interfaces ---------
-  //---- Stream TCP Data ---------------------
-  //wire [ 63:0]  ssNRC_TOE_Tcp_Data_tdata;
-  //wire [  7:0]  ssNRC_TOE_Tcp_Data_tkeep;
-  //wire          ssNRC_TOE_Tcp_Data_tvalid;
-  //wire          ssNRC_TOE_Tcp_Data_tlast;
-  //wire          ssNRC_TOE_Tcp_Data_tready;
+  // OBSOLETE ---- Stream TCP Data ---------------------
+  // OBSOLETE wire [ 63:0]  ssNRC_TOE_Tcp_Data_tdata;
+  // OBSOLETE wire [  7:0]  ssNRC_TOE_Tcp_Data_tkeep;
+  // OBSOLETE wire          ssNRC_TOE_Tcp_Data_tvalid;
+  // OBSOLETE wire          ssNRC_TOE_Tcp_Data_tlast;
+  // OBSOLETE wire          ssNRC_TOE_Tcp_Data_tready;
   ////---- Stream TCP Metadata -----------------
-  //wire [ 15:0]  ssNRC_TOE_Tcp_Meta_tdata;
-  //wire          ssNRC_TOE_Tcp_Meta_tvalid;
-  //wire          ssNRC_TOE_Tcp_Meta_tready;
+  // OBSOLETE wire [ 15:0]  ssNRC_TOE_Tcp_Meta_tdata;
+  // OBSOLETE wire          ssNRC_TOE_Tcp_Meta_tvalid;
+  // OBSOLETE wire          ssNRC_TOE_Tcp_Meta_tready;
   //---- Axi4-Stream APP Data ---------------
   wire   [ 63:0]  ssNRC_TOE_Tcp_Data_tdata;
   wire   [  7:0]  ssNRC_TOE_Tcp_Data_tkeep;
@@ -683,9 +695,9 @@ module Shell_Themisto # (
   wire          ssNRC_TOE_Tcp_LsnReq_tvalid;
   wire          ssNRC_TOE_Tcp_LsnReq_tready;
   //---- Stream TCP Data Status --------------
-  //wire  [ 23:0] ssTOE_NRC_Tcp_DSts_tdata;
-  //wire          ssTOE_NRC_Tcp_DSts_tvalid;
-  //wire          ssTOE_NRC_Tcp_DSts_tready;
+  // OBSOLETE wire  [ 23:0] ssTOE_NRC_Tcp_DSts_tdata;
+  // OBSOLETE wire          ssTOE_NRC_Tcp_DSts_tvalid;
+  // OBSOLETE wire          ssTOE_NRC_Tcp_DSts_tready;
   //-- Stream TCP Data -----------------------
   wire  [ 63:0] ssTOE_NRC_Tcp_Data_tdata;
   wire  [  7:0] ssTOE_NRC_Tcp_Data_tkeep;
@@ -728,17 +740,17 @@ module Shell_Themisto # (
   wire [ 15:0]  ssNRC_Fifo_Tcp_SessId_tdata_V_din;
   wire          ssNRC_Fifo_Tcp_SessId_tdata_V_full;
   wire          ssNRC_Fifo_Tcp_SessId_tdata_V_write;
-  //wire [  1:0]  ssNRC_Fifo_Tcp_SessId_tkeep_V_din;
-  //wire          ssNRC_Fifo_Tcp_SessId_tkeep_V_full;
-  //wire          ssNRC_Fifo_Tcp_SessId_tkeep_V_write;
-  //wire [  0:0]  ssNRC_Fifo_Tcp_SessId_tlast_V_din;
-  //wire          ssNRC_Fifo_Tcp_SessId_tlast_V_full;
-  //wire          ssNRC_Fifo_Tcp_SessId_tlast_V_write;
+  // OBSOLETE wire [  1:0]  ssNRC_Fifo_Tcp_SessId_tkeep_V_din;
+  // OBSOLETE wire          ssNRC_Fifo_Tcp_SessId_tkeep_V_full;
+  // OBSOLETE wire          ssNRC_Fifo_Tcp_SessId_tkeep_V_write;
+  // OBSOLETE wire [  0:0]  ssNRC_Fifo_Tcp_SessId_tlast_V_din;
+  // OBSOLETE wire          ssNRC_Fifo_Tcp_SessId_tlast_V_full;
+  // OBSOLETE wire          ssNRC_Fifo_Tcp_SessId_tlast_V_write;
   
-  //wire          ssNRC_Fifo_Tcp_Data_tdata_V_prog_full;
-  //wire          ssNRC_Fifo_Tcp_Data_tkeep_V_prog_full;
-  //wire          ssNRC_Fifo_Tcp_Data_tlast_V_prog_full;
-  //wire          ssNRC_Fifo_Tcp_SessId_tdata_V_prog_full;
+  // OBSOLETE wire          ssNRC_Fifo_Tcp_Data_tdata_V_prog_full;
+  // OBSOLETE wire          ssNRC_Fifo_Tcp_Data_tkeep_V_prog_full;
+  // OBSOLETE wire          ssNRC_Fifo_Tcp_Data_tlast_V_prog_full;
+  // OBSOLETE wire          ssNRC_Fifo_Tcp_SessId_tdata_V_prog_full;
   
   wire [ 63:0]  ssFifo_FMC_Tcp_Data_tdata_V_dout;
   wire          ssFifo_FMC_Tcp_Data_tdata_V_empty;
@@ -752,12 +764,12 @@ module Shell_Themisto # (
   wire [ 15:0]  ssFifo_FMC_Tcp_SessId_tdata_V_dout;
   wire          ssFifo_FMC_Tcp_SessId_tdata_V_empty;
   wire          ssFifo_FMC_Tcp_SessId_tdata_V_read;
-  //wire [  1:0]  ssFifo_FMC_Tcp_SessId_tkeep_V_dout;
-  //wire          ssFifo_FMC_Tcp_SessId_tkeep_V_empty;
-  //wire          ssFifo_FMC_Tcp_SessId_tkeep_V_read;
-  //wire [  0:0]  ssFifo_FMC_Tcp_SessId_tlast_V_dout;
-  //wire          ssFifo_FMC_Tcp_SessId_tlast_V_empty;
-  //wire          ssFifo_FMC_Tcp_SessId_tlast_V_read;
+  // OBSOLETE wire [  1:0]  ssFifo_FMC_Tcp_SessId_tkeep_V_dout;
+  // OBSOLETE wire          ssFifo_FMC_Tcp_SessId_tkeep_V_empty;
+  // OBSOLETE wire          ssFifo_FMC_Tcp_SessId_tkeep_V_read;
+  // OBSOLETE wire [  0:0]  ssFifo_FMC_Tcp_SessId_tlast_V_dout;
+  // OBSOLETE wire          ssFifo_FMC_Tcp_SessId_tlast_V_empty;
+  // OBSOLETE wire          ssFifo_FMC_Tcp_SessId_tlast_V_read;
   
   wire [ 63:0]  ssFMC_Fifo_Tcp_Data_tdata_V_din;
   wire          ssFMC_Fifo_Tcp_Data_tdata_V_full;
@@ -771,12 +783,12 @@ module Shell_Themisto # (
   wire [ 15:0]  ssFMC_Fifo_Tcp_SessId_tdata_V_din;
   wire          ssFMC_Fifo_Tcp_SessId_tdata_V_full;
   wire          ssFMC_Fifo_Tcp_SessId_tdata_V_write;
-  //wire [  1:0]  ssFMC_Fifo_Tcp_SessId_tkeep_V_din;
-  //wire          ssFMC_Fifo_Tcp_SessId_tkeep_V_full;
-  //wire          ssFMC_Fifo_Tcp_SessId_tkeep_V_write;
-  //wire [  0:0]  ssFMC_Fifo_Tcp_SessId_tlast_V_din;
-  //wire          ssFMC_Fifo_Tcp_SessId_tlast_V_full;
-  //wire          ssFMC_Fifo_Tcp_SessId_tlast_V_write;
+  // OBSOLETE wire [  1:0]  ssFMC_Fifo_Tcp_SessId_tkeep_V_din;
+  // OBSOLETE wire          ssFMC_Fifo_Tcp_SessId_tkeep_V_full;
+  // OBSOLETE wire          ssFMC_Fifo_Tcp_SessId_tkeep_V_write;
+  // OBSOLETE wire [  0:0]  ssFMC_Fifo_Tcp_SessId_tlast_V_din;
+  // OBSOLETE wire          ssFMC_Fifo_Tcp_SessId_tlast_V_full;
+  // OBSOLETE wire          ssFMC_Fifo_Tcp_SessId_tlast_V_write;
   
   wire [ 63:0]  ssFifo_NRC_Tcp_Data_tdata_V_dout;
   wire          ssFifo_NRC_Tcp_Data_tdata_V_empty;
@@ -790,13 +802,12 @@ module Shell_Themisto # (
   wire [ 15:0]  ssFifo_NRC_Tcp_SessId_tdata_V_dout;
   wire          ssFifo_NRC_Tcp_SessId_tdata_V_empty;
   wire          ssFifo_NRC_Tcp_SessId_tdata_V_read;
-  //wire [  1:0]  ssFifo_NRC_Tcp_SessId_tkeep_V_dout;
-  //wire          ssFifo_NRC_Tcp_SessId_tkeep_V_empty;
-  //wire          ssFifo_NRC_Tcp_SessId_tkeep_V_read;
-  //wire [  0:0]  ssFifo_NRC_Tcp_SessId_tlast_V_dout;
-  //wire          ssFifo_NRC_Tcp_SessId_tlast_V_empty;
-  //wire          ssFifo_NRC_Tcp_SessId_tlast_V_read;
-
+  // OBSOLETE wire [  1:0]  ssFifo_NRC_Tcp_SessId_tkeep_V_dout;
+  // OBSOLETE wire          ssFifo_NRC_Tcp_SessId_tkeep_V_empty;
+  // OBSOLETE wire          ssFifo_NRC_Tcp_SessId_tkeep_V_read;
+  // OBSOLETE wire [  0:0]  ssFifo_NRC_Tcp_SessId_tlast_V_dout;
+  // OBSOLETE wire          ssFifo_NRC_Tcp_SessId_tlast_V_empty;
+  // OBSOLETE wire          ssFifo_NRC_Tcp_SessId_tlast_V_read;
 
   //Conncetions from NRC to AXIS Slices
   wire [63:0] slcInUdp_data_TDATA  ;
@@ -908,7 +919,7 @@ module Shell_Themisto # (
   wire             siDCP_ROL_Mem_Mp0_Write_tlast;
   wire             siDCP_ROL_Mem_Mp0_Write_tvalid;
   wire             siDCP_ROL_Mem_Mp0_Write_tready; 
-  wire   [  3: 0]  miDCP_ROL_Mem_Mp1_AWID;
+  wire   [  7: 0]  miDCP_ROL_Mem_Mp1_AWID;
   wire   [ 32: 0]  miDCP_ROL_Mem_Mp1_AWADDR;
   wire   [  7: 0]  miDCP_ROL_Mem_Mp1_AWLEN;
   wire   [  2: 0]  miDCP_ROL_Mem_Mp1_AWSIZE;
@@ -920,18 +931,18 @@ module Shell_Themisto # (
   wire             miDCP_ROL_Mem_Mp1_WLAST;
   wire             miDCP_ROL_Mem_Mp1_WVALID;
   wire             miDCP_ROL_Mem_Mp1_WREADY;
-  wire   [  3: 0]  miDCP_ROL_Mem_Mp1_BID;
+  wire   [  7: 0]  miDCP_ROL_Mem_Mp1_BID;
   wire   [  1: 0]  miDCP_ROL_Mem_Mp1_BRESP;
   wire             miDCP_ROL_Mem_Mp1_BVALID;
   wire             miDCP_ROL_Mem_Mp1_BREADY;
-  wire   [  3: 0]  miDCP_ROL_Mem_Mp1_ARID;
+  wire   [  7: 0]  miDCP_ROL_Mem_Mp1_ARID;
   wire   [ 32: 0]  miDCP_ROL_Mem_Mp1_ARADDR;
   wire   [  7: 0]  miDCP_ROL_Mem_Mp1_ARLEN;
   wire   [  2: 0]  miDCP_ROL_Mem_Mp1_ARSIZE;
   wire   [  1: 0]  miDCP_ROL_Mem_Mp1_ARBURST;
   wire             miDCP_ROL_Mem_Mp1_ARVALID;
   wire             miDCP_ROL_Mem_Mp1_ARREADY;
-  wire   [  3: 0]  miDCP_ROL_Mem_Mp1_RID;
+  wire   [  7: 0]  miDCP_ROL_Mem_Mp1_RID;
   wire   [511: 0]  miDCP_ROL_Mem_Mp1_RDATA;
   wire   [  1: 0]  miDCP_ROL_Mem_Mp1_RRESP;
   wire             miDCP_ROL_Mem_Mp1_RLAST;
@@ -998,7 +1009,17 @@ module Shell_Themisto # (
     //----------------------------------------------
     .piNTS0_CamReady                (sNTS0_MMIO_CamReady),
     .piNTS0_NtsReady                (sNTS0_MMIO_NtsReady),
-    .piNTS0_UdpRxDropCnt            (sNTS0_MMIO_UdpRxDropCnt),
+    //.piNTS0_Mc0RxRdErr              (sNTS0_MMIO_Mc0RxRdErr),  // [FIXME]
+    .piNTS0_Mc0RxWrErr              (sNTS0_MMIO_Mc0RxWrErr),
+    //.piNTS0_Mc0TxRdErr              (sNTS0_MMIO_Mc0TxRdErr),  // [FIXME]
+    //.piNTS0_Mc0TxWrErr              (sNTS0_MMIO_Mc0TxWrErr),  // [FIXME]
+    .piNTS0_UdpRxDataDropCnt        (sNTS0_MMIO_UdpRxDataDropCnt),
+    .piNTS0_TcpRxNotifDropCnt       (sNTS0_MMIO_TcpRxNotifDropCnt),
+    .piNTS0_TcpRxMetaDropCnt        (sNTS0_MMIO_TcpRxMetaDropCnt),
+    .piNTS0_TcpRxDataDropCnt        (sNTS0_MMIO_TcpRxDataDropCnt),
+    .piNTS0_TcpRxCrcDropCnt         (sNTS0_MMIO_TcpRxCrcDropCnt),
+    .piNTS0_TcpRxSessDropCnt        (sNTS0_MMIO_TcpRxSessDropCnt),
+    .piNTS0_TcpRxOooDropCnt         (sNTS0_MMIO_TcpRxOooDropCnt),
     //--
     .poNTS0_MacAddress              (sMMIO_NTS0_MacAddress),
     .poNTS0_Ip4Address              (sMMIO_NTS0_Ip4Address),
@@ -1336,20 +1357,20 @@ module Shell_Themisto # (
     .soAPP_Tcp_SndRep_tvalid            (ssNTS0_TARS_Tcp_SndRep_tvalid),
     .soAPP_Tcp_SndRep_tready            (ssNTS0_TARS_Tcp_SndRep_tready),
     ////-- FPGA Transmit Path (ROLE-->NTS) -----------
-    ////---- Stream TCP Data ---------------------
-    //.siAPP_Tcp_Data_tdata             (ssNRC_TOE_Tcp_Data_tdata),
-    //.siAPP_Tcp_Data_tkeep             (ssNRC_TOE_Tcp_Data_tkeep),
-    //.siAPP_Tcp_Data_tlast             (ssNRC_TOE_Tcp_Data_tlast),
-    //.siAPP_Tcp_Data_tvalid            (ssNRC_TOE_Tcp_Data_tvalid),
-    //.siAPP_Tcp_Data_tready            (ssNRC_TOE_Tcp_Data_tready),
-    ////---- Stream TCP Metadata -------------
-    //.siAPP_Tcp_Meta_tdata             (ssNRC_TOE_Tcp_Meta_tdata),
-    //.siAPP_Tcp_Meta_tvalid            (ssNRC_TOE_Tcp_Meta_tvalid),
-    //.siAPP_Tcp_Meta_tready            (ssNRC_TOE_Tcp_Meta_tready),
-    ////---- Stream TCP Data Status -----------
-    //.soAPP_Tcp_DSts_tdata             (ssTOE_NRC_Tcp_DSts_tdata),
-    //.soAPP_Tcp_DSts_tvalid            (ssTOE_NRC_Tcp_DSts_tvalid),
-    //.soAPP_Tcp_DSts_tready            (ssTOE_NRC_Tcp_DSts_tready),
+    // OBSOLETE //---- Stream TCP Data ---------------------
+    // OBSOLETE .siAPP_Tcp_Data_tdata             (ssNRC_TOE_Tcp_Data_tdata),
+    // OBSOLETE .siAPP_Tcp_Data_tkeep             (ssNRC_TOE_Tcp_Data_tkeep),
+    // OBSOLETE .siAPP_Tcp_Data_tlast             (ssNRC_TOE_Tcp_Data_tlast),
+    // OBSOLETE .siAPP_Tcp_Data_tvalid            (ssNRC_TOE_Tcp_Data_tvalid),
+    // OBSOLETE .siAPP_Tcp_Data_tready            (ssNRC_TOE_Tcp_Data_tready),
+    // OBSOLETE //---- Stream TCP Metadata -------------
+    // OBSOLETE .siAPP_Tcp_Meta_tdata             (ssNRC_TOE_Tcp_Meta_tdata),
+    // OBSOLETE .siAPP_Tcp_Meta_tvalid            (ssNRC_TOE_Tcp_Meta_tvalid),
+    // OBSOLETE .siAPP_Tcp_Meta_tready            (ssNRC_TOE_Tcp_Meta_tready),
+    // OBSOLETE //---- Stream TCP Data Status -----------
+    // OBSOLETE .soAPP_Tcp_DSts_tdata             (ssTOE_NRC_Tcp_DSts_tdata),
+    // OBSOLETE .soAPP_Tcp_DSts_tvalid            (ssTOE_NRC_Tcp_DSts_tvalid),
+    // OBSOLETE .soAPP_Tcp_DSts_tready            (ssTOE_NRC_Tcp_DSts_tready),
 
     //---------------------------------------------------
     //-- ROLE / Tcp / RxP Data Flow Interfaces    
@@ -1415,9 +1436,17 @@ module Shell_Themisto # (
     .piMMIO_Ip4Address                 (sMMIO_NTS0_Ip4Address),
     .piMMIO_SubNetMask                (sMMIO_NTS0_SubNetMask),
     .piMMIO_GatewayAddr               (sMMIO_NTS0_GatewayAddr),
+    //--
     .poMMIO_CamReady                  (sNTS0_MMIO_CamReady),      // [TODO-Merge this signal with NtsReady]
     .poMMIO_NtsReady                  (sNTS0_MMIO_NtsReady),
-    .poMMIO_UdpRxDropCnt              (sNTS0_MMIO_UdpRxDropCnt)
+    .poMMIO_Mc0RxWrErr                (sNTS0_MMIO_Mc0RxWrErr),
+    .poMMIO_TcpRxNotifDropCnt         (sNTS0_MMIO_TcpRxNotifDropCnt),
+    .poMMIO_TcpRxMetaDropCnt          (sNTS0_MMIO_TcpRxMetaDropCnt),
+    .poMMIO_TcpRxDataDropCnt          (sNTS0_MMIO_TcpRxDataDropCnt),
+    .poMMIO_TcpRxCrcDropCnt           (sNTS0_MMIO_TcpRxCrcDropCnt),
+    .poMMIO_TcpRxSessDropCnt          (sNTS0_MMIO_TcpRxSessDropCnt),
+    .poMMIO_TcpRxOooDropCnt           (sNTS0_MMIO_TcpRxOooDropCnt),
+    .poMMIO_UdpRxDataDropCnt          (sNTS0_MMIO_UdpRxDataDropCnt)
 
   );  // End of NTS0
 
@@ -1817,9 +1846,9 @@ module Shell_Themisto # (
   HWICAPC HWICAP (
     .icap_clk       (sETH0_ShlClk),
     .eos_in         (1),
-    //.s_axi_aclk     (sCASTOR_HWICAPC_axi_aclk),
+    // OBSOLETE .s_axi_aclk     (sCASTOR_HWICAPC_axi_aclk),
     .s_axi_aclk     (sETH0_ShlClk),
-    //.s_axi_aresetn  (sCASTOR_HWICAPC_axi_aresetn),dst_ran
+    // OBSOLETE .s_axi_aresetn  (sCASTOR_HWICAPC_axi_aresetn),dst_ran
     .s_axi_aresetn  (~ piTOP_156_25Rst),
     .s_axi_awaddr   (ssFMC_HWICAP_Axi_awaddr),
     .s_axi_awvalid  (ssFMC_HWICAP_Axi_awvalid),
@@ -1861,14 +1890,14 @@ module Shell_Themisto # (
     //-- Global Clock used by the entire SHELL -------------
     .ap_clk                 (sETH0_ShlClk),
     //-- Global Reset used by the entire SHELL -------------
-    //.ap_rst_n               (~ piTOP_156_25Rst),
+    // OBSOLETE .ap_rst_n               (~ piTOP_156_25Rst),
     .ap_rst_n               (~ sMMIO_LayerRst[5]),
-    //core should start immediately 
-    //.ap_start               (1),
+    // OBSOLETE core should start immediately 
+    // OBSOLETE .ap_start               (1),
     .ap_start                 (sMMIO_LayerEn[5] & (~ sMMIO_LayerRst[5])), 
-    //.piSysReset_V           (piSHL_156_25Rst_delayed),
-    //.piSysReset_V_ap_vld   (1),
-    //.poMMIO_V_ap_vld     ( ),
+    // OBSOLETE .piSysReset_V           (piSHL_156_25Rst_delayed),
+    // OBSOLETE .piSysReset_V_ap_vld   (1),
+    // OBSOLETE .poMMIO_V_ap_vld     ( ),
     .piMMIO_V                 (sMMIO_FMC_WrFmcReg),
     .piMMIO_V_ap_vld          (1),
     .poMMIO_V                 (sFMC_MMIO_RdFmcReg),
@@ -1888,7 +1917,7 @@ module Shell_Themisto # (
     .piTime_hours_V_ap_vld    (1),
     .piRole_mmio_V            (piDCP_ROL_Mmio_RdReg),
     .piRole_mmio_V_ap_vld     (1),
-    .piUOE_drop_cnt_V         (sNTS0_MMIO_UdpRxDropCnt),
+    .piUOE_drop_cnt_V         (sNTS0_MMIO_UdpRxDataDropCnt),
     .piUOE_drop_cnt_V_ap_vld  (1),
     .m_axi_boHWICAP_AWADDR   (ssFMC_HWICAP_Axi_awaddr),
     .m_axi_boHWICAP_AWVALID  (ssFMC_HWICAP_Axi_awvalid),
@@ -1947,15 +1976,15 @@ module Shell_Themisto # (
     .siNAL_Tcp_SessId_V_V_dout     ( ssFifo_FMC_Tcp_SessId_tdata_V_dout)   ,
     .siNAL_Tcp_SessId_V_V_empty_n  (~ssFifo_FMC_Tcp_SessId_tdata_V_empty),
     .siNAL_Tcp_SessId_V_V_read     ( ssFifo_FMC_Tcp_SessId_tdata_V_read) ,
-    //.siNRC_Tcp_SessId_V_tdata_V_dout     ( ssFifo_FMC_Tcp_SessId_tdata_V_dout)   ,
-    //.siNRC_Tcp_SessId_V_tdata_V_empty_n  (~ssFifo_FMC_Tcp_SessId_tdata_V_empty),
-    //.siNRC_Tcp_SessId_V_tdata_V_read     ( ssFifo_FMC_Tcp_SessId_tdata_V_read) ,
-    //.siNRC_Tcp_SessId_V_tkeep_V_dout     ( ssFifo_FMC_Tcp_SessId_tkeep_V_dout)   ,
-    //.siNRC_Tcp_SessId_V_tkeep_V_empty_n  (~ssFifo_FMC_Tcp_SessId_tkeep_V_empty),
-    //.siNRC_Tcp_SessId_V_tkeep_V_read     ( ssFifo_FMC_Tcp_SessId_tkeep_V_read) ,
-    //.siNRC_Tcp_SessId_V_tlast_V_dout     ( ssFifo_FMC_Tcp_SessId_tlast_V_dout)   ,
-    //.siNRC_Tcp_SessId_V_tlast_V_empty_n  (~ssFifo_FMC_Tcp_SessId_tlast_V_empty),
-    //.siNRC_Tcp_SessId_V_tlast_V_read     ( ssFifo_FMC_Tcp_SessId_tlast_V_read) ,
+    // OBSOLETE .siNRC_Tcp_SessId_V_tdata_V_dout     ( ssFifo_FMC_Tcp_SessId_tdata_V_dout)   ,
+    // OBSOLETE .siNRC_Tcp_SessId_V_tdata_V_empty_n  (~ssFifo_FMC_Tcp_SessId_tdata_V_empty),
+    // OBSOLETE .siNRC_Tcp_SessId_V_tdata_V_read     ( ssFifo_FMC_Tcp_SessId_tdata_V_read) ,
+    // OBSOLETE .siNRC_Tcp_SessId_V_tkeep_V_dout     ( ssFifo_FMC_Tcp_SessId_tkeep_V_dout)   ,
+    // OBSOLETE .siNRC_Tcp_SessId_V_tkeep_V_empty_n  (~ssFifo_FMC_Tcp_SessId_tkeep_V_empty),
+    // OBSOLETE .siNRC_Tcp_SessId_V_tkeep_V_read     ( ssFifo_FMC_Tcp_SessId_tkeep_V_read) ,
+    // OBSOLETE .siNRC_Tcp_SessId_V_tlast_V_dout     ( ssFifo_FMC_Tcp_SessId_tlast_V_dout)   ,
+    // OBSOLETE .siNRC_Tcp_SessId_V_tlast_V_empty_n  (~ssFifo_FMC_Tcp_SessId_tlast_V_empty),
+    // OBSOLETE .siNRC_Tcp_SessId_V_tlast_V_read     ( ssFifo_FMC_Tcp_SessId_tlast_V_read) ,
     .soNAL_Tcp_data_V_tdata_V_din       ( ssFMC_Fifo_Tcp_Data_tdata_V_din)     ,
     .soNAL_Tcp_data_V_tdata_V_full_n    (~ssFMC_Fifo_Tcp_Data_tdata_V_full)  ,
     .soNAL_Tcp_data_V_tdata_V_write     ( ssFMC_Fifo_Tcp_Data_tdata_V_write)   ,
@@ -1968,21 +1997,21 @@ module Shell_Themisto # (
     .soNAL_Tcp_SessId_V_V_din     ( ssFMC_Fifo_Tcp_SessId_tdata_V_din)   ,
     .soNAL_Tcp_SessId_V_V_full_n  (~ssFMC_Fifo_Tcp_SessId_tdata_V_full),
     .soNAL_Tcp_SessId_V_V_write   ( ssFMC_Fifo_Tcp_SessId_tdata_V_write) ,
-    //.soNRC_Tcp_SessId_V_tdata_V_din     ( ssFMC_Fifo_Tcp_SessId_tdata_V_din)   ,
-    //.soNRC_Tcp_SessId_V_tdata_V_full_n  (~ssFMC_Fifo_Tcp_SessId_tdata_V_full),
-    //.soNRC_Tcp_SessId_V_tdata_V_write   ( ssFMC_Fifo_Tcp_SessId_tdata_V_write) ,
-    //.soNRC_Tcp_SessId_V_tkeep_V_din     ( ssFMC_Fifo_Tcp_SessId_tkeep_V_din)   ,
-    //.soNRC_Tcp_SessId_V_tkeep_V_full_n  (~ssFMC_Fifo_Tcp_SessId_tkeep_V_full),
-    //.soNRC_Tcp_SessId_V_tkeep_V_write   ( ssFMC_Fifo_Tcp_SessId_tkeep_V_write) ,
-    //.soNRC_Tcp_SessId_V_tlast_V_din     ( ssFMC_Fifo_Tcp_SessId_tlast_V_din)   ,
-    //.soNRC_Tcp_SessId_V_tlast_V_full_n  (~ssFMC_Fifo_Tcp_SessId_tlast_V_full),
-    //.soNRC_Tcp_SessId_V_tlast_V_write   ( ssFMC_Fifo_Tcp_SessId_tlast_V_write) ,
+    // OBSOLETE .soNRC_Tcp_SessId_V_tdata_V_din     ( ssFMC_Fifo_Tcp_SessId_tdata_V_din)   ,
+    // OBSOLETE .soNRC_Tcp_SessId_V_tdata_V_full_n  (~ssFMC_Fifo_Tcp_SessId_tdata_V_full),
+    // OBSOLETE .soNRC_Tcp_SessId_V_tdata_V_write   ( ssFMC_Fifo_Tcp_SessId_tdata_V_write) ,
+    // OBSOLETE .soNRC_Tcp_SessId_V_tkeep_V_din     ( ssFMC_Fifo_Tcp_SessId_tkeep_V_din)   ,
+    // OBSOLETE .soNRC_Tcp_SessId_V_tkeep_V_full_n  (~ssFMC_Fifo_Tcp_SessId_tkeep_V_full),
+    // OBSOLETE .soNRC_Tcp_SessId_V_tkeep_V_write   ( ssFMC_Fifo_Tcp_SessId_tkeep_V_write) ,
+    // OBSOLETE .soNRC_Tcp_SessId_V_tlast_V_din     ( ssFMC_Fifo_Tcp_SessId_tlast_V_din)   ,
+    // OBSOLETE .soNRC_Tcp_SessId_V_tlast_V_full_n  (~ssFMC_Fifo_Tcp_SessId_tlast_V_full),
+    // OBSOLETE .soNRC_Tcp_SessId_V_tlast_V_write   ( ssFMC_Fifo_Tcp_SessId_tlast_V_write) ,
     .poROLE_rank_V                       (poDCP_ROL_Fmc_Rank),
     .poROLE_size_V                       (poDCP_ROL_Fmc_Size)
   );
 
   FifoNetwork_Data FIFO_DD_0 (
-  //FifoNetwork_Data_Large FIFO_DD_0 (
+  // OBSOLETE FifoNetwork_Data_Large FIFO_DD_0 (
     .clk    (sETH0_ShlClk),
     .srst   (sMMIO_LayerRst[6]),
     .din    (ssFMC_Fifo_Tcp_Data_tdata_V_din    ),
@@ -1994,7 +2023,7 @@ module Shell_Themisto # (
   );
   
   FifoNetwork_Keep FIFO_DK_0 (
-  //FifoNetwork_Keep_Large FIFO_DK_0 (
+  // OBSOLETE FifoNetwork_Keep_Large FIFO_DK_0 (
     .clk    (sETH0_ShlClk),
     .srst   (sMMIO_LayerRst[6]),
     .din    (ssFMC_Fifo_Tcp_Data_tkeep_V_din    ),
@@ -2006,7 +2035,7 @@ module Shell_Themisto # (
   );
 
   FifoNetwork_Last FIFO_DL_0 (
-  //FifoNetwork_Last_Large FIFO_DL_0 (
+  // OBSOLETE FifoNetwork_Last_Large FIFO_DL_0 (
     .clk    (sETH0_ShlClk),
     .srst   (sMMIO_LayerRst[6]),
     .din    (ssFMC_Fifo_Tcp_Data_tlast_V_din    ),
@@ -2028,30 +2057,30 @@ module Shell_Themisto # (
     .rd_en  (ssFifo_NRC_Tcp_SessId_tdata_V_read   )
   );
   
-  //FifoSession_Keep FIFO_SK_0 (
-  //  .clk    (sETH0_ShlClk),
-  //  .srst   (sMMIO_LayerRst[6]),
-  //  .din    (ssFMC_Fifo_Tcp_SessId_tkeep_V_din    ),
-  //  .full   (ssFMC_Fifo_Tcp_SessId_tkeep_V_full   ),
-  //  .wr_en  (ssFMC_Fifo_Tcp_SessId_tkeep_V_write  ),
-  //  .dout   (ssFifo_NRC_Tcp_SessId_tkeep_V_dout   ),
-  //  .empty  (ssFifo_NRC_Tcp_SessId_tkeep_V_empty  ),
-  //  .rd_en  (ssFifo_NRC_Tcp_SessId_tkeep_V_read   )
-  //);
+  // OBSOLETE FifoSession_Keep FIFO_SK_0 (
+  // OBSOLETE   .clk    (sETH0_ShlClk),
+  // OBSOLETE   .srst   (sMMIO_LayerRst[6]),
+  // OBSOLETE   .din    (ssFMC_Fifo_Tcp_SessId_tkeep_V_din    ),
+  // OBSOLETE   .full   (ssFMC_Fifo_Tcp_SessId_tkeep_V_full   ),
+  // OBSOLETE   .wr_en  (ssFMC_Fifo_Tcp_SessId_tkeep_V_write  ),
+  // OBSOLETE   .dout   (ssFifo_NRC_Tcp_SessId_tkeep_V_dout   ),
+  // OBSOLETE   .empty  (ssFifo_NRC_Tcp_SessId_tkeep_V_empty  ),
+  // OBSOLETE   .rd_en  (ssFifo_NRC_Tcp_SessId_tkeep_V_read   )
+  // OBSOLETE );
 
-  //FifoSession_Last FIFO_SL_0 (
-  //  .clk    (sETH0_ShlClk),
-  //  .srst   (sMMIO_LayerRst[6]),
-  //  .din    (ssFMC_Fifo_Tcp_SessId_tlast_V_din    ),
-  //  .full   (ssFMC_Fifo_Tcp_SessId_tlast_V_full   ),
-  //  .wr_en  (ssFMC_Fifo_Tcp_SessId_tlast_V_write  ),
-  //  .dout   (ssFifo_NRC_Tcp_SessId_tlast_V_dout   ),
-  //  .empty  (ssFifo_NRC_Tcp_SessId_tlast_V_empty  ),
-  //  .rd_en  (ssFifo_NRC_Tcp_SessId_tlast_V_read   )
-  //);
+  // OBSOLETE FifoSession_Last FIFO_SL_0 (
+  // OBSOLETE   .clk    (sETH0_ShlClk),
+  // OBSOLETE   .srst   (sMMIO_LayerRst[6]),
+  // OBSOLETE   .din    (ssFMC_Fifo_Tcp_SessId_tlast_V_din    ),
+  // OBSOLETE   .full   (ssFMC_Fifo_Tcp_SessId_tlast_V_full   ),
+  // OBSOLETE   .wr_en  (ssFMC_Fifo_Tcp_SessId_tlast_V_write  ),
+  // OBSOLETE   .dout   (ssFifo_NRC_Tcp_SessId_tlast_V_dout   ),
+  // OBSOLETE   .empty  (ssFifo_NRC_Tcp_SessId_tlast_V_empty  ),
+  // OBSOLETE   .rd_en  (ssFifo_NRC_Tcp_SessId_tlast_V_read   )
+  // OBSOLETE );
 
 
-  //FifoNetwork_Data FIFO_DD_1 (
+  // OBSOLETE FifoNetwork_Data FIFO_DD_1 (
   FifoNetwork_Data_Large FIFO_DD_1 (
     .clk        (sETH0_ShlClk),
     .srst       (sMMIO_LayerRst[6]),
@@ -2074,10 +2103,10 @@ module Shell_Themisto # (
     .dout       (ssFifo_FMC_Tcp_Data_tkeep_V_dout   ),
     .empty      (ssFifo_FMC_Tcp_Data_tkeep_V_empty  ),
     .rd_en      (ssFifo_FMC_Tcp_Data_tkeep_V_read   )//,
-  //  .prog_full  (ssNRC_Fifo_Tcp_Data_tkeep_V_prog_full )
+  // OBSOLETE   .prog_full  (ssNRC_Fifo_Tcp_Data_tkeep_V_prog_full )
   );
 
-  //FifoNetwork_Last FIFO_DL_1 (
+  // OBSOLETE FifoNetwork_Last FIFO_DL_1 (
   FifoNetwork_Last_Large FIFO_DL_1 (
     .clk        (sETH0_ShlClk),
     .srst       (sMMIO_LayerRst[6]),
@@ -2087,11 +2116,11 @@ module Shell_Themisto # (
     .dout       (ssFifo_FMC_Tcp_Data_tlast_V_dout   ),
     .empty      (ssFifo_FMC_Tcp_Data_tlast_V_empty  ),
     .rd_en      (ssFifo_FMC_Tcp_Data_tlast_V_read   )//,
-    //.prog_full  (ssNRC_Fifo_Tcp_Data_tlast_V_prog_full )
+    // OBSOLETE .prog_full  (ssNRC_Fifo_Tcp_Data_tlast_V_prog_full )
   );
 
 
-  //FifoSession_Data FIFO_SD_1 (
+  // OBSOLETE FifoSession_Data FIFO_SD_1 (
   FifoSession_Data_Large FIFO_SD_1 (
     .clk        (sETH0_ShlClk),
     .srst       (sMMIO_LayerRst[6]),
@@ -2101,37 +2130,37 @@ module Shell_Themisto # (
     .dout       (ssFifo_FMC_Tcp_SessId_tdata_V_dout   ),
     .empty      (ssFifo_FMC_Tcp_SessId_tdata_V_empty  ),
     .rd_en      (ssFifo_FMC_Tcp_SessId_tdata_V_read   )//,
-  //.prog_full  (ssNRC_Fifo_Tcp_SessId_tdata_V_prog_full )
+  // OBSOLETE .prog_full  (ssNRC_Fifo_Tcp_SessId_tdata_V_prog_full )
   );
   
-  //FifoSession_Keep FIFO_SK_1 (
-  //  .clk    (sETH0_ShlClk),
-  //  .srst   (sMMIO_LayerRst[6]),
-  //  .din    (ssNRC_Fifo_Tcp_SessId_tkeep_V_din    ),
-  //  .full   (ssNRC_Fifo_Tcp_SessId_tkeep_V_full   ),
-  //  .wr_en  (ssNRC_Fifo_Tcp_SessId_tkeep_V_write  ),
-  //  .dout   (ssFifo_FMC_Tcp_SessId_tkeep_V_dout   ),
-  //  .empty  (ssFifo_FMC_Tcp_SessId_tkeep_V_empty  ),
-  //  .rd_en  (ssFifo_FMC_Tcp_SessId_tkeep_V_read   )
-  //);
+  // OBSOLETE FifoSession_Keep FIFO_SK_1 (
+  // OBSOLETE   .clk    (sETH0_ShlClk),
+  // OBSOLETE   .srst   (sMMIO_LayerRst[6]),
+  // OBSOLETE   .din    (ssNRC_Fifo_Tcp_SessId_tkeep_V_din    ),
+  // OBSOLETE   .full   (ssNRC_Fifo_Tcp_SessId_tkeep_V_full   ),
+  // OBSOLETE   .wr_en  (ssNRC_Fifo_Tcp_SessId_tkeep_V_write  ),
+  // OBSOLETE   .dout   (ssFifo_FMC_Tcp_SessId_tkeep_V_dout   ),
+  // OBSOLETE   .empty  (ssFifo_FMC_Tcp_SessId_tkeep_V_empty  ),
+  // OBSOLETE   .rd_en  (ssFifo_FMC_Tcp_SessId_tkeep_V_read   )
+  // OBSOLETE );
 
-  //FifoSession_Last FIFO_SL_1 (
-  //  .clk    (sETH0_ShlClk),
-  //  .srst   (sMMIO_LayerRst[6]),
-  //  .din    (ssNRC_Fifo_Tcp_SessId_tlast_V_din    ),
-  //  .full   (ssNRC_Fifo_Tcp_SessId_tlast_V_full   ),
-  //  .wr_en  (ssNRC_Fifo_Tcp_SessId_tlast_V_write  ),
-  //  .dout   (ssFifo_FMC_Tcp_SessId_tlast_V_dout   ),
-  //  .empty  (ssFifo_FMC_Tcp_SessId_tlast_V_empty  ),
-  //  .rd_en  (ssFifo_FMC_Tcp_SessId_tlast_V_read   )
-  //);
+  // OBSOLETE FifoSession_Last FIFO_SL_1 (
+  // OBSOLETE   .clk    (sETH0_ShlClk),
+  // OBSOLETE   .srst   (sMMIO_LayerRst[6]),
+  // OBSOLETE   .din    (ssNRC_Fifo_Tcp_SessId_tlast_V_din    ),
+  // OBSOLETE   .full   (ssNRC_Fifo_Tcp_SessId_tlast_V_full   ),
+  // OBSOLETE   .wr_en  (ssNRC_Fifo_Tcp_SessId_tlast_V_write  ),
+  // OBSOLETE   .dout   (ssFifo_FMC_Tcp_SessId_tlast_V_dout   ),
+  // OBSOLETE   .empty  (ssFifo_FMC_Tcp_SessId_tlast_V_empty  ),
+  // OBSOLETE   .rd_en  (ssFifo_FMC_Tcp_SessId_tlast_V_read   )
+  // OBSOLETE );
 
 
   NetworkAbstractionLayer NAL (
     //-- Global Clock used by the entire SHELL -------------
     .ap_clk                 (sETH0_ShlClk),
     //-- Global Reset used by the entire SHELL -------------
-    //.ap_rst_n               (~ piTOP_156_25Rst),
+    // OBSOLETE .ap_rst_n               (~ piTOP_156_25Rst),
     .ap_rst_n               (~ sMMIO_LayerRst[6]),
     .piLayer4enabled_V        (sMMIO_LayerEn[4] & (~ sMMIO_LayerRst[4])),
     .piLayer4enabled_V_ap_vld (1),
@@ -2147,7 +2176,7 @@ module Shell_Themisto # (
     .piMMIO_CfrmIp4Addr_V_ap_vld (1),
     .piMyIpAddress_V          (sMMIO_NTS0_Ip4Address),
     .piMyIpAddress_V_ap_vld   (1),
-    //.piROL_NRC_Udp_Rx_ports_V (sDECOUP_Nrc_Udp_Rx_ports),
+    // OBSOLETE .piROL_NRC_Udp_Rx_ports_V (sDECOUP_Nrc_Udp_Rx_ports),
     .piROL_Udp_Rx_ports_V (piDCP_ROL_Nrc_Udp_Rx_ports),
     .piROL_Udp_Rx_ports_V_ap_vld (1),
     .siUdp_data_TDATA         (slcInUdp_data_TDATA ) ,
@@ -2204,17 +2233,17 @@ module Shell_Themisto # (
     .siFMC_SessId_V_V_dout     ( ssFifo_NRC_Tcp_SessId_tdata_V_dout)   ,
     .siFMC_SessId_V_V_empty_n  (~ssFifo_NRC_Tcp_SessId_tdata_V_empty),
     .siFMC_SessId_V_V_read     ( ssFifo_NRC_Tcp_SessId_tdata_V_read) ,
-    //.siFMC_Tcp_SessId_V_tdata_V_dout     ( ssFifo_NRC_Tcp_SessId_tdata_V_dout)   ,
-    //.siFMC_Tcp_SessId_V_tdata_V_empty_n  (~ssFifo_NRC_Tcp_SessId_tdata_V_empty),
-    //.siFMC_Tcp_SessId_V_tdata_V_read     ( ssFifo_NRC_Tcp_SessId_tdata_V_read) ,
-    //.siFMC_Tcp_SessId_V_tkeep_V_dout     ( ssFifo_NRC_Tcp_SessId_tkeep_V_dout)   ,
-    //.siFMC_Tcp_SessId_V_tkeep_V_empty_n  (~ssFifo_NRC_Tcp_SessId_tkeep_V_empty),
-    //.siFMC_Tcp_SessId_V_tkeep_V_read     ( ssFifo_NRC_Tcp_SessId_tkeep_V_read) ,
-    //.siFMC_Tcp_SessId_V_tlast_V_dout     ( ssFifo_NRC_Tcp_SessId_tlast_V_dout)   ,
-    //.siFMC_Tcp_SessId_V_tlast_V_empty_n  (~ssFifo_NRC_Tcp_SessId_tlast_V_empty),
-    //.siFMC_Tcp_SessId_V_tlast_V_read     ( ssFifo_NRC_Tcp_SessId_tlast_V_read) ,
-    //.piFMC_data_FIFO_prog_full_V    ( ssNRC_Fifo_Tcp_Data_tdata_V_prog_full) ,
-    //.piFMC_data_FIFO_prog_full_V_ap_vld (1),
+    // OBSOLETE .siFMC_Tcp_SessId_V_tdata_V_dout     ( ssFifo_NRC_Tcp_SessId_tdata_V_dout)   ,
+    // OBSOLETE .siFMC_Tcp_SessId_V_tdata_V_empty_n  (~ssFifo_NRC_Tcp_SessId_tdata_V_empty),
+    // OBSOLETE .siFMC_Tcp_SessId_V_tdata_V_read     ( ssFifo_NRC_Tcp_SessId_tdata_V_read) ,
+    // OBSOLETE .siFMC_Tcp_SessId_V_tkeep_V_dout     ( ssFifo_NRC_Tcp_SessId_tkeep_V_dout)   ,
+    // OBSOLETE .siFMC_Tcp_SessId_V_tkeep_V_empty_n  (~ssFifo_NRC_Tcp_SessId_tkeep_V_empty),
+    // OBSOLETE .siFMC_Tcp_SessId_V_tkeep_V_read     ( ssFifo_NRC_Tcp_SessId_tkeep_V_read) ,
+    // OBSOLETE .siFMC_Tcp_SessId_V_tlast_V_dout     ( ssFifo_NRC_Tcp_SessId_tlast_V_dout)   ,
+    // OBSOLETE .siFMC_Tcp_SessId_V_tlast_V_empty_n  (~ssFifo_NRC_Tcp_SessId_tlast_V_empty),
+    // OBSOLETE .siFMC_Tcp_SessId_V_tlast_V_read     ( ssFifo_NRC_Tcp_SessId_tlast_V_read) ,
+    // OBSOLETE .piFMC_data_FIFO_prog_full_V    ( ssNRC_Fifo_Tcp_Data_tdata_V_prog_full) ,
+    // OBSOLETE .piFMC_data_FIFO_prog_full_V_ap_vld (1),
     .soFMC_data_V_tdata_V_din       ( ssNRC_Fifo_Tcp_Data_tdata_V_din)     ,
     .soFMC_data_V_tdata_V_full_n    (~ssNRC_Fifo_Tcp_Data_tdata_V_full)  ,
     .soFMC_data_V_tdata_V_write     ( ssNRC_Fifo_Tcp_Data_tdata_V_write)   ,
@@ -2224,20 +2253,20 @@ module Shell_Themisto # (
     .soFMC_data_V_tlast_V_din       ( ssNRC_Fifo_Tcp_Data_tlast_V_din)     ,
     .soFMC_data_V_tlast_V_full_n    (~ssNRC_Fifo_Tcp_Data_tlast_V_full)  ,
     .soFMC_data_V_tlast_V_write     ( ssNRC_Fifo_Tcp_Data_tlast_V_write)   ,
-    //.piFMC_sessid_FIFO_prog_full_V  ( ssNRC_Fifo_Tcp_SessId_tdata_V_prog_full) ,
-    //.piFMC_sessid_FIFO_prog_full_V_ap_vld (1),
+    // OBSOLETE .piFMC_sessid_FIFO_prog_full_V  ( ssNRC_Fifo_Tcp_SessId_tdata_V_prog_full) ,
+    // OBSOLETE .piFMC_sessid_FIFO_prog_full_V_ap_vld (1),
     .soFMC_SessId_V_V_din     ( ssNRC_Fifo_Tcp_SessId_tdata_V_din)   ,
     .soFMC_SessId_V_V_full_n  (~ssNRC_Fifo_Tcp_SessId_tdata_V_full),
     .soFMC_SessId_V_V_write   ( ssNRC_Fifo_Tcp_SessId_tdata_V_write) ,
-    //.soFMC_Tcp_SessId_V_tdata_V_din     ( ssNRC_Fifo_Tcp_SessId_tdata_V_din)   ,
-    //.soFMC_Tcp_SessId_V_tdata_V_full_n  (~ssNRC_Fifo_Tcp_SessId_tdata_V_full),
-    //.soFMC_Tcp_SessId_V_tdata_V_write   ( ssNRC_Fifo_Tcp_SessId_tdata_V_write) ,
-    //.soFMC_Tcp_SessId_V_tkeep_V_din     ( ssNRC_Fifo_Tcp_SessId_tkeep_V_din)   ,
-    //.soFMC_Tcp_SessId_V_tkeep_V_full_n  (~ssNRC_Fifo_Tcp_SessId_tkeep_V_full),
-    //.soFMC_Tcp_SessId_V_tkeep_V_write   ( ssNRC_Fifo_Tcp_SessId_tkeep_V_write) ,
-    //.soFMC_Tcp_SessId_V_tlast_V_din     ( ssNRC_Fifo_Tcp_SessId_tlast_V_din)   ,
-    //.soFMC_Tcp_SessId_V_tlast_V_full_n  (~ssNRC_Fifo_Tcp_SessId_tlast_V_full),
-    //.soFMC_Tcp_SessId_V_tlast_V_write   ( ssNRC_Fifo_Tcp_SessId_tlast_V_write) ,
+    // OBSOLETE .soFMC_Tcp_SessId_V_tdata_V_din     ( ssNRC_Fifo_Tcp_SessId_tdata_V_din)   ,
+    // OBSOLETE .soFMC_Tcp_SessId_V_tdata_V_full_n  (~ssNRC_Fifo_Tcp_SessId_tdata_V_full),
+    // OBSOLETE .soFMC_Tcp_SessId_V_tdata_V_write   ( ssNRC_Fifo_Tcp_SessId_tdata_V_write) ,
+    // OBSOLETE .soFMC_Tcp_SessId_V_tkeep_V_din     ( ssNRC_Fifo_Tcp_SessId_tkeep_V_din)   ,
+    // OBSOLETE .soFMC_Tcp_SessId_V_tkeep_V_full_n  (~ssNRC_Fifo_Tcp_SessId_tkeep_V_full),
+    // OBSOLETE .soFMC_Tcp_SessId_V_tkeep_V_write   ( ssNRC_Fifo_Tcp_SessId_tkeep_V_write) ,
+    // OBSOLETE .soFMC_Tcp_SessId_V_tlast_V_din     ( ssNRC_Fifo_Tcp_SessId_tlast_V_din)   ,
+    // OBSOLETE .soFMC_Tcp_SessId_V_tlast_V_full_n  (~ssNRC_Fifo_Tcp_SessId_tlast_V_full),
+    // OBSOLETE .soFMC_Tcp_SessId_V_tlast_V_write   ( ssNRC_Fifo_Tcp_SessId_tlast_V_write) ,
     .soUOE_Data_TDATA             (ssNRC_NTS0_Udp_Data_tdata),
     .soUOE_Data_TKEEP             (ssNRC_NTS0_Udp_Data_tkeep),
     .soUOE_Data_TLAST             (ssNRC_NTS0_Udp_Data_tlast),
@@ -2303,12 +2332,12 @@ module Shell_Themisto # (
     .siTOE_SndRep_V_TDATA           (ssTOE_NRC_Tcp_SndRep_tdata),
     .siTOE_SndRep_V_TVALID          (ssTOE_NRC_Tcp_SndRep_tvalid),
     .siTOE_SndRep_V_TREADY          (ssTOE_NRC_Tcp_SndRep_tready),
-    //.soTOE_SessId_V_V_TDATA         (ssNRC_TOE_Tcp_Meta_tdata),
-    //.soTOE_SessId_V_V_TVALID        (ssNRC_TOE_Tcp_Meta_tvalid),
-    //.soTOE_SessId_V_V_TREADY        (ssNRC_TOE_Tcp_Meta_tready),
-    //.siTOE_DSts_V_V_TDATA           (ssTOE_NRC_Tcp_DSts_tdata),
-    //.siTOE_DSts_V_V_TVALID          (ssTOE_NRC_Tcp_DSts_tvalid),
-    //.siTOE_DSts_V_V_TREADY          (ssTOE_NRC_Tcp_DSts_tready),
+    // OBSOLETE .soTOE_SessId_V_V_TDATA         (ssNRC_TOE_Tcp_Meta_tdata),
+    // OBSOLETE .soTOE_SessId_V_V_TVALID        (ssNRC_TOE_Tcp_Meta_tvalid),
+    // OBSOLETE .soTOE_SessId_V_V_TREADY        (ssNRC_TOE_Tcp_Meta_tready),
+    // OBSOLETE .siTOE_DSts_V_V_TDATA           (ssTOE_NRC_Tcp_DSts_tdata),
+    // OBSOLETE .siTOE_DSts_V_V_TVALID          (ssTOE_NRC_Tcp_DSts_tvalid),
+    // OBSOLETE .siTOE_DSts_V_V_TREADY          (ssTOE_NRC_Tcp_DSts_tready),
     .soTOE_OpnReq_V_TDATA           (ssNRC_TOE_Tcp_OpnReq_tdata),
     .soTOE_OpnReq_V_TVALID          (ssNRC_TOE_Tcp_OpnReq_tvalid),
     .soTOE_OpnReq_V_TREADY          (ssNRC_TOE_Tcp_OpnReq_tready),

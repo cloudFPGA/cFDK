@@ -82,7 +82,7 @@ void tx_sar_table(
         stream<TStTxSarPush>       &soTAi_PushCmd)
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    #pragma HLS PIPELINE II=1 // OBSOLETE_2012108 enable_flush
+    #pragma HLS PIPELINE II=1 enable_flush
     // OBSOLETE_2012108#pragma HLS INLINE off
 
     const char *myName = THIS_NAME;

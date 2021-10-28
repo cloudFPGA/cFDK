@@ -66,7 +66,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //=========================================================
 class DmCmd {
   public:
-    ap_uint<23>     bbt;    // Bytes To Transfer (1 up to 8,388,607 bytes. 0 is not allowed)
+    ap_uint<23>     btt;    // Bytes To Transfer (1 up to 8,388,607 bytes. 0 is not allowed)
     ap_uint<1>      type;   // Type of AXI4 access (0=FIXED, 1=INCR)
     ap_uint<6>      dsa;    // DRE Stream Alignment
     ap_uint<1>      eof;    // End of Frame
@@ -77,7 +77,7 @@ class DmCmd {
  
    DmCmd() {}
    DmCmd(ap_uint<40> addr, ap_uint<23> len) :
-        bbt(len), type(1), dsa(0), eof(1), drr(1), saddr(addr), tag(0), rsvd(0) {}
+        btt(len), type(1), dsa(0), eof(1), drr(1), saddr(addr), tag(0), rsvd(0) {}
 };
 
 //=========================================================
