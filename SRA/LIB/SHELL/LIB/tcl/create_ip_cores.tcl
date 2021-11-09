@@ -942,7 +942,7 @@ set ipCfgList  [ list CONFIG.C0.DDR4_MemoryPart {MT40A1G8WE-075E} \
                       CONFIG.C0.DDR4_InputClockPeriod      {3332} \
                       CONFIG.C0.DDR4_Specify_MandD         {true} \
                       CONFIG.C0.DDR4_AxiNarrowBurst        {true} \
-                      CONFIG.C0.DDR4_AxiIDWidth               {8} ]
+                      CONFIG.C0.DDR4_AxiIDWidth               {12} ]
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
