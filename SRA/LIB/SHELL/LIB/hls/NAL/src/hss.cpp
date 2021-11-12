@@ -638,16 +638,15 @@ void pPortLogic(
       } else if(*layer_4_enabled == 0 || *piNTS_ready == 0)
       {
         port_fsm = PORT_L4_RESET;
+      } else if(processed_FMC_listen_port != *piMMIO_FmcLsnPort)
+      { //process FMC port first!
+        port_fsm = PORT_NEW_FMC_REQ;
       } else if (*layer_7_enabled == 0 || *role_decoupled == 1 )
       {
         port_fsm = PORT_L7_RESET;
       } else {
-        //  port requests
-        if(processed_FMC_listen_port != *piMMIO_FmcLsnPort)
-        {
-          port_fsm = PORT_NEW_FMC_REQ;
-        }
-        else if(udp_rx_ports_processed != *pi_udp_rx_ports)
+        //  Role port requests
+        if(udp_rx_ports_processed != *pi_udp_rx_ports)
         {
           port_fsm = PORT_NEW_UDP_REQ;
         }
