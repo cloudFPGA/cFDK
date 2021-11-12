@@ -231,14 +231,17 @@ my_info_puts "usedRole2 is set to $usedRole2"
 # -----------------------------------------------------
 # Assert valid combination of arguments 
 if {$only_pr_bitgen} {
-  # to deal with https://www.xilinx.com/support/answers/70708.html
-  set pr_verify 0
+  if { [format "%.1f" ${VIVADO_VERSION}] <= 2018.1 } {
+    # to deal with https://www.xilinx.com/support/answers/70708.html
+    set pr_verify 0
+  }
   set generate_mcs 0
 }
 
 if {$generate_mcs} {
   set bitGen1 1
   set pr 1
+  set pr_verify 1
 }
 
 if {$pr || $link} {
@@ -922,33 +925,46 @@ if { $pr_grey_impl } {
 
 
 if { $pr_verify } { 
-  catch {close_project}
-  my_dbg_trace "Starting pr_verify" ${dbgLvl_1}
-  
-  set toVerifyList [ glob -nocomplain ${dcpDir}/2_* ]
-  set ll [llength $toVerifyList]
-  if { $ll < 2 } { 
-    my_puts "################################################################################"
-    my_err_puts "Only one .dcp to verify --> not possible --> SKIP pr_verify."
+  # set toVerifyList [ glob -nocomplain ${dcpDir}/2_* ]
+  # putting 3_STATIC fist...
+  set toVerifyList [ glob -nocomplain ${dcpDir}/[32]_*.dcp ]
+
+  if { [format "%.1f" ${VIVADO_VERSION}] <= 2018.1 } {
+    # to deal with https://www.xilinx.com/support/answers/70708.html
+      my_warn_puts "################################################################################"
+      my_warn_puts "##  Vivado Version is below 2018.1, pr_verify will most likely fail --> SKIPPED."
+      my_err_puts  "##  proceed at your own risk!"
+      my_warn_puts "################################################################################"
+      set outfileID [open ${dcpDir}/pr_verify.rpt w]
+      puts $outfileID "WARNING: PR-VERIFY SKIPPED due to old Vivado version. Proceed at your own risk! DCPs to check: $toVerifyList"
+      close $outfileID
   } else {
-    #pr_verify ${toVerifyList}
-    pr_verify -initial [lindex $toVerifyList 0] -additional [lrange $toVerifyList 1 $ll] -file ${dcpDir}/pr_verify.rpt
-    # yes, $ll is here 'out of bounce' but tcl dosen't care
-  
+    catch {close_project}
+    my_dbg_trace "Starting pr_verify" ${dbgLvl_1}
+    
+    set ll [llength $toVerifyList]
+    if { $ll < 2 } { 
+      my_puts "################################################################################"
+      my_err_puts "Only one .dcp to verify --> not possible --> SKIP pr_verify."
+    } else {
+      catch {pr_verify -initial [lindex $toVerifyList 0] -additional [lrange $toVerifyList 1 $ll] -file ${dcpDir}/pr_verify.rpt}
+      # yes, $ll is here 'out of bounce' but tcl dosen't care
+    
+      my_puts "################################################################################"
+      my_puts "##  DONE WITH pr_verify "
+    }
     my_puts "################################################################################"
-    my_puts "##  DONE WITH pr_verify "
+    my_puts "At: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+    
+    catch {close_project}
   }
-  my_puts "################################################################################"
-  my_puts "At: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
-  
-  catch {close_project}
 
 }
 
 
 if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
 
-  if { ! $forceWithoutBB } {  
+  if { ! $forceWithoutBB } {
     catch {close_project}
   }
 
@@ -1000,13 +1016,14 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
           open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete_pr.dcp
           
           source ${tclTopDir}/fix_things.tcl
-          #source ./fix_things.tcl
           if { $only_pr_bitgen } {
             write_bitstream -bin_file -cell ROLE -force ${dcpDir}/4_${topName}_impl_${curImpl}_pblock_ROLE_partial
             # no file extenstions .bit/.bin here!
           } else {
             write_bitstream -bin_file -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
           }
+          # in both cases: add certificate
+          exec /bin/bash ${rootDir}/env/create_sig.sh 4_${topName}_impl_${curImpl}_pblock_ROLE_partial.bin pr_verify.rpt
           #close_project
           # DEBUG probes
           if { $insert_ila } {
@@ -1020,28 +1037,28 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
 
             set loadbit_cmd "up 0x00000000 ${dcpDir}/4_${topName}_impl_${curImpl}.bit "
             write_cfgmem -format mcs -size 64 -interface BPIx16 -loadbit ${loadbit_cmd} -file ${dcpDir}/6_${topName}_impl_${curImpl}_flash.mcs
+            # write admin.sig
+            exec /bin/bash ${rootDir}/env/admin_sig.sh 6_${topName}_impl_${curImpl}_flash.mcs 4_${topName}_impl_${curImpl}.bit pr_verify.rpt
           }
         }
         # else: do nothing: only impl2 or grey_box will be generated (to save time)
 
       } else {
         open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete.dcp 
-        source ${tclTopDir}/fix_things.tcl 
-        #source ./fix_things.tcl 
+        source ${tclTopDir}/fix_things.tcl
         write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
         #close_project
         # DEBUG probes
-        if { $insert_ila } { 
+        if { $insert_ila } {
           write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}.ltx
         }
       }
 
-      if { $bitGen2 } { 
+      if { $bitGen2 } {
         catch {close_project}
         open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole2}_complete_pr.dcp 
         set curImpl ${usedRole2}
         
-        #source ./fix_things.tcl 
         source ${tclTopDir}/fix_things.tcl 
         if { $only_pr_bitgen } {
           write_bitstream -bin_file -cell ROLE -force ${dcpDir}/4_${topName}_impl_${curImpl}_pblock_ROLE_partial 
@@ -1049,13 +1066,14 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
         } else {
           write_bitstream -bin_file -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
         }
-        #close_project
+        # in both cases: add certificate
+        exec /bin/bash ${rootDir}/env/create_sig.sh 4_${topName}_impl_${curImpl}_pblock_ROLE_partial.bin pr_verify.rpt
         # DEBUG probes
-        if { $insert_ila } { 
+        if { $insert_ila } {
           write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}.ltx
         }
-      } 
-      if { $pr_grey_bitgen } { 
+      }
+      if { $pr_grey_bitgen } {
         catch {close_project}
         open_checkpoint ${dcpDir}/3_${topName}_impl_grey_box.dcp 
         set curImpl "grey_box"
@@ -1064,7 +1082,7 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
         # source ./fix_things.tcl 
         write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
         #close_project
-      } 
+      }
 
     }
 
