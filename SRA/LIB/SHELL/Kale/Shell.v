@@ -297,7 +297,7 @@ module Shell_Kale # (
   //-- ROLE / Mem / Mp1 Interface
   //------------------------------------------------------
   //---- Write Address Channel ---------
-  input  [  3: 0]  miROL_Mem_Mp1_AWID,
+  input  [  7: 0]  miROL_Mem_Mp1_AWID,
   input  [ 32: 0]  miROL_Mem_Mp1_AWADDR,
   input  [  7: 0]  miROL_Mem_Mp1_AWLEN,
   input  [  2: 0]  miROL_Mem_Mp1_AWSIZE,
@@ -311,12 +311,12 @@ module Shell_Kale # (
   input            miROL_Mem_Mp1_WVALID,
   output           miROL_Mem_Mp1_WREADY,
   //---- Write Response Channel --------
-  output [  3: 0]  miROL_Mem_Mp1_BID,
+  output [  7: 0]  miROL_Mem_Mp1_BID,
   output [  1: 0]  miROL_Mem_Mp1_BRESP,
   output           miROL_Mem_Mp1_BVALID,
   input            miROL_Mem_Mp1_BREADY,
   //---- Read Address Channel ----------
-  input  [  3: 0]  miROL_Mem_Mp1_ARID,
+  input  [  7: 0]  miROL_Mem_Mp1_ARID,
   input  [ 32: 0]  miROL_Mem_Mp1_ARADDR,
   input  [  7: 0]  miROL_Mem_Mp1_ARLEN,
   input  [  2: 0]  miROL_Mem_Mp1_ARSIZE,
@@ -324,7 +324,7 @@ module Shell_Kale # (
   input            miROL_Mem_Mp1_ARVALID,
   output           miROL_Mem_Mp1_ARREADY,
   //---- Read Data Channel -------------
-  output [  3: 0]  miROL_Mem_Mp1_RID,
+  output [  7: 0]  miROL_Mem_Mp1_RID,
   output [511: 0]  miROL_Mem_Mp1_RDATA,
   output [  1: 0]  miROL_Mem_Mp1_RRESP,
   output           miROL_Mem_Mp1_RLAST,

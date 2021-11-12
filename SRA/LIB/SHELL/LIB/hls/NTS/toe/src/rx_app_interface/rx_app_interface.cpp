@@ -283,7 +283,7 @@ void pRxMemoryReader(
         if (!siRas_MemRdCmd.empty() and !soAss_SplitSeg.full() and !soMEM_RxpRdCmd.full() ) {
             siRas_MemRdCmd.read(mrd_memRdCmd);
 
-            if ((mrd_memRdCmd.saddr.range(TOE_WINDOW_BITS-1, 0) + mrd_memRdCmd.bbt) > TOE_RX_BUFFER_SIZE) {
+            if ((mrd_memRdCmd.saddr.range(TOE_WINDOW_BITS-1, 0) + mrd_memRdCmd.btt) > TOE_RX_BUFFER_SIZE) {
                 // This segment was broken in two memory accesses because TCP Rx memory buffer wrapped around
                 mrd_firstAccLen = TOE_RX_BUFFER_SIZE - mrd_memRdCmd.saddr;
                 mrd_fsmState = MRD_2ND_ACCESS;
@@ -293,7 +293,7 @@ void pRxMemoryReader(
 
                 if (DEBUG_LEVEL & TRACE_MRD) {
                     printInfo(myName, "TCP Rx memory buffer wraps around: This segment is broken in two memory accesses.\n");
-                    printInfo(myName, "Issuing 1st memory read command #%d - SADDR=0x%9.9lx - BBT=%d\n",
+                    printInfo(myName, "Issuing 1st memory read command #%d - SADDR=0x%9.9lx - BTT=%d\n",
                               mrd_debugCounter, mrd_memRdCmd.saddr.to_ulong(), mrd_firstAccLen.to_uint());
                 }
             }
@@ -302,8 +302,8 @@ void pRxMemoryReader(
                 soAss_SplitSeg.write(false);
 
                 if (DEBUG_LEVEL & TRACE_MRD) {
-                    printInfo(myName, "Issuing memory read command #%d - SADDR=0x%9.9lx - BBT=%d\n",
-                              mrd_debugCounter, mrd_memRdCmd.saddr.to_ulong(), mrd_memRdCmd.bbt.to_uint());
+                    printInfo(myName, "Issuing memory read command #%d - SADDR=0x%9.9lx - BTT=%d\n",
+                              mrd_debugCounter, mrd_memRdCmd.saddr.to_ulong(), mrd_memRdCmd.btt.to_uint());
                     mrd_debugCounter++;
                 }
             }
@@ -313,14 +313,14 @@ void pRxMemoryReader(
         if (!soMEM_RxpRdCmd.full()) {
             // Update the command to account for the Rx buffer wrap around
             mrd_memRdCmd.saddr(TOE_WINDOW_BITS-1, 0) = 0;
-            soMEM_RxpRdCmd.write(DmCmd(mrd_memRdCmd.saddr, mrd_memRdCmd.bbt - mrd_firstAccLen));
+            soMEM_RxpRdCmd.write(DmCmd(mrd_memRdCmd.saddr, mrd_memRdCmd.btt - mrd_firstAccLen));
 
             mrd_fsmState = MRD_1ST_ACCESS;
 
             if (DEBUG_LEVEL & TRACE_MRD) {
-                printInfo(myName, "Issuing 2nd memory read command #%d - SADDR=0x%9.9lx - BBT=%d\n",
+                printInfo(myName, "Issuing 2nd memory read command #%d - SADDR=0x%9.9lx - BTT=%d\n",
                           mrd_debugCounter, mrd_memRdCmd.saddr.to_ulong(),
-                         (mrd_memRdCmd.bbt - mrd_firstAccLen).to_uint());
+                         (mrd_memRdCmd.btt - mrd_firstAccLen).to_uint());
                 mrd_debugCounter++;
             }
         }

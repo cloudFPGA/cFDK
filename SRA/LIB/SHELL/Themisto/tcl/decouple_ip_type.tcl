@@ -93,7 +93,7 @@ set DecouplerType [list CONFIG.ALL_PARAMS {HAS_AXI_LITE 0 HAS_AXIS_CONTROL 0 INT
         siROL_Mem_Mp0_Write_tlast      { DIRECTION out } \
         siROL_Mem_Mp0_Write_tvalid     { DIRECTION out } \
         siROL_Mem_Mp0_Write_tready     { DIRECTION in  } \
-        miROL_Mem_Mp1_AWID             { DIRECTION out WIDTH   4 } \
+        miROL_Mem_Mp1_AWID             { DIRECTION out WIDTH   8 } \
         miROL_Mem_Mp1_AWADDR           { DIRECTION out WIDTH  33 } \
         miROL_Mem_Mp1_AWLEN            { DIRECTION out WIDTH   8 } \
         miROL_Mem_Mp1_AWSIZE           { DIRECTION out WIDTH   3 } \
@@ -105,18 +105,18 @@ set DecouplerType [list CONFIG.ALL_PARAMS {HAS_AXI_LITE 0 HAS_AXIS_CONTROL 0 INT
         miROL_Mem_Mp1_WLAST            { DIRECTION out } \
         miROL_Mem_Mp1_WVALID           { DIRECTION out } \
         miROL_Mem_Mp1_WREADY           { DIRECTION in  } \
-        miROL_Mem_Mp1_BID              { DIRECTION in  WIDTH   4 } \
+        miROL_Mem_Mp1_BID              { DIRECTION in  WIDTH   8 } \
         miROL_Mem_Mp1_BRESP            { DIRECTION in  WIDTH   2 } \
         miROL_Mem_Mp1_BVALID           { DIRECTION in  } \
         miROL_Mem_Mp1_BREADY           { DIRECTION out } \
-        miROL_Mem_Mp1_ARID             { DIRECTION out WIDTH   4 } \
+        miROL_Mem_Mp1_ARID             { DIRECTION out WIDTH   8 } \
         miROL_Mem_Mp1_ARADDR           { DIRECTION out WIDTH  33 } \
         miROL_Mem_Mp1_ARLEN            { DIRECTION out WIDTH   8 } \
         miROL_Mem_Mp1_ARSIZE           { DIRECTION out WIDTH   3 } \
         miROL_Mem_Mp1_ARBURST          { DIRECTION out WIDTH   2 } \
         miROL_Mem_Mp1_ARVALID          { DIRECTION out } \
         miROL_Mem_Mp1_ARREADY          { DIRECTION in  } \
-        miROL_Mem_Mp1_RID              { DIRECTION in  WIDTH   4 } \
+        miROL_Mem_Mp1_RID              { DIRECTION in  WIDTH   8 } \
         miROL_Mem_Mp1_RDATA            { DIRECTION in  WIDTH 512 } \
         miROL_Mem_Mp1_RRESP            { DIRECTION in  WIDTH   2 } \
         miROL_Mem_Mp1_RLAST            { DIRECTION in  } \

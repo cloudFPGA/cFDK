@@ -69,22 +69,19 @@ module MemoryChannel_DualPort #(
 
   parameter gSecurityPriviledges = "user",  // "user" or "super"
   parameter gBitstreamUsage      = "user",  // "user" or "flash"
-  parameter gUserDataChanWidth   = 64
+  parameter gUserDataChanWidth   = 64,
+  parameter gUserIdChanWidth     = 8  
 ) (
 
   //-- Global Clock used by the entire SHELL ------
   input           piShlClk,
-
   //-- Global Reset used by the entire SHELL ------
-  input           piSHL_Rst,
-    
+  input           piSHL_Rst,   
   //-- DDR4 Reference Memory Clock ----------------
   input           piCLKT_MemClk_n,
   input           piCLKT_MemClk_p,
-  
   //-- Control Inputs and Status Ouputs ----------
-  output          poMMIO_InitCalComplete,
-  
+  output          poMMIO_InitCalComplete,  
   //----------------------------------------------
   //-- MP0 / Memory Port Interface #0
   //----------------------------------------------
@@ -177,14 +174,13 @@ module MemoryChannel_DualPort #(
 
 );  // End of PortList
 
-
-// *****************************************************************************
-
-  // Local Parameters
-  localparam C_MCC_S_AXI_ADDR_WIDTH  = 33;
-  localparam C_MCC_S_AXI_DATA_WIDTH  = 512;
-  localparam cMCC_S_AXI_ID_WIDTH     = 8;
-   
+  //============================================================================
+  //  LOCAL PARAMETERS
+  //============================================================================
+  localparam cDATA_WIDTH  = 512; // Internal data width
+  localparam cID_WIDTH    = gUserIdChanWidth;
+  localparam cADDR_WIDTH  = 33;  // 8GB
+  
   //============================================================================
   //  SIGNAL DECLARATIONS
   //============================================================================
@@ -193,128 +189,127 @@ module MemoryChannel_DualPort #(
   //-- DATA MOVER #0 : Signal Declarations
   //--------------------------------------------------------
   //---- Master Read Address Channel -----------------------
-  wire [3:0]   sbDM0_ICT_RdAdd_Id;
-  wire [32:0]  sbDM0_ICT_RdAdd_Addr;
-  wire [7:0]   sbDM0_ICT_RdAdd_Len;
-  wire [2:0]   sbDM0_ICT_RdAdd_Size;
-  wire [1:0]   sbDM0_ICT_RdAdd_Burst;
-  wire         sbDM0_ICT_RdAdd_Valid;
-  wire         sbDM0_ICT_RdAdd_Ready;
+  wire [cID_WIDTH-1:0]      sbDM0_ICT_RdAdd_Id;
+  wire [cADDR_WIDTH-1:0]    sbDM0_ICT_RdAdd_Addr;
+  wire [7:0]                sbDM0_ICT_RdAdd_Len;
+  wire [2:0]                sbDM0_ICT_RdAdd_Size;
+  wire [1:0]                sbDM0_ICT_RdAdd_Burst;
+  wire                      sbDM0_ICT_RdAdd_Valid;
+  wire                      sbDM0_ICT_RdAdd_Ready;
   //---- Master Write Address Channel ----------------------
-  wire [3:0]   sbDM0_ICT_WrAdd_Id;
-  wire [32:0]  sbDM0_ICT_WrAdd_Addr;
-  wire [7:0]   sbDM0_ICT_WrAdd_Len;
-  wire [2:0]   sbDM0_ICT_WrAdd_Size;
-  wire [1:0]   sbDM0_ICT_WrAdd_Burst;
-  wire         sbDM0_ICT_WrAdd_Valid;
-  wire         sbDM0_ICT_WrAdd_Ready;
+  wire [cID_WIDTH-1:0]      sbDM0_ICT_WrAdd_Id;
+  wire [cADDR_WIDTH-1:0]    sbDM0_ICT_WrAdd_Addr;
+  wire [7:0]                sbDM0_ICT_WrAdd_Len;
+  wire [2:0]                sbDM0_ICT_WrAdd_Size;
+  wire [1:0]                sbDM0_ICT_WrAdd_Burst;
+  wire                      sbDM0_ICT_WrAdd_Valid;
+  wire                      sbDM0_ICT_WrAdd_Ready;
   //---- Master Write Data Channel -------------------------
-  wire [511:0] sbDM0_ICT_Write_Data;
-  wire [63:0]  sbDM0_ICT_Write_Strb;
-  wire         sbDM0_ICT_Write_Last;
-  wire         sbDM0_ICT_Write_Valid; 
-  wire         sbDM0_ICT_Write_Ready;
+  wire [cDATA_WIDTH-1:0]    sbDM0_ICT_Write_Data;
+  wire [cDATA_WIDTH/8-1:0]  sbDM0_ICT_Write_Strb;
+  wire                      sbDM0_ICT_Write_Last;
+  wire                      sbDM0_ICT_Write_Valid; 
+  wire                      sbDM0_ICT_Write_Ready;
    
   //--------------------------------------------------------  
   //-- DATA MOVER #1 : Signal Declarations
   //--------------------------------------------------------
   //---- Master Read Address Channel -----------------------
-  wire [3:0]   sbDM1_ICT_RdAdd_Id;
-  wire [32:0]  sbDM1_ICT_RdAdd_Addr;  
-  wire [7:0]   sbDM1_ICT_RdAdd_Len;
-  wire [2:0]   sbDM1_ICT_RdAdd_Size;
-  wire [1:0]   sbDM1_ICT_RdAdd_Burst;
-  wire         sbDM1_ICT_RdAdd_Valid;  
-  wire         sbDM1_ICT_RdAdd_Ready;
+  wire [cID_WIDTH-1:0]      sbDM1_ICT_RdAdd_Id;
+  wire [cADDR_WIDTH-1:0]    sbDM1_ICT_RdAdd_Addr;  
+  wire [7:0]                sbDM1_ICT_RdAdd_Len;
+  wire [2:0]                sbDM1_ICT_RdAdd_Size;
+  wire [1:0]                sbDM1_ICT_RdAdd_Burst;
+  wire                      sbDM1_ICT_RdAdd_Valid;  
+  wire                      sbDM1_ICT_RdAdd_Ready;
   //---- Master Write Address Channel ----------------------
-  wire [3:0]   sbDM1_ICT_WrAdd_Id;
-  wire [32:0]  sbDM1_ICT_WrAdd_Addr;
-  wire [7:0]   sbDM1_ICT_WrAdd_Len;
-  wire [2:0]   sbDM1_ICT_WrAdd_Size;
-  wire [1:0]   sbDM1_ICT_WrAdd_Burst;
-  wire         sbDM1_ICT_WrAdd_Valid;
-  wire         sbDM1_ICT_WrAdd_Ready;
+  wire [cID_WIDTH-1:0]      sbDM1_ICT_WrAdd_Id;
+  wire [cADDR_WIDTH-1:0]    sbDM1_ICT_WrAdd_Addr;
+  wire [7:0]                sbDM1_ICT_WrAdd_Len;
+  wire [2:0]                sbDM1_ICT_WrAdd_Size;
+  wire [1:0]                sbDM1_ICT_WrAdd_Burst;
+  wire                      sbDM1_ICT_WrAdd_Valid;
+  wire                      sbDM1_ICT_WrAdd_Ready;
   //---- Master Write Data Channel -------------------------
-  wire [511:0] sbDM1_ICT_Write_Data;
-  wire [63:0]  sbDM1_ICT_Write_Strb;
-  wire         sbDM1_ICT_Write_Last;
-  wire         sbDM1_ICT_Write_Valid; 
-  wire         sbDM1_ICT_Write_Ready;
+  wire [cDATA_WIDTH-1:0]    sbDM1_ICT_Write_Data;
+  wire [cDATA_WIDTH/8-1:0]  sbDM1_ICT_Write_Strb;
+  wire                      sbDM1_ICT_Write_Last;
+  wire                      sbDM1_ICT_Write_Valid; 
+  wire                      sbDM1_ICT_Write_Ready;
   
-    
   //--------------------------------------------------------  
   //-- AXI INTERCONNECT : Signal Declarations
   //--------------------------------------------------------
   //---- Slave Read Data Channel #0 ------------------------
-  wire [3:0]   sbICT_DM0_Read_Id;
-  wire [511:0] sbICT_DM0_Read_Data;
-  wire [1:0]   sbICT_DM0_Read_Resp;
-  wire         sbICT_DM0_Read_Last;
-  wire         sbICT_DM0_Read_Valid;
-  wire         sbICT_DM0_Read_Ready;
+  wire [cID_WIDTH-1:0]      sbICT_DM0_Read_Id;
+  wire [cDATA_WIDTH-1:0]    sbICT_DM0_Read_Data;
+  wire [1:0]                sbICT_DM0_Read_Resp;
+  wire                      sbICT_DM0_Read_Last;
+  wire                      sbICT_DM0_Read_Valid;
+  wire                      sbICT_DM0_Read_Ready;
   //-- Master Write Response Channel #0 --------------------
-  wire [3:0]   sbICT_DM0_WrRes_Id;
-  wire [1:0]   sbICT_DM0_WrRes_Resp;
-  wire         sbICT_DM0_WrRes_Valid;
-  wire         sbICT_DM0_WrRes_Ready;
+  wire [cID_WIDTH-1:0]      sbICT_DM0_WrRes_Id;
+  wire [1:0]                sbICT_DM0_WrRes_Resp;
+  wire                      sbICT_DM0_WrRes_Valid;
+  wire                      sbICT_DM0_WrRes_Ready;
   //---- Slave Read Data Channel #1 ------------------------
-  wire [3:0]   sbICT_DM1_Read_Id;
-  wire [511:0] sbICT_DM1_Read_Data;
-  wire [1:0]   sbICT_DM1_Read_Resp;
-  wire         sbICT_DM1_Read_Last;
-  wire         sbICT_DM1_Read_Valid;
-  wire         sbICT_DM1_Read_Ready;
+  wire [cID_WIDTH-1:0]      sbICT_DM1_Read_Id;
+  wire [cDATA_WIDTH-1:0]    sbICT_DM1_Read_Data;
+  wire [1:0]                sbICT_DM1_Read_Resp;
+  wire                      sbICT_DM1_Read_Last;
+  wire                      sbICT_DM1_Read_Valid;
+  wire                      sbICT_DM1_Read_Ready;
   //---- Master Write Response Channel #1 ------------------
-  wire [3:0]   sbICT_DM1_WrRes_Id;
-  wire [1:0]   sbICT_DM1_WrRes_Resp;
-  wire         sbICT_DM1_WrRes_Valid;
-  wire         sbICT_DM1_WrRes_Ready;
+  wire [cID_WIDTH-1:0]      sbICT_DM1_WrRes_Id;
+  wire [1:0]                sbICT_DM1_WrRes_Resp;
+  wire                      sbICT_DM1_WrRes_Valid;
+  wire                      sbICT_DM1_WrRes_Ready;
   //---- Master Write Address Channel ----------------------
-  wire [7:0]   sbICT_MCC_WrAdd_Wid;
-  wire [32:0]  sbICT_MCC_WrAdd_Addr;
-  wire [7:0]   sbICT_MCC_WrAdd_Len;
-  wire [2:0]   sbICT_MCC_WrAdd_Size;
-  wire [1:0]   sbICT_MCC_WrAdd_Burst;
-  wire         sbICT_MCC_WrAdd_Valid;
-  wire         sbICT_MCC_WrAdd_Ready;
+  wire [cID_WIDTH+3:0]      sbICT_MCC_WrAdd_Wid;
+  wire [cADDR_WIDTH-1:0]    sbICT_MCC_WrAdd_Addr;
+  wire [7:0]                sbICT_MCC_WrAdd_Len;
+  wire [2:0]                sbICT_MCC_WrAdd_Size;
+  wire [1:0]                sbICT_MCC_WrAdd_Burst;
+  wire                      sbICT_MCC_WrAdd_Valid;
+  wire                      sbICT_MCC_WrAdd_Ready;
   //---- Master Write Data Channel ------------------------- 
-  wire [C_MCC_S_AXI_DATA_WIDTH-1:0]     sbICT_MCC_Write_Data;
-  wire [(C_MCC_S_AXI_DATA_WIDTH/8)-1:0] sbICT_MCC_Write_Strb;
-  wire                                  sbICT_MCC_Write_Last;
-  wire                                  sbICT_MCC_Write_Valid;
-  wire                                  sbICT_MCC_Write_Ready;
+  wire [cDATA_WIDTH-1:0]    sbICT_MCC_Write_Data;
+  wire [cDATA_WIDTH/8-1:0]  sbICT_MCC_Write_Strb;
+  wire                      sbICT_MCC_Write_Last;
+  wire                      sbICT_MCC_Write_Valid;
+  wire                      sbICT_MCC_Write_Ready;
   //---- Master Write Response Channel ---------------------
-  wire [cMCC_S_AXI_ID_WIDTH-1:0]        sbMCC_ICT_WrRes_Id;
-  wire [1:0]                            sbMCC_ICT_WrRes_Resp;
-  wire                                  sbMCC_ICT_WrRes_Valid;
-  wire                                  sbMCC_ICT_WrRes_Ready;
+  wire [cID_WIDTH+3:0]      sbMCC_ICT_WrRes_Id;
+  wire [1:0]                sbMCC_ICT_WrRes_Resp;
+  wire                      sbMCC_ICT_WrRes_Valid;
+  wire                      sbMCC_ICT_WrRes_Ready;
   //-- Master Read Address Channel -------------------------
-  wire [7:0]   sbICT_MCC_RdAdd_Id;
-  wire [32:0]  sbICT_MCC_RdAdd_Addr;
-  wire [7:0]   sbICT_MCC_RdAdd_Len;
-  wire [2:0]   sbICT_MCC_RdAdd_Size;
-  wire [1:0]   sbICT_MCC_RdAdd_Burst;
-  wire         sbICT_MCC_RdAdd_Valid;
-  wire         sbICT_MCC_RdAdd_Ready;
+  wire [cID_WIDTH+3:0]      sbICT_MCC_RdAdd_Id;
+  wire [cADDR_WIDTH-1:0]    sbICT_MCC_RdAdd_Addr;
+  wire [7:0]                sbICT_MCC_RdAdd_Len;
+  wire [2:0]                sbICT_MCC_RdAdd_Size;
+  wire [1:0]                sbICT_MCC_RdAdd_Burst;
+  wire                      sbICT_MCC_RdAdd_Valid;
+  wire                      sbICT_MCC_RdAdd_Ready;
   
   //--------------------------------------------------------  
   //-- MEMORY CHANNEL CONTROLLER : Signal Declarations
   //--------------------------------------------------------
   //---- User Interface ------------------------------------
-  wire                                  sMCC_Ui_clk;
-  wire                                  sMCC_Ui_SyncRst;
+  wire                      sMCC_Ui_clk;
+  wire                      sMCC_Ui_SyncRst;
   //---- Master Read Data Channel --------------------------
-  wire [7:0]                            sbMCC_ICT_Read_Id;
-  wire [C_MCC_S_AXI_DATA_WIDTH-1:0]     sbMCC_ICT_Read_Data;
-  wire [1:0]                            sbMCC_ICT_Read_Resp;
-  wire                                  sbMCC_ICT_Read_Last;
-  wire                                  sbMCC_ICT_Read_Valid;
-  wire                                  sbMCC_ICT_Read_Ready;
+  wire [cID_WIDTH+3:0]      sbMCC_ICT_Read_Id;
+  wire [cDATA_WIDTH-1:0]    sbMCC_ICT_Read_Data;
+  wire [1:0]                sbMCC_ICT_Read_Resp;
+  wire                      sbMCC_ICT_Read_Last;
+  wire                      sbMCC_ICT_Read_Valid;
+  wire                      sbMCC_ICT_Read_Ready;
   
   //--------------------------------------------------------  
   //-- LOCALY GERANERATED : Signal Declarations
   //--------------------------------------------------------
-  reg                                   sMCC_Ui_SyncRst_n;
+  reg                       sMCC_Ui_SyncRst_n;
   
    
   //============================================================================

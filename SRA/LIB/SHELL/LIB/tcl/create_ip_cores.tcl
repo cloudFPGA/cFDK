@@ -738,19 +738,16 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 #        [Full]    : Channel Type
 #        [512]     : Memory Map Data Width
 #        [64]      : Stream Data Width
-#        [16]      : Maximum Burst Size
-#                     (BusrtsLength = (DataWidth / 8) * BurstSize) 
+#        [16]      : Maximum Burst Size (BusrtsLength = (DataWidth / 8) * BurstSize) 
 #        [16]      : Width of BTT field (bits)
 #    S2MM Interface
 #      [ENABLE]
 #        [Full]    : Channel Type
 #        [512]     : Memory Map Data Width
 #        [64]      : Stream Data Width
-#        [16]      : Maximum Burst Size
-#                     (BusrtsLength = (DataWidth / 8) * BurstSize) 
+#        [16]      : Maximum Burst Size (BusrtsLength = (DataWidth / 8) * BurstSize) 
 #        [16]      : Width of BTT field (bits)
 #
-#    [DISABLE]     : XCACHE xUSER
 #    [DISABLE]     : XCACHE xUSER
 #    [DISABLE]     : MM2S Control Signals
 #    [DISABLE]     : S2MM Control Signals
@@ -761,32 +758,34 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 #      [DISABLE]   : Asynchronous Clocks
 #      [ENABLE]    : Allow Unaligned Transfer
 #      [DISABLE]   : Store Forward
-#      [4]         : ID Width
+#      [8]         : ID Width
 #      [0]         : ID Value        
 #    S2MM Interface
 #      [DISABLE]   : Asynchronous Clocks
 #      [ENABLE]    : Allow Unaligned Transfer
-#      [DISABLE]   : Indeterinate BTT Mode      
 #      [DISABLE]   : Store Forward
-#      [4]         : ID Width
-#      [0]         : ID Value         
+#      [DISABLE]   : Indeterminate BTT Mode      
+#      [8]         : ID Width
+#      [0]         : ID Value
 #------------------------------------------------------------------------------
 set ipModName "AxiDataMover_M512_S64_B16"
 set ipName    "axi_datamover"
 set ipVendor  "xilinx.com"
 set ipLibrary "ip"
 set ipVersion "5.1"
-set ipCfgList  [ list CONFIG.c_m_axi_mm2s_data_width {512} \
+set ipCfgList  [ list CONFIG.c_m_axi_mm2s_data_width  {512} \
                       CONFIG.c_m_axis_mm2s_tdata_width {64} \
-                      CONFIG.c_mm2s_burst_size {16} \
-                      CONFIG.c_m_axi_s2mm_data_width {512} \
+                      CONFIG.c_mm2s_burst_size         {16} \
+                      CONFIG.c_m_axi_mm2s_id_width      {8} \
+                      CONFIG.c_m_axi_s2mm_data_width  {512} \
                       CONFIG.c_s_axis_s2mm_tdata_width {64} \
-                      CONFIG.c_s2mm_burst_size {16} \
-                      CONFIG.c_addr_width {33} \
-                      CONFIG.c_include_mm2s_dre {true} \
-                      CONFIG.c_include_s2mm_dre {true} \
-                      CONFIG.c_mm2s_include_sf {false} \
-                      CONFIG.c_s2mm_include_sf {false} ]
+                      CONFIG.c_s2mm_burst_size         {16} \
+                      CONFIG.c_m_axi_s2mm_id_width      {8} \
+                      CONFIG.c_addr_width              {33} \
+                      CONFIG.c_include_mm2s_dre      {true} \
+                      CONFIG.c_include_s2mm_dre      {true} \
+                      CONFIG.c_mm2s_include_sf      {false} \
+                      CONFIG.c_s2mm_include_sf      {false} ]
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
@@ -799,19 +798,16 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 #        [Full]    : Channel Type
 #        [512]     : Memory Map Data Width
 #        [512]     : Stream Data Width
-#        [64]      : Maximum Burst Size 
-#                     (BusrtsLength = (DataWidth / 8) * BurstSize) 
+#        [64]      : Maximum Burst Size (BusrtsLength = (DataWidth / 8) * BurstSize) 
 #        [16]      : Width of BTT field (bits)
 #    S2MM Interface
 #      [ENABLE]
 #        [Full]    : Channel Type
 #        [512]     : Memory Map Data Width
 #        [512]     : Stream Data Width
-#        [64]      : Maximum Burst Size
-#                     (BusrtsLength = (DataWidth / 8) * BurstSize) 
+#        [64]      : Maximum Burst Size (BusrtsLength = (DataWidth / 8) * BurstSize) 
 #        [16]      : Width of BTT field (bits)
 #
-#    [DISABLE]     : XCACHE xUSER
 #    [DISABLE]     : XCACHE xUSER
 #    [DISABLE]     : MM2S Control Signals
 #    [DISABLE]     : S2MM Control Signals
@@ -820,16 +816,16 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 #  Advanced Options
 #    MM2S Interface
 #      [DISABLE]   : Asynchronous Clocks
-#      [DISABLE]   : Allow Unaligned Transfer
+#      [ENABLE]    : Allow Unaligned Transfer
 #      [DISABLE]   : Store Forward
-#      [4]         : ID Width
+#      [8]         : ID Width
 #      [0]         : ID Value        
 #    S2MM Interface
 #      [DISABLE]   : Asynchronous Clocks
-#      [DISABLE]   : Allow Unaligned Transfer
-#      [DISABLE]   : Indeterinate BTT Mode      
+#      [ENABLE]    : Allow Unaligned Transfer
 #      [DISABLE]   : Store Forward
-#      [4]         : ID Width
+#      [DISABLE]   : Indeterminate BTT Mode      
+#      [8]         : ID Width
 #      [0]         : ID Value
 #------------------------------------------------------------------------------
 set ipModName "AxiDataMover_M512_S512_B64"
@@ -837,15 +833,19 @@ set ipName    "axi_datamover"
 set ipVendor  "xilinx.com"
 set ipLibrary "ip"
 set ipVersion "5.1"
-set ipCfgList  [ list CONFIG.c_m_axi_mm2s_data_width {512} \
+set ipCfgList  [ list CONFIG.c_m_axi_mm2s_data_width   {512} \
                       CONFIG.c_m_axis_mm2s_tdata_width {512} \
-                      CONFIG.c_mm2s_burst_size {64} \
-                      CONFIG.c_m_axi_s2mm_data_width {512} \
+                      CONFIG.c_mm2s_burst_size          {64} \
+                      CONFIG.c_m_axi_mm2s_id_width       {8} \
+                      CONFIG.c_m_axi_s2mm_data_width   {512} \
                       CONFIG.c_s_axis_s2mm_tdata_width {512} \
-                      CONFIG.c_s2mm_burst_size {64} \
-                      CONFIG.c_addr_width {33} \
-                      CONFIG.c_mm2s_include_sf {false} \
-                      CONFIG.c_s2mm_include_sf {false} ]
+                      CONFIG.c_s2mm_burst_size          {64} \
+                      CONFIG.c_m_axi_s2mm_id_width       {8} \
+                      CONFIG.c_addr_width               {33} \
+                      CONFIG.c_include_mm2s_dre       {true} \
+                      CONFIG.c_include_s2mm_dre       {true} \
+                      CONFIG.c_mm2s_include_sf       {false} \
+                      CONFIG.c_s2mm_include_sf       {false} ]
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
@@ -858,7 +858,7 @@ if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 #    [4]       : Slave Interface ThreadID Width
 #    [8]       : Master Interface ID Width
 #    [33]      : Address Width
-#    [512]     : Interconnect Internal Dat Width
+#    [512]     : Interconnect Internal Data Width
 #    [3]       : Synchronization Stages across Asynchronous Clock Crossing
 #  Interfaces 
 #    |Interface  |DataWidth|AsyncAclk|AclkRatio|ArbPriority|RegSlice |  
@@ -879,24 +879,24 @@ set ipName    "axi_interconnect"
 set ipVendor  "xilinx.com"
 set ipLibrary "ip"
 set ipVersion "1.7"
-set ipCfgList  [ list CONFIG.INTERCONNECT_DATA_WIDTH {512} \
-                      CONFIG.S00_AXI_DATA_WIDTH {512} \
-                      CONFIG.S01_AXI_DATA_WIDTH {512} \
-                      CONFIG.M00_AXI_DATA_WIDTH {512} \
-                      CONFIG.S00_AXI_IS_ACLK_ASYNC {1} \
-                      CONFIG.S01_AXI_IS_ACLK_ASYNC {1} \
-                      CONFIG.M00_AXI_IS_ACLK_ASYNC {1} \
-                      CONFIG.S00_AXI_WRITE_ACCEPTANCE {16} \
-                      CONFIG.S01_AXI_WRITE_ACCEPTANCE {16} \
-                      CONFIG.S00_AXI_READ_ACCEPTANCE {16} \
-                      CONFIG.S01_AXI_READ_ACCEPTANCE {16} \
-                      CONFIG.M00_AXI_WRITE_ISSUING {16} \
-                      CONFIG.M00_AXI_READ_ISSUING {16} \
-                      CONFIG.AXI_ADDR_WIDTH {33} \
-                      CONFIG.S00_AXI_REGISTER {1} \
-                      CONFIG.S01_AXI_REGISTER {1} \
-                      CONFIG.M00_AXI_REGISTER {1} \
-                      CONFIG.THREAD_ID_WIDTH {4}  ]
+set ipCfgList  [ list CONFIG.INTERCONNECT_DATA_WIDTH  {512} \
+                      CONFIG.S00_AXI_DATA_WIDTH       {512} \
+                      CONFIG.S01_AXI_DATA_WIDTH       {512} \
+                      CONFIG.M00_AXI_DATA_WIDTH       {512} \
+                      CONFIG.S00_AXI_IS_ACLK_ASYNC      {1} \
+                      CONFIG.S01_AXI_IS_ACLK_ASYNC      {1} \
+                      CONFIG.M00_AXI_IS_ACLK_ASYNC      {1} \
+                      CONFIG.S00_AXI_WRITE_ACCEPTANCE  {16} \
+                      CONFIG.S01_AXI_WRITE_ACCEPTANCE  {16} \
+                      CONFIG.S00_AXI_READ_ACCEPTANCE   {16} \
+                      CONFIG.S01_AXI_READ_ACCEPTANCE   {16} \
+                      CONFIG.M00_AXI_WRITE_ISSUING     {16} \
+                      CONFIG.M00_AXI_READ_ISSUING      {16} \
+                      CONFIG.AXI_ADDR_WIDTH            {33} \
+                      CONFIG.S00_AXI_REGISTER           {1} \
+                      CONFIG.S01_AXI_REGISTER           {1} \
+                      CONFIG.M00_AXI_REGISTER           {1} \
+                      CONFIG.THREAD_ID_WIDTH            {8} ]
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
@@ -932,17 +932,17 @@ switch [version -short] {
     }
 }
 set ipCfgList  [ list CONFIG.C0.DDR4_MemoryPart {MT40A1G8WE-075E} \
-                      CONFIG.C0.DDR4_DataWidth {72} \
-                      CONFIG.C0.DDR4_AxiSelection {true} \
-                      CONFIG.C0.DDR4_DataMask {NO_DM_NO_DBI} \
-                      CONFIG.C0.DDR4_Ecc {true} \
-                      CONFIG.C0.DDR4_AxiDataWidth {512} \
-                      CONFIG.C0.DDR4_AxiAddressWidth {33} \
-                      CONFIG.C0.DDR4_TimePeriod {833} \
-                      CONFIG.C0.DDR4_InputClockPeriod {3332} \
-                      CONFIG.C0.DDR4_Specify_MandD {true} \
-                      CONFIG.C0.DDR4_AxiNarrowBurst {true} \
-                      CONFIG.C0.DDR4_AxiIDWidth {8} ]
+                      CONFIG.C0.DDR4_DataWidth               {72} \
+                      CONFIG.C0.DDR4_AxiSelection          {true} \
+                      CONFIG.C0.DDR4_DataMask      {NO_DM_NO_DBI} \
+                      CONFIG.C0.DDR4_Ecc                   {true} \
+                      CONFIG.C0.DDR4_AxiDataWidth           {512} \
+                      CONFIG.C0.DDR4_AxiAddressWidth         {33} \
+                      CONFIG.C0.DDR4_TimePeriod             {833} \
+                      CONFIG.C0.DDR4_InputClockPeriod      {3332} \
+                      CONFIG.C0.DDR4_Specify_MandD         {true} \
+                      CONFIG.C0.DDR4_AxiNarrowBurst        {true} \
+                      CONFIG.C0.DDR4_AxiIDWidth               {12} ]
 set rc [ my_customize_ip ${ipModName} ${ipDir} ${ipVendor} ${ipLibrary} ${ipName} ${ipVersion} ${ipCfgList} ]
 if { ${rc} != ${::OK} } { set nrErrors [ expr { ${nrErrors} + 1 } ] }
 
