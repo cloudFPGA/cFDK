@@ -52,6 +52,7 @@ ip: $(IP_DIR)
 # We must depend on a directory NOT a PHONY in order to avoid a re-build every time.
 $(IP_DIR): ../LIB/hls ./tcl/create_ip_cores.tcl ./tcl/decouple_ip_type.tcl ../LIB/tcl/create_ip_cores.tcl $(IP_DIR)/ip_user_files ../LIB/.ip_guard
 	cd ./tcl/ ; vivado -mode batch -source create_ip_cores.tcl -notrace -log create_ip_cores.log 
+	@touch $@
 
 
 ../LIB/.ip_guard: 

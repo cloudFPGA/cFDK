@@ -1036,7 +1036,7 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
             my_puts "################################################################################"
 
             set loadbit_cmd "up 0x00000000 ${dcpDir}/4_${topName}_impl_${curImpl}.bit "
-            write_cfgmem -format mcs -size 64 -interface BPIx16 -loadbit ${loadbit_cmd} -file ${dcpDir}/6_${topName}_impl_${curImpl}_flash.mcs
+            write_cfgmem -format mcs -size 64 -interface BPIx16 -loadbit ${loadbit_cmd} -force -file ${dcpDir}/6_${topName}_impl_${curImpl}_flash.mcs
             # write admin.sig
             exec /bin/bash ${rootDir}/env/admin_sig.sh 6_${topName}_impl_${curImpl}_flash.mcs 4_${topName}_impl_${curImpl}.bit pr_verify.rpt
           }
