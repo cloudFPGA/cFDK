@@ -242,6 +242,7 @@ if {$generate_mcs} {
   set bitGen1 1
   set pr 1
   set pr_verify 1
+  set impl_opt 1
 }
 
 if {$pr || $link} {
@@ -743,8 +744,10 @@ if { ${impl1} || ( $forceWithoutBB && $impl1 ) } {
       set_property strategy Flow_RuntimeOptimized ${implObj}
       my_puts "Flow_RuntimeOptimized is set"
     } else {
-      set_property strategy Performance_Explore ${implObj}
-      my_puts "Performance_Explore is set"
+      # set_property strategy Performance_Explore ${implObj}
+      # my_puts "Performance_Explore is set"
+      set_property strategy Performance_ExtraTimingOpt ${implObj}
+      my_puts "Performance_ExtraTimingOpt is set"
     }
 
     if { $use_incr } {
