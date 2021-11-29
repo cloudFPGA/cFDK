@@ -38,7 +38,7 @@ MONO_LOCK =$(cFpXprDir)/.project_monolithic.stamp
 
 CLEAN_TYPES = *.log *.jou *.str
 
-VEIRFY_RETVAL=47
+VERIFY_RETVAL=47
 
 .PHONY: all clean full_src full_src_pr pr_verify full_src_pr_all monolithic monolithic_incr save_mono_incr 
 .PHONY: finalcmd incrcmd onlycmd basecmd monobasecmd monofinalcmd
@@ -60,7 +60,7 @@ basecmd:
 
 finalcmd:
 	@#more +2 .vivado_basecmd.sh
-	@/bin/echo -e '\n\n\n\n\n\n\n\nfi\nretVal=$$?\necho "handle_vivado.tcl returned with $$retVal"\nif [ $$retVal -ne $(VEIRFY_RETVAL) ]; then\n  echo "\n\tERROR: handle_vivado.tcl finished with an unexpected value!"\n  exit -1\nelse\n  retVal=0\nfi\n\ndate > end.date\nexit $$retVal' >> .vivado_basecmd.sh
+	@/bin/echo -e '\n\n\n\n\n\n\n\nfi\nretVal=$$?\necho "handle_vivado.tcl returned with $$retVal"\nif [ $$retVal -ne $(VERIFY_RETVAL) ]; then\n  echo "\n\tERROR: handle_vivado.tcl finished with an unexpected value!"\n  exit -1\nelse\n  retVal=0\nfi\n\ndate > end.date\nexit $$retVal' >> .vivado_basecmd.sh
 	@bash .vivado_basecmd.sh
 	@rm .vivado_basecmd.sh
 
@@ -118,7 +118,7 @@ monobasecmd: basecmd
 
 monofinalcmd: 
 	@#more +2 .vivado_basecmd.sh
-	@/bin/echo -e '\n\n\n\n\n\n\n\nfi\nretVal=$$?\necho "handle_vivado.tcl returned with $$retVal"\nif [ $$retVal -ne $(VEIRFY_RETVAL) ]; then\n  echo "\n\tERROR: handle_vivado.tcl finished with an unexpected value!"\n  exit -1\nelse\n  retVal=0\nfi\n\ndate > end.date' >> .vivado_basecmd.sh
+	@/bin/echo -e '\n\n\n\n\n\n\n\nfi\nretVal=$$?\nif [ $$retVal -ne $(VEIRFY_RETVAL) ]; then\n  echo "\n\tERROR: handle_vivado.tcl finished with an unexpected value!"\n  exit -1\nelse\n  retVal=0\nfi\n\ndate > end.date' >> .vivado_basecmd.sh
 	@/bin/echo -e "echo \"last monolithic build was successfull at \" > $(MONO_LOCK)" >> .vivado_basecmd.sh
 	@/bin/echo -e "date  >> $(MONO_LOCK)" >> .vivado_basecmd.sh
 	@/bin/echo -e 'exit $$retVal' >> .vivado_basecmd.sh
@@ -162,11 +162,19 @@ $(cFpDcpDir)/2_$(TOP_NAME)_impl_$(roleName1)_complete.dcp: $(cFpIpDir) | $(XPR_P
 #	rm -f $@
 
 #both 
+ifndef cFpSraToolsUserFlowActive
 #$(XPR_PROJ): ../xdc ../hdl $(SHELL_DIR)/ip $(SHELL_DIR)/hdl | $(cFpDcpDir) 
 $(XPR_PROJ): $(MOD_DIR)/xdc ../hdl $(cFpIpDir) $(SHELL_DIR)/Shell.v | $(cFpDcpDir) 
 	@/bin/echo "-create -synth \\" >> .vivado_basecmd.sh
+else
+$(XPR_PROJ): $(MOD_DIR)/xdc ../hdl | $(cFpDcpDir) 
+	@/bin/echo "-create -synth \\" >> .vivado_basecmd.sh
+endif
 
 ##with pr:
+
+# deactivate full dependencies for user flow
+ifndef cFpSraToolsUserFlowActive
 $(cFpDcpDir)/0_$(TOP_NAME)_static_without_role.dcp: $(MOD_DIR)/xdc ../hdl $(cFpIpDir) $(SHELL_DIR)/Shell.v | $(XPR_PROJ)
 	@/bin/echo "-synth \\" >> .vivado_basecmd.sh
 	rm -f $@
@@ -179,8 +187,8 @@ $(cFpDcpDir)/2_$(TOP_NAME)_impl_$(roleName1)_complete_pr.dcp: $(cFpDcpDir)/1_$(T
 	@/bin/echo "-impl  -pr \\" >> .vivado_basecmd.sh
 	rm -f $@
 
-# $(cFpDcpDir)/3_$(TOP_NAME)_STATIC.dcp: $(cFpDcpDir)/1_$(TOP_NAME)_linked_pr.dcp $(cFpDcpDir)/2_$(TOP_NAME)_impl_$(roleName1)_complete_pr.dcp
-# 	rm -f $@ 
+$(cFpDcpDir)/3_$(TOP_NAME)_STATIC.dcp: $(cFpDcpDir)/1_$(TOP_NAME)_linked_pr.dcp $(cFpDcpDir)/2_$(TOP_NAME)_impl_$(roleName1)_complete_pr.dcp
+	rm -f $@ 
 
 $(cFpDcpDir)/4_$(TOP_NAME)_impl_$(roleName1)_pblock_ROLE_partial.bit: $(cFpDcpDir)/2_$(TOP_NAME)_impl_$(roleName1)_complete_pr.dcp
 	@/bin/echo "-bitgen  -pr \\" >> .vivado_basecmd.sh 
@@ -191,14 +199,6 @@ $(cFpDcpDir)/5_$(TOP_NAME)_impl_$(roleName1).ltx: $(cFpDcpDir)/1_$(TOP_NAME)_lin
 	@#we always need to link again with debug
 	@/bin/echo "-link  -pr \\" >> .vivado_basecmd.sh
 	rm -f $@
-
-$(cFpDcpDir)/4_$(TOP_NAME)_impl_$(roleName2)_pblock_ROLE_partial.bit: $(cFpDcpDir)/2_$(TOP_NAME)_impl_$(roleName2)_complete_pr.dcp
-	@/bin/echo "-bitgen2 -pr -pr_verify  \\" >> .vivado_basecmd.sh
-	rm -f $@
-
-$(cFpDcpDir)/2_$(TOP_NAME)_impl_$(roleName2)_complete_pr.dcp: $(cFpDcpDir)/3_$(TOP_NAME)_STATIC.dcp $(ROLE_DIR_2)/*.dcp | $(XPR_PROJ)
-	@/bin/echo "-impl2 -pr  \\" >> .vivado_basecmd.sh
-	rm -f $@ 
 
 $(cFpDcpDir)/4_$(TOP_NAME)_impl_grey_box.bit: $(cFpDcpDir)/3_$(TOP_NAME)_static_with_grey_box.dcp
 	@/bin/echo "-bitgenGrey  -pr -pr_verify \\" >> .vivado_basecmd.sh
@@ -211,6 +211,17 @@ $(cFpDcpDir)/3_$(TOP_NAME)_static_with_grey_box.dcp: $(cFpDcpDir)/3_$(TOP_NAME)_
 $(cFpDcpDir)/6_$(TOP_NAME)_impl_$(roleName1)_flash.mcs: $(cFpDcpDir)/4_$(TOP_NAME)_impl_$(roleName1)_pblock_ROLE_partial.bit $(cFpDcpDir)/2_$(TOP_NAME)_impl_$(roleName1)_complete_pr.dcp
 	@/bin/echo -e "-generate_mcs \\" >> .vivado_basecmd.sh
 	rm -f $@
+endif
+
+# user flow (and admin flow) dependencies
+
+$(cFpDcpDir)/4_$(TOP_NAME)_impl_$(roleName2)_pblock_ROLE_partial.bit: $(cFpDcpDir)/2_$(TOP_NAME)_impl_$(roleName2)_complete_pr.dcp
+	@/bin/echo "-bitgen2 -pr -pr_verify  \\" >> .vivado_basecmd.sh
+	rm -f $@
+
+$(cFpDcpDir)/2_$(TOP_NAME)_impl_$(roleName2)_complete_pr.dcp: $(cFpDcpDir)/3_$(TOP_NAME)_STATIC.dcp $(ROLE_DIR_2)/*.dcp | $(XPR_PROJ)
+	@/bin/echo "-impl2 -pr  \\" >> .vivado_basecmd.sh
+	rm -f $@ 
 
 
 
