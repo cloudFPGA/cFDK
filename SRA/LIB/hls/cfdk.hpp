@@ -27,8 +27,8 @@
 #ifndef _CFDK_HEADER_
 #define _CFDK_HEADER_
 
-#define CFDK_VERSION_STRING "0.9"
-#define CFDK_VERSION_FLOAT  0.9
+#define CFDK_VERSION_STRING "1.0"
+#define CFDK_VERSION_FLOAT  1.0
 
 #endif
 
