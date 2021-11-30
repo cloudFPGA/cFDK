@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2016 -- 2020 IBM Corporation
+ * Copyright 2016 -- 2021 IBM Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -97,6 +97,12 @@ ap_uint<32> fpga_time_minutes = 0;
 ap_uint<32> fpga_time_hours   = 0;
 
 ap_uint<16> nts_udp_drop_cnt = 0;
+ap_uint<8> nts_tcp_notif_drop_cnt = 0;
+ap_uint<8> nts_tcp_meta_drop_cnt = 0;
+ap_uint<8> nts_tcp_data_drop_cnt = 0;
+ap_uint<8> nts_tcp_crc_drop_cnt = 0;
+ap_uint<8> nts_tcp_sess_drop_cnt = 0;
+ap_uint<8> nts_tcp_ooo_drop_cnt = 0;
 
 ap_uint<7> lastResponsePageCnt = 0;
 ap_uint<4> responePageCnt = 0; //for Display 4
@@ -388,16 +394,52 @@ uint32_t writeDisplaysToOutBuffer()
   //print Role version vector
   len += writeString("current ROLE version: ");
   len += writeUnsignedLong((uint16_t) current_role_mmio, 16);
-  bufferOut[bufferOutPtrWrite + 0] = '\r'; 
-  bufferOut[bufferOutPtrWrite + 1] = '\n'; 
+  bufferOut[bufferOutPtrWrite + 0] = '\r';
+  bufferOut[bufferOutPtrWrite + 1] = '\n';
   bufferOutPtrWrite  += 2;
   len += 2;
   
-  //print NTS drop count
+  //print NTS drop counts
   len += writeString("UDP RX drop count: ");
   len += writeUnsignedLong((uint16_t) nts_udp_drop_cnt, 16);
-  bufferOut[bufferOutPtrWrite + 0] = '\r'; 
-  bufferOut[bufferOutPtrWrite + 1] = '\n'; 
+  bufferOut[bufferOutPtrWrite + 0] = '\r';
+  bufferOut[bufferOutPtrWrite + 1] = '\n';
+  bufferOutPtrWrite  += 2;
+  len += 2;
+  len += writeString("TCP RX notif drop count: ");
+  len += writeUnsignedLong((uint8_t) nts_tcp_notif_drop_cnt, 16);
+  bufferOut[bufferOutPtrWrite + 0] = '\r';
+  bufferOut[bufferOutPtrWrite + 1] = '\n';
+  bufferOutPtrWrite  += 2;
+  len += 2;
+  len += writeString("TCP RX meta drop count: ");
+  len += writeUnsignedLong((uint8_t) nts_tcp_meta_drop_cnt, 16);
+  bufferOut[bufferOutPtrWrite + 0] = '\r';
+  bufferOut[bufferOutPtrWrite + 1] = '\n';
+  bufferOutPtrWrite  += 2;
+  len += 2;
+  len += writeString("TCP RX data drop count: ");
+  len += writeUnsignedLong((uint8_t) nts_tcp_data_drop_cnt, 16);
+  bufferOut[bufferOutPtrWrite + 0] = '\r';
+  bufferOut[bufferOutPtrWrite + 1] = '\n';
+  bufferOutPtrWrite  += 2;
+  len += 2;
+  len += writeString("TCP RX CRC drop count: ");
+  len += writeUnsignedLong((uint8_t) nts_tcp_crc_drop_cnt, 16);
+  bufferOut[bufferOutPtrWrite + 0] = '\r';
+  bufferOut[bufferOutPtrWrite + 1] = '\n';
+  bufferOutPtrWrite  += 2;
+  len += 2;
+  len += writeString("TCP RX Session drop count: ");
+  len += writeUnsignedLong((uint8_t) nts_tcp_sess_drop_cnt, 16);
+  bufferOut[bufferOutPtrWrite + 0] = '\r';
+  bufferOut[bufferOutPtrWrite + 1] = '\n';
+  bufferOutPtrWrite  += 2;
+  len += 2;
+  len += writeString("TCP RX Out-of-Order drop count: ");
+  len += writeUnsignedLong((uint8_t) nts_tcp_ooo_drop_cnt, 16);
+  bufferOut[bufferOutPtrWrite + 0] = '\r';
+  bufferOut[bufferOutPtrWrite + 1] = '\n';
   bufferOutPtrWrite  += 2;
   len += 2;
 
@@ -535,6 +577,13 @@ void fmc(
     ap_uint<16> *role_mmio_in,
     //get UOE drop count
     ap_uint<16> *uoe_drop_cnt_in,
+    //get TOE drop counts
+    ap_uint<8> *toe_notif_drop_cnt_in,
+    ap_uint<8> *toe_meta_drop_cnt_in,
+    ap_uint<8> *toe_data_drop_cnt_in,
+    ap_uint<8> *toe_crc_drop_cnt_in,
+    ap_uint<8> *toe_sess_drop_cnt_in,
+    ap_uint<8> *toe_ooo_drop_cnt_in,
     //HWICAP and DECOUPLING
     ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup,
     // Soft Reset
@@ -573,6 +622,12 @@ void fmc(
 #pragma HLS INTERFACE ap_vld register port=in_time_hours   name=piTime_hours
 #pragma HLS INTERFACE ap_vld register port=role_mmio_in    name=piRole_mmio
 #pragma HLS INTERFACE ap_vld register port=uoe_drop_cnt_in name=piUOE_drop_cnt
+#pragma HLS INTERFACE ap_vld register port=toe_notif_drop_cnt_in name=piTOE_notif_drop_cnt
+#pragma HLS INTERFACE ap_vld register port=toe_meta_drop_cnt_in name=piTOE_meta_drop_cnt
+#pragma HLS INTERFACE ap_vld register port=toe_data_drop_cnt_in name=piTOE_data_drop_cnt
+#pragma HLS INTERFACE ap_vld register port=toe_crc_drop_cnt_in name=piTOE_crc_drop_cnt
+#pragma HLS INTERFACE ap_vld register port=toe_sess_drop_cnt_in name=piTOE_sess_drop_cnt
+#pragma HLS INTERFACE ap_vld register port=toe_ooo_drop_cnt_in name=piTOE_ooo_drop_cnt
 #pragma HLS INTERFACE ap_stable register port=decoupStatus name=piDECOUP_status
 #pragma HLS INTERFACE ap_ovld register port=setDecoup name=poDECOUP_activate
 #pragma HLS INTERFACE ap_ovld register port=role_rank name=poROLE_rank
@@ -806,8 +861,14 @@ void fmc(
   current_role_mmio = *role_mmio_in;
 
   nts_udp_drop_cnt = *uoe_drop_cnt_in;
-  
-  
+  nts_tcp_notif_drop_cnt = *toe_notif_drop_cnt_in;
+  nts_tcp_meta_drop_cnt = *toe_meta_drop_cnt_in;
+  nts_tcp_data_drop_cnt = *toe_data_drop_cnt_in;
+  nts_tcp_crc_drop_cnt = *toe_crc_drop_cnt_in;
+  nts_tcp_sess_drop_cnt = *toe_sess_drop_cnt_in;
+  nts_tcp_ooo_drop_cnt = *toe_ooo_drop_cnt_in;
+
+
   // ++++++++++++++++++ IMMEDIATE ACTIONS +++++++++++++++++++
   //===========================================================
 

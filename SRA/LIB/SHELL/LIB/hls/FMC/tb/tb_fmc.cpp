@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2016 -- 2020 IBM Corporation
+ * Copyright 2016 -- 2021 IBM Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -69,6 +69,12 @@ ap_uint<1>  layer_7_enabled = 0b0;
 ap_uint<1>  nts_ready = 0b1;
 ap_uint<16> role_mmio = 0x1DEA;
 ap_uint<16> uoe_drop_cnt = 0x0;
+ap_uint<8>  toe_notif_drop_cnt = 0;
+ap_uint<8>  toe_meta_drop_cnt = 0;
+ap_uint<8>  toe_data_drop_cnt = 0;
+ap_uint<8>  toe_crc_drop_cnt = 0;
+ap_uint<8>  toe_sess_drop_cnt = 0;
+ap_uint<8>  toe_ooo_drop_cnt = 0;
 ap_uint<32> sim_fpga_time_seconds = 0;
 ap_uint<32> sim_fpga_time_minutes = 0;
 ap_uint<32> sim_fpga_time_hours   = 0;
@@ -117,6 +123,7 @@ void stepDut() {
         &layer_4_enabled, &layer_6_enabled, &layer_7_enabled, &nts_ready,
         &sim_fpga_time_seconds, &sim_fpga_time_minutes, &sim_fpga_time_hours,
         &role_mmio, &uoe_drop_cnt,
+        &toe_notif_drop_cnt, &toe_meta_drop_cnt, &toe_data_drop_cnt, &toe_crc_drop_cnt, &toe_sess_drop_cnt, &toe_ooo_drop_cnt,
         used_hwicap_buffer, decoupStatus, &decoupActive,
         &softReset, xmem,
         nalCtrl, &disable_ctrl_link, 

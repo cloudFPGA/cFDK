@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2016 -- 2020 IBM Corporation
+ * Copyright 2016 -- 2021 IBM Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -319,6 +319,13 @@ void fmc(
     ap_uint<16> *role_mmio_in,
     //get UOE drop count
     ap_uint<16> *uoe_drop_cnt_in,
+    //get TOE drop counts
+    ap_uint<8> *toe_notif_drop_cnt_in,
+    ap_uint<8> *toe_meta_drop_cnt_in,
+    ap_uint<8> *toe_data_drop_cnt_in,
+    ap_uint<8> *toe_crc_drop_cnt_in,
+    ap_uint<8> *toe_sess_drop_cnt_in,
+    ap_uint<8> *toe_ooo_drop_cnt_in,
     //HWICAP and DECOUPLING
     ap_uint<32> *HWICAP, ap_uint<1> decoupStatus, ap_uint<1> *setDecoup,
     // Soft Reset 
