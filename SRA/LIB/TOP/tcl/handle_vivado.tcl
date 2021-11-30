@@ -1019,6 +1019,8 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
           open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete_pr.dcp
           
           source ${tclTopDir}/fix_things.tcl
+          # Request to embed a timestamp into the bitstream
+          set_property BITSTREAM.CONFIG.USR_ACCESS TIMESTAMP [current_design]
           if { $only_pr_bitgen } {
             write_bitstream -bin_file -cell ROLE -force ${dcpDir}/4_${topName}_impl_${curImpl}_pblock_ROLE_partial
             # no file extenstions .bit/.bin here!
@@ -1049,6 +1051,8 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
       } else {
         open_checkpoint ${dcpDir}/2_${topName}_impl_${usedRole}_complete.dcp 
         source ${tclTopDir}/fix_things.tcl
+        # Request to embed a timestamp into the bitstream
+        set_property BITSTREAM.CONFIG.USR_ACCESS TIMESTAMP [current_design]
         write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
         #close_project
         # DEBUG probes
@@ -1063,6 +1067,8 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
         set curImpl ${usedRole2}
         
         source ${tclTopDir}/fix_things.tcl 
+        # Request to embed a timestamp into the bitstream
+        set_property BITSTREAM.CONFIG.USR_ACCESS TIMESTAMP [current_design]
         if { $only_pr_bitgen } {
           write_bitstream -bin_file -cell ROLE -force ${dcpDir}/4_${topName}_impl_${curImpl}_pblock_ROLE_partial 
           # no file extenstions .bit/.bin here!
@@ -1082,7 +1088,8 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
         set curImpl "grey_box"
         
         source ${tclTopDir}/fix_things.tcl 
-        # source ./fix_things.tcl 
+        # Request to embed a timestamp into the bitstream
+        set_property BITSTREAM.CONFIG.USR_ACCESS TIMESTAMP [current_design]
         write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
         #close_project
       }

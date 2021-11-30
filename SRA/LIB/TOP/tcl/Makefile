@@ -60,7 +60,7 @@ basecmd:
 
 finalcmd:
 	@#more +2 .vivado_basecmd.sh
-	@/bin/echo -e '\n\n\n\n\n\n\n\nfi\nretVal=$$?\necho "handle_vivado.tcl returned with $$retVal"\nif [ $$retVal -ne $(VERIFY_RETVAL) ]; then\n  echo "\n\tERROR: handle_vivado.tcl finished with an unexpected value!"\n  exit -1\nelse\n  retVal=0\nfi\n\ndate > end.date\nexit $$retVal' >> .vivado_basecmd.sh
+	@/bin/echo -e '\n\n\n\n\n\n\n\nfi\nretVal=$$?\nif [ $$retVal -ne $(VERIFY_RETVAL) ]; then\n  echo "\n\tERROR: handle_vivado.tcl finished with an unexpected value!"\n  exit -1\nelse\n  retVal=0\nfi\n\ndate > end.date\nexit $$retVal' >> .vivado_basecmd.sh
 	@bash .vivado_basecmd.sh
 	@rm .vivado_basecmd.sh
 
