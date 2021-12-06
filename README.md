@@ -5,7 +5,7 @@ The **cloudFPGA Development Kit (cFDK)** provides all the design files that are 
 cloudFPGA is designed to support different types of *Shells (SHELL or SHL)* and *FPGA Modules (MOD)*.
 Before creating a new cFp, a designer must decide for a SHELL and a MOD, both are explained in the documentation section.
 
-To set up a new cFp properly, the *cloudFPGA Build Framework* (cFBuild) is highly recommended!
+To set up a new cFp properly, the *cloudFPGA Create Framework* (cFCreate) is highly recommended!
 
 ## Overview
 
@@ -32,12 +32,10 @@ Currently, the following MODs are available:
 
 ### cloudFPGA example applications
 
-Example applications (**APP**) are provided to demonstrate the usage of this Development Kit and to provide some code for learning.
-
-Currently, the cFDK includes the following example APPs:
-
-* `triangle_app`: To build a triangle cluster
+TODO
 
 ### Create new applications
 
-Follow the instructions of the [*cFBuild* documentation](https://github.ibm.com/cloudFPGA/cFBuild).
+Follow the instructions of the [*cFCreate* documentation](https://github.com/cloudFPGA/cFCreate).
+
+
