@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2016 -- 2020 IBM Corporation
+ * Copyright 2016 -- 2021 IBM Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,34 +20,38 @@
  *             for the documentation of the source code of cloudFPGA.
  * @author     DID
  * @details    The structure is as follows:
- *             [+] cFDK cFDK
- *              +--[+] ShellLib SHELL Library
- *              |   +--[+] FMC FMC
- *              |   +--[+] MEM MEM
- *              |   +--[+] NAL NAL
- *              |   +--[+] NTS NTS
- *              |       +-- NTS_ARP ARP
- *              |       |  [+] NTS_ARP_TEST ARP_TEST
- *              |       +-- NTS_ICMP ICMP
- *              |       |  [+]  NTS_ICMP_TEST ICMP_TEST
- *              |       +-- NTS_IPRX IPRX
- *              |       |  [+]  NTS_IPRX_TEST IPRX_TEST
- *              |       +-- NTS_IPTX IPTX
- *              |       |  [+] NTS_IPTX_TEST IPTX_TEST
- *              |       +-- NTS_RLB RLB
- *              |       |  [+]  NTS_RLB_TEST RLB_TEST
- *              |       +-- NTS_TOE TOE
- *              |       |  [+]  NTS_TOE_TEST TOE_TEST
- *              |       +-- NTS_TOECAM TOECAM
- *              |       |  [+]  NTS_TOECAM_TEST TOECAM_TEST
- *              |       +-- NTS_UOE UOE
- *              |       |  [+]  NTS_UOE_TEST UOE_TEST
- *              |       +-- NTS_SIM SimNts
- *              +--[+] SRA SRA
- *              |   +--[+] Kale Kale
- *              |   +--[+] Themisto Themisto
+ *             
+ *             [+] cF cF
+ *              +--[+] cFDK cFDK
+ *              |   |
+ *              |   +--[+] ShellLib SHELL Library
+ *              |   |   |
+ *              |   |   +--[+] FMC FMC
+ *              |   |   +--[+] MEM MEM
+ *              |   |   +--[+] NAL NAL
+ *              |   |   +--[+] NTS NTS
+ *              |   |       +-- NTS_ARP ARP
+ *              |   |       |  [+] NTS_ARP_TEST ARP_TEST
+ *              |   |       +-- NTS_ICMP ICMP
+ *              |   |       |  [+]  NTS_ICMP_TEST ICMP_TEST
+ *              |   |       +-- NTS_IPRX IPRX
+ *              |   |       |  [+]  NTS_IPRX_TEST IPRX_TEST
+ *              |   |       +-- NTS_IPTX IPTX
+ *              |   |       |  [+] NTS_IPTX_TEST IPTX_TEST
+ *              |   |       +-- NTS_RLB RLB
+ *              |   |       |  [+]  NTS_RLB_TEST RLB_TEST
+ *              |   |       +-- NTS_TOE TOE
+ *              |   |       |  [+]  NTS_TOE_TEST TOE_TEST
+ *              |   |       +-- NTS_TOECAM TOECAM
+ *              |   |       |  [+]  NTS_TOECAM_TEST TOECAM_TEST
+ *              |   |       +-- NTS_UOE UOE
+ *              |   |       |  [+]  NTS_UOE_TEST UOE_TEST
+ *              |   |       +-- NTS_SIM SimNts
+ *              |   +--[+] SRA SRA
+ *              |       +--[+] Kale Kale
+ *              |       +--[+] Themisto Themisto
  *              +--[+] cFp cFp
- *              |   +--[+] cFp_Zoo cFp_Zoo
+ *                  +--[+] cFp_Zoo cFp_Zoo
  *
  *****************************************************************************/
 
@@ -58,11 +62,28 @@
  *
  *****************************************************************************/
 
-/** \defgroup cFDK cFDK
+/** \defgroup cF cF
  *
+ *  \brief This is the main cloudFPGA module.
+ */
+
+
+/*****************************************************************************
+ *
+ *  cF : Submodules
+ *
+ *****************************************************************************/
+
+/** \defgroup cFDK cFDK
+ *  @ingroup cF
  *  \brief This is the cloudFPGA Development Kit (cFDK). The documentation of cFDK is available at https://pages.github.ibm.com/cloudFPGA/Doc/pages/cfdk.html .
  */
 
+/** \defgroup cFp cFp
+ *  @ingroup cF
+ * 
+ *  \brief cloudFPGA Projects (cFp). This is a group with existing projects developed with cFDK and can be used as templates for new projects.
+ */
 
 /*****************************************************************************
  *
@@ -80,12 +101,6 @@
  *  @ingroup cFDK
  * 
  *  \brief Shell-Role-Architecture (SRA). To abstract the details of the hardware from the user and to assert certain levels of security, cloudFPGA uses a Shell-Role-Architecture (SRA). The documentation of SRA is available at https://pages.github.ibm.com/cloudFPGA/Doc/pages/cfdk.html#sras .
- */
-
-/** \defgroup cFp cFp
- *  @ingroup cFDK
- * 
- *  \brief cloudFPGA Projects (cFp). This is a group with existing projects developed with cFDK and can be used as templates for new projects.
  */
 
 /*****************************************************************************
