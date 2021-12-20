@@ -1,4 +1,6 @@
 # Network Transport Stack (NTS)
+**Note:** [This HTML section is rendered based on the Markdown file in cFDK.](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/NTS.md)
+
 This document describes the design of the **TCP/IP Network and Transport Stack (NTS)** used by the *cloudFPGA* platform.  
 
 ## Preliminary and Acknowledgments
@@ -13,7 +15,7 @@ FYI - An enhanced branch of the initial *Xilinx* code is maintained by the **Sys
 A block diagram of the **`NTS`** is depicted in Figure 1. It features a *User Datagram Protocol (UDP)* engine , a
  *Transmission Control Protocol Offload Engine (TOE)*, an *Internet Control Message Protocol (ICMP)* server and an 
  *Address Resolution Protocol (ARP) Server*.
-![Block diagram of the NTS](./images/Fig-NTS-Structure.bmp)
+![Block diagram of the NTS](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./images/Fig-NTS-Structure.bmp?raw=true)
 <p align="center"><b>Figure-1: Block diagram of the of the Network Transport Stack</b></p>
 
 The **`NTS`** is predominantly written in C/C++ with a few pieces coded in HDL (see Figure-1). The top-level that 
@@ -27,8 +29,8 @@ For the components specified in C/C++, we use the Xilinx HLS flow to synthesize 
 
 ## HLS Coding Style and Naming Conventions
 The design of **`NTS`** uses some specific HDL and HLS naming rules to ease the description and the understanding of
- its architecture. Please consider reading the two documents [**HDL coding style and naming conventions**](../hdl-naming-conventions.md)
-  and [**HLS coding style and naming conventions**](./hls-naming-conventions.md) before diving into the code or starting
+ its architecture. Please consider reading the two documents [**HDL coding style and naming conventions**](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/../hdl-naming-conventions.md)
+  and [**HLS coding style and naming conventions**](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./hls-naming-conventions.md) before diving into the code or starting
   to contribute to this part of the cloudFPGA project.
 
 ## List of Components
@@ -37,12 +39,12 @@ architecture body.
 
 | Entity              | Description                                       | Architecture
 |:-------------------:|:--------------------------------------------------|:--------------
-| **[ARS](ARS.md)**   | Address Resolution Server (ARS).                  | [arp_server](../../SRA/LIB/SHELL/LIB/hls/NTS/arp/src/arp.cpp)
-| **[ICMP](ICMP.md)** | Internet Control Message Protocol (ICMP) server.  | [icmp_server](../../SRA/LIB/SHELL/LIB/hls/NTS/icmp/src/icmp.cpp)
-| **[IPRX](IPRX.md)** | IP Receive frame handler (IPRX).                  | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iprx/src/iprx.cpp)
-| **[IPTX](IPTX.md)** | IP Transmit frame handler (IPTX).                 | [iptx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iptx/src/iptx.cpp)
-| **[TOE](./TOE.md)** | TCP Offload Engine.                               | [toe](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/toe.cpp)
-| **[UOE](./UOE.md)** | UDP Offload Engine.                               | [uoe](../../SRA/LIB/SHELL/LIB/hls/NTS/uoe/src/uoe.cpp)
+| **[ARS](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/ARS.md)**   | Address Resolution Server (ARS).                  | [arp_server](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/NTS/arp/src/arp.cpp)
+| **[ICMP](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/ICMP.md)** | Internet Control Message Protocol (ICMP) server.  | [icmp_server](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/NTS/icmp/src/icmp.cpp)
+| **[IPRX](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/IPRX.md)** | IP Receive frame handler (IPRX).                  | [iprx_handler](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/NTS/iprx/src/iprx.cpp)
+| **[IPTX](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/IPTX.md)** | IP Transmit frame handler (IPTX).                 | [iptx_handler](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/NTS/iptx/src/iptx.cpp)
+| **[TOE](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./TOE.md)** | TCP Offload Engine.                               | [toe](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/toe.cpp)
+| **[UOE](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./UOE.md)** | UDP Offload Engine.                               | [uoe](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/NTS/uoe/src/uoe.cpp)
 
 ## Description of the Interfaces
 The entity declaration of **`NTS`** is specified as follows. It consists of 5 groups of interfaces referred to as:
@@ -320,7 +322,7 @@ The TCP application layer interface (TAIF) connects **`NTS`** to a network prese
  * `soAPP_Tcp_****` signals implement the receive data and control paths between **`NTS`** and the application layer (i.e., 
     the incoming network traffic direction).
 
-Refer to the [TCP Application Layer Interface of TOE](./TOE.md#tcp-application-layer-interface) for a detailed description
+Refer to the [TCP Application Layer Interface of TOE](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./TOE.md#tcp-application-layer-interface) for a detailed description
 of these interfaces. 
 
 ### UDP Application Layer Interface
@@ -332,7 +334,7 @@ The UDP application layer interface (UAIF) connects **`NTS`** to a network appli
  * `soAPP_Udp_****` signals implement the receive data and control paths between **`NTS`** and the application layer (i.e., 
     the incoming network traffic direction).
 
-Refer to the [UDP Application Layer Interface of UOE](./UOE.md#udp-application-layer-interface) for a detailed description
+Refer to the [UDP Application Layer Interface of UOE](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./UOE.md#udp-application-layer-interface) for a detailed description
 of these interfaces. 
 
 ### Memory System Interface

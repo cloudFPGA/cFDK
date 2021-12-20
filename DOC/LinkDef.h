@@ -22,34 +22,35 @@
  * @details    The structure is as follows:
  *             
  *             [+] cF cF
- *              +--[+] cFDK cFDK
- *              |   |
- *              |   +--[+] ShellLib SHELL Library
- *              |   |   |
- *              |   |   +--[+] FMC FMC
- *              |   |   +--[+] MEM MEM
- *              |   |   +--[+] NAL NAL
- *              |   |   +--[+] NTS NTS
- *              |   |       +-- NTS_ARP ARP
- *              |   |       |  [+] NTS_ARP_TEST ARP_TEST
- *              |   |       +-- NTS_ICMP ICMP
- *              |   |       |  [+]  NTS_ICMP_TEST ICMP_TEST
- *              |   |       +-- NTS_IPRX IPRX
- *              |   |       |  [+]  NTS_IPRX_TEST IPRX_TEST
- *              |   |       +-- NTS_IPTX IPTX
- *              |   |       |  [+] NTS_IPTX_TEST IPTX_TEST
- *              |   |       +-- NTS_RLB RLB
- *              |   |       |  [+]  NTS_RLB_TEST RLB_TEST
- *              |   |       +-- NTS_TOE TOE
- *              |   |       |  [+]  NTS_TOE_TEST TOE_TEST
- *              |   |       +-- NTS_TOECAM TOECAM
- *              |   |       |  [+]  NTS_TOECAM_TEST TOECAM_TEST
- *              |   |       +-- NTS_UOE UOE
- *              |   |       |  [+]  NTS_UOE_TEST UOE_TEST
- *              |   |       +-- NTS_SIM SimNts
- *              |   +--[+] SRA SRA
- *              |       +--[+] Kale Kale
- *              |       +--[+] Themisto Themisto
+ *              +--[+] cFSphere cFSphere
+ *              |   +--[+] cFDK cFDK
+ *              |       |
+ *              |       +--[+] ShellLib SHELL Library
+ *              |       |   |
+ *              |       |   +--[+] FMC FMC
+ *              |       |   +--[+] MEM MEM
+ *              |       |   +--[+] NAL NAL
+ *              |       |   +--[+] NTS NTS
+ *              |       |       +-- NTS_ARP ARP
+ *              |       |       |  [+] NTS_ARP_TEST ARP_TEST
+ *              |       |       +-- NTS_ICMP ICMP
+ *              |       |       |  [+]  NTS_ICMP_TEST ICMP_TEST
+ *              |       |       +-- NTS_IPRX IPRX
+ *              |       |       |  [+]  NTS_IPRX_TEST IPRX_TEST
+ *              |       |       +-- NTS_IPTX IPTX
+ *              |       |       |  [+] NTS_IPTX_TEST IPTX_TEST
+ *              |       |       +-- NTS_RLB RLB
+ *              |       |       |  [+]  NTS_RLB_TEST RLB_TEST
+ *              |       |       +-- NTS_TOE TOE
+ *              |       |       |  [+]  NTS_TOE_TEST TOE_TEST
+ *              |       |       +-- NTS_TOECAM TOECAM
+ *              |       |       |  [+]  NTS_TOECAM_TEST TOECAM_TEST
+ *              |       |       +-- NTS_UOE UOE
+ *              |       |       |  [+]  NTS_UOE_TEST UOE_TEST
+ *              |       |       +-- NTS_SIM SimNts
+ *              |       +--[+] SRA SRA
+ *              |           +--[+] Kale Kale
+ *              |           +--[+] Themisto Themisto
  *              +--[+] cFp cFp
  *                  +--[+] cFp_Zoo cFp_Zoo
  *
@@ -74,15 +75,26 @@
  *
  *****************************************************************************/
 
-/** \defgroup cFDK cFDK
+/** \defgroup cFSphere cFSphere
  *  @ingroup cF
- *  \brief This is the cloudFPGA Development Kit (cFDK). The documentation of cFDK is available at https://pages.github.ibm.com/cloudFPGA/Doc/pages/cfdk.html .
+ *  \brief The cloudFPGA Sphere or cFSphere is what constitutes the core of a cloudFPGA system. It is composed of several major software components, each of them being provided as a standalone cF repository.
  */
 
 /** \defgroup cFp cFp
  *  @ingroup cF
  * 
  *  \brief cloudFPGA Projects (cFp). This is a group with existing projects developed with cFDK and can be used as templates for new projects.
+ */
+
+/*****************************************************************************
+ *
+ *  cFSphere : Submodules
+ *
+ *****************************************************************************/
+
+/** \defgroup cFDK cFDK
+ *  @ingroup cFSphere
+ *  \brief This is the cloudFPGA Development Kit (cFDK). The documentation of cFDK is available at https://pages.github.ibm.com/cloudFPGA/Doc/pages/cfdk.html .
  */
 
 /*****************************************************************************

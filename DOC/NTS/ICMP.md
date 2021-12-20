@@ -1,4 +1,6 @@
 # Internet Control Message Protocol server (ICMP)
+**Note:** [This HTML section is rendered based on the Markdown file in cFDK.](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/ICMP.md)
+
 This document describes the design of the **Internet Control Message Protocol server (ICMP)** used by the network transport stack of the *cloudFPGA* platform.
 
 ## Overview
@@ -9,7 +11,7 @@ A block diagram of the *ICMP* is depicted in Figure 1. It features:
   - an *IP Checksum Inserter (ICi)* that inserts both the IP header checksum and the ICMP checksum in the outgoing IP packet.
 
 
-![Block diagram of the ICMP](./images/Fig-ICMP-Structure.bmp#center)
+![Block diagram of the ICMP](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./images/Fig-ICMP-Structure.bmp?raw=true#center)
 <p align="center"><b>Figure-1: Block diagram of the ICMP Server</b></p>
 <br>
 

@@ -1,4 +1,6 @@
 # TCP Offload Engine (TOE)
+**Note:** [This HTML section is rendered based on the Markdown file in cFDK.](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/TOE.md)
+
 This document describes the design of the **TCP Offload Engine (TOE)** used by the *cloudFPGA* platform.
 
 ## Preliminary and Acknowledgments
@@ -14,7 +16,7 @@ A block diagram of **`TOE`** is depicted in Figure 1. It features an *Rx Engine 
 from the IP layer, a *Tx Engine (TXe)* to assemble outgoing data packets for the IP layer, and a set of TCP state- and
 data-keeping engines.
 
-![Block diagram of the TOE](./images/Fig-TOE-Structure.bmp#center)
+![Block diagram of the TOE](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./images/Fig-TOE-Structure.bmp?raw=true#center)
 <p align="center"><b>Figure-1: Block diagram of the TCP Offload Engine</b></p>
 
 The TCP offload engine is entirely written in C/C++, and the Xilinx HLS flow is used here to synthesize and export **`TOE`** 
@@ -27,7 +29,7 @@ of **`TOE`**.
  
 ## HLS Coding Style and Naming Conventions
 The HLS design of **`TOE`** uses some specific naming rules to ease the description and the understanding of its architecture. 
-Please consider reading the document [**HLS coding style and naming conventions**]( ./hls-naming-conventions.md) before 
+Please consider reading the document [**HLS coding style and naming conventions**](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/ ./hls-naming-conventions.md) before 
 diving or contributing to this part of the cloudFPGA project.
 
 ## List of Components
@@ -37,18 +39,18 @@ architecture body.
 
 | Entity                  | Description                | Architecture
 |:------------------------|:---------------------------|:--------------
-| **[AKd](./AKd.md)**     | AcK delayer                | [ack_delay](       ../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/ack_delay/ack_delay.cpp)
-| **[EVe](./EVe.md)**     | EVent engine               | [event_engine](    ../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/event_engine/event_engine.cpp)
-| **[PRt](./PRt.md)**     | PoRt table                 | [port_table](      ../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/port_table/port_table.cpp)
-| **[RAi](./RAi.md)**     | Rx Application interface   | [tx_app_interface](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_app_interface/rx_app_interface.cpp)
-| **[RSt](./RSt.md)**     | Rx Sar table               | [rx_sar_table](    ../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_sar_table/rx_sar_table.cpp)
-| **[RXe](./RXe.md)**     | RX engine                  | [rx_engine](       ../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_engine/src/rx_engine.cpp)
-| **[SLc](./SLc.md)**     | Session Lookup controller  | [session_lookup_controller](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/session_lookup_controller/session_lookup_controller.cpp)
-| **[STt](./STt.md)**     | STate table                | [state_table](     ../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/state_table/state_table.cpp)
-| **[TAi](./TAi.md)**     | Tx Application interface   | [tx_app_interface](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_app_interface/tx_app_interface.cpp)
-| **[TIm](./TIm.md)**     | TImers                     | [timers](          ../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/timers/timers.cpp)
-| **[TSt](./TSt.md)**     | Tx Sar table               | [tx_sar_table](    ../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_sar_table/tx_sar_table.cpp)
-| **[TXe](./TXe.md)**     | TX engine                  | [tx_engine](       ../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_engine/src/tx_engine.cpp)
+| **[AKd](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./AKd.md)**     | AcK delayer                | [ack_delay](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/       ../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/ack_delay/ack_delay.cpp)
+| **[EVe](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./EVe.md)**     | EVent engine               | [event_engine](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/    ../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/event_engine/event_engine.cpp)
+| **[PRt](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./PRt.md)**     | PoRt table                 | [port_table](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/      ../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/port_table/port_table.cpp)
+| **[RAi](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./RAi.md)**     | Rx Application interface   | [tx_app_interface](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_app_interface/rx_app_interface.cpp)
+| **[RSt](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./RSt.md)**     | Rx Sar table               | [rx_sar_table](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/    ../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_sar_table/rx_sar_table.cpp)
+| **[RXe](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./RXe.md)**     | RX engine                  | [rx_engine](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/       ../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_engine/src/rx_engine.cpp)
+| **[SLc](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./SLc.md)**     | Session Lookup controller  | [session_lookup_controller](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/session_lookup_controller/session_lookup_controller.cpp)
+| **[STt](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./STt.md)**     | STate table                | [state_table](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/     ../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/state_table/state_table.cpp)
+| **[TAi](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./TAi.md)**     | Tx Application interface   | [tx_app_interface](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_app_interface/tx_app_interface.cpp)
+| **[TIm](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./TIm.md)**     | TImers                     | [timers](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/          ../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/timers/timers.cpp)
+| **[TSt](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./TSt.md)**     | Tx Sar table               | [tx_sar_table](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/    ../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_sar_table/tx_sar_table.cpp)
+| **[TXe](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./TXe.md)**     | TX engine                  | [tx_engine](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/       ../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_engine/src/tx_engine.cpp)
 
 ## Description of the Interfaces
 

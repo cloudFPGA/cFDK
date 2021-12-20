@@ -1,4 +1,6 @@
 # The Themisto Shell Role Architecture
+**Note:** [This HTML section is rendered based on the Markdown file in cFDK.](https://github.com/cloudFPGA/cFDK/blob/master/DOC/Themisto.md)
+
 
 This Shell Role Architecture (SRA) type enables ****node2node communication**** within the *cloudFPGA* platform.
 Therefore network data streams have a parallel meta stream to select the destinations or to see the source, respectively.
@@ -26,7 +28,7 @@ As an example, a value `0x0011` in `poNRC_Udp_Rx_ports` opens the ports `2718` a
 The Role can **send** to any valid port (but other FPGAs may only receive in the given range).
 
 The addressing between the ROLEs (on different FPGA nodes) and CPU nodes is done **based on node-id**s.
-The node-ids are mapped to IP addresses by the *[Network Abstraction Layer (NAL)](./NAL/NAL.md)*.
+The node-ids are mapped to IP addresses by the *[Network Abstraction Layer (NAL)](https://github.com/cloudFPGA/cFDK/blob/master/DOC/./NAL/NAL.md)*.
 The routing tables are configured during the cluster setup by the *cloudFPGA Resource Manager (CFRM)*. 
 
 #### Known limitations

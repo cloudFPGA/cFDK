@@ -1,4 +1,6 @@
 cFDK Regression
+**Note:** [This HTML section is rendered based on the Markdown file in cFDK.](https://github.com/cloudFPGA/cFDK/blob/master/REG/README.md)
+
 ====================
 
 A regression is a suite of functional verification tests executed against the cFDK. 
