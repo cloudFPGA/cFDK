@@ -1,4 +1,5 @@
-# cloudFPGA Development Kit (cFDK)
+# cFDK
+The **cloudFPGA Development Kit**.
 
 ## Introduction
 
