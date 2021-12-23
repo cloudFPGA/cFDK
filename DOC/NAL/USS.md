@@ -1,7 +1,9 @@
 UDP Sub-System (USS)
+**Note:** [This HTML section is rendered based on the Markdown file in cFDK.](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/USS.md)
+
 ======================
 
-This document describes the design of the **UDP Sub-System (USS)** of the [NAL](./NAL.md) used by the *cloudFPGA* platform.
+This document describes the design of the **UDP Sub-System (USS)** of the [NAL](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/./NAL.md) used by the *cloudFPGA* platform.
 
 ## Overview
 
@@ -9,7 +11,7 @@ A block diagram of the **`USS`** is depicted in Figure 1.
 
 It features processes for the opening and closing of UDP ports and for the RX Path (`pUdpRX`) as well as the TX Path (`pUdpTX`).
 
-![Block Diagram of the NAL](./images/Fig-USS-Structure.png#center)
+![Block Diagram of the NAL](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/./images/Fig-USS-Structure.png?raw=true#center)
 
 <p align="center"><b>Figure-1: Block diagram of the of the UDP Sub-System</b></p>
 
@@ -17,9 +19,9 @@ The architecture is written in C++/HLS in  [uss.cpp](../../SRA/LIB/SHELL/LIB/hls
 
 ## Interfaces
 
-The details of the UDP Offload Engine (UOE) and its interface are described [here](../NTS/UOE.md). 
+The details of the UDP Offload Engine (UOE) and its interface are described [here](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/../NTS/UOE.md). 
 
-The details of the Role UDP interface for the Themisto Shell are described [here](../Themisto.md).
+The details of the Role UDP interface for the Themisto Shell are described [here](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/../Themisto.md).
 
 The connections to other processes of the NAL are as follows: 
 
@@ -30,7 +32,7 @@ The connections to other processes of the NAL are as follows:
 - `sGetNidRep`: The reply of the MRT Agency containing the NodeId or an invalid value (so that the packet will be dropped). 
 - `piIpAddr`: The own IPv4 address, supplied by the MMIO registers.
 
-The details of the mentioned MRT Agency can be found [here](./HSS.md).
+The details of the mentioned MRT Agency can be found [here](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/./HSS.md).
 
 ## Functionality of the processes
 

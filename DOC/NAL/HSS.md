@@ -1,7 +1,9 @@
 Housekeeping Sub-System (HSS)
+**Note:** [This HTML section is rendered based on the Markdown file in cFDK.](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/HSS.md)
+
 ==============================
 
-This document describes the design of the **Housekeeping Sub-System (HSS)** of the [NAL](./NAL.md) used by the *cloudFPGA* platform.
+This document describes the design of the **Housekeeping Sub-System (HSS)** of the [NAL](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/./NAL.md) used by the *cloudFPGA* platform.
 
 ## Overview
 
@@ -66,4 +68,4 @@ In the following, the functionality of each process is briefly described:
 
 - `pTcpAgency`: This process contains the SessionId-Triple CAM as described above. It can reply to requests within 3 cycles. 
 
-To see how this processes are connected with the remaining parts of the NAL, please refer to Figure 1 of the [NAL documentation](./NAL.md).
+To see how this processes are connected with the remaining parts of the NAL, please refer to Figure 1 of the [NAL documentation](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/./NAL.md).

@@ -1,4 +1,6 @@
 ﻿# HDL Coding Style and Conventions
+**Note:** [This HTML section is rendered based on the Markdown file in cFDK.](https://github.com/cloudFPGA/cFDK/blob/master/DOC/hdl-naming-conventions.md)
+
 This document describes the conventions used by the **cloudFPGA Development Kit (cFDK)** to name HLD signals, HDL processes and HDL variables. 
 
 ## Preliminary
@@ -81,7 +83,7 @@ with
 
 ## Combining Signals, Ports and Instance Names
 This section shows an example that combines the above listed convention names.
-![Figure-1](./imgs/Fig-hdl-naming-conventions.png#center)
+![Figure-1](https://github.com/cloudFPGA/cFDK/blob/master/DOC/./imgs/Fig-hdl-naming-conventions.png?raw=true#center)
 <p align="center"><b>Figure-1: Combining signals, ports and instances names</b></p>
 <br>
 

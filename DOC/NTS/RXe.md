@@ -1,5 +1,7 @@
 # Rx Engine (RXe)
-This document describes the receive data path of the **[TCP Offload engine (TOE)](./TOE.md)** used by the *cloudFPGA* platform.
+**Note:** [This HTML section is rendered based on the Markdown file in cFDK.](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/RXe.md)
+
+This document describes the receive data path of the **[TCP Offload engine (TOE)](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./TOE.md)** used by the *cloudFPGA* platform.
  
 ## Overview
 A block diagram of the **RXe** is depicted in Figure 1.
@@ -7,7 +9,7 @@ New Ipv4 packets enter the engine via the **IPRX** interface.
 Their IPv4 and TCP headers are parsed and their TCP checksum are checked.
 Next, if the TCP destination port of the incoming TCP segment is opened and if that segment contains valid payload, 
 it is stored in external DDR4 memory and the *Rx Application Interface* (**RAi**) is notified about this arrival of new data.
-![Block diagram of the TOE/RXe](./images/Fig-TOE-RXe-Structure.bmp#center)
+![Block diagram of the TOE/RXe](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./images/Fig-TOE-RXe-Structure.bmp?raw=true#center)
 <p align="center"><b>Figure-1: Block diagram of the Rx Engine</b></p>
 <br>
 

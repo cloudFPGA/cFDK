@@ -1,4 +1,6 @@
 # 10 Gigabit Ethernet (ETH)
+**Note:** [This HTML section is rendered based on the Markdown file in cFDK.](https://github.com/cloudFPGA/cFDK/blob/master/DOC/ETH/ETH.md)
+
 This document describes the design of the **10 Gigabit Ethernet (ETH)** sub-system used by the _cloudFPGA_ platform.
 
 ## Overview
@@ -10,8 +12,8 @@ From an _Open Systems Interconnection (OSI)_ model point of view, the **`ETH`** 
 
 ## HLS Coding Style and Naming Conventions
 The design of **`ETH`** uses some specific HDL and HLS naming rules to ease the description and the understanding of
- its architecture. Please consider reading the two documents [**HDL coding style and naming conventions**](../hdl-naming-conventions.md)
- and [**HLS coding style and naming conventions**](./hls-naming-conventions.md) before diving into the code or starting
+ its architecture. Please consider reading the two documents [**HDL coding style and naming conventions**](https://github.com/cloudFPGA/cFDK/blob/master/DOC/ETH/../hdl-naming-conventions.md)
+ and [**HLS coding style and naming conventions**](https://github.com/cloudFPGA/cFDK/blob/master/DOC/ETH/./hls-naming-conventions.md) before diving into the code or starting
  to contribute to this part of the cloudFPGA project.
 
 ## List of Components

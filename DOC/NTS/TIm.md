@@ -1,9 +1,11 @@
 # Timers (TIm)
-Timer processes for the **[TCP Offload engine (TOE)](./TOE.md)** used by the *cloudFPGA* platform. 
+**Note:** [This HTML section is rendered based on the Markdown file in cFDK.](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/TIm.md)
+
+Timer processes for the **[TCP Offload engine (TOE)](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./TOE.md)** used by the *cloudFPGA* platform. 
 
 ## Overview
 This is a container for all the timer-based processes of the **TCP Offload engibe (TOE)**.
-![Block diagram of the TOE/TIm](./images/Fig-TOE-TIm-Structure.bmp#center)
+![Block diagram of the TOE/TIm](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./images/Fig-TOE-TIm-Structure.bmp?raw=true#center)
 <p align="center"><b>Figure-1: Block diagram of the Timers</b></p>
 <br>
 
