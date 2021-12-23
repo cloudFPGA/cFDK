@@ -1,5 +1,4 @@
 # DDR4 Memory Sub-System (MEM)
-**Note:** [This HTML section is rendered based on the Markdown file in cFDK.](https://github.com/cloudFPGA/cFDK/blob/master/DOC/MEM/MEM.md)
 
 This document describes the design of the **DDR4 Memory sub-system (MEM)** used by the _cloudFPGA_ platform.
 

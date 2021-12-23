@@ -1,6 +1,4 @@
 UDP Sub-System (USS)
-**Note:** [This HTML section is rendered based on the Markdown file in cFDK.](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/USS.md)
-
 ======================
 
 This document describes the design of the **UDP Sub-System (USS)** of the [NAL](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/./NAL.md) used by the *cloudFPGA* platform.

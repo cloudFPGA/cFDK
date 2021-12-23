@@ -1,5 +1,4 @@
 # 10 Gigabit Ethernet (ETH)
-**Note:** [This HTML section is rendered based on the Markdown file in cFDK.](https://github.com/cloudFPGA/cFDK/blob/master/DOC/ETH/ETH.md)
 
 This document describes the design of the **10 Gigabit Ethernet (ETH)** sub-system used by the _cloudFPGA_ platform.
 

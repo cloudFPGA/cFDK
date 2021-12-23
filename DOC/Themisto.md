@@ -1,6 +1,4 @@
 # The Themisto Shell Role Architecture
-**Note:** [This HTML section is rendered based on the Markdown file in cFDK.](https://github.com/cloudFPGA/cFDK/blob/master/DOC/Themisto.md)
-
 
 This Shell Role Architecture (SRA) type enables ****node2node communication**** within the *cloudFPGA* platform.
 Therefore network data streams have a parallel meta stream to select the destinations or to see the source, respectively.

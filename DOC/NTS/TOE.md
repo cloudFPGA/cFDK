@@ -1,5 +1,4 @@
 # TCP Offload Engine (TOE)
-**Note:** [This HTML section is rendered based on the Markdown file in cFDK.](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/TOE.md)
 
 This document describes the design of the **TCP Offload Engine (TOE)** used by the *cloudFPGA* platform.
 

@@ -1,5 +1,4 @@
 # **Compile, Simulate, Synthesize and CoSimulate the current C function**
-**Note:** [This HTML section is rendered based on the Markdown file in cFDK.](https://github.com/cloudFPGA/cFDK/blob/master/SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_engine/README.md)
 
 
 ## Synopsis:

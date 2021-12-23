@@ -1,5 +1,4 @@
 ﻿# HDL Coding Style and Conventions
-**Note:** [This HTML section is rendered based on the Markdown file in cFDK.](https://github.com/cloudFPGA/cFDK/blob/master/DOC/hdl-naming-conventions.md)
 
 This document describes the conventions used by the **cloudFPGA Development Kit (cFDK)** to name HLD signals, HDL processes and HDL variables. 
 

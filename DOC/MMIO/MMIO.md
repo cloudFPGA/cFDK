@@ -1,6 +1,5 @@
 # Memory Mapped IO (MMIO)
-**Note:** [This HTML section is rendered based on the Markdown file in cFDK.](https://github.com/cloudFPGA/cFDK/blob/master/DOC/MMIO/MMIO.md)
-
+         
 This document describes the design of the **Memory Mapped IO (MMIO)** sub-system used by the _cloudFPGA_ platform.
 
 ## Overview

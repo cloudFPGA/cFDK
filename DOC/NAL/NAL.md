@@ -1,5 +1,4 @@
 Network Abstraction Layer (NAL)
-**Note:** [This HTML section is rendered based on the Markdown file in cFDK.](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/NAL.md)
 
 ==================================
 

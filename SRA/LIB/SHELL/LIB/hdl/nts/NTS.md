@@ -1,6 +1,4 @@
 # ABOUT: _cloudFPGA/SHELL/FMKU60/src/nts_
-**Note:** [This HTML section is rendered based on the Markdown file in cFDK.](https://github.com/cloudFPGA/cFDK/blob/master/SRA/LIB/SHELL/LIB/hdl/nts/NTS.md)
-
 
 ## Overview:
 

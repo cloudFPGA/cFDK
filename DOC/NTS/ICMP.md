@@ -1,5 +1,4 @@
 # Internet Control Message Protocol server (ICMP)
-**Note:** [This HTML section is rendered based on the Markdown file in cFDK.](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/ICMP.md)
 
 This document describes the design of the **Internet Control Message Protocol server (ICMP)** used by the network transport stack of the *cloudFPGA* platform.
 

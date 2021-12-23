@@ -1,5 +1,4 @@
 # Rx Application Interface (RAi)
-**Note:** [This HTML section is rendered based on the Markdown file in cFDK.](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/RAi.md)
 
 This document describes the front-end interface process to the TCP Role Interface (TRIF) of the **[TCP Offload engine (TOE)](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./TOE.md)** used by the *cloudFPGA* platform. 
 

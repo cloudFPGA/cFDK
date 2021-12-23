@@ -1,6 +1,4 @@
 TCP Sub-System (TSS)
-**Note:** [This HTML section is rendered based on the Markdown file in cFDK.](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/TSS.md)
-
 ======================
 
 This document describes the design of the **TCP Sub-System (TSS)** of the [NAL](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/./NAL.md) used by the *cloudFPGA* platform.

@@ -1,5 +1,4 @@
 # HLS Coding Style and Conventions
-**Note:** [This HTML section is rendered based on the Markdown file in cFDK.](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/hls-naming-conventions.md)
 
 This document describes the C/C++ conventions used to name the signals, the processes and the 
 variables of the **TCP/IP Network and Transport Stack (NTS)** of the *cloudFPGA (cF)* platform.  

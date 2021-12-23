@@ -1,6 +1,4 @@
 Housekeeping Sub-System (HSS)
-**Note:** [This HTML section is rendered based on the Markdown file in cFDK.](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/HSS.md)
-
 ==============================
 
 This document describes the design of the **Housekeeping Sub-System (HSS)** of the [NAL](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/./NAL.md) used by the *cloudFPGA* platform.

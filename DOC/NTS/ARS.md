@@ -1,5 +1,4 @@
 # Address Resolution Server (ARS)
-**Note:** [This HTML section is rendered based on the Markdown file in cFDK.](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/ARS.md)
 
 This document describes the design of the **Address Resolution Server (ARS)** used by the network transport stack of the *cloudFPGA* platform.
 

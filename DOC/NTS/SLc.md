@@ -1,5 +1,4 @@
 # Session Lookup Controller (SLc)
-**Note:** [This HTML section is rendered based on the Markdown file in cFDK.](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/SLc.md)
 
 This document describes the process which provides a front-end interfaces to the Content Addessable Memory (CAM) of the **[TCP Offload engine (TOE)](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./TOE.md)** used by the *cloudFPGA* platform. 
 

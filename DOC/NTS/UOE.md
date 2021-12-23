@@ -1,5 +1,4 @@
 # UDP Offload Engine (UOE)
-**Note:** [This HTML section is rendered based on the Markdown file in cFDK.](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/UOE.md)
 
 This document describes the design of the **UDP Offload Engine (UOE)** used by the *cloudFPGA* platform.
 

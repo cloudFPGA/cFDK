@@ -24,4 +24,4 @@ Please consider taking a quick look at the [documentation of the NTS](../../../.
 
 
 <br>
-| [dhcp_client](./dhcp_client)  | **DHCP**  | Dynamic Host Configuration Protocol (DHCP) client. 
+| [dhcp_client](./dhcp_client)  | **DHCP**  | Dynamic Host Configuration Protocol (DHCP) client.                

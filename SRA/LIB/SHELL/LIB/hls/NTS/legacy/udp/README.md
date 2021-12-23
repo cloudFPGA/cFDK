@@ -1,6 +1,4 @@
 # **Compile, Synthesize and Export the current IP**
-**Note:** [This HTML section is rendered based on the Markdown file in cFDK.](https://github.com/cloudFPGA/cFDK/blob/master/SRA/LIB/SHELL/LIB/hls/NTS/legacy/udp/README.md)
-
 
 ## Synopsis:
     - make
