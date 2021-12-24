@@ -18,15 +18,15 @@ A block diagram of the *ARS* is depicted in Figure 1. It features:
 |:--------------------------------------------------|:------------------------------------------------------|:--------------
 | **CAM**                                           | Content-Addressable Memory                            | [ArpCam](../../SRA/LIB/SHELL/LIB/hdl/nts/nts_TcpIp_ArpCam.vhd)
 | **ETH**                                           | 10G Ethernet interface (via L2MUX)                    | [tenGigEth](../../SRA/LIB/SHELL/LIB/hdl/eth/tenGigEth.v)
-| **IPRX**                                          | IP Receive frame handler (IPRX)                       | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iprx_handler/src/iprx_handler.cpp)
-| **IPTX**                                          | IP Transmit frame handler (IPTX).                     | [iptx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iptx_handler/src/iptx_handler.cpp)
-| **MMIO**                                          | Memory Mapped IOs                                     | [mmioClient_A8_D8.v](../SRA/LIB/SHELL/LIB/hdl/mmio/mmioClient_A8_D8.v)
+| **IPRX**                                          | IP Receive frame handler (IPRX)                       | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iprx/src/iprx.cpp)
+| **IPTX**                                          | IP Transmit frame handler (IPTX).                     | [iptx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iptx/src/iptx.cpp)
+| **MMIO**                                          | Memory Mapped IOs                                     | [mmioClient_A8_D8.v](../../SRA/LIB/SHELL/LIB/hdl/mmio/mmioClient_A8_D8.v)
 
 ## List of HLS Components
 
 | Acronym       | Description                | Filename
 |:--------------|:---------------------------|:--------------
-| **ACc**       | ARP CAM Controller         | [arp_server](../../SRA/LIB/SHELL/LIB/hls/NTS/arp_server/src/arp_server.cpp)
-| **APr**       | ARP Packet Receiver        | [arp_server](../../SRA/LIB/SHELL/LIB/hls/NTS/arp_server/src/arp_server.cpp)
-| **APs**       | ARP CAM Controller         | [arp_server](../../SRA/LIB/SHELL/LIB/hls/NTS/arp_server/src/arp_server.cpp)
+| **ACc**       | ARP CAM Controller         | [arp_server](../../SRA/LIB/SHELL/LIB/hls/NTS/arp_server/src/arp.cpp)
+| **APr**       | ARP Packet Receiver        | [arp_server](../../SRA/LIB/SHELL/LIB/hls/NTS/arp_server/src/arp.cpp)
+| **APs**       | ARP CAM Controller         | [arp_server](../../SRA/LIB/SHELL/LIB/hls/NTS/arp_server/src/arp.cpp)
 
