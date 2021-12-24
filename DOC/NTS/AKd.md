@@ -24,6 +24,6 @@ The ACK delayer is a single process that is only accessed by the Event Engine (E
 
 | Acronym         | Description                                           | Filename
 |:----------------|:------------------------------------------------------|:--------------
-| **AKd**         | ACK delayer processs                                  | [ack_delay](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/ack_delay/ack_delay.cpp)
+| **AKd**         | ACK delayer processs                                  | [ack_delay](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/ack_delay/src/ack_delay.cpp)
 
 <br>
