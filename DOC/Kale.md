@@ -14,11 +14,11 @@ A block diagram of the shell **_Kale_** is shown in Figure 1. It implements the 
   - one network and transport stack (NTS) core based on the TCP-UDP/IP protocols,
   - one register file core with memory mapped IOs (MMIO).
 
-![Block diagram of Kale](https://github.com/cloudFPGA/cFDK/blob/master/DOC/./imgs/Fig-SHELL-Kale.png?raw=true#center)
+![Block diagram of Kale](./imgs/Fig-SHELL-Kale.png?raw=true#center)
 <p align="center"><b>Figure-1: Block diagram of the shell Kale</b></p>
 
 The **`SHELL`** is predominantly written in C/C++ with a few pieces coded in HDL, such as the top-level Verilog file 
-[**Shell.v**](../../SRA/LIB/SHELL/Kale/Shell.v) which assembles and interconnects the major components. 
+[**Shell.v**](https://github.com/cloudFPGA/cFDK/tree/main/SRA/LIB/SHELL/Kale/Shell.v) which assembles and interconnects the major components. 
 
 For the components specified in C/C++, we use the Xilinx HLS flow to synthesize and export them as a standalone IP cores.
  With respect to Figure-1, the white boxes represent the sub-components specified in C/C++ or HDL, and the gray boxes 
@@ -26,8 +26,8 @@ For the components specified in C/C++, we use the Xilinx HLS flow to synthesize 
 
 #### HDL Coding Style and Naming Conventions
 The design of the **`SHELL`** uses some specific HDL and HLS naming rules to ease the description and the understanding 
- of its architecture. Please consider reading the two documents [**HDL coding style and naming conventions**](https://github.com/cloudFPGA/cFDK/blob/master/DOC/../hdl-naming-conventions.md)
- and [**HLS coding style and naming conventions**](https://github.com/cloudFPGA/cFDK/blob/master/DOC/./hls-naming-conventions.md) before diving into the code or starting
+ of its architecture. Please consider reading the two documents [**HDL coding style and naming conventions**](https://github.com/cloudFPGA/cFDK/tree/main/DOC/./hdl-naming-conventions.md)
+ and [**HLS coding style and naming conventions**](https://github.com/cloudFPGA/cFDK/tre/main/DOC/./NTS/hls-naming-conventions.md) before diving into the code or starting
  to contribute to this part of the cloudFPGA project.
 
 #### List of Components
@@ -36,10 +36,10 @@ their architecture body.
 
 | Entity                            | Description                | Architecture
 |:----------------------------------|:---------------------------|:--------------
-| **[ETH](https://github.com/cloudFPGA/cFDK/blob/master/DOC/./ETH/ETH.md)**           | 10G Ethernet subsystem     | [tenGigEth.v](https://github.com/cloudFPGA/cFDK/blob/master/DOC/../SRA/LIB/SHELL/LIB/hdl/eth/tenGigEth.v)
-| **[MEM](https://github.com/cloudFPGA/cFDK/blob/master/DOC/./MEM/MEM.md)**           | DDR4 Memory subsystem      | [memSubSys.v](https://github.com/cloudFPGA/cFDK/blob/master/DOC/../SRA/LIB/SHELL/LIB/hdl/mem/memSubSys.v)
-| **[MMIO](https://github.com/cloudFPGA/cFDK/blob/master/DOC/./MMIO/MMIO.md)**        | Memory Mapped IOs          | [mmioClient_A8_D8.v](https://github.com/cloudFPGA/cFDK/blob/master/DOC/../SRA/LIB/SHELL/LIB/hdl/mmio/mmioClient_A8_D8.v)
-| **[NTS](https://github.com/cloudFPGA/cFDK/blob/master/DOC/./NTS/NTS.md)**           | Network Transport Stack    | [nts_TcpIp.v](https://github.com/cloudFPGA/cFDK/blob/master/DOC/../SRA/LIB/SHELL/LIB/hdl/nts/nts_TcpIp.v)
+| **[ETH](https://github.com/cloudFPGA/cFDK/tree/mainter/DOC/./ETH/ETH.md)**           | 10G Ethernet subsystem     | [tenGigEth.v](https://github.com/cloudFPGA/cFDK/tree/mainter/DOC/../SRA/LIB/SHELL/LIB/hdl/eth/tenGigEth.v)
+| **[MEM](https://github.com/cloudFPGA/cFDK/tree/mainter/DOC/./MEM/MEM.md)**           | DDR4 Memory subsystem      | [memSubSys.v](https://github.com/cloudFPGA/cFDK/tree/mainter/DOC/../SRA/LIB/SHELL/LIB/hdl/mem/memSubSys.v)
+| **[MMIO](https://github.com/cloudFPGA/cFDK/tree/mainter/DOC/./MMIO/MMIO.md)**        | Memory Mapped IOs          | [mmioClient_A8_D8.v](https://github.com/cloudFPGA/cFDK/tree/mainter/DOC/../SRA/LIB/SHELL/LIB/hdl/mmio/mmioClient_A8_D8.v)
+| **[NTS](https://github.com/cloudFPGA/cFDK/tree/mainter/DOC/./NTS/NTS.md)**           | Network Transport Stack    | [nts_TcpIp.v](https://github.com/cloudFPGA/cFDK/tree/mainter/DOC/../SRA/LIB/SHELL/LIB/hdl/nts/nts_TcpIp.v)
 
 #### List of Interfaces
 The **`SHELL`** _Kale_ exposes the following five interfaces:
@@ -71,7 +71,7 @@ The UDP application interface (UAIF) connects the UDP offload engine of the **`S
  * `soROL_Nts_Udp_****` signals implement the receive data and control paths between the **`SHELL`** and the application
     layer of the **`ROLE`** (i.e., the incoming network traffic direction).
 
-Refer to the [UDP Application Layer Interface of UOE](https://github.com/cloudFPGA/cFDK/blob/master/DOC/./NTS/UOE.md#udp-application-layer-interface) for a detailed 
+Refer to the [UDP Application Layer Interface of UOE](https://github.com/cloudFPGA/cFDK/tree/mainter/DOC/./NTS/UOE.md#udp-application-layer-interface) for a detailed 
  description of these interfaces. 
 
 ##### TCP Application Interface
@@ -83,7 +83,7 @@ The TCP application interface (TAIF) connects the TCP offload engine of the **`S
  * `soROL_Nts__Tcp_****` signals implement the receive data and control paths between the **`SHELL`** and the 
     application layer of the **`ROLE`** (i.e., the incoming network traffic direction).
 
-Refer to the [TCP Application Layer Interface of TOE](https://github.com/cloudFPGA/cFDK/blob/master/DOC/./NTS/TOE.md#tcp-application-layer-interface) for a detailed
+Refer to the [TCP Application Layer Interface of TOE](https://github.com/cloudFPGA/cFDK/tree/mainter/DOC/./NTS/TOE.md#tcp-application-layer-interface) for a detailed
  description of these interfaces.
 
 ##### Memory Stream Interface
