@@ -15,9 +15,9 @@ The process also receives session close commands from the Timers (TIm) and sends
 
 | Acronym         | Description                                           | Filename
 |:----------------|:------------------------------------------------------|:--------------
-|  **RXe**        | RX engine                                             | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_engine/src/rx_engine.cpp)
-|  **SLc**        | Session Lookup Controller interface                   | [session_lookup_controller](../../SRA/LIB/SHELL/LIB/hls/toe/src/session_lookup_controller/session_lookup_controller.cpp)
-|  **TAi**        | Tx Application interface                              | [tx_app_interface](../../SRA/LIB/SHELL/LIB/hls/toe/src/tx_app_interface/tx_app_interface.cpp)
+|  **RXe**        | RX engine                                             | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_engine/src/rx_engine.cpp)
+|  **SLc**        | Session Lookup Controller interface                   | [session_lookup_controller](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/session_lookup_controller/session_lookup_controller.cpp)
+|  **TAi**        | Tx Application interface                              | [tx_app_interface](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_app_interface/tx_app_interface.cpp)
 |  **TIm**        | Timers                                                | [TODO]
 
 
@@ -27,6 +27,6 @@ The process also receives session close commands from the Timers (TIm) and sends
 
 | Acronym         | Description                                           | Filename
 |:----------------|:------------------------------------------------------|:--------------
-| **STt**         | State Table processs                                  | [state_table](../../SRA/LIB/SHELL/LIB/hls/toe/src/state_table/state_table.cpp)
+| **STt**         | State Table processs                                  | [state_table](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/state_table/state_table.cpp)
 
 <br>

@@ -13,11 +13,11 @@ The engine is a single process concurrently accessed by the RxEngine (RXe), the 
 
 | Acronym         | Description                                           | Filename
 |:----------------|:------------------------------------------------------|:--------------
-|  **AKd**        | AcK delayer                                           | [ack_delay](../../SRA/LIB/SHELL/LIB/hls/toe/src/ack_delay/ack_delay.cpp)
-|  **RXe**        | RX engine                                             | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_engine/src/rx_engine.cpp)
-|  **TAi**        | Tx Application interface                              | [tx_app_interface](../../SRA/LIB/SHELL/LIB/hls/toe/src/tx_app_interface/tx_app_interface.cpp)
+|  **AKd**        | AcK delayer                                           | [ack_delay](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/ack_delay/ack_delay.cpp)
+|  **RXe**        | RX engine                                             | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/NTStoe/src/rx_engine/src/rx_engine.cpp)
+|  **TAi**        | Tx Application interface                              | [tx_app_interface](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_app_interface/tx_app_interface.cpp)
 |  **TIm**        | Timers interface                                      | [TODO]
-|  **TXe**        | TX engine                                             | [tx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/tx_engine/src/tx_engine.cpp)
+|  **TXe**        | TX engine                                             | [tx_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_engine/src/tx_engine.cpp)
 
 
 <br>
@@ -26,6 +26,6 @@ The engine is a single process concurrently accessed by the RxEngine (RXe), the 
 
 | Acronym         | Description                                           | Filename
 |:----------------|:------------------------------------------------------|:--------------
-| **EVe**         | EVent engine processs                                 | [event_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/event_engine/event_engine.cpp)
+| **EVe**         | EVent engine processs                                 | [event_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/event_engine/event_engine.cpp)
 
 <br>

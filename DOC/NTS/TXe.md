@@ -16,14 +16,14 @@ The complete packet is then streamed out over the **L3MUX** interface of the TOE
 
 | Acronym         | Description                                           | Filename
 |:----------------|:------------------------------------------------------|:--------------
-| **AKd**         | Ack Delayer interface                                 | [ack_delay](../../SRA/LIB/SHELL/LIB/hls/toe/src/ack_delay/ack_delay.cpp)  
-| **EVe**         | Event Engine interface                                | [event_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/event_engine/event_engine.cpp)
-| **L3MUX**       | IP Tx Interface                                       | [iptx_handler](../../SRA/LIB/SHELL/LIB/hls/iptx_handler/src/iptx_handler.cpp)
+| **AKd**         | Ack Delayer interface                                 | [ack_delay](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/ack_delay/ack_delay.cpp)  
+| **EVe**         | Event Engine interface                                | [event_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/event_engine/event_engine.cpp)
+| **L3MUX**       | IP Tx Interface                                       | [iptx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iptx_handler/src/iptx_handler.cpp)
 | **MEM**         | Memory sub-system (data-mover to DDR4)                | [memSubSys](../../SRA/LIB/SHELL/LIB/hdl/mem/memSubSys.v)
-| **RSt**         | Rx SAR Table interface                                | [rx_sar_table](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_sar_table/rx_sar_table.cpp)
-| **SLc**         | Session Lookup Controller interface                   | [session_lookup_controller](../../SRA/LIB/SHELL/LIB/hls/toe/src/session_lookup_controller/session_lookup_controller.cpp)
+| **RSt**         | Rx SAR Table interface                                | [rx_sar_table](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_sar_table/rx_sar_table.cpp)
+| **SLc**         | Session Lookup Controller interface                   | [session_lookup_controller](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/session_lookup_controller/session_lookup_controller.cpp)
 | **TIm**         | Timers interface                                      | [TODO]
-| **TSt**         | Tx SAR Table interface                                | [tx_sar_table](../../SRA/LIB/SHELL/LIB/hls/toe/src/tx_sar_table/tx_sar_table.cpp)
+| **TSt**         | Tx SAR Table interface                                | [tx_sar_table](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_sar_table/tx_sar_table.cpp)
 
 <br>
 
@@ -31,14 +31,14 @@ The complete packet is then streamed out over the **L3MUX** interface of the TOE
 
 | Acronym         | Description                                           | Filename
 |:----------------|:------------------------------------------------------|:--------------
-| **Ihc**         | IP Header Constructor process                         | [tx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/tx_engine/src/tx_engine.cpp)
-| **Ips**         | IP Packet Stitcher process                            | [tx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/tx_engine/src/tx_engine.cpp)
-| **Mdl**         | Meta Data Loader process                              | [tx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/tx_engine/src/tx_engine.cpp) 
-| **Mrd**         | Memory Reader process                                 | [tx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/tx_engine/src/tx_engine.cpp)
-| **Phc**         | PseudoHeaderConstructor process                       | [tx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/tx_engine/src/tx_engine.cpp) 
-| **Sca**         | Sub Checksum Accumulator process                      | [tx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/tx_engine/src/tx_engine.cpp) 
-| **Sps**         | Socket Pair Splitter process                          | [tx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/tx_engine/src/tx_engine.cpp) 
-| **Tca**         | TCP Checksum Accumulator process                      | [tx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/tx_engine/src/tx_engine.cpp)
-| **Tss**         | TCP Segment Stitcher                                  | [tx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/tx_engine/src/tx_engine.cpp) 
+| **Ihc**         | IP Header Constructor process                         | [tx_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_engine/src/tx_engine.cpp)
+| **Ips**         | IP Packet Stitcher process                            | [tx_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_engine/src/tx_engine.cpp)
+| **Mdl**         | Meta Data Loader process                              | [tx_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_engine/src/tx_engine.cpp) 
+| **Mrd**         | Memory Reader process                                 | [tx_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_engine/src/tx_engine.cpp)
+| **Phc**         | PseudoHeaderConstructor process                       | [tx_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_engine/src/tx_engine.cpp) 
+| **Sca**         | Sub Checksum Accumulator process                      | [tx_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_engine/src/tx_engine.cpp) 
+| **Sps**         | Socket Pair Splitter process                          | [tx_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_engine/src/tx_engine.cpp) 
+| **Tca**         | TCP Checksum Accumulator process                      | [tx_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_engine/src/tx_engine.cpp)
+| **Tss**         | TCP Segment Stitcher                                  | [tx_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_engine/src/tx_engine.cpp) 
 
 <br>

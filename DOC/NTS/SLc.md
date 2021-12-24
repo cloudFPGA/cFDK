@@ -13,11 +13,11 @@ Every TCP connection is identified by a SessionId and an associated 4-tuple {IP_
 | Acronym         | Description                                           | Filename
 |:----------------|:------------------------------------------------------|:--------------
 |  **CAM**        | Content Addessable Memory interface                   | [ToeCam](../../SRA/LIB/SHELL/LIB/hdl/nts/ToeCam/ToeCam.v)
-|  **PRt**        | Port Table interface                                  | [port_table](../../SRA/LIB/SHELL/LIB/hls/toe/src/port_table/port_table.cpp)  
-|  **RXe**        | RX engine                                             | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_engine/src/rx_engine.cpp)
-|  **STt**        | STate table                                           | [state_table](../../SRA/LIB/SHELL/LIB/hls/toe/src/state_table/state_table.cpp)
-|  **TAi**        | Tx Application interface                              | [tx_app_interface](../../SRA/LIB/SHELL/LIB/hls/toe/src/tx_app_interface/tx_app_interface.cpp)
-|  **TXe**        | TX engine                                             | [tx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/tx_engine/src/tx_engine.cpp)
+|  **PRt**        | Port Table interface                                  | [port_table](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/port_table/port_table.cpp)  
+|  **RXe**        | RX engine                                             | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_engine/src/rx_engine.cpp)
+|  **STt**        | STate table                                           | [state_table](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/state_table/state_table.cpp)
+|  **TAi**        | Tx Application interface                              | [tx_app_interface](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_app_interface/tx_app_interface.cpp)
+|  **TXe**        | TX engine                                             | [tx_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_engine/src/tx_engine.cpp)
 
 <br>
 
@@ -25,11 +25,11 @@ Every TCP connection is identified by a SessionId and an associated 4-tuple {IP_
 
 | Acronym         | Description                                           | Filename
 |:----------------|:------------------------------------------------------|:--------------
-| **Lrh**         | Lookup Reply Handler processs                         | [session_lookup_controller](../../SRA/LIB/SHELL/LIB/hls/toe/src/session_lookup_controller/session_lookup_controller.cpp)
-| **Rlt**         | Reverse Lookup Table processs                         | [session_lookup_controller](../../SRA/LIB/SHELL/LIB/hls/toe/src/session_lookup_controller/session_lookup_controller.cpp)
-| **Sim**         | Session Id Manager processs                           | [session_lookup_controller](../../SRA/LIB/SHELL/LIB/hls/toe/src/session_lookup_controller/session_lookup_controller.cpp)
-| **Urh**         | Update RequestHandler processs                        | [session_lookup_controller](../../SRA/LIB/SHELL/LIB/hls/toe/src/session_lookup_controller/session_lookup_controller.cpp)
-| **Urs**         | Update Request Sender processs                        | [session_lookup_controller](../../SRA/LIB/SHELL/LIB/hls/toe/src/session_lookup_controller/session_lookup_controller.cpp)
+| **Lrh**         | Lookup Reply Handler processs                         | [session_lookup_controller](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/session_lookup_controller/session_lookup_controller.cpp)
+| **Rlt**         | Reverse Lookup Table processs                         | [session_lookup_controller](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/session_lookup_controller/session_lookup_controller.cpp)
+| **Sim**         | Session Id Manager processs                           | [session_lookup_controller](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/session_lookup_controller/session_lookup_controller.cpp)
+| **Urh**         | Update RequestHandler processs                        | [session_lookup_controller](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/session_lookup_controller/session_lookup_controller.cpp)
+| **Urs**         | Update Request Sender processs                        | [session_lookup_controller](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/session_lookup_controller/session_lookup_controller.cpp)
 
 
 <br>

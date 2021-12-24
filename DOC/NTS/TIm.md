@@ -12,11 +12,11 @@ This is a container for all the timer-based processes of the **TCP Offload engib
 
 | Acronym         | Description                                           | Filename
 |:----------------|:------------------------------------------------------|:--------------
-|  **EVe**        | EVent Engine interface                                | [event_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/event_engine/event_engine.cpp)
-|  **RAi**        | Rx Application Interface                              | [rx_app_if](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_app_if/rx_app_if.cpp)
-|  **RXe**        | RX engine                                             | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_engine/src/rx_engine.cpp)
-|  **STt**        | State Table interface                                 | [state_table](../../SRA/LIB/SHELL/LIB/hls/toe/src/state_table/state_table.cpp)
-|  **TAi**        | Tx Application Interface                              | [tx_app_interface](../../SRA/LIB/SHELL/LIB/hls/toe/src/tx_app_interface/tx_app_interface.cpp)
+|  **EVe**        | EVent Engine interface                                | [event_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/event_engine/event_engine.cpp)
+|  **RAi**        | Rx Application Interface                              | [rx_app_if](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_app_if/rx_app_if.cpp)
+|  **RXe**        | RX engine                                             | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_engine/src/rx_engine.cpp)
+|  **STt**        | State Table interface                                 | [state_table](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/state_table/state_table.cpp)
+|  **TAi**        | Tx Application Interface                              | [tx_app_interface](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_app_interface/tx_app_interface.cpp)
 
 <br>
 
@@ -24,10 +24,10 @@ This is a container for all the timer-based processes of the **TCP Offload engib
 
 | Acronym         | Description                                           | Filename
 |:----------------|:------------------------------------------------------|:--------------
-| **Clt**         | Close timer processs                                  | [timers](../../SRA/LIB/SHELL/LIB/hls/toe/src/timers/timers.cpp)
-| **Pbt**         | Probe timer processs                                  | [timers](../../SRA/LIB/SHELL/LIB/hls/toe/src/timers/timers.cpp)
-| **Rtt**         | Retransmit timer processs                             | [timers](../../SRA/LIB/SHELL/LIB/hls/toe/src/timers/timers.cpp)
-| **Emx**         | Event multiplexer process                             | [timers](../../SRA/LIB/SHELL/LIB/hls/toe/src/timers/timers.cpp)
-| **Smx**         | State multiplexer process                             | [timers](../../SRA/LIB/SHELL/LIB/hls/toe/src/timers/timers.cpp)
+| **Clt**         | Close timer processs                                  | [timers](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/timers/timers.cpp)
+| **Pbt**         | Probe timer processs                                  | [timers](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/timers/timers.cpp)
+| **Rtt**         | Retransmit timer processs                             | [timers](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/timers/timers.cpp)
+| **Emx**         | Event multiplexer process                             | [timers](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/timers/timers.cpp)
+| **Smx**         | State multiplexer process                             | [timers](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/timers/timers.cpp)
 
 <br>

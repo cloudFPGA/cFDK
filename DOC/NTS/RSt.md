@@ -13,9 +13,9 @@ The RxSarTable is a single process concurrently accessed by the RxEngine (RXe), 
 
 | Acronym         | Description                                           | Filename
 |:----------------|:------------------------------------------------------|:--------------
-|  **RAi**        | Rx Application interface                              | [rx_app_if](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_app_if/rx_app_if.cpp)
-|  **RXe**        | RX engine                                             | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_engine/src/rx_engine.cpp)
-|  **TXe**        | TX engine                                             | [tx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/tx_engine/src/tx_engine.cpp)
+|  **RAi**        | Rx Application interface                              | [rx_app_if](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_app_if/rx_app_if.cpp)
+|  **RXe**        | RX engine                                             | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_engine/src/rx_engine.cpp)
+|  **TXe**        | TX engine                                             | [tx_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_engine/src/tx_engine.cpp)
 
 
 <br>
@@ -24,6 +24,6 @@ The RxSarTable is a single process concurrently accessed by the RxEngine (RXe), 
 
 | Acronym         | Description                                           | Filename
 |:----------------|:------------------------------------------------------|:--------------
-| **RSt**         | Rx SAR Table processs                                 | [rx_sar_table](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_sar_table/rx_sar_table.cpp)
+| **RSt**         | Rx SAR Table processs                                 | [rx_sar_table](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_sar_table/rx_sar_table.cpp)
 
 <br>

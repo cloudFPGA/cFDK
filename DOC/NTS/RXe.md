@@ -16,16 +16,16 @@ it is stored in external DDR4 memory and the *Rx Application Interface* (**RAi**
 
 | Acronym         | Description                                           | Filename
 |:----------------|:------------------------------------------------------|:--------------
-| **EVe**         | Event Engine interface                                | [event_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/event_engine/event_engine.cpp)
-| **IPRX**        | IP RX Interface                                       | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/iprx_handler/src/iprx_handler.cpp) 
+| **EVe**         | Event Engine interface                                | [event_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/event_engine/event_engine.cpp)
+| **IPRX**        | IP RX Interface                                       | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iprx_handler/src/iprx_handler.cpp) 
 | **MEM**         | MEMory sub-system (data-mover to DDR4)                | [memSubSys](../../SRA/LIB/SHELL/LIB/hdl/mem/memSubSys.v)
-| **PRt**         | Port Table interface.                                 | [port_table](../../SRA/LIB/SHELL/LIB/hls/toe/src/port_table/port_table.cpp)  
-| **RAi**         | Rx Application interface                              | [rx_app_interface](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_app_interface/rx_app_interface.cpp)
-| **RSt**         | Rx SAR Table interface                                | [rx_sar_table](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_sar_table/rx_sar_table.cpp)
-| **SLc**         | Session Lookup Controller interface                   | [session_lookup_controller](../../SRA/LIB/SHELL/LIB/hls/toe/src/session_lookup_controller/session_lookup_controller.cpp)
-| **STt**         | State Table interface                                 | [state_table](../../SRA/LIB/SHELL/LIB/hls/toe/src/state_table/state_table.cpp)  
+| **PRt**         | Port Table interface.                                 | [port_table](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/port_table/port_table.cpp)  
+| **RAi**         | Rx Application interface                              | [rx_app_interface](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_app_interface/rx_app_interface.cpp)
+| **RSt**         | Rx SAR Table interface                                | [rx_sar_table](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_sar_table/rx_sar_table.cpp)
+| **SLc**         | Session Lookup Controller interface                   | [session_lookup_controller](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/session_lookup_controller/session_lookup_controller.cpp)
+| **STt**         | State Table interface                                 | [state_table](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/state_table/state_table.cpp)  
 | **TIm**         | Timers interface                                      | [TODO]
-| **TSt**         | Tx SAR Table interface                                | [tx_sar_table](../../SRA/LIB/SHELL/LIB/hls/toe/src/tx_sar_table/tx_sar_table.cpp)
+| **TSt**         | Tx SAR Table interface                                | [tx_sar_table](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_sar_table/tx_sar_table.cpp)
 
 <br>
 
@@ -33,15 +33,15 @@ it is stored in external DDR4 memory and the *Rx Application Interface* (**RAi**
 
 | Acronym         | Description                                           | Filename
 |:----------------|:------------------------------------------------------|:--------------
-| **Csa**         | Check-Sum Accumulator process.                        | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_engine/src/rx_engine.cpp)
-| **Evm**         | Event Muxer process.                                  | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_engine/src/rx_engine.cpp)
-| **Fsm**         | Finite State Machine process.                         | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_engine/src/rx_engine.cpp)
-| **Iph**         | Insert Pseudo Header process.                         | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_engine/src/rx_engine.cpp)
-| **Mdh**         | Meta Data Handler process.                            | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_engine/src/rx_engine.cpp)
-| **Mwr**         | Memory WRiter process.                                | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_engine/src/rx_engine.cpp)
-| **Ran**         | Rx Application Notifier process.                      | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_engine/src/rx_engine.cpp)
-| **Tid**         | Tcp Invalid Dropper process.                          | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_engine/src/rx_engine.cpp)
-| **Tle**         | Tcp Length Extractor process.                         | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_engine/src/rx_engine.cpp)
-| **Tsd**         | Tcp Segment Dropper process.                          | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_engine/src/rx_engine.cpp)
+| **Csa**         | Check-Sum Accumulator process.                        | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_engine/src/rx_engine.cpp)
+| **Evm**         | Event Muxer process.                                  | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_engine/src/rx_engine.cpp)
+| **Fsm**         | Finite State Machine process.                         | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_engine/src/rx_engine.cpp)
+| **Iph**         | Insert Pseudo Header process.                         | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_engine/src/rx_engine.cpp)
+| **Mdh**         | Meta Data Handler process.                            | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_engine/src/rx_engine.cpp)
+| **Mwr**         | Memory WRiter process.                                | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_engine/src/rx_engine.cpp)
+| **Ran**         | Rx Application Notifier process.                      | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_engine/src/rx_engine.cpp)
+| **Tid**         | Tcp Invalid Dropper process.                          | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_engine/src/rx_engine.cpp)
+| **Tle**         | Tcp Length Extractor process.                         | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_engine/src/rx_engine.cpp)
+| **Tsd**         | Tcp Segment Dropper process.                          | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_engine/src/rx_engine.cpp)
 
 <br>

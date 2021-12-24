@@ -27,19 +27,19 @@ A block diagram of the *IPRX* is depicted in Figure 1. It features:
 |:--------------------------------------------------|:------------------------------------------------------|:--------------
 | **ARP**                                           | Address Resolution Server                             | [nts_TcpIp_Arp](../../SRA/LIB/SHELL/LIB/hdl/nts/nts_TcpIp_Arp.vhd)
 | **ETH**                                           | 10 Gigabit Ethernet Subsystem                         | [tenGigEth](../../SRA/LIB/SHELL/LIB/hdl/eth/tenGigEth.v)
-| **ICMP**                                          | Internet Control Message Protocol Server                                                      | [icmp](../../SRA/LIB/SHELL/LIB/hls/icmp_server/src/icmp_server.hpp)
-| **TOE**                                           | TCP Offload Engine                                    | [toe](../../SRA/LIB/SHELL/LIB/hls/toe/src/toe.hpp)
-| **UDP**                                           | UDP Offload Engine                                    | [udp](../../SRA/LIB/SHELL/LIB/hls/udp/src/udp.hpp)
+| **ICMP**                                          | Internet Control Message Protocol Server                                                      | [icmp](../../SRA/LIB/SHELL/LIB/hls/NTS/icmp_server/src/icmp_server.hpp)
+| **TOE**                                           | TCP Offload Engine                                    | [toe](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/toe.hpp)
+| **UDP**                                           | UDP Offload Engine                                    | [udp](../../SRA/LIB/SHELL/LIB/hls/NTS/udp/src/udp.hpp)
 
 ## List of HLS Components
 
 | Acronym       | Description                | Filename
 |:--------------|:---------------------------|:--------------
-| **IBuff**     | Input Buffer               | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/iprx_handler/src/iprx_handler.cpp)
-| **ICa**       | IP Checksum Accumulator    | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/iprx_handler/src/iprx_handler.cpp)       
-| **ICc**       | IP Checksum Checker        | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/iprx_handler/src/iprx_handler.cpp)
-| **ICl**       | IP Cut Length              | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/iprx_handler/src/iprx_handler.cpp)
-| **IId**       | IP Invalid Dropper         | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/iprx_handler/src/iprx_handler.cpp)
-| **ILc**       | IP Length Checker          | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/iprx_handler/src/iprx_handler.cpp)
-| **IPr**       | IP Packet Router           | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/iprx_handler/src/iprx_handler.cpp)
-| **MPd**       | Mac Protocol Detector      | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/iprx_handler/src/iprx_handler.cpp)
+| **IBuff**     | Input Buffer               | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iprx_handler/src/iprx_handler.cpp)
+| **ICa**       | IP Checksum Accumulator    | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iprx_handler/src/iprx_handler.cpp)       
+| **ICc**       | IP Checksum Checker        | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iprx_handler/src/iprx_handler.cpp)
+| **ICl**       | IP Cut Length              | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iprx_handler/src/iprx_handler.cpp)
+| **IId**       | IP Invalid Dropper         | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iprx_handler/src/iprx_handler.cpp)
+| **ILc**       | IP Length Checker          | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iprx_handler/src/iprx_handler.cpp)
+| **IPr**       | IP Packet Router           | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iprx_handler/src/iprx_handler.cpp)
+| **MPd**       | Mac Protocol Detector      | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iprx_handler/src/iprx_handler.cpp)

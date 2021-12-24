@@ -108,9 +108,9 @@ The memory mapped IO (MMIO) interface consists of a set of status and configurat
     stream<StsBool>                 &soMMIO_Ready,
 ```
 * `piMMIO_En` is an active *high* enable signal used to delay the start of **`UOE`** after a reset. It implements a 
-    *scalar input port* of type \<[CmdBit](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/nts_types.hpp)\>.
+    *scalar input port* of type \<[CmdBit](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/NTS/nts_types.hpp)\>.
 * `soMMIO_Ready` is used to indicate the readiness of **`UOE`**. It implements an *AXI4-Stream interface* of type 
-    \<[StsBool](../../SRA/LIB/SHELL/LIB/hls/nts_types.hpp)\>.
+    \<[StsBool](../../SRA/LIB/SHELL/LIB/hls/NTS/nts_types.hpp)\>.
 
 ### IP Network Layer-3 Interface
 The IP network layer-3 interface consists of a receive (IPRX) and a transmit (IPTX) interface. 

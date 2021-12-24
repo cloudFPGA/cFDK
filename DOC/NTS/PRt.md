@@ -15,20 +15,20 @@ The port table of the **TCP Offload engibe (TOE)** keeps track of the TCP port n
 
 | Acronym         | Description                                           | Filename
 |:----------------|:------------------------------------------------------|:--------------
-|  **RAi**        | Rx Application interface                              | [rx_app_interface](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_app_interface/rx_app_interface.cpp)
-|  **RXe**        | RX engine                                             | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_engine/src/rx_engine.cpp)
-|  **SLc**        | Session Lookup Controller interface                   | [session_lookup_controller](../../SRA/LIB/SHELL/LIB/hls/toe/src/session_lookup_controller/session_lookup_controller.cpp)
-|  **TAi**        | Tx Application interface                              | [tx_app_interface](../../SRA/LIB/SHELL/LIB/hls/toe/src/tx_app_interface/tx_app_interface.cpp)
-|  **TOE**        | TCP Offload Engine                                    | [toe](../../SRA/LIB/SHELL/LIB/hls/toe/src/toe.cpp)
+|  **RAi**        | Rx Application interface                              | [rx_app_interface](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_app_interface/rx_app_interface.cpp)
+|  **RXe**        | RX engine                                             | [rx_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_engine/src/rx_engine.cpp)
+|  **SLc**        | Session Lookup Controller interface                   | [session_lookup_controller](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/session_lookup_controller/session_lookup_controller.cpp)
+|  **TAi**        | Tx Application interface                              | [tx_app_interface](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/tx_app_interface/tx_app_interface.cpp)
+|  **TOE**        | TCP Offload Engine                                    | [toe](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/toe.cpp)
 <br>
 
 ## List of HLS Components
 
 | Acronym         | Description                                           | Filename
 |:----------------|:------------------------------------------------------|:--------------
-| **Fpt**         | Free Port Table processs                              | [port_table](../../SRA/LIB/SHELL/LIB/hls/toe/src/port_table/port_table.cpp)
-| **Irr**         | Input Request Router processs                         | [port_table](../../SRA/LIB/SHELL/LIB/hls/toe/src/port_table/port_table.cpp)
-| **Lpt**         | Listening Port Table processs                         | [port_table](../../SRA/LIB/SHELL/LIB/hls/toe/src/port_table/port_table.cpp)
-| **Orm**         | Output Reply Multiplexer processs                     | [port_table](../../SRA/LIB/SHELL/LIB/hls/toe/src/port_table/port_table.cpp)
+| **Fpt**         | Free Port Table processs                              | [port_table](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/port_table/port_table.cpp)
+| **Irr**         | Input Request Router processs                         | [port_table](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/port_table/port_table.cpp)
+| **Lpt**         | Listening Port Table processs                         | [port_table](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/port_table/port_table.cpp)
+| **Orm**         | Output Reply Multiplexer processs                     | [port_table](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/port_table/port_table.cpp)
 
 <br>

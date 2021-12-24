@@ -28,9 +28,9 @@ A block diagram of the *IPTX* is depicted in Figure 1. It features:
 
 | Acronym       | Description                | Filename
 |:--------------|:---------------------------|:--------------
-| **HCa**       | Header Checksum Accumulator| [iptx_handler](../../SRA/LIB/SHELL/LIB/hls/iptx_handler/src/iptx_handler.cpp)
-| **IAe**       | IP Address Extractor       | [iptx_handler](../../SRA/LIB/SHELL/LIB/hls/iptx_handler/src/iptx_handler.cpp)
-| **ICi**       | IP Checksum Inserter       | [iptx_handler](../../SRA/LIB/SHELL/LIB/hls/iptx_handler/src/iptx_handler.cpp)
-| **MAi**       | MAC Address Inserter       | [iptx_handler](../../SRA/LIB/SHELL/LIB/hls/iptx_handler/src/iptx_handler.cpp)
+| **HCa**       | Header Checksum Accumulator| [iptx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iptx_handler/src/iptx_handler.cpp)
+| **IAe**       | IP Address Extractor       | [iptx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iptx_handler/src/iptx_handler.cpp)
+| **ICi**       | IP Checksum Inserter       | [iptx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iptx_handler/src/iptx_handler.cpp)
+| **MAi**       | MAC Address Inserter       | [iptx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iptx_handler/src/iptx_handler.cpp)
  
 

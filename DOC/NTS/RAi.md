@@ -25,10 +25,10 @@ Finally, aqn application can only receive data if its TCP receive port has previ
 | Acronym                    | Description                             | Filename
 |:---------------------------|:----------------------------------------|:--------------
 |  **MEM**                   | MEMory sub-system (data-mover to DDR4)  | [memSubSys](../../SRA/LIB/SHELL/LIB/hdl/mem/memSubSys.v)
-|  **[PRt](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/./PRt.md)**       | PoRt table                              | [port_table](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/toe/src/port_table/port_table.cpp)
-|  **[RSt](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/./RSt.md)**       | Rx Sar table                            | [rx_sar_table](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_sar_table/rx_sar_table.cpp)
-|  **[RXe](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/./RXe.md)**       | RX engine                               | [rx_engine](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_engine/src/rx_engine.cpp)
-|  **[TIm](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/./TIm.md)**       | TImers                                  | [timers](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/toe/src/timers/timers.cpp)
+|  **[PRt](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/./PRt.md)**       | PoRt table                              | [port_table](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/port_table/port_table.cpp)
+|  **[RSt](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/./RSt.md)**       | Rx Sar table                            | [rx_sar_table](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_sar_table/rx_sar_table.cpp)
+|  **[RXe](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/./RXe.md)**       | RX engine                               | [rx_engine](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_engine/src/rx_engine.cpp)
+|  **[TIm](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/./TIm.md)**       | TImers                                  | [timers](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/timers/timers.cpp)
 |  **TRIF**                  | Tcp Role InterFace (alias APP)          | 
 
 <br>
@@ -37,10 +37,10 @@ Finally, aqn application can only receive data if its TCP receive port has previ
 
 | Acronym         | Description                                           | Filename
 |:----------------|:------------------------------------------------------|:--------------
-| **Lai**         | Listen Application Interface process                  | [rx_app_interface](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_app_interface/rx_app_interface.cpp)
-| **Nmx**         | Notification Multiplexer processs                     | [rx_app_interface](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_app_interface/rx_app_interface.cpp)
-| **Mrd**         | Memory Reader processs                                | [rx_app_interface](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_app_interface/rx_app_interface.cpp)
-| **Ras**         | Rx Application Stream processs                        | [rx_app_interface](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_app_interface/rx_app_interface.cpp)
-| **Rma**         | Rx Memory Access processs                             | [rx_app_interface](../../SRA/LIB/SHELL/LIB/hls/toe/src/rx_app_interface/rx_app_interface.cpp)
+| **Lai**         | Listen Application Interface process                  | [rx_app_interface](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_app_interface/rx_app_interface.cpp)
+| **Nmx**         | Notification Multiplexer processs                     | [rx_app_interface](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_app_interface/rx_app_interface.cpp)
+| **Mrd**         | Memory Reader processs                                | [rx_app_interface](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_app_interface/rx_app_interface.cpp)
+| **Ras**         | Rx Application Stream processs                        | [rx_app_interface](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_app_interface/rx_app_interface.cpp)
+| **Rma**         | Rx Memory Access processs                             | [rx_app_interface](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_app_interface/rx_app_interface.cpp)
 
 <br>
