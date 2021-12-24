@@ -1,5 +1,4 @@
 /************************************************
-Copyright (c) 2016-2019, IBM Research.
 Copyright (c) 2015, Xilinx, Inc.
 
 All rights reserved.
@@ -35,7 +34,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
 #include <hls_stream.h>
-#include "ap_int.h"		//OBSOLETE-20180828 #include "tcp_ip.hpp"
+#include "ap_int.h"
 
 using namespace hls;
 
@@ -173,22 +172,3 @@ void dhcp_client(
 		stream<UdpMeta>    	&soTHIS_Udmx_Meta,
 		stream<UdpPLen>		&soTHIS_Udmx_PLen
 );
-
-
-
-
-//OBSOLETE-20180828 struct sockaddr_in {
-//OBSOLETE-20180828     ap_uint<16>     port;   /* port in network byte order */
-//OBSOLETE-20180828     ap_uint<32>		addr;   /* internet address */
-//OBSOLETE-20180828     sockaddr_in () {}
-//OBSOLETE-20180828     sockaddr_in (ap_uint<32> addr, ap_uint<16> port)
-//OBSOLETE-20180828     	:addr(addr), port(port) {}
-//OBSOLETE-20180828 };
-
-//OBSOLETE-20180828 struct udpMetadata {
-//OBSOLETE-20180828 	sockaddr_in sourceSocket;
-//OBSOLETE-20180828 	sockaddr_in destinationSocket;
-//OBSOLETE-20180828 	udpMetadata() {}
-//OBSOLETE-20180828 	udpMetadata(sockaddr_in src, sockaddr_in dst)
-//OBSOLETE-20180828 		:sourceSocket(src), destinationSocket(dst) {}
-//OBSOLETE-20180828 };

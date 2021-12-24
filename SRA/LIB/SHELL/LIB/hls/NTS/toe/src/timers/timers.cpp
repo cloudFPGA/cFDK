@@ -1,5 +1,20 @@
+/*******************************************************************************
+ * Copyright 2016 -- 2021 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *******************************************************************************/
+
 /************************************************
-Copyright (c) 2016-2019, IBM Research.
 Copyright (c) 2015, Xilinx, Inc.
 
 All rights reserved.
@@ -23,6 +38,7 @@ HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABI
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
+
 
 /*******************************************************************************
  * @file       : timers.cpp
@@ -194,8 +210,6 @@ void pRetransmitTimer(
             currID    = txeCmd.sessionID;
             if ( (txeCmd.sessionID-3 <  rtt_position) and
                  (rtt_position <= txeCmd.sessionID) ) {
-                //OBSOLETE printf(">>> rtt_position=%d | txeCmd.SessId=%d | rtt_prevPosition=%d\n",
-                //OBSOLETE             rtt_position.to_uint(), txeCmd.sessionID.to_uint(), rtt_prevPosition.to_uint());
                 rtt_position += 5;  // [FIXME - Why is this?]
             }
         }
@@ -292,8 +306,6 @@ void pRetransmitTimer(
         RETRANSMIT_TIMER_TABLE[currID] = currEntry;
         rtt_prevPosition = currID;
     }
-
-    //OBSOLETE printf(">>> rtt_position=%d | rtt_prevPosition=%d\n", rtt_position.to_uint(), rtt_prevPosition.to_uint());
 }
 
 /*******************************************************************************
@@ -346,7 +358,6 @@ void pProbeTimer(
     if (pbt_WaitForWrite) {
         //-- Update the table
         if (pbt_updtSessId != pbt_prevSessId) {
-            //OBSOLETE_20210816 PROBE_TIMER_TABLE[pbt_updtSessId].time = TIME_50ms;
             PROBE_TIMER_TABLE[pbt_updtSessId].time = TIME_10s;
             //****************************************************************
             //** [FIXME - Disabling the KeepAlive process for the time being]
@@ -377,9 +388,7 @@ void pProbeTimer(
             }
         }
 
-        //OBSOLETE_20210816 if (PROBE_TIMER_TABLE[sessIdToProcess].active and !soEmx_Event.full()) {
         if (PROBE_TIMER_TABLE[sessIdToProcess].active) {
-            //OBSOLETE_20210816 if (PROBE_TIMER_TABLE[sessIdToProcess].time == 0 or fastResume) {
             if (fastResume) {
                 //-- Clear (de-activate) the keepalive process for the current session-ID
                 PROBE_TIMER_TABLE[sessIdToProcess].time = 0;

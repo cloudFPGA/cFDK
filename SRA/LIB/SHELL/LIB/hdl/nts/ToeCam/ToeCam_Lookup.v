@@ -1,3 +1,44 @@
+/*******************************************************************************
+ * Copyright 2016 -- 2021 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *******************************************************************************/
+
+/************************************************
+Copyright (c) 2015, Xilinx, Inc.
+
+All rights reserved.
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its contributors
+may be used to endorse or promote products derived from this software
+without specific prior written permission.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+************************************************/
+
 module ToeCam_Lookup
 (
     Rst,
@@ -24,11 +65,9 @@ module ToeCam_Lookup
 //----------------------------------------------------------
 // Parameters
 //----------------------------------------------------------
-//OBSOLETE-20190514 localparam K = 97;    // number of key bits
 localparam K = 96;    // number of key bits
 localparam V = 14;    // number of value bits
 localparam A = 14;    // number of bram address bits
-//OBSOLETE-20190514 localparam D = 115;   // number of bram data bits
 localparam D = 112;   // number of bram data bits
 localparam H = 12;    // number of hash bits
 localparam R = 12;    // number of hash bits
@@ -123,7 +162,7 @@ wire    [D-1:0]     Data0_r1;
 wire    [D-1:0]     RamRdData0_ram;
 
 // Key Value Ram 0
-RamR1RW1 #(R, D) KVR0   // OBSOLETE-21080129  RamR1RW1_KeyValue_inst_0
+RamR1RW1 #(R, D) KVR0
 (
 .Clk                (Clk),
 .WrEnb              (RamReqValid & RamReqOp & ~RamRwAddr[A]    
@@ -144,7 +183,7 @@ wire    [D-1:0]     Data1_r1;
 wire    [D-1:0]     RamRdData1_ram;
 
 // Key Value Ram 1
-RamR1RW1 #(R, D) KVR1   // OBSOLETE-21080129 RamR1RW1_KeyValue_inst_1
+RamR1RW1 #(R, D) KVR1
 (
 .Clk                (Clk),
 .WrEnb              (RamReqValid & RamReqOp & ~RamRwAddr[A]    
@@ -165,7 +204,7 @@ wire    [D-1:0]     Data2_r1;
 wire    [D-1:0]     RamRdData2_ram;
 
 // Key Value Ram 2
-RamR1RW1 #(R, D) KVR2   // OBSOLETE-20180129 RamR1RW1_KeyValue_inst_2
+RamR1RW1 #(R, D) KVR2
 (
 .Clk                (Clk),
 .WrEnb              (RamReqValid & RamReqOp & ~RamRwAddr[A]    
@@ -186,7 +225,7 @@ wire    [D-1:0]     Data3_r1;
 wire    [D-1:0]     RamRdData3_ram;
 
 // Key Value Ram 3
-RamR1RW1 #(R, D) KVR3   // OBSOLETE-20180129 RamR1RW1_KeyValue_inst_3
+RamR1RW1 #(R, D) KVR3
 (
 .Clk                (Clk),
 .WrEnb              (RamReqValid & RamReqOp & ~RamRwAddr[A]    
@@ -365,7 +404,7 @@ wire    [U-1:0]     RamRdUsed_ram;
 wire    [U-1:0]     RamRdUsed_cam;
 
 // Ram TimeStamp
-RamW1RW1 #(A, U) RTS  // OBSOLETE-20180129 RamW1RW1_RamTimestamp_inst
+RamW1RW1 #(A, U) RTS
 (
 .Clk                (Clk),
     
@@ -380,7 +419,7 @@ RamW1RW1 #(A, U) RTS  // OBSOLETE-20180129 RamW1RW1_RamTimestamp_inst
 );
 
 // Cam TimeStamp
-RamW1RW1 #(C, U) CTS  // OBSOLETE-20180129 RamW1RW1_CamTimestamp_inst
+RamW1RW1 #(C, U) CTS
 (
 .Clk                (Clk),
     

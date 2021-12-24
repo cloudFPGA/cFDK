@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright 2016 -- 2020 IBM Corporation
+ * Copyright 2016 -- 2021 IBM Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@
 //  *        across HLS cores.
 //  *
 
-
 #include <stdint.h>
 #include "ap_int.h"
 #include "ap_utils.h"
@@ -34,89 +33,6 @@
 #include <string>
 #include "network_utils.hpp"
 #include "NTS/AxisRaw.hpp"
-
-
-//OBSOLETE_20210628 void convertAxisToNtsWidth(stream<Axis<8> > &small, AxisRaw &out)
-//OBSOLETE_20210628 {
-//OBSOLETE_20210628 
-//OBSOLETE_20210628   out.setTData(0x0);
-//OBSOLETE_20210628   out.setTLast(0);
-//OBSOLETE_20210628   out.setTKeep(0);
-//OBSOLETE_20210628 
-//OBSOLETE_20210628   tData newd = 0x0;
-//OBSOLETE_20210628   tKeep newk = 0x0;
-//OBSOLETE_20210628 
-//OBSOLETE_20210628   for(int i = 0; i < 8; i++)
-//OBSOLETE_20210628     //for(int i = 7; i >=0 ; i--)
-//OBSOLETE_20210628   {
-//OBSOLETE_20210628     if(!small.empty())
-//OBSOLETE_20210628     {
-//OBSOLETE_20210628       Axis<8> tmp = small.read();
-//OBSOLETE_20210628       //printf("read from fifo: %#02x\n", (unsigned int) tmp.tdata);
-//OBSOLETE_20210628       //out.tdata |= ((ap_uint<64>) (tmp.tdata) )<< (i*8);
-//OBSOLETE_20210628       newd |= ((ap_uint<64>) (tmp.getTData()) )<< (i*8);
-//OBSOLETE_20210628       //out.tkeep |= (ap_uint<8>) 0x01 << i;
-//OBSOLETE_20210628       newk = (ap_uint<8>) 0x01 << i;
-//OBSOLETE_20210628       //NO latch, because last read from small is still last read
-//OBSOLETE_20210628       //out.tlast = tmp.tlast;
-//OBSOLETE_20210628       out.setTLast(tmp.getTLast());
-//OBSOLETE_20210628 
-//OBSOLETE_20210628     } else {
-//OBSOLETE_20210628       printf("tried to read empty small stream!\n");
-//OBSOLETE_20210628       ////adapt tdata and tkeep to meet default shape
-//OBSOLETE_20210628       //out.tdata = out.tdata >> (i+1)*8;
-//OBSOLETE_20210628       //out.tkeep = out.tkeep >> (i+1);
-//OBSOLETE_20210628       break;
-//OBSOLETE_20210628     }
-//OBSOLETE_20210628   }
-//OBSOLETE_20210628 
-//OBSOLETE_20210628   out.setTData(newd);
-//OBSOLETE_20210628   out.setTKeep(newk);
-//OBSOLETE_20210628 
-//OBSOLETE_20210628 }
-//OBSOLETE_20210628 
-//OBSOLETE_20210628 
-//OBSOLETE_20210628 void convertAxisToMpiWidth(Axis<64> big, stream<Axis<8> > &out)
-//OBSOLETE_20210628 {
-//OBSOLETE_20210628 
-//OBSOLETE_20210628   int positionOfTlast = 8; 
-//OBSOLETE_20210628   ap_uint<8> tkeep = big.getTKeep();
-//OBSOLETE_20210628   for(int i = 0; i<8; i++) //no reverse order!
-//OBSOLETE_20210628   {
-//OBSOLETE_20210628     tkeep = (tkeep >> 1);
-//OBSOLETE_20210628     if((tkeep & 0x01) == 0)
-//OBSOLETE_20210628     {
-//OBSOLETE_20210628       positionOfTlast = i;
-//OBSOLETE_20210628       break;
-//OBSOLETE_20210628     }
-//OBSOLETE_20210628   }
-//OBSOLETE_20210628 
-//OBSOLETE_20210628   //for(int i = 7; i >=0 ; i--)
-//OBSOLETE_20210628   for(int i = 0; i < 8; i++)
-//OBSOLETE_20210628   {
-//OBSOLETE_20210628     //out.full? 
-//OBSOLETE_20210628     Axis<8> tmp = Axis<8>(); 
-//OBSOLETE_20210628     if(i == positionOfTlast)
-//OBSOLETE_20210628       //if(i == 0)
-//OBSOLETE_20210628     {
-//OBSOLETE_20210628       //only possible position...
-//OBSOLETE_20210628       tmp.setTLast(big.getTLast());
-//OBSOLETE_20210628       printf("tlast set.\n");
-//OBSOLETE_20210628     } else {
-//OBSOLETE_20210628       tmp.setTLast(0);
-//OBSOLETE_20210628     }
-//OBSOLETE_20210628     tmp.setTData((ap_uint<8>) (big.getTData() >> i*8));
-//OBSOLETE_20210628     tmp.setTKeep((ap_uint<1>) (big.getTKeep() >> i));
-//OBSOLETE_20210628 
-//OBSOLETE_20210628     if(tmp.getTKeep() == 0)
-//OBSOLETE_20210628     {
-//OBSOLETE_20210628       continue;
-//OBSOLETE_20210628     }
-//OBSOLETE_20210628 
-//OBSOLETE_20210628     out.write(tmp); 
-//OBSOLETE_20210628   }
-//OBSOLETE_20210628 
-//OBSOLETE_20210628 }
 
 
 #define UINT8  ap_uint<8>
@@ -210,6 +126,4 @@ ap_uint<8> lenToKeep(ap_uint<4> noValidBytes) {
   }
   return keep;
 }
-
-
 

@@ -1,5 +1,20 @@
+/*******************************************************************************
+ * Copyright 2016 -- 2021 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *******************************************************************************/
+
 /************************************************
-Copyright (c) 2016-2019, IBM Research.
 Copyright (c) 2015, Xilinx, Inc.
 
 All rights reserved.
@@ -1142,7 +1157,6 @@ void pRxAppNotifier(
             else {
                 // Do not send forward the notification to [APP]
                 printInfo(myName, "Received an RxNotif with LENGTH=0.\n");
-                //OBSOLETE_20210112 soRAi_RxNotif.write(ran_appNotification);
             }
         }
     }
@@ -1492,47 +1506,6 @@ void pFiniteStateMachine(
                                                           ((txSar.count == 3) || txSar.fastRetransmitted))));
                     }
 
-/*** OBSOLETE_20200108 *********************************
-                    // Check if packet contains payload
-                    if (fsm_Meta.meta.length != 0) {
-                        RxSeqNum newRcvd = fsm_Meta.meta.seqNumb + fsm_Meta.meta.length;
-                        // Second part makes sure that 'appd' pointer is not overtaken
-#if !(RX_DDR_BYPASS)
-                        RxBufPtr free_space = ((rxSar.appd - rxSar.rcvd(15, 0)) - 1);
-                        // Check if segment in order and if enough free space is available
-                        if ( (fsm_Meta.meta.seqNumb == rxSar.rcvd) &&
-                             (free_space > fsm_Meta.meta.length) ) {
-#else
-                        if ( (fsm_meta.meta.seqNumb == rxSar.rcvd) &&
-                             (rxbuffer_max_data_count - rxbuffer_data_count) > 375) { // [FIXME - Why 375?]
-#endif
-                            soRSt_RxSarQry.write(RXeRxSarQuery(fsm_Meta.sessionId, newRcvd, QUERY_WR));
-                            // Build a DDR memory address for this segment
-                            //  FYI - The TCP Rx buffers use up to 1GB (16Kx64KB).
-                            RxMemPtr memSegAddr = TOE_RX_MEMORY_BASE;
-                            memSegAddr(29, 16) = fsm_Meta.sessionId(13, 0);
-                            memSegAddr(15,  0) = fsm_Meta.meta.seqNumb.range(15, 0);
-#if !(RX_DDR_BYPASS)
-                            soMwr_WrCmd.write(DmCmd(memSegAddr, fsm_Meta.meta.length));
-#endif
-                            // Only notify about new data available
-                            soRan_RxNotif.write(TcpAppNotif(fsm_Meta.sessionId,  fsm_Meta.meta.length, fsm_Meta.ip4SrcAddr,
-                                                         fsm_Meta.tcpSrcPort, fsm_Meta.tcpDstPort));
-                            soTsd_DropCmd.write(CMD_KEEP);
-                        }
-                        else {
-                            soTsd_DropCmd.write(CMD_DROP);
-                            if (fsm_Meta.meta.seqNumb != rxSar.rcvd) {
-                                printFatal(myName, "The received sequence number (%d) is not the expected one (%d).\n",
-                                        fsm_Meta.meta.seqNumb.to_uint(), rxSar.rcvd.to_uint());
-                            }
-                            else if (free_space < fsm_Meta.meta.length) {
-                                printFatal(myName, "There is not enough space left to store the received segment in the Rx ring buffer.\n");
-                            }
-                        }
-                    }
-*** OBSOLETE_20200108 *********************************/
-
                     // If packet contains payload
                     //  We must handle Out-Of-Order delivered segments
                     if (fsm_Meta.meta.length != 0) {
@@ -1635,7 +1608,6 @@ void pFiniteStateMachine(
                             // Send memory write command
                             soMwr_WrCmd.write(DmCmd(memSegAddr, fsm_Meta.meta.length));
                             // Send Rx data notify to [APP]
-                            //OBSOLETE_20210113 soRan_RxNotif.write(TcpAppNotif(fsm_Meta.sessionId, (rxSar.oooHead - fsm_Meta.meta.seqNumb)(TOE_WINDOW_BITS-1, 0),
                             soRan_RxNotif.write(TcpAppNotif(fsm_Meta.sessionId, (rxSar.oooHead - rxSar.rcvd),
                                                             fsm_Meta.ip4SrcAddr, fsm_Meta.tcpSrcPort,
                                                             fsm_Meta.tcpDstPort));

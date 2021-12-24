@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 -- 2020 IBM Corporation
+ * Copyright 2016 -- 2021 IBM Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,6 @@
 #include <iostream>
 #include <iomanip>
 #include <deque>
-//OBSOLETE_20200928 #include <stdlib.h>   // Avoid using C++ with HLS (at least with 2017.4)
 #include <cstdlib>
 
 #include "nts_utils.hpp"
@@ -434,8 +433,6 @@ class SimTcpSegment {
             printError(myName, "File is not opened.\n");
             return false;
         }
-        //OBSOLETE_202020727 AxisRaw axisRaw(axisTcp->getLE_TData(), axisTcp->getLE_TKeep(), axisTcp->getLE_TLast());
-        //OBSOLETE_202020727 bool rc = writeAxisRawToFile(axisRaw, outFileStream);
         outFileStream << std::uppercase;
         outFileStream << hex << noshowbase << setfill('0') << setw(16) << axisTcp.getLE_TData().to_uint64();
         outFileStream << " ";

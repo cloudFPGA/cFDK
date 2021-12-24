@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 -- 2020 IBM Corporation
+ * Copyright 2016 -- 2021 IBM Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,35 +40,18 @@
 #include "../NTS/nts.hpp"
 #include "../NTS/nts_utils.hpp"
 #include "../NTS/SimNtsUtils.hpp"
-//OBSOLETE_20210215 #include "../NTS/AxisApp.hpp"
 
 using namespace std;
 
 /******************************************************************************
  * FORWARD DECLARATIONS
  ******************************************************************************/
-//OBSOLETE
-//class ArpBindPair;
-//class SockAddr;
-//class SocketPair;
-//class LE_SockAddr;
-//class LE_SocketPair;
-//class AxiWord;
-//class DmCmd;
-//class Ip4overMac;
-//OBSOLETE_20200415 class SLcFourTuple;
 
 /******************************************************************************
  * HELPERS FOR THE DEBUGGING TRACES
  *  FYI: The global variable 'gTraceEvent' is set
  *        whenever a trace call is done.
  ******************************************************************************/
-//OBSOLETE - WAS MOVED TO nts_utils.hpp
-//#ifndef __SYNTHESIS__
-//  extern bool         gTraceEvent;
-//  extern bool         gFatalError;
-//  extern unsigned int gSimCycCnt;
-//#endif
 
 /******************************************************************************
  * SIMULATION UTILITY HELPERS -  PROTOTYPE DEFINITIONS

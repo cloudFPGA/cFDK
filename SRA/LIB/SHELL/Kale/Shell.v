@@ -1,8 +1,23 @@
+/*******************************************************************************
+ * Copyright 2016 -- 2021 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *******************************************************************************/
+
 //                              -*- Mode: Verilog -*-
 // *****************************************************************************
 // *
 // *                             cloudFPGA
-// *            All rights reserved -- Property of IBM
 // *
 // *----------------------------------------------------------------------------
 // *
@@ -650,7 +665,7 @@ module Shell_Kale # (
     //-- Global Clock & Reset Inputs
     //----------------------------------------------
     .piSHL_Clk                      (sETH0_ShlClk),
-    .piTOP_Rst                      (sETH0_ShlRst),  // OBSOLETE_20210330 (piTOP_156_25Rst),
+    .piTOP_Rst                      (sETH0_ShlRst),
     //----------------------------------------------
     //-- Bitstream Identification
     //----------------------------------------------
@@ -1180,7 +1195,7 @@ module Shell_Kale # (
   //============================================================================
   TcpApplicationRegisterSlice TARS (
     .piClk                      (sETH0_ShlClk),
-    .piRst                      (sETH0_ShlRst),    // OBSOLETE_20210329  (piTOP_156_25Rst),
+    .piRst                      (sETH0_ShlRst),
     //------------------------------------------------------
     //-- APP / Tcp / Tx Data Interfaces (.i.e THIS<-->APP)
     //------------------------------------------------------
@@ -1316,7 +1331,7 @@ module Shell_Kale # (
   //============================================================================
   UdpApplicationRegisterSlice UARS (
     .piClk                    (sETH0_ShlClk),
-    .piRst                    (sETH0_ShlRst),   // OBSOLETE_20210329  (piTOP_156_25Rst),
+    .piRst                    (sETH0_ShlRst),
     //------------------------------------------------------
     //-- APP / Udp / Tx Data Interfaces (.i.e APP->UARS)
     //------------------------------------------------------

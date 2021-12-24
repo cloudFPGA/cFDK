@@ -1,5 +1,20 @@
+/*******************************************************************************
+ * Copyright 2016 -- 2021 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *******************************************************************************/
+
 /************************************************
-Copyright (c) 2016-2019, IBM Research.
 Copyright (c) 2015, Xilinx, Inc.
 
 All rights reserved.
@@ -14,15 +29,14 @@ and/or other materials provided with the distribution.
 may be used to endorse or promote products derived from this software
 without specific prior written permission.
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ************************************************/
 
 /*******************************************************************************
@@ -138,7 +152,6 @@ void pMetaDataLoader(
     static ExtendedEvent  mdl_curEvent;
     static RxSarReply     mdl_rxSar;
     static TXeTxSarReply  mdl_txSar;
-    //OBSOLETE_20210728 static ap_uint<32>    mdl_randomValue= 0x562301af; // [FIXME - Add a random Initial Sequence Number in EMIF]
     static ap_uint<32>    mdl_randomValue = 100000; // [FIXME - Add a random Initial Sequence Number in EMIF]
     static TXeMeta        mdl_txeMeta;
 
@@ -259,7 +272,6 @@ void pMetaDataLoader(
                     siTSt_TxSarRep.read(mdl_txSar);
                 }
                 // Compute our space, Advertise at least a quarter/half, otherwise 0
-                //OBSOLETE_20210801 windowSize = (mdl_rxSar.appd - ((RxBufPtr)mdl_rxSar.rcvd)) - 1; // This works even for wrap around
                 //[FIXME-TODO: It is better to compute and maintain the window_size in the [Rst] module]
                 winSize = ((mdl_rxSar.appd - (RxBufPtr)mdl_rxSar.oooHead(TOE_WINDOW_BITS-1, 0)) - 1);
                 mdl_txeMeta.ackNumb = mdl_rxSar.rcvd;
@@ -321,12 +333,12 @@ void pMetaDataLoader(
                     }
                     else {
                         // Check if we sent >= MSS data
-                        //OBSOLETE_20210817 if (mdl_txSar.ackd == mdl_txSar.not_ackd) {
+                        //OBSO if (mdl_txSar.ackd == mdl_txSar.not_ackd) {
                             mdl_txSar.not_ackd += usableWindow;
                             mdl_txeMeta.length  = usableWindow;
-                        //OBSOLETE_20210817 }
-                        //OBSOLETE_20210817 // Set probe Timer to try again later
-                        //OBSOLETE_20210817 soTIm_SetProbeTimer.write(mdl_curEvent.sessionID);
+                        //OBSO }
+                        //OBSO // Set probe Timer to try again later
+                        //OBSO soTIm_SetProbeTimer.write(mdl_curEvent.sessionID);
                         soTSt_TxSarQry.write(TXeTxSarQuery(mdl_curEvent.sessionID,
                                                            mdl_txSar.not_ackd, QUERY_WR));
                         mdl_fsmState = MDL_WAIT_EVENT;
@@ -358,7 +370,6 @@ void pMetaDataLoader(
                     siTSt_TxSarRep.read(mdl_txSar);
                 }
                 // Compute our window size
-                //OBSOLETE_20210801 winSize = (mdl_rxSar.appd - ((RxBufPtr)mdl_rxSar.rcvd)) - 1; // This works even for wrap around
                 //[FIXME-TODO: It is better to compute and maintain the window_size in the [Rst] module]
                 winSize = ((mdl_rxSar.appd - (RxBufPtr)mdl_rxSar.oooHead(TOE_WINDOW_BITS-1, 0)) - 1); // This works even for wrap around
                 if (!mdl_txSar.finSent) // No FIN sent
@@ -436,7 +447,6 @@ void pMetaDataLoader(
                 siTSt_TxSarRep.read(mdl_txSar);
 
                 //[FIXME-TODO: It is better to compute and maintain the window_size in the [Rst] module]
-                //OBSOLETE_20210801 windowSize = (mdl_rxSar.appd - ((RxMemPtr)mdl_rxSar.rcvd)) - 1;
                 winSize = ((mdl_rxSar.appd - (RxBufPtr)mdl_rxSar.oooHead(TOE_WINDOW_BITS-1, 0)) - 1);
                 mdl_txeMeta.ackNumb = mdl_rxSar.rcvd;
                 mdl_txeMeta.seqNumb = mdl_txSar.not_ackd; //Always send SEQ
@@ -526,7 +536,6 @@ void pMetaDataLoader(
                     siTSt_TxSarRep.read(mdl_txSar);
                 }
                 // Construct FIN message
-                //OBSOLETE_20210801 winSize = (mdl_rxSar.appd - ((RxMemPtr)mdl_rxSar.rcvd)) - 1;
                 //[FIXME-TODO: It is better to compute and maintain the window_size in the [Rst] module]
                 winSize = ((mdl_rxSar.appd - (RxBufPtr)mdl_rxSar.oooHead(TOE_WINDOW_BITS-1, 0)) - 1);
                 mdl_txeMeta.ackNumb = mdl_rxSar.rcvd;

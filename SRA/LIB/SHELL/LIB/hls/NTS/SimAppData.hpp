@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 -- 2020 IBM Corporation
+ * Copyright 2016 -- 2021 IBM Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,7 +37,6 @@
 
 #include "nts_utils.hpp"
 #include "SimNtsUtils.hpp"
-//OBSOLETE_20210215 #include "AxisApp.hpp"
 
 using namespace std;
 using namespace hls;

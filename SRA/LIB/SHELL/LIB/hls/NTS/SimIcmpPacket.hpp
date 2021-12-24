@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 -- 2020 IBM Corporation
+ * Copyright 2016 -- 2021 IBM Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -107,7 +107,6 @@ class SimIcmpPacket {
             this->pktQ[this->size()-1].setLE_TLast(0);
         }
         this->pktQ.push_back(icmpChunk);
-        //OBSOLETE_20200711 setLen(this->getLen() + keepToLen(icmpChunk.getLE_TKeep()));
         setLen(this->getLen() + icmpChunk.getLen());
     }
 
@@ -115,7 +114,6 @@ class SimIcmpPacket {
     AxisIcmp pullChunk() {
         AxisIcmp headingChunk = this->front();
         this->pop_front();
-        //OBSOLETE_20200711 setLen(getLen() - keepToLen(headingChunk.getLE_TKeep()));
         setLen(getLen() - headingChunk.getLen());
         return headingChunk;
     }

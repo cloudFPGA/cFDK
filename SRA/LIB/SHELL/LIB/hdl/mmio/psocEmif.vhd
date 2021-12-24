@@ -1,7 +1,22 @@
+--  *******************************************************************************
+--  * Copyright 2016 -- 2021 IBM Corporation
+--  *
+--  * Licensed under the Apache License, Version 2.0 (the "License");
+--  * you may not use this file except in compliance with the License.
+--  * You may obtain a copy of the License at
+--  *
+--  *     http://www.apache.org/licenses/LICENSE-2.0
+--  *
+--  * Unless required by applicable law or agreed to in writing, software
+--  * distributed under the License is distributed on an "AS IS" BASIS,
+--  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+--  * See the License for the specific language governing permissions and
+--  * limitations under the License.
+--  *******************************************************************************
+
 -- ******************************************************************************
 -- *
--- *                        Zurich cloudFPGA
--- *            All rights reserved -- Property of IBM
+-- *                            cloudFPGA
 -- *
 -- *-----------------------------------------------------------------------------
 -- *
@@ -97,7 +112,6 @@ architecture Behavioral of  PsocExtMemItf is
   signal sBus_Data    : std_logic_vector(gDataWidth - 1 downto 0);
 
   signal sEmifReg     : std_logic_vector(cDEPTH - 1 downto 0);
-  --OBSOLETE signal sEmifInit    : std_logic_vector(cDEPTH - 1 downto 0) := gDefRegVal;
   
   -- Fpga Fabric Interface
   signal sFab_Data    : std_logic_vector(cDEPTH - 1 downto 0);
@@ -109,12 +123,6 @@ begin  -- architecture rtl
   -----------------------------------------------------------------
   pInpBusReg: process (piBus_Clk, piRst) is
   begin
-    --OBSOLETE-20190827 if (piRst = '1') then
-    --OBSOLETE-20190827   sBus_Cs_n  <= '1' after cTREG;
-    --OBSOLETE-20190827   sBus_We_n  <= '1' after cTREG;
-    --OBSOLETE-20190827   sBus_Data  <= (others => '0') after cTREG;
-    --OBSOLETE-20190827   sBus_Addr  <= (others => '0') after cTREG;
-    --OBSOLETE-20190827 elsif rising_edge(piBus_Clk) then
     if rising_edge(piBus_Clk) then
       sBus_Cs_n  <= piBus_Cs_n  after cTREG;
       sBus_We_n  <= piBus_We_n  after cTREG;

@@ -1,15 +1,18 @@
-//-----------------------------------------------------------------------------
-// Title      : ETHERNET CORE
-// Project    : 10G/25G Gigabit Ethernet
-//-----------------------------------------------------------------------------
-// File       : tenGigEth_Core.v
-// Author     : Xilinx Inc.
-//-----------------------------------------------------------------------------
-// Description: This is the Ethernet layer 2 core of the 10GE subsystem. It 
-//              implements the data link layer and the physical layer with two
-//              AXI FIFOs connected to the AXI-S transmit and receive interfaces
-//              of an Ethernet IP core.
-//-----------------------------------------------------------------------------
+/*******************************************************************************
+ * Copyright 2016 -- 2021 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *******************************************************************************/
 
 // ----------------------------------------------------------------------------
 // (c) Copyright 2014 Xilinx, Inc. All rights reserved.
@@ -58,6 +61,19 @@
 // THIS COPYRIGHT NOTICE AND DISCLAIMER MUST BE RETAINED AS
 // PART OF THIS FILE AT ALL TIMES.
 // ----------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------
+// Title      : ETHERNET CORE
+// Project    : 10G/25G Gigabit Ethernet
+//-----------------------------------------------------------------------------
+// File       : tenGigEth_Core.v
+// Author     : Xilinx Inc.
+//-----------------------------------------------------------------------------
+// Description: This is the Ethernet layer 2 core of the 10GE subsystem. It 
+//              implements the data link layer and the physical layer with two
+//              AXI FIFOs connected to the AXI-S transmit and receive interfaces
+//              of an Ethernet IP core.
+//-----------------------------------------------------------------------------
 
 `timescale 1ps / 1ps
 
@@ -158,7 +174,6 @@ module TenGigEth_Core #(
   wire                                 rx_axis_mac_tlast;
   
   wire                                 coreclk;
-  //OBSOLETE-20171208 wire                                 tx_disable;
 
   assign coreclk_out = coreclk;
 

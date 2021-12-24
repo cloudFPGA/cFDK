@@ -12,7 +12,7 @@
 #  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  * See the License for the specific language governing permissions and
 #  * limitations under the License.
-# *******************************************************************************/
+#  *******************************************************************************/
 
 # ******************************************************************************
 # * 
@@ -285,7 +285,6 @@ if { [ file exists ${ipDir} ] != 1 } {
             my_dbg_trace "Removing directory: \'${ipDir}/ip_user_files\' " ${dbgLvl_1}
             file delete -force ${ipDir}/ip_user_files
             my_dbg_trace "Removing directory: \'${ipXprDir}\' " ${dbgLvl_1}            
-            #OBSOLETE_20210422 file delete -force ${ipXprDir}/${ipXprName}.xpr
             file delete -force ${ipXprDir}
             file mkdir ${ipDir}/ip_user_files 
             my_dbg_trace "Done with the cleaning of: \'${ipDir}/ip_user_files\' " ${dbgLvl_1}

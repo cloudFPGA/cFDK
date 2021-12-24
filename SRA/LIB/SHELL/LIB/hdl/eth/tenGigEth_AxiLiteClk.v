@@ -1,13 +1,18 @@
-//-----------------------------------------------------------------------------
-// Title      : AXI-Lite/DRP-Clock Source module
-// Project    : 10G Gigabit Ethernet
-//-----------------------------------------------------------------------------
-// File       : tenGigEth_AxiLiteClk.v
-// Author     : Xilinx Inc.
-//-----------------------------------------------------------------------------
-// Description:  This is the AXI-Lite clock source of the 10G Gigabit Ethernet
-//               core used by the shell of the FMKU60.
-//-----------------------------------------------------------------------------
+/*******************************************************************************
+ * Copyright 2016 -- 2021 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *******************************************************************************/
 
 // ----------------------------------------------------------------------------
 // (c) Copyright 2014 Xilinx, Inc. All rights reserved.
@@ -57,6 +62,16 @@
 // PART OF THIS FILE AT ALL TIMES.
 // ----------------------------------------------------------------------------
 
+//-----------------------------------------------------------------------------
+// Title      : AXI-Lite/DRP-Clock Source module
+// Project    : 10G Gigabit Ethernet
+//-----------------------------------------------------------------------------
+// File       : tenGigEth_AxiLiteClk.v
+// Author     : Xilinx Inc.
+//-----------------------------------------------------------------------------
+// Description:  This is the AXI-Lite clock source of the 10G Gigabit Ethernet
+//               core used by the shell of the FMKU60.
+//-----------------------------------------------------------------------------
 
 `timescale 1ps / 1ps
 
@@ -164,42 +179,4 @@ module TenGigEth_AxiLiteClk
      .I(sEthAxiLiteClk),
      .O(poEthAxiLiteClk));
   
-  /*** DEPRECATED AFTER VIVADO_2017.4 *********************
-  MMCME2_BASE #(
-    .DIVCLK_DIVIDE        (5),       // D
-    .CLKFBOUT_MULT_F      (4),       // M                      //OBSOLETE_20210328 (3),
-    .CLKIN1_PERIOD        (6.400),   // F-clkin = 156.25MHz    //OBSOLETE_20210328 (3.333),
-    .CLKFBOUT_PHASE       (0.000),
-    .CLKOUT0_DIVIDE_F     (8.000),
-    .CLKOUT0_PHASE        (0.000),
-    .CLKOUT0_DUTY_CYCLE   (0.5),
-    .CLKOUT1_DIVIDE       (8.000),   // 125MHz
-    .CLKOUT1_PHASE        (0.000),
-    .CLKOUT1_DUTY_CYCLE   (0.5),
-    .REF_JITTER1          (0.050)
-  ) tx_mmcm 
-    // Output clocks
-   (.CLKFBOUT            (sClkFb),
-    .CLKOUT0             (sEthAxiLiteClk),
-    .CLKOUT1             (),
-     // Input clock control
-    .CLKFBIN             (sClkFb),
-    .CLKIN1              (sClkIn1),
-    // Other control and status signals
-    .LOCKED              (poMmcmLocked),
-    .PWRDWN              (1'b0),
-    //OBSOLETE-20171129  .RST                 (tx_mmcm_reset),
-    .RST                 (1'b0),
-    .CLKFBOUTB           (),
-    .CLKOUT0B            (),
-    .CLKOUT1B            (),
-    .CLKOUT2             (),
-    .CLKOUT2B            (),
-    .CLKOUT3             (),
-    .CLKOUT3B            (),
-    .CLKOUT4             (),
-    .CLKOUT5             (),
-    .CLKOUT6             ());
-    *******************************************************/
-
 endmodule

@@ -1,5 +1,4 @@
 /************************************************
-Copyright (c) 2016-2019, IBM Research.
 Copyright (c) 2015, Xilinx, Inc.
 
 All rights reserved.
@@ -393,13 +392,4 @@ int main()
 
 	return(errCount);
 
-	//OBSOLETE if (errCount == 0) {
-	//OBSOLETE     cerr << "*** Test Passed ***" << endl << endl;
-	//OBSOLETE     return 0;
-	//OBSOLETE } else {
-	//OBSOLETE    	cerr << "!!! TEST FAILED -- " << errCount << " mismatches detected !!!";
-	//OBSOLETE    	cerr << endl << endl;
-	//OBSOLETE    	//return -1;
-	//OBSOLETE }
-	//OBSOLETE return 0;
 }

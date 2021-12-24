@@ -1,5 +1,20 @@
+/*******************************************************************************
+ * Copyright 2016 -- 2021 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *******************************************************************************/
+
 /************************************************
-Copyright (c) 2016-2019, IBM Research.
 Copyright (c) 2015, Xilinx, Inc.
 
 All rights reserved.
@@ -83,7 +98,6 @@ void tx_sar_table(
 {
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
     #pragma HLS PIPELINE II=1 enable_flush
-    // OBSOLETE_2012108#pragma HLS INLINE off
 
     const char *myName = THIS_NAME;
 
@@ -110,8 +124,7 @@ void tx_sar_table(
                     // Avoid initializing 'finReady' and 'finSent' at two different
                     // places because it will translate into II=2 and DRC message:
                     // 'Unable to schedule store operation on array due to limited memory ports'.
-                    //OBSOLETE_20210818 TX_SAR_TABLE[sTXeQry.sessionID].finReady    = sTXeQry.finReady;
-                    //OBSOLETE_20210818 TX_SAR_TABLE[sTXeQry.sessionID].finSent     = sTXeQry.finSent;
+
                     // Init ACK on the TxAppInterface side
                     soTAi_PushCmd.write(TStTxSarPush(sTXeQry.sessionID,
                                                      sTXeQry.not_ackd, CMD_INIT));

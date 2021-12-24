@@ -1,6 +1,4 @@
-
 /************************************************
-Copyright (c) 2016-2019, IBM Research.
 Copyright (c) 2015, Xilinx, Inc.
 
 All rights reserved.
@@ -53,8 +51,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cstdlib>
 
 using namespace hls;
-
-//OBSOLETE-20180619 #define myIP 0x0101010A
 
 #define MTU	1500			// Maximum Transmission Unit in bytes
 

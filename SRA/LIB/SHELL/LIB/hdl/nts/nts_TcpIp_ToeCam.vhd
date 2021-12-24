@@ -1,7 +1,49 @@
+--  *******************************************************************************
+--  * Copyright 2016 -- 2021 IBM Corporation
+--  *
+--  * Licensed under the Apache License, Version 2.0 (the "License");
+--  * you may not use this file except in compliance with the License.
+--  * You may obtain a copy of the License at
+--  *
+--  *     http://www.apache.org/licenses/LICENSE-2.0
+--  *
+--  * Unless required by applicable law or agreed to in writing, software
+--  * distributed under the License is distributed on an "AS IS" BASIS,
+--  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+--  * See the License for the specific language governing permissions and
+--  * limitations under the License.
+--  *******************************************************************************
+ 
+-- ************************************************
+-- Copyright (c) 2015, Xilinx, Inc.
+-- 
+-- All rights reserved.
+-- Redistribution and use in source and binary forms, with or without modification,
+-- are permitted provided that the following conditions are met:
+-- 1. Redistributions of source code must retain the above copyright notice,
+-- this list of conditions and the following disclaimer.
+-- 2. Redistributions in binary form must reproduce the above copyright notice,
+-- this list of conditions and the following disclaimer in the documentation
+-- and/or other materials provided with the distribution.
+-- 3. Neither the name of the copyright holder nor the names of its contributors
+-- may be used to endorse or promote products derived from this software
+-- without specific prior written permission.
+-- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+-- ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+-- THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+-- IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+-- INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+-- PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+-- INTERRUPT-- ION)
+-- HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+-- OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+-- EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-- ************************************************
+
+
 -- ******************************************************************************
 -- *
--- *                        Zurich cloudFPGA
--- *            All rights reserved -- Property of IBM
+-- *                            cloudFPGA
 -- *
 -- *-----------------------------------------------------------------------------
 -- *
@@ -13,7 +55,7 @@
 -- * Authors : Jagath Weerasinghe, Francois Abel
 -- *
 -- * Devices : xcku060-ffva1156-2-i
--- * Tools   : Vivado v2016.4 (64-bit)
+-- * Tools   : Vivado v2016.4, v2017.4, 2019.2 (64-bit)
 -- * Depends : None 
 -- *
 -- * Description : Vhdl wrapper for the Verilog version of the CAM for the TCP
@@ -170,7 +212,6 @@ architecture Behavioral of ToeCam is
   signal CamSize        : std_logic_vector( 2 downto 0);
   signal LookupRepValid : std_logic;
   signal LookupRepHit   : std_logic;
-  --OBSOLETE-20190514 signal LookupRepKey   : std_logic_vector(96 downto 0);
   signal LookupRepKey   : std_logic_vector(95 downto 0);
   signal LookupRepValue : std_logic_vector(13 downto 0);
   signal UpdateReady    : std_logic;
@@ -179,8 +220,6 @@ architecture Behavioral of ToeCam is
   signal cnt1s          : std_logic_vector(27 downto 0);
   signal count          : std_logic := '0';
 
-  --OBSOLETE-20190515 signal clk_int        : std_logic;
-  --OBSOLETE-20190515 signal rst_int        : std_logic;
   signal sRst           : std_logic;
   signal locked         : std_logic;
   signal help_updval    : std_logic;
@@ -284,18 +323,18 @@ begin
             -- Lookup ----------------------------
             if (piTOE_LkpReq_tvalid = '1') then
               sLookupReqValid     <= '1';
-              sLookupReqKey       <= piLkpReqKey; -- OBSOLETE piTOE_LkpReq_tdata(gKeyLen-1 downto 1);
-              poLkpRepSrc         <= piLkpReqSrc; -- lookupSource bit--OBSOLETE poTOE_LkpRep_tdata(gKeyLen-1+gSrcLen) <= piTOE_LkpReq_tdata(gKeyLen-1+gSrcLen); -- lookupSource bit
+              sLookupReqKey       <= piLkpReqKey;
+              poLkpRepSrc         <= piLkpReqSrc;
               poTOE_LkpReq_tready <= '1';
               ctl_fsm             <= x"10";
 
             -- Update = Insert -------------------
             elsif (piTOE_UpdReq_tvalid = '1' and piTOE_UpdReq_tdata(1) = cOP_INSERT) then
               sUpdateValid        <= '1';
-              UpdateKey           <= piUpdReqKey;   -- OBSOLETE piTOE_UpdReq_tdata(111 downto 16);
-              UpdateValue         <= piUpdReqVal;   -- OBSOLETE piTOE_UpdReq_tdata( 15 downto  2);	
-              sUpdateOp           <= piUpdReqOpr;   -- OBSOLETE piTOE_UpdReq_tdata(1);
-              poUpdRepSrc         <= piUpdReqSrc;   -- OBSOLETE poTOE_UpdRep_tdata(0) <= piTOE_UpdReq_tdata(0); -- updateSource
+              UpdateKey           <= piUpdReqKey;
+              UpdateValue         <= piUpdReqVal;
+              sUpdateOp           <= piUpdReqOpr;
+              poUpdRepSrc         <= piUpdReqSrc;
               poTOE_UpdReq_tready <= '1';
               ctl_fsm             <= x"50";
 
@@ -392,8 +431,6 @@ begin
           --  WAIT-FOR-DELETE-REPLY STATE
           --================================================                   
           when x"41" =>
-            --OBSOLETE-20190613 upd_rsp_dout(15 downto 2) <= UpdateValue;
-            --OBSOLETE-20190613 upd_rsp_dout(1)           <= UpdateOp; -- ops
             if (UpdateReady='1') then
               -- Prepare the reply for TOE -------
               sUpdateValid          <= '0'; -- clear the update request
@@ -458,27 +495,26 @@ begin
   -----------------------------------------------------------------
   -- PROC: Debug
   -----------------------------------------------------------------
-  -- [TODO]
---  pDebug: process (piClk)
---  begin
---    if (piClk'event and piClk='1') then
---      poDebug(0)               <= sInitEnable;
---      poDebug(1)               <= sCAM_InitDone;  
---      poDebug(2)               <= sLookupReqValid; 
---      poDebug(99 downto 3)     <= sLookupReqKey; 	
---      poDebug(100)             <= LookupRepValid; 	
---      poDebug(101)             <= LookupRepHit;
---      poDebug(198 downto 102)  <= LookupRepKey;
---      poDebug(212 downto  199) <= LookupRepValue;
---      poDebug(213)             <= UpdateReady;
---      poDebug(214)             <= help_updval;
---      poDebug(215)             <= UpdateOp;
---      poDebug(223 downto 216)  <= UpdateKey(7 downto 0);
---      poDebug(224)             <= UpdateStatic;
---      poDebug(238 downto 225)  <= UpdateValue(13 downto 0);		
---      poDebug(246 downto 239)  <= ctl_fsm;
---      poDebug(247)             <= sRst;
---    end if;   
---  end process;  -- End of: pDebug
+  --  pDebug: process (piClk)
+  --  begin
+  --    if (piClk'event and piClk='1') then
+  --      poDebug(0)               <= sInitEnable;
+  --      poDebug(1)               <= sCAM_InitDone;
+  --      poDebug(2)               <= sLookupReqValid; 
+  --      poDebug(99 downto 3)     <= sLookupReqKey; 	
+  --      poDebug(100)             <= LookupRepValid; 	
+  --      poDebug(101)             <= LookupRepHit;
+  --      poDebug(198 downto 102)  <= LookupRepKey;
+  --      poDebug(212 downto  199) <= LookupRepValue;
+  --      poDebug(213)             <= UpdateReady;
+  --      poDebug(214)             <= help_updval;
+  --      poDebug(215)             <= UpdateOp;
+  --      poDebug(223 downto 216)  <= UpdateKey(7 downto 0);
+  --      poDebug(224)             <= UpdateStatic;
+  --      poDebug(238 downto 225)  <= UpdateValue(13 downto 0);		
+  --      poDebug(246 downto 239)  <= ctl_fsm;
+  --      poDebug(247)             <= sRst;
+  --    end if;   
+  --  end process;  -- End of: pDebug
 
 end;  -- End of: architecture

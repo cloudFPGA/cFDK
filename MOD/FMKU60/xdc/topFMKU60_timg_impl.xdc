@@ -1,5 +1,5 @@
 # ******************************************************************************
-# * Copyright 2016 -- 2020 IBM Corporation
+# * Copyright 2016 -- 2021 IBM Corporation
 # *
 # * Licensed under the Apache License, Version 2.0 (the "License");
 # * you may not use this file except in compliance with the License.
@@ -66,7 +66,7 @@
 # *       -  Generated clocks
 # *       -  Clock Groups
 # *       -  Bus Skew constraints
-# *       -  InpOBSOut and output delay constraints
+# *       -  Input and output delay constraints
 # *     [2] Timing Exceptions Section
 # *       -  False Paths
 # *       -  Max Delay / Min Delay
@@ -268,7 +268,7 @@ set_max_delay -from [get_pins SHELL/sLed_HeartBeat_reg*/C] -to [get_ports poLED_
 #=====================================================================
 # Other Timing Exceptions
 #=====================================================================
-#OBSOLETE_20210825 set_false_path -from [get_pins SHELL/SW_RESET_LY3/DOUT] -to [get_pins SHELL/NTS0/ARP/CAM/sUpdateStatic_reg/D]
+
 
 #=====================================================================
 # Here are the Constraints added by the Timing Constraint Wizard

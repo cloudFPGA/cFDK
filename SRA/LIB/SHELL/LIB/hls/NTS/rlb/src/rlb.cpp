@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 -- 2020 IBM Corporation
+ * Copyright 2016 -- 2021 IBM Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -89,7 +89,6 @@ void rlb(
     #pragma HLS RESOURCE core=AXI4Stream variable=siTOE_Ready    metadata="-bus_bundle siTOE_Ready"
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    //OBSOLETE_20210420 #pragma HLS DATAFLOW
     #pragma HLS pipeline II=1
 #else
     //-- DIRECTIVES FOR THE INTERFACES -----------------------------------------
@@ -100,7 +99,6 @@ void rlb(
     #pragma HLS INTERFACE axis    register both port=siTOE_Ready    name=siTOE_Ready
 
     //-- DIRECTIVES FOR THIS PROCESS -------------------------------------------
-    //OBSOLETE_20210420 #pragma HLS DATAFLOW disable_start_propagation
     #pragma HLS PIPELINE II=1 enable_flush
     #pragma HLS INLINE off
 #endif

@@ -1,7 +1,23 @@
+--  *******************************************************************************
+--  * Copyright 2016 -- 2021 IBM Corporation
+--  *
+--  * Licensed under the Apache License, Version 2.0 (the "License");
+--  * you may not use this file except in compliance with the License.
+--  * You may obtain a copy of the License at
+--  *
+--  *     http://www.apache.org/licenses/LICENSE-2.0
+--  *
+--  * Unless required by applicable law or agreed to in writing, software
+--  * distributed under the License is distributed on an "AS IS" BASIS,
+--  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+--  * See the License for the specific language governing permissions and
+--  * limitations under the License.
+--  *******************************************************************************
+ 
+
 -- ******************************************************************************
 -- *
--- *                        Zurich cloudFPGA
--- *            All rights reserved -- Property of IBM
+-- *                           cloudFPGA
 -- *
 -- *-----------------------------------------------------------------------------
 -- *
@@ -107,7 +123,6 @@ architecture Behavioral of DualPortAsymmetricRam is
   -- array of array object. Its aspect ratio corresponds to the port with the
   -- lower data width (respectvely larger depth)
   type   tRAM is array (0 to cMaxSize - 1) of std_logic_vector(cMinWidth - 1 downto 0);
-  --OBSOLETE-20180615 signal sRAM : tRAM := (others => (others => '0'));
 
   -- You need to declare RAM as a shared variable when :
   --   - the RAM has two write ports,
@@ -127,14 +142,11 @@ begin  -- architecture Behavioral
   begin
     if rising_edge(piClkA) then
       if (piEnA = '1') then
-        --OBSOLETE-20180615 sRAM_DataA <= sRAM(conv_integer(piAddrA));
         sRAM_DataA <= vRAM(conv_integer(piAddrA));
         if (piWenA = '1') then
-          --OBSOLETE-20180615 sRAM(conv_integer(piAddrA)) <= piDataA;
           vRAM(conv_integer(piAddrA)) := piDataA;
         end if;
       end if;
-      --OBSOLETE-20180615 sRAM_DataAReg <= sRAM_DataA;
     end if;
   end process pPortA;
   
@@ -154,16 +166,13 @@ begin  -- architecture Behavioral
           end if;
         end if;
       end loop;
-      --OBSOLETE-20180615 sRAM_DataBReg <= sRAM_DataB;
     end if;
   end process pPortB;
 
   ----------------------------------------------------------
   -- Output Ports Assignment
   ---------------------------------------------------------- 
-  --OBSOLETE-20180615 poDataA <= sRAM_DataAReg;
   poDataA <= sRAM_DataA;
-  --OBSOLETE-20180615 poDataB <= sRAM_DataBReg;
   poDataB <= sRAM_DataB;  
     
 end Behavioral;

@@ -1,5 +1,5 @@
 # /*******************************************************************************
-#  * Copyright 2016 -- 2020 IBM Corporation
+#  * Copyright 2016 -- 2021 IBM Corporation
 #  *
 #  * Licensed under the Apache License, Version 2.0 (the "License");
 #  * you may not use this file except in compliance with the License.
@@ -23,8 +23,6 @@
 #  *     Description:
 #  *        TCL file to execute the Vivado commands
 #  *
-
-
 
 
 package require cmdline
@@ -414,8 +412,6 @@ if { ${create} } {
         
         # Add Constraints Files SHELL
         #---------------------------------------------------------------------------
-        #OBSOLETE add_files -fileset constrs_1 -norecurse [ glob ${rootDir}/../../SHELL/${usedShellType}/xdc/*.xdc ]
-        
         my_dbg_trace "Done with the import of the SHELL Source files" ${dbgLvl_1}
 
     } else {

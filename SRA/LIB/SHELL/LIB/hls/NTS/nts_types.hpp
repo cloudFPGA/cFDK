@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 -- 2020 IBM Corporation
+ * Copyright 2016 -- 2021 IBM Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,7 +43,6 @@
 
 #include <hls_stream.h>
 
-//OBSOLETE_20210215 #include "AxisApp.hpp"   // Application (TCP segment or UDP datagram)
 #include "AxisEth.hpp"   // ETHernet
 #include "AxisIp4.hpp"   // IPv4
 using namespace hls;
@@ -244,12 +243,8 @@ inline bool operator < (fourTuple const& lhs, fourTuple const& rhs) {
 //--------------------------------------------------------
 //-- LAYER-4 - SOCKET PAIR ASSOCIATION
 //--------------------------------------------------------
-//OBSOLETE_20210628 #ifdef _USE_STRUCT_SOCKET_PAIR_
-//OBSOLETE_20210628 struct SocketPair {
-//OBSOLETE_20210628 #else
 class SocketPair { // Socket Pair Association in NETWORK-BYTE order !!!
   public:
-//OBSOLETE_20210628 #endif
     SockAddr  src;  // Source socket address in NETWORK-BYTE order !!!
     SockAddr  dst;  // Destination socket address in NETWORK-BYTE order !!!
     SocketPair() {}

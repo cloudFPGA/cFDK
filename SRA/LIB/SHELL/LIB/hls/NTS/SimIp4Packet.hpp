@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 -- 2020 IBM Corporation
+ * Copyright 2016 -- 2021 IBM Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -825,7 +825,6 @@ class SimIp4Packet {
                     AxisIp4 newChunk(0, 0, 0);
                     newChunk.setTDataHi(axisUdp.getTDataLo());
                     newChunk.setTKeepHi(axisUdp.getTKeepLo());
-                    //OBSOLETE_20200711 byteCnt += keepToLen(axisUdp.getTKeepLo());
                     byteCnt += axisUdp.getLenLo();
                     if ((axisUdp.getTLast()) or (byteCnt >= len) ) {
                         newChunk.setTLast(TLAST);
@@ -1207,8 +1206,6 @@ class SimIp4Packet {
                         printWarn(callerName, "This will not be considered an error but an intentional corrupted checksum inserted by the user for testing purpose.\n");
                     }
                     else {
-                        //OBSOLETE_20200924 printWarn(callerName, "This will not be considered an acceptable error because the TCP checksum is most likely going to be re-computed after the tesbench updates the acknowledgment and/or the sequence number.\n");
-                        //OBSOLETE_20200924 rc = true;
                         rc = false;
                     }
                 }

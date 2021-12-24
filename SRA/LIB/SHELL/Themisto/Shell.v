@@ -484,8 +484,6 @@ module Shell_Themisto # (
   //--------------------------------------------------------
   //-- SIGNAL DECLARATIONS : FPGA Management Core
   //--------------------------------------------------------
-  // OBSOLETE wire [31:0] sFMC_MMIO_4B_Reg;
-  // OBSOLETE wire [31:0] sMMIO_FMC_4B_Reg;
   wire        sDCP_FMC_status;
   wire        sFMC_DCP_activate;
   wire        sFMC_ROLE_soft_reset;
@@ -1383,7 +1381,7 @@ module Shell_Themisto # (
   //============================================================================
   TcpApplicationRegisterSlice TARS (
     .piClk                      (sETH0_ShlClk),
-    .piRst                      (sETH0_ShlRst),    // OBSOLETE_20210329  (piTOP_156_25Rst),
+    .piRst                      (sETH0_ShlRst),
     //-- APP / Tcp / Tx Data Interfaces (.i.e THIS<-->NRC)
     .siAPP_Tcp_Data_tdata       (ssNRC_TOE_Tcp_Data_tdata ),
     .siAPP_Tcp_Data_tkeep       (ssNRC_TOE_Tcp_Data_tkeep ),
@@ -1484,7 +1482,7 @@ module Shell_Themisto # (
   //============================================================================
   UdpApplicationRegisterSlice UARS (
     .piClk                    (sETH0_ShlClk),
-    .piRst                    (sETH0_ShlRst),   // OBSOLETE_20210329  (piTOP_156_25Rst),
+    .piRst                    (sETH0_ShlRst),
     //-- APP / Udp / Tx Data Interfaces (.i.e NAL->UARS)
     .siAPP_Udp_Data_tdata     (ssNRC_NTS0_Udp_Data_tdata ),
     .siAPP_Udp_Data_tkeep     (ssNRC_NTS0_Udp_Data_tkeep ),
@@ -1773,9 +1771,7 @@ module Shell_Themisto # (
   HWICAPC HWICAP (
     .icap_clk       (sETH0_ShlClk),
     .eos_in         (1),
-    // OBSOLETE .s_axi_aclk     (sCASTOR_HWICAPC_axi_aclk),
     .s_axi_aclk     (sETH0_ShlClk),
-    // OBSOLETE .s_axi_aresetn  (sCASTOR_HWICAPC_axi_aresetn),dst_ran
     .s_axi_aresetn  (~ piTOP_156_25Rst),
     .s_axi_awaddr   (ssFMC_HWICAP_Axi_awaddr),
     .s_axi_awvalid  (ssFMC_HWICAP_Axi_awvalid),
@@ -1926,7 +1922,6 @@ module Shell_Themisto # (
   );
 
   FifoNetwork_Data FIFO_DD_0 (
-  // OBSOLETE FifoNetwork_Data_Large FIFO_DD_0 (
     .clk    (sETH0_ShlClk),
     .srst   (sMMIO_LayerRst[6]),
     .din    (ssFMC_Fifo_Tcp_Data_tdata_V_din    ),
@@ -1938,7 +1933,6 @@ module Shell_Themisto # (
   );
   
   FifoNetwork_Keep FIFO_DK_0 (
-  // OBSOLETE FifoNetwork_Keep_Large FIFO_DK_0 (
     .clk    (sETH0_ShlClk),
     .srst   (sMMIO_LayerRst[6]),
     .din    (ssFMC_Fifo_Tcp_Data_tkeep_V_din    ),
@@ -1950,7 +1944,6 @@ module Shell_Themisto # (
   );
 
   FifoNetwork_Last FIFO_DL_0 (
-  // OBSOLETE FifoNetwork_Last_Large FIFO_DL_0 (
     .clk    (sETH0_ShlClk),
     .srst   (sMMIO_LayerRst[6]),
     .din    (ssFMC_Fifo_Tcp_Data_tlast_V_din    ),
@@ -1972,8 +1965,6 @@ module Shell_Themisto # (
     .rd_en  (ssFifo_NRC_Tcp_SessId_tdata_V_read   )
   );
   
-
-  // OBSOLETE FifoNetwork_Data FIFO_DD_1 (
   FifoNetwork_Data_Large FIFO_DD_1 (
     .clk        (sETH0_ShlClk),
     .srst       (sMMIO_LayerRst[6]),
@@ -1996,10 +1987,8 @@ module Shell_Themisto # (
     .dout       (ssFifo_FMC_Tcp_Data_tkeep_V_dout   ),
     .empty      (ssFifo_FMC_Tcp_Data_tkeep_V_empty  ),
     .rd_en      (ssFifo_FMC_Tcp_Data_tkeep_V_read   )//,
-  // OBSOLETE   .prog_full  (ssNRC_Fifo_Tcp_Data_tkeep_V_prog_full )
   );
 
-  // OBSOLETE FifoNetwork_Last FIFO_DL_1 (
   FifoNetwork_Last_Large FIFO_DL_1 (
     .clk        (sETH0_ShlClk),
     .srst       (sMMIO_LayerRst[6]),
@@ -2009,11 +1998,8 @@ module Shell_Themisto # (
     .dout       (ssFifo_FMC_Tcp_Data_tlast_V_dout   ),
     .empty      (ssFifo_FMC_Tcp_Data_tlast_V_empty  ),
     .rd_en      (ssFifo_FMC_Tcp_Data_tlast_V_read   )//,
-    // OBSOLETE .prog_full  (ssNRC_Fifo_Tcp_Data_tlast_V_prog_full )
   );
 
-
-  // OBSOLETE FifoSession_Data FIFO_SD_1 (
   FifoSession_Data_Large FIFO_SD_1 (
     .clk        (sETH0_ShlClk),
     .srst       (sMMIO_LayerRst[6]),
@@ -2023,7 +2009,6 @@ module Shell_Themisto # (
     .dout       (ssFifo_FMC_Tcp_SessId_tdata_V_dout   ),
     .empty      (ssFifo_FMC_Tcp_SessId_tdata_V_empty  ),
     .rd_en      (ssFifo_FMC_Tcp_SessId_tdata_V_read   )//,
-  // OBSOLETE .prog_full  (ssNRC_Fifo_Tcp_SessId_tdata_V_prog_full )
   );
   
 

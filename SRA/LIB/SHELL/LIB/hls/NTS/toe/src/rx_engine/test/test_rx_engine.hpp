@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 -- 2020 IBM Corporation
+ * Copyright 2016 -- 2021 IBM Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -70,7 +70,6 @@
 
 //#define TB_MAX_SIM_CYCLES 2500000
 //#define TB_MIN_SIM_CYCLES 1000
-//OBSOLETE_20201016 #define TB_STARTUP_DELAY  (TOE_SIZEOF_LISTEN_PORT_TABLE)
 #define TB_STARTUP_TIME     25
 
 //---------------------------------------------------------
