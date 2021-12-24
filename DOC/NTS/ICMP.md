@@ -18,8 +18,8 @@ A block diagram of the *ICMP* is depicted in Figure 1. It features:
 
 | Acronym                                           | Description                                           | Filename
 |:--------------------------------------------------|:------------------------------------------------------|:--------------
-| **IPRX**                                          | IP Receive frame handler (IPRX)                       | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iprx_handler/src/iprx_handler.cpp)
-| **IPTX**                                          | IP Transmit frame handler (IPTX).                     | [iptx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iptx_handler/src/iptx_handler.cpp)
+| **IPRX**                                          | IP Receive frame handler (IPRX)                       | [iprx](../../SRA/LIB/SHELL/LIB/hls/NTS/iprx/src/iprx.cpp)
+| **IPTX**                                          | IP Transmit frame handler (IPTX).                     | [iptx](../../SRA/LIB/SHELL/LIB/hls/NTS/iptx/src/iptx.cpp)
 | **UDP**                                           | UDP engine (UDP).                                     | [udp](../../SRA/LIB/SHELL/LIB/hls/NTS/udp/src/udp.hpp)
 
 
@@ -27,9 +27,9 @@ A block diagram of the *ICMP* is depicted in Figure 1. It features:
 
 | Acronym       | Description                 | Filename
 |:--------------|:----------------------------|:--------------
-| **CMb**       | Control Message Builder     | [icmp_server](../../SRA/LIB/SHELL/LIB/hls/NTS/icmp_server/src/icmp_server.cpp)
-| **ICc**       | ICMP Checksum Checker       | [icmp_server](../../SRA/LIB/SHELL/LIB/hls/NTS/icmp_server/src/icmp_server.cpp)
-| **ICi**       | IP Checksum Inserter        | [icmp_server](../../SRA/LIB/SHELL/LIB/hls/NTS/icmp_server/src/icmp_server.cpp)
-| **IHa**       | IP Header Appender          | [icmp_server](../../SRA/LIB/SHELL/LIB/hls/NTS/icmp_server/src/icmp_server.cpp)
-| **IPd**       | Invalid Packet Dropper      | [icmp_server](../../SRA/LIB/SHELL/LIB/hls/NTS/icmp_server/src/icmp_server.cpp)
+| **CMb**       | Control Message Builder     | [icmp](../../SRA/LIB/SHELL/LIB/hls/NTS/icmp/src/icmp.cpp)
+| **ICc**       | ICMP Checksum Checker       | [icmp](../../SRA/LIB/SHELL/LIB/hls/NTS/icmp/src/icmp.cpp)
+| **ICi**       | IP Checksum Inserter        | [icmp](../../SRA/LIB/SHELL/LIB/hls/NTS/icmp/src/icmp.cpp)
+| **IHa**       | IP Header Appender          | [icmp](../../SRA/LIB/SHELL/LIB/hls/NTS/icmp/src/icmp.cpp)
+| **IPd**       | Invalid Packet Dropper      | [icmp](../../SRA/LIB/SHELL/LIB/hls/NTS/icmp/src/icmp.cpp)
 

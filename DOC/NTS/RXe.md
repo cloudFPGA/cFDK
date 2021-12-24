@@ -17,7 +17,7 @@ it is stored in external DDR4 memory and the *Rx Application Interface* (**RAi**
 | Acronym         | Description                                           | Filename
 |:----------------|:------------------------------------------------------|:--------------
 | **EVe**         | Event Engine interface                                | [event_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/event_engine/event_engine.cpp)
-| **IPRX**        | IP RX Interface                                       | [iprx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iprx_handler/src/iprx_handler.cpp) 
+| **IPRX**        | IP RX Interface                                       | [iprx](../../SRA/LIB/SHELL/LIB/hls/NTS/iprx/src/iprx.cpp) 
 | **MEM**         | MEMory sub-system (data-mover to DDR4)                | [memSubSys](../../SRA/LIB/SHELL/LIB/hdl/mem/memSubSys.v)
 | **PRt**         | Port Table interface.                                 | [port_table](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/port_table/port_table.cpp)  
 | **RAi**         | Rx Application interface                              | [rx_app_interface](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_app_interface/rx_app_interface.cpp)

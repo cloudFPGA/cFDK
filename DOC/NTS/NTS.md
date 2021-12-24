@@ -38,10 +38,10 @@ architecture body.
 
 | Entity              | Description                                       | Architecture
 |:-------------------:|:--------------------------------------------------|:--------------
-| **[ARS](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/ARS.md)**   | Address Resolution Server (ARS).                  | [arp_server](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/NTS/arp/src/arp.cpp)
-| **[ICMP](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/ICMP.md)** | Internet Control Message Protocol (ICMP) server.  | [icmp_server](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/NTS/icmp/src/icmp.cpp)
-| **[IPRX](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/IPRX.md)** | IP Receive frame handler (IPRX).                  | [iprx_handler](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/NTS/iprx/src/iprx.cpp)
-| **[IPTX](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/IPTX.md)** | IP Transmit frame handler (IPTX).                 | [iptx_handler](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/NTS/iptx/src/iptx.cpp)
+| **[ARS](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/ARS.md)**   | Address Resolution Server (ARS).                  | [arp](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/NTS/arp/src/arp.cpp)
+| **[ICMP](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/ICMP.md)** | Internet Control Message Protocol (ICMP) server.  | [icmp](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/NTS/icmp/src/icmp.cpp)
+| **[IPRX](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/IPRX.md)** | IP Receive frame handler (IPRX).                  | [iprx](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/NTS/iprx/src/iprx.cpp)
+| **[IPTX](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/IPTX.md)** | IP Transmit frame handler (IPTX).                 | [iptx](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/NTS/iptx/src/iptx.cpp)
 | **[TOE](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/./TOE.md)** | TCP Offload Engine.                               | [toe](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/toe.cpp)
 | **[UOE](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/./UOE.md)** | UDP Offload Engine.                               | [uoe](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/NTS/uoe/src/uoe.cpp)
 

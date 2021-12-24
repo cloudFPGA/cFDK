@@ -18,7 +18,7 @@ The complete packet is then streamed out over the **L3MUX** interface of the TOE
 |:----------------|:------------------------------------------------------|:--------------
 | **AKd**         | Ack Delayer interface                                 | [ack_delay](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/ack_delay/ack_delay.cpp)  
 | **EVe**         | Event Engine interface                                | [event_engine](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/event_engine/event_engine.cpp)
-| **L3MUX**       | IP Tx Interface                                       | [iptx_handler](../../SRA/LIB/SHELL/LIB/hls/NTS/iptx_handler/src/iptx_handler.cpp)
+| **L3MUX**       | IP Tx Interface                                       | [iptx](../../SRA/LIB/SHELL/LIB/hls/NTS/iptx/src/iptx.cpp)
 | **MEM**         | Memory sub-system (data-mover to DDR4)                | [memSubSys](../../SRA/LIB/SHELL/LIB/hdl/mem/memSubSys.v)
 | **RSt**         | Rx SAR Table interface                                | [rx_sar_table](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_sar_table/rx_sar_table.cpp)
 | **SLc**         | Session Lookup Controller interface                   | [session_lookup_controller](../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/session_lookup_controller/session_lookup_controller.cpp)
