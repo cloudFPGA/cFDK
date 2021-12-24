@@ -1,11 +1,11 @@
 # Event Engine (EVe)
 
-Event engine for the **[TCP Offload engine (TOE)](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./TOE.md)** used by the *cloudFPGA* platform.
+Event engine for the **[TCP Offload engine (TOE)](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/./TOE.md)** used by the *cloudFPGA* platform.
 
 ## Overview
 The event engine arbitrates the incoming events and forwards them to the Tx Engine (TXe).
 The engine is a single process concurrently accessed by the RxEngine (RXe), the Timers (TIm), the TxApplicationInterface (TAi) and the AckDelayer (AKd).
-![Block diagram of the TOE/EVe](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./images/Fig-TOE-EVe-Structure.bmp?raw=true#center)
+![Block diagram of the TOE/EVe](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/./images/Fig-TOE-EVe-Structure.bmp?raw=true#center)
 <p align="center"><b>Figure-1: Block diagram of the Tx SAR Table</b></p>
 <br>
 

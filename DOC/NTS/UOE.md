@@ -4,17 +4,17 @@ This document describes the design of the **UDP Offload Engine (UOE)** used by t
 
 ## Preliminary and Acknowledgments
 This code was initially developed by **Xilinx Dublin Labs, Ireland** who kindly accepted to share it with the *cloudFPGA
- project* via the *GitHub* repository: https://github.com/Xilinx/HLx_Examples/tree/master/Acceleration/tcp_ip. In 2018, 
+ project* via the *GitHub* repository: https://github.com/Xilinx/HLx_Examples/tree/main/Acceleration/tcp_ip. In 2018, 
  the code was ported and adapted for the needs and specificity of the *cloudFPGA* platform.
 
 ## Overview
 The **`UOE`** consists of a *RxEngine (RXe)* to handle the incoming data packets from the IP layer, and a *TxEngine
  (TXe)* to assemble outgoing data packets for the IP layer. **`RXe`** is depicted in Figure-1 and **`TXe`** is depicted 
  in Figure-2. 
-![Block diagram of the RXe](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./images/Fig-UOE-RXe-Structure.bmp?raw=true#center)
+![Block diagram of the RXe](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/./images/Fig-UOE-RXe-Structure.bmp?raw=true#center)
 <p align="center"><b>Figure-1: Block diagram of the Rx Engine of the UDP Offload Engine</b></p>
 
-![Block diagram of the TXe](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./images/Fig-UOE-TXe-Structure.bmp?raw=true#center)
+![Block diagram of the TXe](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/./images/Fig-UOE-TXe-Structure.bmp?raw=true#center)
 <p align="center"><b>Figure-2: Block diagram of the Tx Engine of the UDP Offload Engine</b></p>
 
 The UDP offload engine is entirely written in C/C++, and the Xilinx HLS flow is used here to synthesize and export 
@@ -27,7 +27,7 @@ The top-level file [**uoe.cpp**](../../SRA/LIB/SHELL/LIB/hls/NTS/uoe/src/uoe.cpp
 
 ## HLS Coding Style and Naming Conventions
 The HLS design of **`UOE`** uses some specific naming rules to ease the description and the understanding of its 
- architecture. Please consider reading the document [**HLS coding style and naming conventions**](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/ ./hls-naming-conventions.md) before 
+ architecture. Please consider reading the document [**HLS coding style and naming conventions**](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/ ./hls-naming-conventions.md) before 
  diving or contributing to this part of the cloudFPGA project.
 
 ## List of Processes
@@ -108,7 +108,7 @@ The memory mapped IO (MMIO) interface consists of a set of status and configurat
     stream<StsBool>                 &soMMIO_Ready,
 ```
 * `piMMIO_En` is an active *high* enable signal used to delay the start of **`UOE`** after a reset. It implements a 
-    *scalar input port* of type \<[CmdBit](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/nts_types.hpp)\>.
+    *scalar input port* of type \<[CmdBit](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/nts_types.hpp)\>.
 * `soMMIO_Ready` is used to indicate the readiness of **`UOE`**. It implements an *AXI4-Stream interface* of type 
     \<[StsBool](../../SRA/LIB/SHELL/LIB/hls/nts_types.hpp)\>.
 

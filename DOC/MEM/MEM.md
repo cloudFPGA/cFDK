@@ -5,7 +5,7 @@ This document describes the design of the **DDR4 Memory sub-system (MEM)** used 
 ## Overview
 A block diagram of **`MEM`** is depicted in Figure 1.  It features two DDR4 _Memory Channels (MC0 and MC1)_, each with a capacity of 8GB. The memory channel #0 (MC0) is dedicated to the network transport stack (NTS) of the _Shell_ and cannot be used by the _Role_. Instead, the user's application has full access to the 8 GB of memory channel #1 (MC1).
 
-![Block diagram of MEM](https://github.com/cloudFPGA/cFDK/blob/master/DOC/MEM/./images/Fig-MEM-Structure.png?raw=true)
+![Block diagram of MEM](https://github.com/cloudFPGA/cFDK/blob/main/DOC/MEM/./images/Fig-MEM-Structure.png?raw=true)
 <p align="center"><b>Figure-1: Block diagram of the Memory Sub-System</b></p>
 
 The components in _gray_ color are IP cores generated from the Xilinx IP library. Refer to the [list of components](#list-of-components) for a detail description of these IP cores.   

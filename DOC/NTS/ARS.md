@@ -8,7 +8,7 @@ A block diagram of the *ARS* is depicted in Figure 1. It features:
   - an *ARP Packet Sender (APs)* that builds an ARP-REPLY packet upon request from the APr process, or an ARP-REQUEST packet upon request from the ACc process.
   - an *ARP CAM Controller (ACc)* that interfaces the RTL Content-Addressable Memory (CAM). This process serves the MAC lookup requests from the IpTxHandler (IPTX) and the MAC update requests from APr.
 
-![Block diagram of the ARS](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./images/Fig-ARS-Structure.bmp?raw=true#center)
+![Block diagram of the ARS](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/./images/Fig-ARS-Structure.bmp?raw=true#center)
 <p align="center"><b>Figure-1: Block diagram of the ARP Resolution Server</b></p>
 <br>
 

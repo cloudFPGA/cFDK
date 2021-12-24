@@ -38,7 +38,7 @@ their architecture body.
 |:----------------------------------|:---------------------------|:--------------
 | **[ETH](https://github.com/cloudFPGA/cFDK/tree/main/DOC/./ETH/ETH.md)**           | 10G Ethernet subsystem     | [tenGigEth.v](https://github.com/cloudFPGA/cFDK/tree/main/DOC/../SRA/LIB/SHELL/LIB/hdl/eth/tenGigEth.v)
 | **[MEM](https://github.com/cloudFPGA/cFDK/tree/main/DOC/./MEM/MEM.md)**           | DDR4 Memory subsystem      | [memSubSys.v](https://github.com/cloudFPGA/cFDK/tree/main/DOC/../SRA/LIB/SHELL/LIB/hdl/mem/memSubSys.v)
-| **[MMIO](https://github.com/cloudFPGA/cFDK/tree/main/DOC/./MMIO/MMIO.md)**        | Memory Mapped IOs          | [mmioClient_A8_D8.v](https://github.com/cloudFPGA/cFDK/tree/mainter/DOC/../SRA/LIB/SHELL/LIB/hdl/mmio/mmioClient_A8_D8.v)
+| **[MMIO](https://github.com/cloudFPGA/cFDK/tree/main/DOC/./MMIO/MMIO.md)**        | Memory Mapped IOs          | [mmioClient_A8_D8.v](https://github.com/cloudFPGA/cFDK/tree/main/DOC/../SRA/LIB/SHELL/LIB/hdl/mmio/mmioClient_A8_D8.v)
 | **[NTS](https://github.com/cloudFPGA/cFDK/tree/main/DOC/./NTS/NTS.md)**           | Network Transport Stack    | [nts_TcpIp.v](https://github.com/cloudFPGA/cFDK/tree/main/DOC/../SRA/LIB/SHELL/LIB/hdl/nts/nts_TcpIp.v)
 
 #### List of Interfaces

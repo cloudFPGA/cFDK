@@ -11,8 +11,8 @@ From an _Open Systems Interconnection (OSI)_ model point of view, the **`ETH`** 
 
 ## HLS Coding Style and Naming Conventions
 The design of **`ETH`** uses some specific HDL and HLS naming rules to ease the description and the understanding of
- its architecture. Please consider reading the two documents [**HDL coding style and naming conventions**](https://github.com/cloudFPGA/cFDK/blob/master/DOC/ETH/../hdl-naming-conventions.md)
- and [**HLS coding style and naming conventions**](https://github.com/cloudFPGA/cFDK/blob/master/DOC/ETH/./hls-naming-conventions.md) before diving into the code or starting
+ its architecture. Please consider reading the two documents [**HDL coding style and naming conventions**](https://github.com/cloudFPGA/cFDK/blob/main/DOC/ETH/../hdl-naming-conventions.md)
+ and [**HLS coding style and naming conventions**](https://github.com/cloudFPGA/cFDK/blob/main/DOC/ETH/./hls-naming-conventions.md) before diving into the code or starting
  to contribute to this part of the cloudFPGA project.
 
 ## List of Components

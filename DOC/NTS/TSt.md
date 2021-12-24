@@ -1,11 +1,11 @@
 # Tx Sar Table (TSt)
 
-Tx segmentation and re-assembly table for the **[TCP Offload engine (TOE)](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./TOE.md)** used by the *cloudFPGA* platform. 
+Tx segmentation and re-assembly table for the **[TCP Offload engine (TOE)](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/./TOE.md)** used by the *cloudFPGA* platform. 
 
 ## Overview
 The table stores the data structures for managing the TCP Tx buffer and the Tx sliding window.
 The TxSarTable is a single process concurrently accessed by the RxEngine (RXe), the TxApplicationInterface (TAi) and the TxEngine (TXe).
-![Block diagram of the TOE/TSt](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./images/Fig-TOE-TSt-Structure.bmp?raw=true#center)
+![Block diagram of the TOE/TSt](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/./images/Fig-TOE-TSt-Structure.bmp?raw=true#center)
 <p align="center"><b>Figure-1: Block diagram of the Tx SAR Table</b></p>
 <br>
 

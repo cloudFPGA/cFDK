@@ -10,7 +10,7 @@ A block diagram of the **`NAL`** is depicted in Figure 1.
 
 It features the *Processing of the AXI4 Lite control connection*, a *Port Open & Close logic*, a *TCP Agency*, an *Message Routing Table (MRT) Agency*, a *Cache Invalidation logic*, and *Status & Event Processing logic*, and *Sub-Systems for TCP (TSS) and UDP (USS)*.
 
-![Block Diagram of the NAL](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/./images/Fig-NAL-Structure.png?raw=true#center)
+![Block Diagram of the NAL](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NAL/./images/Fig-NAL-Structure.png?raw=true#center)
 
 <p align="center"><b>Figure-1: Block diagram of the of the Network Abstraction Layer</b></p>
 
@@ -18,7 +18,7 @@ It features the *Processing of the AXI4 Lite control connection*, a *Port Open &
 
 The purpose of the NAL is to separate privileged management traffic from the unprivileged Role traffic, to ensure the traffic to and from the Role is/stays within the users' subnet, and to abstract the details of port opening, connection handling and IP Address translation.
 
-The Role Interface for UDP / TCP traffic is defined by the **[Themisto Shell](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/./../Themisto.md)** and can be summarized as follows:
+The Role Interface for UDP / TCP traffic is defined by the **[Themisto Shell](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NAL/./../Themisto.md)** and can be summarized as follows:
 
 ```cpp
 hls::ap_uint<32>                 *po_rx_ports,    //Vector indicating Listening Ports 
@@ -49,11 +49,11 @@ Please note, *this interface is the **same** for UDP and TCP*. All lower-level d
 
 ## Supported Shells
 
-Currently, only the **[Themisto Shell](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/./../Themisto.md)** contains the NAL. 
+Currently, only the **[Themisto Shell](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NAL/./../Themisto.md)** contains the NAL. 
 
 ## Main Functionality
 
-The NAL is controlled by the *FPGA Management Core* [*FMC*](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/../FMC/FMC.md) via an AXI4Lite bus. Through this connection, the NAL gets the list of allowed IP addresses for this Role, the mapping of IP addresses to *`NodeId`s*, and reports status as well as some debug information.
+The NAL is controlled by the *FPGA Management Core* [*FMC*](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NAL/../FMC/FMC.md) via an AXI4Lite bus. Through this connection, the NAL gets the list of allowed IP addresses for this Role, the mapping of IP addresses to *`NodeId`s*, and reports status as well as some debug information.
 
 The split between management TCP traffic and "normal" user traffic is done by the **TSS**. For the TCP traffic, the FMC is connected via FIFOs (instantiated in `Shell.v`, so external to the NAL). 
 
@@ -67,11 +67,11 @@ To reduce the latency of the `NodeId <--> IpAddress (<--> TCP session Id)` mappi
 
 For debugging and monitoring, the USS and TSS systems create *events* (e.g. about a successful packet transmission, the meta data of the last connection, or an unauthorized access attempt) and send them to the *Status & Event Processing*. This process merges all those event notification, maps them to the correct status address in the AXI4 Lite address space, and forwards these updates to the AXI4Lite Processing Logic. 
 
-The details of the TSS and USS can be found [here (TSS)](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/./TSS.md) and [here (USS)](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/./USS.md). The HSS is futher documented [here](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/./HSS.md). 
+The details of the TSS and USS can be found [here (TSS)](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NAL/./TSS.md) and [here (USS)](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NAL/./USS.md). The HSS is futher documented [here](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NAL/./HSS.md). 
 
 ## HLS Coding Style and Naming Conventions
 
-For the cloudFPGA specific HDL and HLS naming rules and conventions, please see the [`NTS` documentation](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/../NTS/NTS.md).
+For the cloudFPGA specific HDL and HLS naming rules and conventions, please see the [`NTS` documentation](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NAL/../NTS/NTS.md).
 
 ## List of Components
 
@@ -79,13 +79,13 @@ The following table lists the sub-components of **`NAL`** and provides a link to
 
 | Entity                                                      | Description                                                          | Architecture                                           |
 |:-----------------------------------------------------------:|:-------------------------------------------------------------------- |:------------------------------------------------------ |
-| **[Axi4Lite Processing](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/./HSS.md)**                         | Processing of Axi4Lite control bus.                                  | [hss.cpp](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/../../SRA/LIB/SHELL/LIB/hls/NAL/src/hss.cpp) |
-| **[MRT Agency](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/./HSS.md)**                                  | Providing stream-based access to the Message Routing Table (MRT).    | [hss.cpp](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/../../SRA/LIB/SHELL/LIB/hls/NAL/src/hss.cpp) |
-| **[TCP Agency](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/./HSS.md)**                                  | Providing stream-based access to the TCP session-to-triple table.    | [hss.cpp](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/../../SRA/LIB/SHELL/LIB/hls/NAL/src/hss.cpp) |
-| **[Port Open & Close](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/./HSS.md)**                           | Handling of the user open & close port vectors.                      | [hss.cpp](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/../../SRA/LIB/SHELL/LIB/hls/NAL/src/hss.cpp) |
+| **[Axi4Lite Processing](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NAL/./HSS.md)**                         | Processing of Axi4Lite control bus.                                  | [hss.cpp](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NAL/../../SRA/LIB/SHELL/LIB/hls/NAL/src/hss.cpp) |
+| **[MRT Agency](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NAL/./HSS.md)**                                  | Providing stream-based access to the Message Routing Table (MRT).    | [hss.cpp](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NAL/../../SRA/LIB/SHELL/LIB/hls/NAL/src/hss.cpp) |
+| **[TCP Agency](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NAL/./HSS.md)**                                  | Providing stream-based access to the TCP session-to-triple table.    | [hss.cpp](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NAL/../../SRA/LIB/SHELL/LIB/hls/NAL/src/hss.cpp) |
+| **[Port Open & Close](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NAL/./HSS.md)**                           | Handling of the user open & close port vectors.                      | [hss.cpp](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NAL/../../SRA/LIB/SHELL/LIB/hls/NAL/src/hss.cpp) |
 | **[Status & Event Processing](#status-%26-event-handling)** | Processing of the Event notification and maintains the status table. | [nal.cpp](../../SRA/LIB/SHELL/LIB/hls/NAL/src/nal.cpp) |
-| **[USS](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/./USS.md)**                                         | UDP Sub-System                                                       | [uss.cpp](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/../../SRA/LIB/SHELL/LIB/hls/NAL/src/uss.cpp) |
-| **[TSS](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/./TSS.md)**                                         | TCP Sub-System                                                       | [tss.cpp](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/../../SRA/LIB/SHELL/LIB/hls/NAL/src/tss.cpp) |
+| **[USS](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NAL/./USS.md)**                                         | UDP Sub-System                                                       | [uss.cpp](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NAL/../../SRA/LIB/SHELL/LIB/hls/NAL/src/uss.cpp) |
+| **[TSS](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NAL/./TSS.md)**                                         | TCP Sub-System                                                       | [tss.cpp](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NAL/../../SRA/LIB/SHELL/LIB/hls/NAL/src/tss.cpp) |
 
 ## Description of the Interfaces
 

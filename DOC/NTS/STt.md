@@ -1,13 +1,13 @@
 # State Table (STt)
 
-TCP state table management for the **[TCP Offload engine (TOE)](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./TOE.md)** used by the *cloudFPGA* platform. 
+TCP state table management for the **[TCP Offload engine (TOE)](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/./TOE.md)** used by the *cloudFPGA* platform. 
 
 ## Overview
 The state table of the **TCP Offload engibe (TOE)** stores the connection state of each session during its lifetime. 
 These states are defined in RFC793 as: LISTEN, SYN-SENT, SYN-RECEIVED, ESTABLISHED, FIN-WAIT-1, FIN-WAIT-2, CLOSE-WAIT, CLOSING, LAST-ACK, TIME-WAIT and CLOSED.
 The StateTable is a single process accessed by the RxEngine (RXe), the TxAppInterface (TAi) and by the TxEngine (TXe). 
 The process also receives session close commands from the Timers (TIm) and sends session release commands to the SessionLookupController (SLc).
-![Block diagram of the TOE/STt](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./images/Fig-TOE-STt-Structure.bmp?raw=true#center)
+![Block diagram of the TOE/STt](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/./images/Fig-TOE-STt-Structure.bmp?raw=true#center)
 <p align="center"><b>Figure-1: Block diagram of the State Table</b></p>
 <br>
 

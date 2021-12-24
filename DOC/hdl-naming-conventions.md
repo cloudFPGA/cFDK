@@ -82,7 +82,7 @@ with
 
 ## Combining Signals, Ports and Instance Names
 This section shows an example that combines the above listed convention names.
-![Figure-1](https://github.com/cloudFPGA/cFDK/blob/master/DOC/./imgs/Fig-hdl-naming-conventions.png?raw=true#center)
+![Figure-1](https://github.com/cloudFPGA/cFDK/blob/main/DOC/./imgs/Fig-hdl-naming-conventions.png?raw=true#center)
 <p align="center"><b>Figure-1: Combining signals, ports and instances names</b></p>
 <br>
 

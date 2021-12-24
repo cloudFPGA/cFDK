@@ -17,7 +17,7 @@ A block diagram of the *IPRX* is depicted in Figure 1. It features:
   field,
   - an *IP Packet Router (IPr)* to route the IPv4 packets to one of the ICMP, UDP or TCP engines.
  
-![Block diagram of the IPRX](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./images/Fig-IPRX-Structure.bmp?raw=true#center)
+![Block diagram of the IPRX](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/./images/Fig-IPRX-Structure.bmp?raw=true#center)
 <p align="center"><b>Figure-1: Block diagram of the IP Rx Handler</b></p>
 <br>
 

@@ -10,7 +10,7 @@ a C/C++ specification into a register transfer level (RTL) implementation that c
 placed and routed in an FPGA. 
 
 The naming rules used by the C/C++ code that describes the behavior of the **NTS** are built 
-upon the HDL naming conventions defined in the document [**HDL Naming Conventions**](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/../hdl-naming-conventions.md) 
+upon the HDL naming conventions defined in the document [**HDL Naming Conventions**](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/../hdl-naming-conventions.md) 
 and are referred here as **'HLS Naming Conventions'**. Please consider reading that document 
 because the HLS naming conventions inherit all the properties and behaviors of the HDL objects, 
 except for the specific properties listed in the following sections.
@@ -97,7 +97,7 @@ which case arrangement is used to encode the following notion of hierarchy withi
 
 ## Port Names
 In traditional HDL designs, processes and modules communicate across their boundaries via ports/pins. 
-We refer the reader to the [**HDL Naming Conventions**](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/../hdl-naming-conventions.md) document for naming
+We refer the reader to the [**HDL Naming Conventions**](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/../hdl-naming-conventions.md) document for naming
 such I/O ports in a HLS design. 
 
 ## Stream-based Interface Names
@@ -113,12 +113,12 @@ reference to an instance name, a mandatory stream name, and and optional suffix 
     - **ACROnym** = an acronym referencing the name of an [**IP block**](#ip_blocks), a [**module**](#modules) 
     or a [**process**](#processes_names) that sources or sinks the stream (e.g. 'siIPRX_IpPacket', 'soIph_TcpSeg').
     - **StreamName** = a name reflecting an action or a resource involving this stream (e.g. 'soPRt_GetFeePort').
-    - [**Suffix**](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/#suffix) = a string qualifying the type of stream action or resource (e.g. 'soTAi_PushCmd',
+    - [**Suffix**](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/#suffix) = a string qualifying the type of stream action or resource (e.g. 'soTAi_PushCmd',
      'siTXe_TxSarQry').
 
 ## Signal Names
 In traditional HDL designs, ports/pins are interconnected with signals/wires. 
-We refer the reader to the [**HDL Naming Conventions**](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/../hdl-naming-conventions.md) document for naming
+We refer the reader to the [**HDL Naming Conventions**](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/../hdl-naming-conventions.md) document for naming
 such signals/wires in a HLS design. 
 
 ## Stream Names
@@ -180,7 +180,7 @@ stream*:
 ## Combining IP Blocks, Modules, Processes and Stream Names
 
 This section shows an example that combines the above listed convention names.
-![Figure-1](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./images/Fig-hls-naming-conventions.png?raw=true#center)
+![Figure-1](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/./images/Fig-hls-naming-conventions.png?raw=true#center)
 <p align="center"><b>Figure-1: Combining IP blocks, modules, processes and stream names.</b></p>
 <br>
 

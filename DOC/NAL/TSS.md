@@ -1,7 +1,7 @@
 TCP Sub-System (TSS)
 ======================
 
-This document describes the design of the **TCP Sub-System (TSS)** of the [NAL](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/./NAL.md) used by the *cloudFPGA* platform.
+This document describes the design of the **TCP Sub-System (TSS)** of the [NAL](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NAL/./NAL.md) used by the *cloudFPGA* platform.
 
 ## Overview
 
@@ -9,7 +9,7 @@ A block diagram of the **`TSS`** is depicted in Figure 1.
 
 It features processes for the opening of TCP *ports*, opening and closing of TCP *connections* and two processes for each of the RX Path (`pTcpRRh` and `pTcpRDp`) as well as the TX Path (`pTcpWRp` and `pTcpWBu`).
 
-![Block Diagram of the NAL](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/./images/Fig-TSS-Structure.png?raw=true#center)
+![Block Diagram of the NAL](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NAL/./images/Fig-TSS-Structure.png?raw=true#center)
 
 <p align="center"><b>Figure-1: Block diagram of the of the TCP Sub-System</b></p>
 
@@ -17,9 +17,9 @@ The architecture is written in C++/HLS in  [tss.cpp](../../SRA/LIB/SHELL/LIB/hls
 
 ## Interfaces
 
-The details of the TCP Offload Engine (TOE) and its interface are described [here](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/../NTS/TOE.md). 
+The details of the TCP Offload Engine (TOE) and its interface are described [here](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NAL/../NTS/TOE.md). 
 
-The details of the Role TCP interface for the Themisto Shell are described [here](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/../Themisto.md).
+The details of the Role TCP interface for the Themisto Shell are described [here](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NAL/../Themisto.md).
 
 The connections to other processes of the NAL are as follows: 
 
@@ -36,7 +36,7 @@ The connections to other processes of the NAL are as follows:
 - `sGetSidFromTriple_Req`: Get the SessionId for a given TCP Triple from the TCP Agency.
 - `sGetSidFromTriple_Rep`: The answer of the TCP Agency. 
 
-The details of the mentioned TCP and MRT Agencies can be found [here](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NAL/./HSS.md). 
+The details of the mentioned TCP and MRT Agencies can be found [here](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NAL/./HSS.md). 
 
 ## Functionality of the processes
 

@@ -1,6 +1,6 @@
 # Tx Engine (TXe)
 
-This document describes the transmit data path of the **[TCP Offload engine (TOE)](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./TOE.md)** used by the *cloudFPGA* platform.
+This document describes the transmit data path of the **[TCP Offload engine (TOE)](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/./TOE.md)** used by the *cloudFPGA* platform.
  
 ## Overview  
 The Tx Engine (TXe) is responsible for the generation and transmission of IPv4 packets with embedded TCP payload.
@@ -8,7 +8,7 @@ A block diagram of the **TXe** is depicted in Figure 1.
 Upon reception of a transmission event, a state machine loads and generates the necessary metadata for constructing an IPv4 packet. 
 If that packet contains any payload, the data are retrieved from the DDR4 memory and are embedded as a TCP segment into the IPv4 packet. 
 The complete packet is then streamed out over the **L3MUX** interface of the TOE.
-![Block diagram of the TOE/TXe](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./images/Fig-TOE-TXe-Structure.bmp?raw=true#center)
+![Block diagram of the TOE/TXe](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/./images/Fig-TOE-TXe-Structure.bmp?raw=true#center)
 <p align="center"><b>Figure-1: Block diagram of the Tx Engine</b></p>
 <br>
 

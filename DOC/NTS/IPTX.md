@@ -11,7 +11,7 @@ A block diagram of the *IPTX* is depicted in Figure 1. It features:
   - a *MAC Address Inserter (MAi)* to insert the Ethernet MAC address corresponding to the IPv4 destination address that
    was looked-up by the ARP server.
 
-![Block diagram of the IPTX](https://github.com/cloudFPGA/cFDK/blob/master/DOC/NTS/./images/Fig-IPTX-Structure.bmp?raw=true#center)
+![Block diagram of the IPTX](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/./images/Fig-IPTX-Structure.bmp?raw=true#center)
 <p align="center"><b>Figure-1: Block diagram of the IP Tx Handler</b></p>
 <br>
 
