@@ -2,5 +2,7 @@
 
 
 ## Synopsis:
-    - make | make help
+    - make [target]  (and use 'make help' to list the possible targets)
+      or 
+    - vivado_hls -f run_hls.tcl
     
