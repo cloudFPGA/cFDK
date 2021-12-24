@@ -64,9 +64,6 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // *    blocks that both implement an AXI4-Stream user interface through which
 // *    the frame data are received and transmitted.
 // * 
-// * Comments:
-// *
-// *
 // *****************************************************************************
 
 `timescale 1ps / 1ps

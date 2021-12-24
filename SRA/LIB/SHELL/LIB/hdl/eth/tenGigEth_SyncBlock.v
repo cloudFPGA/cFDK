@@ -1,15 +1,18 @@
-//------------------------------------------------------------------------------
-// Title      : CDC Sync Block
-// Project    : 10G Gigabit Ethernet
-//------------------------------------------------------------------------------
-// File       : tenGigEth_SyncBlock.v
-// Author     : Xilinx Inc.
-//------------------------------------------------------------------------------
-// Description: Used on signals crossing from one clock domain to another, this
-//              is a multiple flip-flop pipeline, with all flops placed together
-//              into the same slice.  Thus the routing delay between the two is
-//              minimum to safe-guard against metastability issues.
-// -----------------------------------------------------------------------------
+/*******************************************************************************
+ * Copyright 2016 -- 2021 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *******************************************************************************/
 
 // ----------------------------------------------------------------------------
 // (c) Copyright 2014 Xilinx, Inc. All rights reserved.
@@ -59,6 +62,19 @@
 // PART OF THIS FILE AT ALL TIMES.
 // ----------------------------------------------------------------------------
 
+
+//------------------------------------------------------------------------------
+// Title      : CDC Sync Block
+// Project    : 10G Gigabit Ethernet
+//------------------------------------------------------------------------------
+// File       : tenGigEth_SyncBlock.v
+// Author     : FAB
+//------------------------------------------------------------------------------
+// Description: Used on signals crossing from one clock domain to another, this
+//              is a multiple flip-flop pipeline, with all flops placed together
+//              into the same slice.  Thus the routing delay between the two is
+//              minimum to safe-guard against metastability issues.
+// -----------------------------------------------------------------------------
 
 `timescale 1ps / 1ps
 

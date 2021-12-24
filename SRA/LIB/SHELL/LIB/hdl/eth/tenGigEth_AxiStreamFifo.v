@@ -1,37 +1,18 @@
-//-----------------------------------------------------------------------------
-// Title      : 10G ETHERNET AXI-STREAMING FIFO
-// Project    : 10G Gigabit Ethernet
-//-----------------------------------------------------------------------------
-// File       : tenGigEth_AxiStreamFifo.v
-// Author     : Xilinx Inc.
-//-----------------------------------------------------------------------------
-// Description: This is the AXI-Streaming FIFO module for the two 10G Ethernet
-//              MAC FIFOs that interconnect the AXI-S interfaces of the
-//              Ethernet IP core with the upper layer (e.g. L3) of the network
-//              stack.
-//
-//              The FIFO is created from Block RAMs and can be chosen to be of
-//              size (in 8 bytes words) 512, 1024, 2048, 4096, 8192, or 2048.
-//
-//              Frame data received from the write side is written into the
-//              data field of the BRAM on the wr_axis_aclk. Start of Frame ,
-//              End of Frame and a binary encoded strobe signal (indicating the
-//              number of valid bytes in the last word of the frame) are
-//              created and stored in the parity field of the BRAM
-//
-//              The wr_axis_tlast and wr_axis_tuser signals are used to qualify
-//              the frame.  A frame for which wr_axis_tuser was not asserted
-//              when wr_axis_tlast was asserted will cause the FIFO write
-//              address pointer to be reset to the base address of that frame.
-//              In this way the bad frame will be overwritten with the next
-//              received frame and is therefore dropped from the FIFO.
-//
-//              When there is at least one complete frame in the FIFO,
-//              the read interface will be enabled allowing data to be read
-//              from the fifo.
-//
-//-----------------------------------------------------------------------------
-
+/*******************************************************************************
+ * Copyright 2016 -- 2021 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *******************************************************************************/
 
 // ----------------------------------------------------------------------------
 // (c) Copyright 2014 Xilinx, Inc. All rights reserved.
@@ -81,6 +62,40 @@
 // PART OF THIS FILE AT ALL TIMES.
 // ----------------------------------------------------------------------------
 
+
+//-----------------------------------------------------------------------------
+// Title      : 10G ETHERNET AXI-STREAMING FIFO
+// Project    : 10G Gigabit Ethernet
+//-----------------------------------------------------------------------------
+// File       : tenGigEth_AxiStreamFifo.v
+// Author     : FAB
+//-----------------------------------------------------------------------------
+// Description: This is the AXI-Streaming FIFO module for the two 10G Ethernet
+//              MAC FIFOs that interconnect the AXI-S interfaces of the
+//              Ethernet IP core with the upper layer (e.g. L3) of the network
+//              stack.
+//
+//              The FIFO is created from Block RAMs and can be chosen to be of
+//              size (in 8 bytes words) 512, 1024, 2048, 4096, 8192, or 2048.
+//
+//              Frame data received from the write side is written into the
+//              data field of the BRAM on the wr_axis_aclk. Start of Frame ,
+//              End of Frame and a binary encoded strobe signal (indicating the
+//              number of valid bytes in the last word of the frame) are
+//              created and stored in the parity field of the BRAM
+//
+//              The wr_axis_tlast and wr_axis_tuser signals are used to qualify
+//              the frame.  A frame for which wr_axis_tuser was not asserted
+//              when wr_axis_tlast was asserted will cause the FIFO write
+//              address pointer to be reset to the base address of that frame.
+//              In this way the bad frame will be overwritten with the next
+//              received frame and is therefore dropped from the FIFO.
+//
+//              When there is at least one complete frame in the FIFO,
+//              the read interface will be enabled allowing data to be read
+//              from the fifo.
+//
+//-----------------------------------------------------------------------------
 
 `timescale 1ps / 1ps
 

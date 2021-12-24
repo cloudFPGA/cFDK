@@ -1,55 +1,18 @@
-//-----------------------------------------------------------------------------
-// Title      : 10G ETHERNET RX/TX MAC FIFO WRAPPER
-// Project    : 10G Gigabit Ethernet FIFO Example Design
-//-----------------------------------------------------------------------------
-// File       : tenGigEth_MacFifo.v
-// Author     : Xilinx Inc.
-//-----------------------------------------------------------------------------
-// Description: This module is a wrapper for the bidirectional 10G Ethernet
-//              MAC FIFOs that interconnect the AXI-S interfaces of the
-//              Ethernet IP core with the upper layer (e.g. L3) of the network
-//              stack. The structure of the wrapper is illustrated below:
-//-----------------------------------------------------------------------------
-//
-//           .---------------------------------------------.
-//           |                                             |
-//           |       .----------------------------.        |
-//           |       |       TRANSMIT_FIFO        |        |
-//  ---------|------>|                            |--------|-------> MAC Tx
-//           |       |                            |        |         Interface
-//           |       '----------------------------'        |
-//           |                                             |
-//           |                                             |
-//           |                                             |
-// External  |                                             |
-// AXI-S     |                                             |
-// Interface |                                             |
-//           |                                             |
-//           |       .----------------------------.        |
-//           |       |       RECEIVE_FIFO         |        |
-//  <--------|-------|                            |<-------|--------   MAC Rx Interface
-//           |       |                            |        |
-//           |       '----------------------------'        |
-//           |                                             |
-//           |                                             |
-//           |                                             |
-//           |                                             |
-//           |                                             |
-//           '---------------------------------------------'
-//
-//-----------------------------------------------------------------------------
-// Functionality:
-//
-// 1. TRANSMIT_FIFO accepts 64-bit data from the client and writes
-//    this into the Transmitter FIFO. The logic will then extract this from
-//    the FIFO and write this data to the MAC Transmitter in 64-bit words.
-//
-// 2. RECEIVE_FIFO accepts 64-bit data from the MAC Receiver and
-//    writes this into the Receiver FIFO.  The client inferface can then
-//    read 64-bit words from this FIFO.
-//
-//-----------------------------------------------------------------------------
-
+/*******************************************************************************
+ * Copyright 2016 -- 2021 IBM Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *******************************************************************************/
 
 // ----------------------------------------------------------------------------
 // (c) Copyright 2014 Xilinx, Inc. All rights reserved.
@@ -99,6 +62,57 @@
 // PART OF THIS FILE AT ALL TIMES.
 // ----------------------------------------------------------------------------
 
+//-----------------------------------------------------------------------------
+// Title      : 10G ETHERNET RX/TX MAC FIFO WRAPPER
+// Project    : 10G Gigabit Ethernet FIFO Example Design
+//-----------------------------------------------------------------------------
+// File       : tenGigEth_MacFifo.v
+// Author     : FAB
+//-----------------------------------------------------------------------------
+// Description: This module is a wrapper for the bidirectional 10G Ethernet
+//              MAC FIFOs that interconnect the AXI-S interfaces of the
+//              Ethernet IP core with the upper layer (e.g. L3) of the network
+//              stack. The structure of the wrapper is illustrated below:
+//-----------------------------------------------------------------------------
+//
+//           .---------------------------------------------.
+//           |                                             |
+//           |       .----------------------------.        |
+//           |       |       TRANSMIT_FIFO        |        |
+//  ---------|------>|                            |--------|-------> MAC Tx
+//           |       |                            |        |         Interface
+//           |       '----------------------------'        |
+//           |                                             |
+//           |                                             |
+//           |                                             |
+// External  |                                             |
+// AXI-S     |                                             |
+// Interface |                                             |
+//           |                                             |
+//           |       .----------------------------.        |
+//           |       |       RECEIVE_FIFO         |        |
+//  <--------|-------|                            |<-------|--------   MAC Rx Interface
+//           |       |                            |        |
+//           |       '----------------------------'        |
+//           |                                             |
+//           |                                             |
+//           |                                             |
+//           |                                             |
+//           |                                             |
+//           '---------------------------------------------'
+//
+//-----------------------------------------------------------------------------
+// Functionality:
+//
+// 1. TRANSMIT_FIFO accepts 64-bit data from the client and writes
+//    this into the Transmitter FIFO. The logic will then extract this from
+//    the FIFO and write this data to the MAC Transmitter in 64-bit words.
+//
+// 2. RECEIVE_FIFO accepts 64-bit data from the MAC Receiver and
+//    writes this into the Receiver FIFO.  The client inferface can then
+//    read 64-bit words from this FIFO.
+//
+//-----------------------------------------------------------------------------
 
 `timescale 1ps / 1ps
 

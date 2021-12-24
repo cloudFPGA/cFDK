@@ -67,7 +67,7 @@
 // Project    : 10G/25G Gigabit Ethernet
 //-----------------------------------------------------------------------------
 // File       : tenGigEth_Core.v
-// Author     : Xilinx Inc.
+// Author     : FAB
 //-----------------------------------------------------------------------------
 // Description: This is the Ethernet layer 2 core of the 10GE subsystem. It 
 //              implements the data link layer and the physical layer with two
