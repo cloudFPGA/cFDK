@@ -27,7 +27,7 @@ For the components specified in C/C++, we use the Xilinx HLS flow to synthesize 
 #### HDL Coding Style and Naming Conventions
 The design of the **`SHELL`** uses some specific HDL and HLS naming rules to ease the description and the understanding 
  of its architecture. Please consider reading the two documents [**HDL coding style and naming conventions**](https://github.com/cloudFPGA/cFDK/tree/main/DOC/./hdl-naming-conventions.md)
- and [**HLS coding style and naming conventions**](https://github.com/cloudFPGA/cFDK/tre/main/DOC/./NTS/hls-naming-conventions.md) before diving into the code or starting
+ and [**HLS coding style and naming conventions**](https://github.com/cloudFPGA/cFDK/tree/main/DOC/./NTS/hls-naming-conventions.md) before diving into the code or starting
  to contribute to this part of the cloudFPGA project.
 
 #### List of Components
@@ -36,10 +36,10 @@ their architecture body.
 
 | Entity                            | Description                | Architecture
 |:----------------------------------|:---------------------------|:--------------
-| **[ETH](https://github.com/cloudFPGA/cFDK/tree/mainter/DOC/./ETH/ETH.md)**           | 10G Ethernet subsystem     | [tenGigEth.v](https://github.com/cloudFPGA/cFDK/tree/mainter/DOC/../SRA/LIB/SHELL/LIB/hdl/eth/tenGigEth.v)
-| **[MEM](https://github.com/cloudFPGA/cFDK/tree/mainter/DOC/./MEM/MEM.md)**           | DDR4 Memory subsystem      | [memSubSys.v](https://github.com/cloudFPGA/cFDK/tree/mainter/DOC/../SRA/LIB/SHELL/LIB/hdl/mem/memSubSys.v)
-| **[MMIO](https://github.com/cloudFPGA/cFDK/tree/mainter/DOC/./MMIO/MMIO.md)**        | Memory Mapped IOs          | [mmioClient_A8_D8.v](https://github.com/cloudFPGA/cFDK/tree/mainter/DOC/../SRA/LIB/SHELL/LIB/hdl/mmio/mmioClient_A8_D8.v)
-| **[NTS](https://github.com/cloudFPGA/cFDK/tree/mainter/DOC/./NTS/NTS.md)**           | Network Transport Stack    | [nts_TcpIp.v](https://github.com/cloudFPGA/cFDK/tree/mainter/DOC/../SRA/LIB/SHELL/LIB/hdl/nts/nts_TcpIp.v)
+| **[ETH](https://github.com/cloudFPGA/cFDK/tree/main/DOC/./ETH/ETH.md)**           | 10G Ethernet subsystem     | [tenGigEth.v](https://github.com/cloudFPGA/cFDK/tree/main/DOC/../SRA/LIB/SHELL/LIB/hdl/eth/tenGigEth.v)
+| **[MEM](https://github.com/cloudFPGA/cFDK/tree/main/DOC/./MEM/MEM.md)**           | DDR4 Memory subsystem      | [memSubSys.v](https://github.com/cloudFPGA/cFDK/tree/main/DOC/../SRA/LIB/SHELL/LIB/hdl/mem/memSubSys.v)
+| **[MMIO](https://github.com/cloudFPGA/cFDK/tree/main/DOC/./MMIO/MMIO.md)**        | Memory Mapped IOs          | [mmioClient_A8_D8.v](https://github.com/cloudFPGA/cFDK/tree/mainter/DOC/../SRA/LIB/SHELL/LIB/hdl/mmio/mmioClient_A8_D8.v)
+| **[NTS](https://github.com/cloudFPGA/cFDK/tree/main/DOC/./NTS/NTS.md)**           | Network Transport Stack    | [nts_TcpIp.v](https://github.com/cloudFPGA/cFDK/tree/main/DOC/../SRA/LIB/SHELL/LIB/hdl/nts/nts_TcpIp.v)
 
 #### List of Interfaces
 The **`SHELL`** _Kale_ exposes the following five interfaces:
@@ -71,7 +71,7 @@ The UDP application interface (UAIF) connects the UDP offload engine of the **`S
  * `soROL_Nts_Udp_****` signals implement the receive data and control paths between the **`SHELL`** and the application
     layer of the **`ROLE`** (i.e., the incoming network traffic direction).
 
-Refer to the [UDP Application Layer Interface of UOE](https://github.com/cloudFPGA/cFDK/tree/mainter/DOC/./NTS/UOE.md#udp-application-layer-interface) for a detailed 
+Refer to the [UDP Application Layer Interface of UOE](https://github.com/cloudFPGA/cFDK/tree/main/DOC/./NTS/UOE.md#udp-application-layer-interface) for a detailed 
  description of these interfaces. 
 
 ##### TCP Application Interface
@@ -83,7 +83,7 @@ The TCP application interface (TAIF) connects the TCP offload engine of the **`S
  * `soROL_Nts__Tcp_****` signals implement the receive data and control paths between the **`SHELL`** and the 
     application layer of the **`ROLE`** (i.e., the incoming network traffic direction).
 
-Refer to the [TCP Application Layer Interface of TOE](https://github.com/cloudFPGA/cFDK/tree/mainter/DOC/./NTS/TOE.md#tcp-application-layer-interface) for a detailed
+Refer to the [TCP Application Layer Interface of TOE](https://github.com/cloudFPGA/cFDK/tree/main/DOC/./NTS/TOE.md#tcp-application-layer-interface) for a detailed
  description of these interfaces.
 
 ##### Memory Stream Interface
