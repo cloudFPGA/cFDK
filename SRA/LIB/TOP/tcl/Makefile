@@ -167,7 +167,8 @@ $(XPR_PROJ): $(MOD_DIR)/xdc ../hdl $(cFpIpDir) $(SHELL_DIR)/Shell.v | $(cFpDcpDi
 	@/bin/echo "-create -synth \\" >> .vivado_basecmd.sh
 else
 $(XPR_PROJ): $(MOD_DIR)/xdc ../hdl | $(cFpDcpDir) 
-	@/bin/echo "-create -synth \\" >> .vivado_basecmd.sh
+	@#/bin/echo "-create -synth \\" >> .vivado_basecmd.sh
+	@/bin/echo "-create \\" >> .vivado_basecmd.sh
 endif
 
 ##with pr:
