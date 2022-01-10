@@ -32,7 +32,7 @@ IP_DIR = $(cFpIpDir)
 endif
 
 
-.PHONY: all hls_cores clean ip
+.PHONY: all hls_cores clean ip enc_ips
 
 
 all: ip
@@ -62,6 +62,9 @@ $(IP_DIR): ../LIB/hls ./tcl/create_ip_cores.tcl ./tcl/decouple_ip_type.tcl ../LI
 # Create IP directory if it does not exist
 $(IP_DIR)/ip_user_files:
 	mkdir -p $@
+
+enc_ips: $(IP_DIR)/ip_user_files
+	cd ./tcl/ ; vivado -mode batch -source create_only_enc_ip_cores.tcl -notrace -log create_only_enc_ip_cores.log 
 
 
 clean: 
