@@ -1,5 +1,5 @@
 -- *******************************************************************************
--- * Copyright 2016 -- 2021 IBM Corporation
+-- * Copyright 2016 -- 2022 IBM Corporation
 -- *
 -- * Licensed under the Apache License, Version 2.0 (the "License");
 -- * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@
 -- *                             cloudFPGA
 -- *
 -- *----------------------------------------------------------------------------
--- *                                                
+-- *
 -- * Title : Generic top level design for a cloudFPGA project implemented on a
 -- *  FMKU60 module and based on a shell 'Kale'.
 -- *
