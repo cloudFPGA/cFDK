@@ -53,6 +53,24 @@ struct NetworkWord {
   NetworkWord(ap_uint<64> tdata, ap_uint<8> tkeep, ap_uint<1> tlast) :
     tdata(tdata), tkeep(tkeep), tlast(tlast) {}
   NetworkWord(ap_uint<64> single_data) : tdata(single_data), tkeep(0xFFF), tlast(1) {}
+  ap_uint<64> getTData() {
+    return tdata;
+  }
+  ap_uint<8> getTKeep() {
+    return tkeep;
+  }
+  ap_uint<1> getTLast() {
+    return tlast;
+  }
+  void setTData(ap_uint<64> new_data) {
+    tdata = new_data;
+  }
+  void setTKeep(ap_uint<8> new_keep) {
+    tkeep = new_keep;
+  }
+  void setTLast(ap_uint<1> new_last) {
+    tlast = new_last;
+  }
 };
 
 
