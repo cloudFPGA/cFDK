@@ -648,19 +648,42 @@ if { ${synth} } {
 
 if { ${link} } {
 
-
   #if { ! ${create} } {
-     catch {open_project ${xprDir}/${xprName}.xpr}
+  catch {open_project ${xprDir}/${xprName}.xpr}
   #}
-  #set roleDcpFile ${rootDir}/../../ROLE/${usedRole}/${usedRoleType}_OOC.dcp
+  # ATTENTION/FIXME: We are using project flow here (to have similar implementation run settings like for monolithic)
+  # but this is not recommended...(but up to now, it works)
+  # see https://support.xilinx.com/s/question/0D52E000070p99TSAQ/debugging-in-partial-reconfiguration-designs-could-not-replace-cell-dbghubcv-library-etc-file-file-with-cell-dbghub-library-work40-file-dbghub0edf-because-of-a-port-interface-mismatch
+  # "When you prepare the synthesized dcp of static and dynamic region, actually you are using non-project mode to link them and you need to use the related standard non-project commands in your design. Mixing the command in non-project and project mode is not recommended behavior, and I think it's the reason for the issue you met.
+  # Yes, sometime you don't see any issue with non-standard command; but it's hard to prevent some unexpected issue."
+  #
+  open_run synth_1 -name synth_1
+
+  # new PR flow
+  set_property HD.RECONFIGURABLE true [get_cells ROLE]
+  create_pblock pblock_ROLE
+  # resize pblock
+  set prRegionTclFile "${xdcDir}/topFMKU60_pr.tcl"
+  source ${prRegionTclFile}
+
+  add_cells_to_pblock pblock_ROLE [get_cells ROLE]
+
+  my_puts "###################################################################################"
+  my_puts "## Executed Partial Reconfiguration Tcl File: ${prRegionTclFile}; PBLOCK CREATED;"
+  my_puts "###################################################################################"
+
+
   set roleDcpFile ${usedRoleDir}/Role_${cFpSRAtype}_OOC.dcp
-  add_files ${roleDcpFile}
-  update_compile_order -fileset sources_1
+  # read_checkpoint -cell [get_cells ROLE] Role_Themisto_OOC.dcp
+  read_checkpoint -cell [get_cells ROLE] ${roleDcpFile}
   my_dbg_trace "Added dcp of ROLE ${roleDcpFile}." ${dbgLvl_1}
 
-  set_property SCOPED_TO_CELLS {ROLE} [get_files ${roleDcpFile} ]
 
-  open_run synth_1 -name synth_1
+  # old flow
+  # add_files ${roleDcpFile}
+  # update_compile_order -fileset sources_1
+  # set_property SCOPED_TO_CELLS {ROLE} [get_files ${roleDcpFile} ]
+  # open_run synth_1 -name synth_1
   # Link the two dcps together
   #link_design -mode default -reconfig_partitions {ROLE}  -top ${topName} -part ${xilPartName}
   ### NOTE: link_design is done by open_design in project mode!!
@@ -668,32 +691,27 @@ if { ${link} } {
   set_property needs_refresh false [get_runs synth_1]
 
 
-
-  if { $pr } {
-    set constrObj [ get_filesets constrs_1 ]
-    if { $insert_ila } {
-      # we have to add debug constrains (of the Shell) befor we add PR partitions
-      add_files -fileset ${constrObj} ${rootDir}/TOP/xdc/debug.xdc
-      my_info_puts "DEBUG XDC ADDED."
-      set_property needs_refresh false [get_runs synth_1]
-    }
-
-    set prConstrFile "${xdcDir}/topFMKU60_pr.xdc"
-    add_files -fileset ${constrObj} ${prConstrFile}
-    #if { [ add_files -fileset ${constrObj} ${prConstrFile} ] eq "" } {
-    #    my_err_puts "Could not add file ${prConstrFile} to the fileset \'${constrObj}\' !!!"
-    #    my_err_puts "  The script will be aborted here..."
-    #    my_puts ""
-    #    exit ${KO}
-    #}
-    my_puts "################################################################################"
-    my_puts "## ADDED Partial Reconfiguration Constraint File: ${prConstrFile}; PBLOCK CREATED;"
-    my_puts "################################################################################"
-
-    write_checkpoint -force ${dcpDir}/1_${topName}_linked_pr.dcp
-  } else {
-    write_checkpoint -force ${dcpDir}/1_${topName}_linked.dcp
+  # TODO, for PR, this doesn't work
+  # set constrObj [ get_filesets constrs_1 ]
+  if { $insert_ila } {
+  #  # we have to add debug constrains (of the Shell) befor we add PR partitions
+  #  add_files -fileset ${constrObj} ${rootDir}/TOP/xdc/debug.xdc
+  #  my_info_puts "DEBUG XDC ADDED."
+  #  set_property needs_refresh false [get_runs synth_1]
+    my_info_puts "Global / 'Mark Debug' flow isn't working with PARTIAL RECONFIGURATION, so this option will be ignored."
   }
+
+  # old flow
+  #  set prConstrFile "${xdcDir}/topFMKU60_pr.xdc"
+  #  add_files -fileset ${constrObj} ${prConstrFile}
+  #if { [ add_files -fileset ${constrObj} ${prConstrFile} ] eq "" } {
+  #    my_err_puts "Could not add file ${prConstrFile} to the fileset \'${constrObj}\' !!!"
+  #    my_err_puts "  The script will be aborted here..."
+  #    my_puts ""
+  #    exit ${KO}
+  #}
+
+  write_checkpoint -force ${dcpDir}/1_${topName}_linked_pr.dcp
 
   my_puts "################################################################################"
   my_puts "## DONE WITH DESIGN LINKING; .dcp SAVED"
@@ -1027,7 +1045,7 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
           exec /bin/bash ${rootDir}/env/create_sig.sh 4_${topName}_impl_${curImpl}_pblock_ROLE_partial.bin pr_verify.rpt
           #close_project
           # DEBUG probes
-          if { $insert_ila } {
+          if { $insert_ila || ([llength [get_cells -quiet -hier -filter REF_NAME==dbg_hub]])} {
             write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}.ltx
           }
           # write role report
@@ -1054,7 +1072,7 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
         write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
         #close_project
         # DEBUG probes
-        if { $insert_ila } {
+        if { $insert_ila || ([llength [get_cells -quiet -hier -filter REF_NAME==dbg_hub]])} {
           write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}.ltx
         }
       }
@@ -1076,7 +1094,7 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
         # in both cases: add certificate
         exec /bin/bash ${rootDir}/env/create_sig.sh 4_${topName}_impl_${curImpl}_pblock_ROLE_partial.bin pr_verify.rpt
         # DEBUG probes
-        if { $insert_ila } {
+        if { $insert_ila || ([llength [get_cells -quiet -hier -filter REF_NAME==dbg_hub]])} {
           write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}.ltx
         }
         # write role report
