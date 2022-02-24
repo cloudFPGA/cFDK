@@ -43,7 +43,7 @@ module Role_Themisto (
     //-- LY7 Enable and Reset
     input            piMMIO_Ly7_Rst,
     input            piMMIO_Ly7_En,
-    
+
     //------------------------------------------------------
     //-- SHELL / Role / Nts0 / Udp Interface
     //------------------------------------------------------
@@ -72,7 +72,7 @@ module Role_Themisto (
     output            siNRC_Role_Udp_Meta_TREADY,
     input  [  7: 0]   siNRC_Role_Udp_Meta_TKEEP,
     input             siNRC_Role_Udp_Meta_TLAST,
-    
+
     //------------------------------------------------------
     //-- SHELL / Role / Nts0 / Tcp Interface
     //------------------------------------------------------
@@ -101,7 +101,7 @@ module Role_Themisto (
     output           siNRC_Role_Tcp_Meta_TREADY,
     input  [  7: 0]  siNRC_Role_Tcp_Meta_TKEEP,
     input            siNRC_Role_Tcp_Meta_TLAST,
-    
+
     //------------------------------------------------------
     //-- SHELL / Mem / Mp0 Interface
     //------------------------------------------------------
@@ -134,7 +134,7 @@ module Role_Themisto (
     output           soMEM_Mp0_Write_tlast,
     output           soMEM_Mp0_Write_tvalid,
     input            soMEM_Mp0_Write_tready,
-    
+
     //------------------------------------------------------
     //-- ROLE / Mem / Mp1 Interface
     //------------------------------------------------------
@@ -167,22 +167,39 @@ module Role_Themisto (
     input            moMEM_Mp1_RLAST,
     input            moMEM_Mp1_RVALID,
     output           moMEM_Mp1_RREADY,
-    
+
     //---- [APP_RDROL] -------------------
     // to be use as ROLE VERSION IDENTIFICATION --
     output [ 15: 0]  poSHL_Mmio_RdReg,
-    
+
     //--------------------------------------------------------
     //-- TOP : Secondary Clock (Asynchronous)
     //--------------------------------------------------------
     input            piTOP_250_00Clk,
-    
+
     //------------------------------------------------
     //-- FMC Interface
     //------------------------------------------------
     input  [ 31: 0]  piFMC_ROLE_rank,
     input  [ 31: 0]  piFMC_ROLE_size,
-    
+
+    //------------------------------------------------
+    //-- DEBUG PORTS (see UG909)
+    //------------------------------------------------
+    input            dpBSCAN_drck       ,
+    input            dpBSCAN_shift      ,
+    input            dpBSCAN_tdi        ,
+    input            dpBSCAN_update     ,
+    input            dpBSCAN_sel        ,
+    output           dpBSCAN_tdo        ,
+    input            dpBSCAN_tms        ,
+    input            dpBSCAN_tck        ,
+    input            dpBSCAN_runtest    ,
+    input            dpBSCAN_reset      ,
+    input            dpBSCAN_capture    ,
+    input            dpBSCAN_bscanid_en ,
+
+
     output poVoid
 ); // End of PortList
 
@@ -190,6 +207,13 @@ module Role_Themisto (
   // *****************************************************************************
   // **  STRUCTURE
   // *****************************************************************************
+
+  //--============================================================================
+  //--  DEBUG SIGNALS ATTRIBUTE DECLARATIONS (see UG909)
+  //--============================================================================
+  //TODO: add Verilog attributes from UG909, Chapter 8, "Using Vivado Debug
+  //        Cores" (if debugging with PR is required).
+
 
   //============================================================================
   //  SIGNAL DECLARATIONS
