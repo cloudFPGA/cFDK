@@ -38,7 +38,7 @@ architecture body.
 
 | Entity                  | Description                | Architecture
 |:------------------------|:---------------------------|:--------------
-| **[AKd](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/./AKd.md)**     | AcK delayer                | [ack_delay](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/ack_delay/ack_delay.cpp)
+| **[AKd](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/./AKd.md)**     | AcK delayer                | [ack_delay](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/ack_delay/src/ack_delay.cpp)
 | **[EVe](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/./EVe.md)**     | EVent engine               | [event_engine](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/event_engine/event_engine.cpp)
 | **[PRt](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/./PRt.md)**     | PoRt table                 | [port_table](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/port_table/port_table.cpp)
 | **[RAi](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/./RAi.md)**     | Rx Application interface   | [tx_app_interface](https://github.com/cloudFPGA/cFDK/blob/main/DOC/NTS/../../SRA/LIB/SHELL/LIB/hls/NTS/toe/src/rx_app_interface/rx_app_interface.cpp)
