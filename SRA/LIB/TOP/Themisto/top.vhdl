@@ -63,31 +63,31 @@ entity topFMKU60 is
     ------------------------------------------------------
     -- PSOC / FPGA Configuration Interface (Fcfg)
     --  System reset controlled by the PSoC.
-    ------------------------------------------------------  
+    ------------------------------------------------------
     piPSOC_Fcfg_Rst_n               : in    std_ulogic;
 
     ------------------------------------------------------
     -- CLKT / DRAM clocks 0 and 1 (Mem. Channels 0 and 1)
-    ------------------------------------------------------     
+    ------------------------------------------------------
     piCLKT_Mem0Clk_n                : in    std_ulogic;
     piCLKT_Mem0Clk_p                : in    std_ulogic;
     piCLKT_Mem1Clk_n                : in    std_ulogic;
     piCLKT_Mem1Clk_p                : in    std_ulogic;
- 
-    ------------------------------------------------------     
+
+    ------------------------------------------------------
     -- CLKT / GTH clocks (10Ge, Sata, Gtio Interfaces)
-    ------------------------------------------------------     
+    ------------------------------------------------------
     piCLKT_10GeClk_n                : in    std_ulogic;
     piCLKT_10GeClk_p                : in    std_ulogic;
 
-    ------------------------------------------------------     
+    ------------------------------------------------------
     -- CLKT / User clocks 0 and 1 (156.25MHz, 250MHz)
     ------------------------------------------------------
-    piCLKT_Usr0Clk_n                : in    std_ulogic; 
+    piCLKT_Usr0Clk_n                : in    std_ulogic;
     piCLKT_Usr0Clk_p                : in    std_ulogic;
     piCLKT_Usr1Clk_n                : in    std_ulogic;
     piCLKT_Usr1Clk_p                : in    std_ulogic;
-       
+
     ------------------------------------------------------
     -- PSOC / External Memory Interface (Emif)
     ------------------------------------------------------
@@ -98,12 +98,12 @@ entity topFMKU60 is
     piPSOC_Emif_AdS_n               : in    std_ulogic;
     piPSOC_Emif_Addr                : in    std_ulogic_vector(gEmifAddrWidth-1 downto 0);
     pioPSOC_Emif_Data               : inout std_ulogic_vector(gEmifDataWidth-1 downto 0);
-  
+
     ------------------------------------------------------
     -- LED / Heart Beat Interface (Yellow LED)
     ------------------------------------------------------
     poLED_HeartBeat_n               : out   std_ulogic;
-  
+
     ------------------------------------------------------
     -- -- DDR(4) / Memory Channel 0 Interface (Mc0)
     ------------------------------------------------------
@@ -143,14 +143,14 @@ entity topFMKU60 is
     ------------------------------------------------------
     -- ECON / Edge Connector Interface (SPD08-200)
     ------------------------------------------------------
-    piECON_Eth_10Ge0_n              : in    std_ulogic;  
-    piECON_Eth_10Ge0_p              : in    std_ulogic; 
+    piECON_Eth_10Ge0_n              : in    std_ulogic;
+    piECON_Eth_10Ge0_p              : in    std_ulogic;
     poECON_Eth_10Ge0_n              : out   std_ulogic;
     poECON_Eth_10Ge0_p              : out   std_ulogic
 
   );
-  
-end topFMKU60; 
+
+end topFMKU60;
 
 
 --*****************************************************************************
@@ -158,10 +158,10 @@ end topFMKU60;
 --*****************************************************************************
 architecture structural of topFMKU60 is
 
-  --------------------------------------------------------n
-  -- [TOP] SIGNAL DECLARATIONS 
   --------------------------------------------------------
- 
+  -- [TOP] SIGNAL DECLARATIONS
+  --------------------------------------------------------
+
   -- Global User Clocks ----------------------------------
   signal sTOP_156_25Clk                     : std_ulogic;
   signal sTOP_250_00Clk                     : std_ulogic;
@@ -169,18 +169,18 @@ architecture structural of topFMKU60 is
   -- Global Reset ----------------------------------------
   signal sTOP_156_25Rst_n                   : std_ulogic;
   signal sTOP_156_25Rst                     : std_ulogic;
-    
+
   -- Global Source Synchronous Clock and Reset -----------
   signal sSHL_156_25Clk                     : std_ulogic;
   signal sSHL_156_25Rst                     : std_ulogic;
-  
+
   -- Bitstream Identification Value ----------------------
-  signal sTOP_Timestamp                     : stTimeStamp; 
-   
+  signal sTOP_Timestamp                     : stTimeStamp;
+
   --------------------------------------------------------
-  -- SIGNAL DECLARATIONS : [SHELL/Nts] <--> [ROLE/Nts] 
+  -- SIGNAL DECLARATIONS : [SHELL/Nts] <--> [ROLE/Nts]
   --------------------------------------------------------
-  ---- UDP Interface --------------------------- 
+  ---- UDP Interface ---------------------------
   ------ Input AXI-Write Stream Interface ------
   signal sROL_Shl_Nts0_Udp_Axis_tdata       : std_ulogic_vector( 63 downto 0);
   signal sROL_Shl_Nts0_Udp_Axis_tkeep       : std_ulogic_vector(  7 downto 0);
@@ -206,7 +206,7 @@ architecture structural of topFMKU60 is
   signal sNRC_Role_Udp_Meta_TREADY              : std_ulogic;
   signal sNRC_Role_Udp_Meta_TKEEP               : std_ulogic_vector(  7 downto 0);
   signal sNRC_Role_Udp_Meta_TLAST               : std_ulogic;
-  
+
   ---- TCP Interface ---------------------------
   ------ Input AXI-Write Stream Interface ------
   signal sROL_Shl_Nts0_Tcp_Axis_tdata       : std_ulogic_vector( 63 downto 0);
@@ -237,7 +237,7 @@ architecture structural of topFMKU60 is
 
 
   --------------------------------------------------------
-  -- SIGNAL DECLARATIONS : [SHELL/Mem] <--> [ROLE/Mem] 
+  -- SIGNAL DECLARATIONS : [SHELL/Mem] <--> [ROLE/Mem]
   --------------------------------------------------------
   -- Memory Port #0 ------------------------------
   ------  Stream Read Command --------------
@@ -298,10 +298,10 @@ architecture structural of topFMKU60 is
   signal smROL_SHL_Mem_Mp1_RLAST            : std_ulogic;
   signal smROL_SHL_Mem_Mp1_RVALID           : std_ulogic;
   signal smROL_SHL_Mem_Mp1_RREADY           : std_ulogic;
-  
+
 
   --------------------------------------------------------
-  -- SIGNAL DECLARATIONS : [MMIO] <--> [ROLE] 
+  -- SIGNAL DECLARATIONS : [MMIO] <--> [ROLE]
   --------------------------------------------------------
   ---- [PHY_RESET] -------------------------
   signal sSHL_ROL_Mmio_Ly7Rst               : std_ulogic;
@@ -324,11 +324,11 @@ architecture structural of topFMKU60 is
   signal sSHL_ROL_Mmio_WrReg                : std_ulogic_vector( 15 downto 0);
 
   --------------------------------------------------------
-  -- SIGNAL DECLARATION : [FMC] <--> [ROLE] 
+  -- SIGNAL DECLARATION : [FMC] <--> [ROLE]
   --------------------------------------------------------
   signal sSHL_ROL_Fmc_Rank                  : std_ulogic_vector( 31 downto 0);
   signal sSHL_ROL_Fmc_Size                  : std_ulogic_vector( 31 downto 0);
-  
+
   signal sROL_reset_combinded               : std_ulogic;
 
   --===========================================================================
@@ -336,8 +336,8 @@ architecture structural of topFMKU60 is
   --===========================================================================
 
   -- [INFO] The SHELL component is declared in the corresponding TOP package.
-  -- not this time 
-  -- to declare the component in the pkg seems not to work for Verilog or .dcp modules 
+  -- not this time
+  -- to declare the component in the pkg seems not to work for Verilog or .dcp modules
   component Shell_Themisto
     generic (
       gSecurityPriviledges : string  := "super";  -- Can be "user" or "super"
@@ -351,14 +351,14 @@ architecture structural of topFMKU60 is
       ------------------------------------------------------
       piTOP_156_25Rst                   : in    std_ulogic;
       piTOP_156_25Clk                   : in    std_ulogic;
-       
+
       ------------------------------------------------------
       -- TOP / Bitstream Identification
       ------------------------------------------------------
       piTOP_Timestamp                   : in   std_ulogic_vector( 31 downto 0);
-       
+
       ------------------------------------------------------
-      -- CLKT / Clock Tree Interface 
+      -- CLKT / Clock Tree Interface
       ------------------------------------------------------
       piCLKT_Mem0Clk_n                  : in    std_ulogic;
       piCLKT_Mem0Clk_p                  : in    std_ulogic;
@@ -366,7 +366,7 @@ architecture structural of topFMKU60 is
       piCLKT_Mem1Clk_p                  : in    std_ulogic;
       piCLKT_10GeClk_n                  : in    std_ulogic;
       piCLKT_10GeClk_p                  : in    std_ulogic;
-       
+
       ------------------------------------------------------
       -- PSOC / External Memory Interface (Emif)
       ------------------------------------------------------
@@ -377,12 +377,12 @@ architecture structural of topFMKU60 is
       piPSOC_Emif_AdS_n                 : in    std_ulogic;
       piPSOC_Emif_Addr                  : in    std_ulogic_vector(gMmioAddrWidth-1 downto 0);
       pioPSOC_Emif_Data                 : inout std_ulogic_vector(gMmioDataWidth-1 downto 0);
- 
+
       ------------------------------------------------------
       -- LED / Heart Beat Interface (Yellow LED)
       ------------------------------------------------------
       poLED_HeartBeat_n                 : out   std_ulogic;
-       
+
       ------------------------------------------------------
       -- DDR4 / Memory Channel 0 Interface (Mc0)
       ------------------------------------------------------
@@ -400,10 +400,10 @@ architecture structural of topFMKU60 is
       poDDR4_Mem_Mc0_Ck_n               : out   std_ulogic;
       poDDR4_Mem_Mc0_Ck_p               : out   std_ulogic;
       poDDR4_Mem_Mc0_Reset_n            : out   std_ulogic;
- 
+
       ------------------------------------------------------
       -- DDR4 / Memory Channel 1 Interface (Mc1)
-      ------------------------------------------------------  
+      ------------------------------------------------------
       pioDDR4_Mem_Mc1_DmDbi_n           : inout std_ulogic_vector(  8 downto 0);
       pioDDR4_Mem_Mc1_Dq                : inout std_ulogic_vector( 71 downto 0);
       pioDDR4_Mem_Mc1_Dqs_n             : inout std_ulogic_vector(  8 downto 0);
@@ -418,7 +418,7 @@ architecture structural of topFMKU60 is
       poDDR4_Mem_Mc1_Ck_n               : out   std_ulogic;
       poDDR4_Mem_Mc1_Ck_p               : out   std_ulogic;
       poDDR4_Mem_Mc1_Reset_n            : out   std_ulogic;
-       
+
       ------------------------------------------------------
       -- ECON / Edge Connector Interface (SPD08-200)
       ------------------------------------------------------
@@ -426,7 +426,7 @@ architecture structural of topFMKU60 is
       piECON_Eth_10Ge0_p                : in    std_ulogic;
       poECON_Eth_10Ge0_n                : out   std_ulogic;
       poECON_Eth_10Ge0_p                : out   std_ulogic;
-      
+
       ------------------------------------------------------
       -- ROLE / Output Clock and Reset Interfaces
       ------------------------------------------------------
@@ -461,7 +461,7 @@ architecture structural of topFMKU60 is
       soNRC_Role_Udp_Meta_TREADY     : in    std_ulogic;
       soNRC_Role_Udp_Meta_TKEEP      : out   std_ulogic_vector(  7 downto 0);
       soNRC_Role_Udp_Meta_TLAST      : out   std_ulogic;
-      
+
       ------------------------------------------------------
       -- ROLE / Shl / Nts0 / Tcp Interfaces
       ------------------------------------------------------
@@ -490,11 +490,11 @@ architecture structural of topFMKU60 is
       soNRC_Role_Tcp_Meta_TREADY     : in    std_ulogic;
       soNRC_Role_Tcp_Meta_TKEEP      : out   std_ulogic_vector(  7 downto 0);
       soNRC_Role_Tcp_Meta_TLAST      : out   std_ulogic;
-  
-      ------------------------------------------------------  
+
+      ------------------------------------------------------
       -- ROLE / Mem / Mp0 Interface
       ------------------------------------------------------
-      -- Memory Port #0 / S2MM-AXIS ------------------   
+      -- Memory Port #0 / S2MM-AXIS ------------------
       ---- Stream Read Command -----------------
       siROL_Mem_Mp0_RdCmd_tdata         : in    std_ulogic_vector( 79 downto 0);
       siROL_Mem_Mp0_RdCmd_tvalid        : in    std_ulogic;
@@ -523,7 +523,7 @@ architecture structural of topFMKU60 is
       siROL_Mem_Mp0_Write_tlast         : in    std_ulogic;
       siROL_Mem_Mp0_Write_tvalid        : in    std_ulogic;
       siROL_Mem_Mp0_Write_tready        : out   std_ulogic;
-       
+
       ------------------------------------------------------
       -- ROLE / Mem / Mp1 Interface
       ------------------------------------------------------
@@ -556,7 +556,7 @@ architecture structural of topFMKU60 is
       miROL_Mem_Mp1_RLAST               : out   std_ulogic;
       miROL_Mem_Mp1_RVALID              : out   std_ulogic;
       miROL_Mem_Mp1_RREADY              : in    std_ulogic;
-      
+
       --------------------------------------------------------
       -- ROLE / Mmio / AppFlash Interface
       --------------------------------------------------------
@@ -579,25 +579,25 @@ architecture structural of topFMKU60 is
       piROL_Mmio_RdReg                  : in    std_ulogic_vector( 15 downto 0);
       ---- APP_WRROL --------------------
       poROL_Mmio_WrReg                  : out   std_ulogic_vector( 15 downto 0);
-           
+
       --------------------------------------------------------
-      -- ROLE / Fmc / Management Interface 
+      -- ROLE / Fmc / Management Interface
       --------------------------------------------------------
       poROL_Fmc_Rank                    : out   std_logic_vector(31 downto 0);
       poROL_Fmc_Size                    : out   std_logic_vector(31 downto 0);
-      
+
       poVoid                            : out   std_ulogic
- 
+
     );
   end component Shell_Themisto;
 
 
   -- [INFO] The ROLE component is declared in the corresponding TOP package.
-  -- not this time 
-  -- to declare the component in the pkg seems not to work for Verilog or .dcp modules 
+  -- not this time
+  -- to declare the component in the pkg seems not to work for Verilog or .dcp modules
   component Role_Themisto
     port (
-      
+
       ------------------------------------------------------
       -- TOP / Global Input Clock and Reset Interface
       ------------------------------------------------------
@@ -606,7 +606,7 @@ architecture structural of topFMKU60 is
       -- LY7 Enable and Reset
       piMMIO_Ly7_Rst                      : in    std_ulogic;
       piMMIO_Ly7_En                       : in    std_ulogic;
-      
+
       ------------------------------------------------------
       -- SHELL / Role / Nts0 / Udp Interface
       ------------------------------------------------------
@@ -635,7 +635,7 @@ architecture structural of topFMKU60 is
       siNRC_Role_Udp_Meta_TREADY  : out   std_ulogic;
       siNRC_Role_Udp_Meta_TKEEP   : in    std_ulogic_vector(  7 downto 0);
       siNRC_Role_Udp_Meta_TLAST   : in    std_ulogic;
-      
+
       ------------------------------------------------------
       -- SHELL / Role / Nts0 / Tcp Interface
       ------------------------------------------------------
@@ -664,12 +664,12 @@ architecture structural of topFMKU60 is
       siNRC_Role_Tcp_Meta_TREADY  : out   std_ulogic;
       siNRC_Role_Tcp_Meta_TKEEP   : in    std_ulogic_vector(  7 downto 0);
       siNRC_Role_Tcp_Meta_TLAST   : in    std_ulogic;
-      
+
 
      ------------------------------------------------------
       -- SHELL / Mem / Mp0 Interface
       ------------------------------------------------------
-      ---- Memory Port #0 / S2MM-AXIS -------------   
+      ---- Memory Port #0 / S2MM-AXIS -------------
       ------ Stream Read Command ---------
       soMEM_Mp0_RdCmd_tdata           : out   std_ulogic_vector( 79 downto 0);
       soMEM_Mp0_RdCmd_tvalid          : out   std_ulogic;
@@ -697,8 +697,8 @@ architecture structural of topFMKU60 is
       soMEM_Mp0_Write_tkeep           : out   std_ulogic_vector( 63 downto 0);
       soMEM_Mp0_Write_tlast           : out   std_ulogic;
       soMEM_Mp0_Write_tvalid          : out   std_ulogic;
-      soMEM_Mp0_Write_tready          : in    std_ulogic; 
-      
+      soMEM_Mp0_Write_tready          : in    std_ulogic;
+
       ------------------------------------------------------
       -- SHELL / Mem / Mp1 Interface
       ------------------------------------------------------
@@ -756,22 +756,38 @@ architecture structural of topFMKU60 is
       -- TOP : Secondary Clock (Asynchronous)
       --------------------------------------------------------
       piTOP_250_00Clk                     : in    std_ulogic;  -- Freerunning
-    
+
       ------------------------------------------------
       -- FMC Interface
-      ------------------------------------------------ 
+      ------------------------------------------------
       piFMC_ROLE_rank                     : in    std_logic_vector(31 downto 0);
       piFMC_ROLE_size                     : in    std_logic_vector(31 downto 0);
-          
-      poVoid                              : out   std_ulogic          
+
+      ------------------------------------------------
+      -- DEBUG PORTS (see UG909)
+      ------------------------------------------------
+      dpBSCAN_drck              : IN    std_logic := '0';
+      dpBSCAN_shift             : IN    std_logic := '0';
+      dpBSCAN_tdi               : IN    std_logic := '0';
+      dpBSCAN_update            : IN    std_logic := '0';
+      dpBSCAN_sel               : IN    std_logic := '0';
+      dpBSCAN_tdo               : OUT   std_logic;
+      dpBSCAN_tms               : IN    std_logic := '0';
+      dpBSCAN_tck               : IN    std_logic := '0';
+      dpBSCAN_runtest           : IN    std_logic := '0';
+      dpBSCAN_reset             : IN    std_logic := '0';
+      dpBSCAN_capture           : IN    std_logic := '0';
+      dpBSCAN_bscanid_en        : IN    std_logic := '0';
+
+      poVoid                              : out   std_ulogic
       );
     end component Role_Themisto;
 
 begin
-  
+
   --===========================================================================
   --==  INST: INPUT USER CLOCK BUFFERS
-  --=========================================================================== 
+  --===========================================================================
   CLKBUF0 : IBUFDS
     generic map (
       DQS_BIAS => "FALSE"  -- (FALSE, TRUE)
@@ -797,7 +813,7 @@ begin
   --==    [INFO] Note that we instantiate 2 or 3 library primitives rather than
   --==      a VHDL process because it makes it easier to apply the "ASYNC_REG"
   --==      property to those instances.
-  --=========================================================================== 
+  --===========================================================================
   TOP_META_RST : HARD_SYNC
     generic map (
       INIT => '0',            -- Initial values, '0', '1'
@@ -816,19 +832,19 @@ begin
   --==    [INFO] This component provides direct FPGA logic access to the 32-bit
   --==      value stored by the FPGA bitstream. We use this register to retrieve
   --==      an accurate timestamp corresponding to the date of the bitstream
-  --==      generation (note that we don't track the sminiutes and seconds).    
-  --============================================================================  
+  --==      generation (note that we don't track the sminiutes and seconds).
+  --============================================================================
   TOP_TIMESTAMP : USR_ACCESSE2
     port map (
       CFGCLK    => open,            -- Not used in the static mode
       DATA      => sTOP_Timestamp,  -- 32-bit configuration data
       DATAVALID => open             -- Not used in the static mode
     );
-  
+
   --==========================================================================
   --==  INST: SHELL FOR FMKU60
   --==   This version of the SHELL has the following user interfaces:
-  --==    - one UDP, one TCP, and two MemoryPort interfaces. 
+  --==    - one UDP, one TCP, and two MemoryPort interfaces.
   --==========================================================================
   SHELL : Shell_Themisto
       generic map (
@@ -843,14 +859,14 @@ begin
       ------------------------------------------------------
       piTOP_156_25Rst                   => sTOP_156_25Rst,
       piTOP_156_25Clk                   => sTOP_156_25Clk,
-      
+
       ------------------------------------------------------
       -- TOP / Bitstream Identification
       ------------------------------------------------------
       piTOP_Timestamp                   => sTOP_Timestamp,
-      
+
       ------------------------------------------------------
-      -- CLKT / Clock Tree Interface 
+      -- CLKT / Clock Tree Interface
       ------------------------------------------------------
       piCLKT_Mem0Clk_n                  => piCLKT_Mem0Clk_n,
       piCLKT_Mem0Clk_p                  => piCLKT_Mem0Clk_p,
@@ -869,7 +885,7 @@ begin
       piPSOC_Emif_AdS_n                 => piPSOC_Emif_AdS_n,
       piPSOC_Emif_Addr                  => piPSOC_Emif_Addr,
       pioPSOC_Emif_Data                 => pioPSOC_Emif_Data,
-      
+
       ------------------------------------------------------
       -- LED / Shl / Heart Beat Interface => Yellow LED)
       ------------------------------------------------------
@@ -892,7 +908,7 @@ begin
       poDDR4_Mem_Mc0_Ck_n               => poDDR4_Mem_Mc0_Ck_n,
       poDDR4_Mem_Mc0_Ck_p               => poDDR4_Mem_Mc0_Ck_p,
       poDDR4_Mem_Mc0_Reset_n            => poDDR4_Mem_Mc0_Reset_n,
-      
+
       ------------------------------------------------------
       -- DDR4 / Shl / Memory Channel 1 Interface (Mc1)
       ------------------------------------------------------
@@ -910,15 +926,15 @@ begin
       poDDR4_Mem_Mc1_Ck_n               => poDDR4_Mem_Mc1_Ck_n,
       poDDR4_Mem_Mc1_Ck_p               => poDDR4_Mem_Mc1_Ck_p,
       poDDR4_Mem_Mc1_Reset_n            => poDDR4_Mem_Mc1_Reset_n,
-      
+
       ------------------------------------------------------
       -- ECON / Edge / Connector Interface (SPD08-200)
       ------------------------------------------------------
       piECON_Eth_10Ge0_n                => piECON_Eth_10Ge0_n,
       piECON_Eth_10Ge0_p                => piECON_Eth_10Ge0_p,
-      poECON_Eth_10Ge0_n                => poECON_Eth_10Ge0_n, 
+      poECON_Eth_10Ge0_n                => poECON_Eth_10Ge0_n,
       poECON_Eth_10Ge0_p                => poECON_Eth_10Ge0_p,
-      
+
       ------------------------------------------------------
       -- ROLE / Reset and Clock Interfaces
       ------------------------------------------------------
@@ -942,7 +958,7 @@ begin
       soROL_Nts_Udp_Data_tready      => sROL_Shl_Nts0_Udp_Axis_tready,
       -- Open Port vector
       piROL_Nrc_Udp_Rx_ports         =>  sROL_Nrc_Udp_Rx_ports  ,
-      -- ROLE <-> NRC Meta Interface 
+      -- ROLE <-> NRC Meta Interface
       siROLE_Nrc_Udp_Meta_TDATA      =>  sROLE_Nrc_Udp_Meta_TDATA   ,
       siROLE_Nrc_Udp_Meta_TVALID     =>  sROLE_Nrc_Udp_Meta_TVALID  ,
       siROLE_Nrc_Udp_Meta_TREADY     =>  sROLE_Nrc_Udp_Meta_TREADY  ,
@@ -953,7 +969,7 @@ begin
       soNRC_Role_Udp_Meta_TREADY     =>  sNRC_Role_Udp_Meta_TREADY  ,
       soNRC_Role_Udp_Meta_TKEEP      =>  sNRC_Role_Udp_Meta_TKEEP   ,
       soNRC_Role_Udp_Meta_TLAST      =>  sNRC_Role_Udp_Meta_TLAST   ,
-      
+
       ------------------------------------------------------
       -- ROLE / Shl /Nts0 / Tcp Interfaces
       ------------------------------------------------------
@@ -971,7 +987,7 @@ begin
       soROL_Nts_Tcp_Data_tready      => sROL_Shl_Nts0_Tcp_Axis_tready,
       -- Open Port vector
       piROL_Nrc_Tcp_Rx_ports         =>  sROL_Nrc_Tcp_Rx_ports  ,
-      -- ROLE <-> NRC Meta Interface 
+      -- ROLE <-> NRC Meta Interface
       siROLE_Nrc_Tcp_Meta_TDATA      =>  sROLE_Nrc_Tcp_Meta_TDATA   ,
       siROLE_Nrc_Tcp_Meta_TVALID     =>  sROLE_Nrc_Tcp_Meta_TVALID  ,
       siROLE_Nrc_Tcp_Meta_TREADY     =>  sROLE_Nrc_Tcp_Meta_TREADY  ,
@@ -982,11 +998,11 @@ begin
       soNRC_Role_Tcp_Meta_TREADY     =>  sNRC_Role_Tcp_Meta_TREADY  ,
       soNRC_Role_Tcp_Meta_TKEEP      =>  sNRC_Role_Tcp_Meta_TKEEP   ,
       soNRC_Role_Tcp_Meta_TLAST      =>  sNRC_Role_Tcp_Meta_TLAST   ,
-      
-      ------------------------------------------------------  
+
+      ------------------------------------------------------
       -- ROLE / Mem / Mp0 Interface
       ------------------------------------------------------
-      -- Memory Port #0 / S2MM-AXIS ------------------   
+      -- Memory Port #0 / S2MM-AXIS ------------------
       ---- Stream Read Command ---------
       siROL_Mem_Mp0_RdCmd_tdata         => ssROL_SHL_Mem_Mp0_RdCmd_tdata,
       siROL_Mem_Mp0_RdCmd_tvalid        => ssROL_SHL_Mem_Mp0_RdCmd_tvalid,
@@ -1014,8 +1030,8 @@ begin
       siROL_Mem_Mp0_Write_tkeep         => ssROL_SHL_Mem_Mp0_Write_tkeep,
       siROL_Mem_Mp0_Write_tlast         => ssROL_SHL_Mem_Mp0_Write_tlast,
       siROL_Mem_Mp0_Write_tvalid        => ssROL_SHL_Mem_Mp0_Write_tvalid,
-      siROL_Mem_Mp0_Write_tready        => ssROL_SHL_Mem_Mp0_Write_tready, 
-      
+      siROL_Mem_Mp0_Write_tready        => ssROL_SHL_Mem_Mp0_Write_tready,
+
       ------------------------------------------------------
       -- ROLE / Mem / Mp1 Interface
       ------------------------------------------------------
@@ -1071,15 +1087,15 @@ begin
       piROL_Mmio_RdReg                  => sROL_SHL_Mmio_RdReg,
       ---- [APP_WRROL] -----------------
       poROL_Mmio_WrReg                  => sSHL_ROL_Mmio_WrReg,
-            
+
       --------------------------------------------------------
-      -- ROLE / Fmc / Management Interface 
+      -- ROLE / Fmc / Management Interface
       --------------------------------------------------------
       poROL_Fmc_Rank                    => sSHL_ROL_Fmc_Rank,
       poROL_Fmc_Size                    => sSHL_ROL_Fmc_Size,
-      
+
       poVoid                            => open
-         
+
   );  -- End of SuperShell instantiation
 
 
@@ -1096,7 +1112,7 @@ begin
 
   ROLE : Role_Themisto
     port map (
-    
+
       ------------------------------------------------------
       -- SHELL / Global Input Clock and Reset Interface
       ------------------------------------------------------
@@ -1106,7 +1122,7 @@ begin
       -- LY7 Enable and Reset
       piMMIO_Ly7_Rst                    => sSHL_ROL_Mmio_Ly7Rst,
       piMMIO_Ly7_En                     => sSHL_ROL_Mmio_Ly7En,
-    
+
       ------------------------------------------------------
       -- SHELL / Role / Nts0 / Udp Interface
       ------------------------------------------------------
@@ -1135,7 +1151,7 @@ begin
       siNRC_Role_Udp_Meta_TREADY =>  sNRC_Role_Udp_Meta_TREADY  ,
       siNRC_Role_Udp_Meta_TKEEP  =>  sNRC_Role_Udp_Meta_TKEEP   ,
       siNRC_Role_Udp_Meta_TLAST  =>  sNRC_Role_Udp_Meta_TLAST   ,
-      
+
       ------------------------------------------------------
       -- SHELL / Role / Nts0 / Tcp Interface
       ------------------------------------------------------
@@ -1164,12 +1180,12 @@ begin
       siNRC_Role_Tcp_Meta_TREADY =>  sNRC_Role_Tcp_Meta_TREADY  ,
       siNRC_Role_Tcp_Meta_TKEEP  =>  sNRC_Role_Tcp_Meta_TKEEP   ,
       siNRC_Role_Tcp_Meta_TLAST  =>  sNRC_Role_Tcp_Meta_TLAST   ,
-      
-      
+
+
 ------------------------------------------------------
       -- SHELL / Mem / Mp0 Interface
       ------------------------------------------------------
-      -- Memory Port #0 / S2MM-AXIS ------------------   
+      -- Memory Port #0 / S2MM-AXIS ------------------
       ---- Stream Read Command ---------
       soMEM_Mp0_RdCmd_tdata         => ssROL_SHL_Mem_Mp0_RdCmd_tdata,
       soMEM_Mp0_RdCmd_tvalid        => ssROL_SHL_Mem_Mp0_RdCmd_tvalid,
@@ -1198,7 +1214,7 @@ begin
       soMEM_Mp0_Write_tlast         => ssROL_SHL_Mem_Mp0_Write_tlast,
       soMEM_Mp0_Write_tvalid        => ssROL_SHL_Mem_Mp0_Write_tvalid,
       soMEM_Mp0_Write_tready        => ssROL_SHL_Mem_Mp0_Write_tready,
-      
+
       ------------------------------------------------------
       -- SHELL / Role / Mem / Mp1 Interface
       ------------------------------------------------------
@@ -1231,7 +1247,7 @@ begin
       moMEM_Mp1_RLAST               =>  smROL_SHL_Mem_Mp1_RLAST    ,
       moMEM_Mp1_RVALID              =>  smROL_SHL_Mem_Mp1_RVALID   ,
       moMEM_Mp1_RREADY              =>  smROL_SHL_Mem_Mp1_RREADY   ,
-      
+
       -- leave declarations here for higher privileged Roles?
       --------------------------------------------------------
       ---- SHELL / Mmio / Flash Debug Interface
@@ -1256,15 +1272,31 @@ begin
       ---- TOP : Secondary Clock (Asynchronous)
       ------------------------------------------------------
       piTOP_250_00Clk                   => sTOP_250_00Clk,  -- Freerunning
-      
+
       --------------------------------------------------------
-      -- ROLE / Fmc / Management Interface 
-      -------------------------------------------------------- 
+      -- ROLE / Fmc / Management Interface
+      --------------------------------------------------------
       piFMC_ROLE_rank                     => sSHL_ROL_Fmc_Rank,
       piFMC_ROLE_size                     => sSHL_ROL_Fmc_Size,
-      
-      poVoid                            => open  
-  
+
+      ------------------------------------------------
+      -- DEBUG PORTS (see UG909)
+      ------------------------------------------------
+      dpBSCAN_drck        => open,
+      dpBSCAN_shift       => open,
+      dpBSCAN_tdi         => open,
+      dpBSCAN_update      => open,
+      dpBSCAN_sel         => open,
+      dpBSCAN_tdo         => open,
+      dpBSCAN_tms         => open,
+      dpBSCAN_tck         => open,
+      dpBSCAN_runtest     => open,
+      dpBSCAN_reset       => open,
+      dpBSCAN_capture     => open,
+      dpBSCAN_bscanid_en  => open,
+
+      poVoid                            => open
+
   );  -- End of Role instantiation
 
 end structural;
