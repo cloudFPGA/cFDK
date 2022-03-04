@@ -208,8 +208,9 @@ if { $argc > 0 } {
               my_info_puts "The argument \'save_incr\' is set."
             }
             if { ${key} eq "only_pr_bitgen" && ${value} eq 1 } {
-              set only_pr_bitgen 1
-              my_info_puts "The argument \'only_pr_bitgen\' is set."
+              # set only_pr_bitgen 1
+              # my_info_puts "The argument \'only_pr_bitgen\' is set."
+              my_info_puts "The argument \'only_pr_bitgen\' is currently IGNORED."
             }
             if { ${key} eq "insert_ila" && ${value} eq 1 } {
               set insert_ila 1
