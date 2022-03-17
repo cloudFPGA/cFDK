@@ -746,7 +746,7 @@ if { ${impl1} || ( $forceWithoutBB && $impl1 ) } {
     }
 
   set add_role_tcl ${usedRoleDir}/xdc/additional_role_constraints.tcl
-  if { [ file exists ${add_role_tcl} ] != 1 } {
+  if { [ file exists ${add_role_tcl} ] == 1 } {
     source ${add_role_tcl}
     my_info_puts "Addtitional Role constraints in file ${add_role_tcl} were executed."
   }
@@ -891,7 +891,7 @@ if { $impl2 } {
   my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
 
   set add_role_tcl ${usedRole2Dir}/xdc/additional_role_constraints.tcl
-  if { [ file exists ${add_role_tcl} ] != 1 } {
+  if { [ file exists ${add_role_tcl} ] == 1 } {
     source ${add_role_tcl}
     my_info_puts "Addtitional Role constraints in file ${add_role_tcl} were executed."
   }
