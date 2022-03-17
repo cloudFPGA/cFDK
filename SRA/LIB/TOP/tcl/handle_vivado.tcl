@@ -745,7 +745,13 @@ if { ${impl1} || ( $forceWithoutBB && $impl1 ) } {
      my_info_puts "DEBUG XDC ADDED."
     }
 
-    set_property needs_refresh false [get_runs synth_1]
+  set add_role_tcl ${usedRoleDir}/xdc/additional_role_constraints.tcl
+  if { [ file exists ${add_role_tcl} ] != 1 } {
+    source ${add_role_tcl}
+    my_info_puts "Addtitional Role constraints in file ${add_role_tcl} were executed."
+  }
+
+  set_property needs_refresh false [get_runs synth_1]
 
     # Select a Strategy
     #  Strategies are a defined set of Vivado implementation feature options that control
@@ -877,12 +883,18 @@ if { $impl2 } {
 
   my_dbg_trace "Linked 2. Configuration together" ${dbgLvl_1}
 
-    my_puts "################################################################################"
-    my_puts "##"
-    my_puts "##  RUN 2. IMPLEMENTATION: ${xprName}  with ${usedRole2}"
-    my_puts "##"
-    my_puts "################################################################################"
-    my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+  my_puts "################################################################################"
+  my_puts "##"
+  my_puts "##  RUN 2. IMPLEMENTATION: ${xprName}  with ${usedRole2}"
+  my_puts "##"
+  my_puts "################################################################################"
+  my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+
+  set add_role_tcl ${usedRole2Dir}/xdc/additional_role_constraints.tcl
+  if { [ file exists ${add_role_tcl} ] != 1 } {
+    source ${add_role_tcl}
+    my_info_puts "Addtitional Role constraints in file ${add_role_tcl} were executed."
+  }
 
   opt_design
 
