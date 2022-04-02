@@ -162,6 +162,8 @@ if { $argc > 0 } {
             if { ${key} eq "impl2" && ${value} eq 1 } {
                 set impl2   1
                  my_info_puts "The argument \'impl2\' is set."
+                set impl_opt 1
+                my_info_puts "The argument \'impl_opt\' is set AUTOMATICALLY."
             }
             if { ${key} eq "implGrey" && ${value} eq 1 } {
                 set pr_grey_impl   1
@@ -907,8 +909,16 @@ if { $impl2 } {
     my_info_puts "Incremental compile seems not to work for PARTIAL RECONFIGURATION FLOW, so this option will be ignored."
   }
 
-  place_design
-  route_design
+
+  if { $impl_opt } {
+    my_puts "Strategy Performance_ExtraTimingOpt is used"
+    place_design -directive ExtraTimingOpt
+    phys_opt_design -directive Explore
+    route_design -directive NoTimingRelaxation
+  } else {
+    place_design
+    route_design
+  }
 
 
   write_checkpoint -force ${dcpDir}/2_${topName}_impl_${usedRole2}_complete_pr.dcp
