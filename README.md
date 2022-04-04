@@ -1,6 +1,8 @@
 # cFDK
 The **cloudFPGA Development Kit**.
 
+:information_source: The cloudFPGA documentation is available at [https://cloudfpga.github.io/Doc](https://cloudfpga.github.io/Doc/pages/INTRODUCTION/introduction.html)
+
 ## Introduction
 
 The cloud service architecture of cloudFPGA is comparable to a cloud service hosting traditional 
