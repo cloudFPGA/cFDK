@@ -413,8 +413,6 @@ if { ${create} } {
         #---------------------------------------------------------------------------
         update_compile_order -fileset sources_1
 
-        # Add Constraints Files SHELL
-        #---------------------------------------------------------------------------
         my_dbg_trace "Done with the import of the SHELL Source files" ${dbgLvl_1}
 
     } else {
@@ -507,6 +505,7 @@ if { ${create} } {
 
     set_property used_in_implementation false [get_files topFMKU60_timg_synt.xdc]
     set_property used_in_synthesis      false [get_files topFMKU60_timg_impl.xdc]
+    set_property used_in_synthesis      false [get_files topFMKU60_place_impl.xdc]
 
     my_dbg_trace "Done with adding XDC files." ${dbgLvl_1}
 
