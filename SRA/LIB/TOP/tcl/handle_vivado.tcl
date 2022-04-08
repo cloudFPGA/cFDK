@@ -1136,18 +1136,14 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
 
     }
 
+    # DEBUG probes must be generated before other checkpoints are opened --> see above
+
     # write global report
     report_utilization -file ${dcpDir}/7_utilization_report_global.txt
     report_utilization -file ${dcpDir}/7_utilization_report_hierarchical.txt -hierarchical
-
-    # DEBUG probes
-    # if { $insert_ila } {
-    #   if { ${forceWithoutBB} } {
-    #     write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}_monolithic.ltx
-    #   } else {
-    #     write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}.ltx
-    #   }
-    # }
+    report_timing_summary -delay_type min_max -report_unconstrained -check_timing_verbose -max_paths 100 -input_pins -routable_nets -name timing_1 -file ${dcpDir}/7_timing_report.txt
+    report_design_analysis -complexity -timing -setup -max_paths 10 -congestion -min_congestion_level 3 -name design_analysis_1 -file ${dcpDir}/7_design_analysis_report.txt
+    report_high_fanout_nets -file ${dcpDir}/7_fanout_report.txt  -format text -name high_fanout_nets_1
 
     my_puts "################################################################################"
     my_puts "##  DONE WITH BITSTREAM GENERATION RUN "
