@@ -140,34 +140,36 @@ if { $argc > 0 } {
             my_info_puts "The argument \'clean\' is set and takes precedence over \'force\', \'create\', \'synth\', \'impl \' and \'bitgen\' and DISABLE any PR-Flow Steps."
         } else {
             if { ${key} eq "create" && ${value} eq 1 } {
-                set create 1
-                my_info_puts "The argument \'create\' is set."
+              set create 1
+              my_info_puts "The argument \'create\' is set."
             }
             if { ${key} eq "force" && ${value} eq 1 } {
-                set force 1
-                my_dbg_trace "Setting force to \'1\' " ${dbgLvl_1}
+              set force 1
+              my_dbg_trace "Setting force to \'1\' " ${dbgLvl_1}
             }
             if { ${key} eq "full_src" && ${value} eq 1 } {
-                set full_src 1
-                my_dbg_trace "Setting full_src to \'1\' " ${dbgLvl_1}
+              set full_src 1
+              my_dbg_trace "Setting full_src to \'1\' " ${dbgLvl_1}
             }
             if { ${key} eq "synth" && ${value} eq 1 } {
-                set synth  1
-                my_info_puts "The argument \'synth\' is set."
+              set synth  1
+              my_info_puts "The argument \'synth\' is set."
             }
             if { ${key} eq "impl" && ${value} eq 1 } {
-                set impl1   1
-                 my_info_puts "The argument \'impl\' is set."
+              set impl1   1
+              my_info_puts "The argument \'impl\' is set."
+              set impl_opt 1
+              my_info_puts "The argument \'impl_opt\' is set AUTOMATICALLY."
             }
             if { ${key} eq "impl2" && ${value} eq 1 } {
-                set impl2   1
-                 my_info_puts "The argument \'impl2\' is set."
-                set impl_opt 1
-                my_info_puts "The argument \'impl_opt\' is set AUTOMATICALLY."
+              set impl2   1
+              my_info_puts "The argument \'impl2\' is set."
+              set impl_opt 1
+              my_info_puts "The argument \'impl_opt\' is set AUTOMATICALLY."
             }
             if { ${key} eq "implGrey" && ${value} eq 1 } {
-                set pr_grey_impl   1
-                 my_info_puts "The argument \'implGrey\' is set."
+              set pr_grey_impl   1
+              my_info_puts "The argument \'implGrey\' is set."
             }
             if { ${key} eq "pr" && ${value} eq 1 } {
               set pr 1
