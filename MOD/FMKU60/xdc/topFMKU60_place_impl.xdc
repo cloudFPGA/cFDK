@@ -40,13 +40,14 @@
 #===============================================================================
 # Placement of MIG cores
 #===============================================================================
-create_pblock pblock_MC0
-resize_pblock [get_pblocks pblock_MC0] -add {CLOCKREGION_X1Y0:CLOCKREGION_X2Y2}
-add_cells_to_pblock [get_pblocks pblock_MC0] [get_cells SHELL/MEM/MC0/MCC]
-
-create_pblock pblock_MC1
-resize_pblock [get_pblocks pblock_MC1] -add {CLOCKREGION_X3Y2:CLOCKREGION_X4Y4}
-add_cells_to_pblock [get_pblocks pblock_MC1] [get_cells SHELL/MEM/MC1/MCC]
+# TODO collides with PR ROLE regions
+#create_pblock pblock_MC0
+#resize_pblock [get_pblocks pblock_MC0] -add {CLOCKREGION_X1Y0:CLOCKREGION_X2Y2}
+#add_cells_to_pblock [get_pblocks pblock_MC0] [get_cells SHELL/MEM/MC0/MCC]
+#
+#create_pblock pblock_MC1
+#resize_pblock [get_pblocks pblock_MC1] -add {CLOCKREGION_X3Y2:CLOCKREGION_X4Y4}
+#add_cells_to_pblock [get_pblocks pblock_MC1] [get_cells SHELL/MEM/MC1/MCC]
 
 
 
