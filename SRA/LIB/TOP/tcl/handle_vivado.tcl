@@ -1146,6 +1146,7 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
     report_timing_summary -delay_type min_max -report_unconstrained -check_timing_verbose -max_paths 100 -input_pins -routable_nets -name timing_1 -file ${dcpDir}/7_timing_report.txt
     report_design_analysis -complexity -timing -setup -max_paths 10 -congestion -min_congestion_level 3 -name design_analysis_1 -file ${dcpDir}/7_design_analysis_report.txt
     report_high_fanout_nets -file ${dcpDir}/7_fanout_report.txt  -format text -name high_fanout_nets_1
+    report_power -name power_1 -file ${dcpDir}/7_power_report.txt
 
     my_puts "################################################################################"
     my_puts "##  DONE WITH BITSTREAM GENERATION RUN "
