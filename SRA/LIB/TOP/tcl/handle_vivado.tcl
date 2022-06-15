@@ -214,7 +214,9 @@ if { $argc > 0 } {
             if { ${key} eq "only_pr_bitgen" && ${value} eq 1 } {
               # set only_pr_bitgen 1
               # my_info_puts "The argument \'only_pr_bitgen\' is set."
+              set bitGen2 1
               my_info_puts "The argument \'only_pr_bitgen\' is currently IGNORED."
+              my_info_puts "     \'bitGen2\' is set instead."
             }
             if { ${key} eq "insert_ila" && ${value} eq 1 } {
               set insert_ila 1
@@ -233,7 +235,7 @@ my_info_puts "usedRole2 is set to $usedRole2"
 
 # -----------------------------------------------------
 # Assert valid combination of arguments
-if {$only_pr_bitgen} {
+if {$only_pr_bitgen || $bitGen2} {
   if { [format "%.1f" ${VIVADO_VERSION}] <= 2018.1 } {
     # to deal with https://www.xilinx.com/support/answers/70708.html
     set pr_verify 0
