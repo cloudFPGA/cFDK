@@ -25,6 +25,7 @@
 #  *
 
 
-set orderedList "xdc_settings.tcl topFMKU60_timg_synt.xdc topFMKU60_timg_impl.xdc topFMKU60_pins.xdc  topFMKU60.xdc"
+set orderedList "xdc_settings.tcl topFMKU60_timg_synt.xdc topFMKU60_timg_impl.xdc topFMKU60_place_impl.xdc topFMKU60_pins.xdc  topFMKU60.xdc"
+
 
 

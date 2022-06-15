@@ -140,32 +140,36 @@ if { $argc > 0 } {
             my_info_puts "The argument \'clean\' is set and takes precedence over \'force\', \'create\', \'synth\', \'impl \' and \'bitgen\' and DISABLE any PR-Flow Steps."
         } else {
             if { ${key} eq "create" && ${value} eq 1 } {
-                set create 1
-                my_info_puts "The argument \'create\' is set."
+              set create 1
+              my_info_puts "The argument \'create\' is set."
             }
             if { ${key} eq "force" && ${value} eq 1 } {
-                set force 1
-                my_dbg_trace "Setting force to \'1\' " ${dbgLvl_1}
+              set force 1
+              my_dbg_trace "Setting force to \'1\' " ${dbgLvl_1}
             }
             if { ${key} eq "full_src" && ${value} eq 1 } {
-                set full_src 1
-                my_dbg_trace "Setting full_src to \'1\' " ${dbgLvl_1}
+              set full_src 1
+              my_dbg_trace "Setting full_src to \'1\' " ${dbgLvl_1}
             }
             if { ${key} eq "synth" && ${value} eq 1 } {
-                set synth  1
-                my_info_puts "The argument \'synth\' is set."
+              set synth  1
+              my_info_puts "The argument \'synth\' is set."
             }
             if { ${key} eq "impl" && ${value} eq 1 } {
-                set impl1   1
-                 my_info_puts "The argument \'impl\' is set."
+              set impl1   1
+              my_info_puts "The argument \'impl\' is set."
+              set impl_opt 1
+              my_info_puts "The argument \'impl_opt\' is set AUTOMATICALLY."
             }
             if { ${key} eq "impl2" && ${value} eq 1 } {
-                set impl2   1
-                 my_info_puts "The argument \'impl2\' is set."
+              set impl2   1
+              my_info_puts "The argument \'impl2\' is set."
+              set impl_opt 1
+              my_info_puts "The argument \'impl_opt\' is set AUTOMATICALLY."
             }
             if { ${key} eq "implGrey" && ${value} eq 1 } {
-                set pr_grey_impl   1
-                 my_info_puts "The argument \'implGrey\' is set."
+              set pr_grey_impl   1
+              my_info_puts "The argument \'implGrey\' is set."
             }
             if { ${key} eq "pr" && ${value} eq 1 } {
               set pr 1
@@ -208,8 +212,11 @@ if { $argc > 0 } {
               my_info_puts "The argument \'save_incr\' is set."
             }
             if { ${key} eq "only_pr_bitgen" && ${value} eq 1 } {
-              set only_pr_bitgen 1
-              my_info_puts "The argument \'only_pr_bitgen\' is set."
+              # set only_pr_bitgen 1
+              # my_info_puts "The argument \'only_pr_bitgen\' is set."
+              set bitGen2 1
+              my_info_puts "The argument \'only_pr_bitgen\' is currently IGNORED."
+              my_info_puts "     \'bitGen2\' is set instead."
             }
             if { ${key} eq "insert_ila" && ${value} eq 1 } {
               set insert_ila 1
@@ -228,7 +235,7 @@ my_info_puts "usedRole2 is set to $usedRole2"
 
 # -----------------------------------------------------
 # Assert valid combination of arguments
-if {$only_pr_bitgen} {
+if {$only_pr_bitgen || $bitGen2} {
   if { [format "%.1f" ${VIVADO_VERSION}] <= 2018.1 } {
     # to deal with https://www.xilinx.com/support/answers/70708.html
     set pr_verify 0
@@ -410,8 +417,6 @@ if { ${create} } {
         #---------------------------------------------------------------------------
         update_compile_order -fileset sources_1
 
-        # Add Constraints Files SHELL
-        #---------------------------------------------------------------------------
         my_dbg_trace "Done with the import of the SHELL Source files" ${dbgLvl_1}
 
     } else {
@@ -504,6 +509,7 @@ if { ${create} } {
 
     set_property used_in_implementation false [get_files topFMKU60_timg_synt.xdc]
     set_property used_in_synthesis      false [get_files topFMKU60_timg_impl.xdc]
+    set_property used_in_synthesis      false [get_files topFMKU60_place_impl.xdc]
 
     my_dbg_trace "Done with adding XDC files." ${dbgLvl_1}
 
@@ -744,7 +750,13 @@ if { ${impl1} || ( $forceWithoutBB && $impl1 ) } {
      my_info_puts "DEBUG XDC ADDED."
     }
 
-    set_property needs_refresh false [get_runs synth_1]
+  set add_role_tcl ${usedRoleDir}/xdc/additional_role_constraints.tcl
+  if { [ file exists ${add_role_tcl} ] == 1 } {
+    source ${add_role_tcl}
+    my_info_puts "Addtitional Role constraints in file ${add_role_tcl} were executed."
+  }
+
+  set_property needs_refresh false [get_runs synth_1]
 
     # Select a Strategy
     #  Strategies are a defined set of Vivado implementation feature options that control
@@ -876,12 +888,18 @@ if { $impl2 } {
 
   my_dbg_trace "Linked 2. Configuration together" ${dbgLvl_1}
 
-    my_puts "################################################################################"
-    my_puts "##"
-    my_puts "##  RUN 2. IMPLEMENTATION: ${xprName}  with ${usedRole2}"
-    my_puts "##"
-    my_puts "################################################################################"
-    my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+  my_puts "################################################################################"
+  my_puts "##"
+  my_puts "##  RUN 2. IMPLEMENTATION: ${xprName}  with ${usedRole2}"
+  my_puts "##"
+  my_puts "################################################################################"
+  my_puts "Start at: [clock format [clock seconds] -format {%T %a %b %d %Y}] \n"
+
+  set add_role_tcl ${usedRole2Dir}/xdc/additional_role_constraints.tcl
+  if { [ file exists ${add_role_tcl} ] == 1 } {
+    source ${add_role_tcl}
+    my_info_puts "Addtitional Role constraints in file ${add_role_tcl} were executed."
+  }
 
   opt_design
 
@@ -894,8 +912,16 @@ if { $impl2 } {
     my_info_puts "Incremental compile seems not to work for PARTIAL RECONFIGURATION FLOW, so this option will be ignored."
   }
 
-  place_design
-  route_design
+
+  if { $impl_opt } {
+    my_puts "Strategy Performance_ExtraTimingOpt is used"
+    place_design -directive ExtraTimingOpt
+    phys_opt_design -directive Explore
+    route_design -directive NoTimingRelaxation
+  } else {
+    place_design
+    route_design
+  }
 
 
   write_checkpoint -force ${dcpDir}/2_${topName}_impl_${usedRole2}_complete_pr.dcp
@@ -1015,7 +1041,7 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
       #wait_on_run impl_1
 
       # DEBUG probes
-      if { $insert_ila } {
+      if { $insert_ila || ([llength [get_cells -quiet -hier -filter REF_NAME==dbg_hub]]) } {
         write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}_monolithic.ltx
       }
 
@@ -1045,7 +1071,7 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
           exec /bin/bash ${rootDir}/env/create_sig.sh 4_${topName}_impl_${curImpl}_pblock_ROLE_partial.bin pr_verify.rpt
           #close_project
           # DEBUG probes
-          if { $insert_ila || ([llength [get_cells -quiet -hier -filter REF_NAME==dbg_hub]])} {
+          if { $insert_ila || ([llength [get_cells -quiet -hier -filter REF_NAME==dbg_hub]]) } {
             write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}.ltx
           }
           # write role report
@@ -1072,7 +1098,7 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
         write_bitstream -force ${dcpDir}/4_${topName}_impl_${curImpl}.bit
         #close_project
         # DEBUG probes
-        if { $insert_ila || ([llength [get_cells -quiet -hier -filter REF_NAME==dbg_hub]])} {
+        if { $insert_ila || ([llength [get_cells -quiet -hier -filter REF_NAME==dbg_hub]]) } {
           write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}.ltx
         }
       }
@@ -1114,18 +1140,15 @@ if { $bitGen1 || $bitGen2 || $pr_grey_bitgen } {
 
     }
 
+    # DEBUG probes must be generated before other checkpoints are opened --> see above
+
     # write global report
     report_utilization -file ${dcpDir}/7_utilization_report_global.txt
     report_utilization -file ${dcpDir}/7_utilization_report_hierarchical.txt -hierarchical
-
-    # DEBUG probes
-    # if { $insert_ila } {
-    #   if { ${forceWithoutBB} } {
-    #     write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}_monolithic.ltx
-    #   } else {
-    #     write_debug_probes -force ${dcpDir}/5_${topName}_impl_${curImpl}.ltx
-    #   }
-    # }
+    report_timing_summary -delay_type min_max -report_unconstrained -check_timing_verbose -max_paths 100 -input_pins -routable_nets -name timing_1 -file ${dcpDir}/7_timing_report.txt
+    report_design_analysis -complexity -timing -setup -max_paths 10 -congestion -min_congestion_level 3 -name design_analysis_1 -file ${dcpDir}/7_design_analysis_report.txt
+    report_high_fanout_nets -file ${dcpDir}/7_fanout_report.txt  -format text -name high_fanout_nets_1
+    report_power -name power_1 -file ${dcpDir}/7_power_report.txt
 
     my_puts "################################################################################"
     my_puts "##  DONE WITH BITSTREAM GENERATION RUN "

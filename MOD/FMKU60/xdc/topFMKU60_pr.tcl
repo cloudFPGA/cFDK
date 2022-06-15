@@ -87,7 +87,13 @@
 ### Position 8 (use only CLOCKREGIONS) (working)
 # use only clockregions to add all clocking resoruces (esp. BUFGCE)
 
-resize_pblock pblock_ROLE -add {CLOCKREGION_X0Y4:CLOCKREGION_X1Y0 CLOCKREGION_X2Y3}
+#resize_pblock pblock_ROLE -add {CLOCKREGION_X0Y4:CLOCKREGION_X1Y0 CLOCKREGION_X2Y3}
+
+### Position 9 (use only CLOCKREGIONS) (working)
+# use only clockregions to add all clocking resoruces (esp. BUFGCE)
+
+resize_pblock pblock_ROLE -add {CLOCKREGION_X0Y4:CLOCKREGION_X1Y0}
+
 
 
 #set_property HD.RECONFIGURABLE true [get_cells ROLE]
